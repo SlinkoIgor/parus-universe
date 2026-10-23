@@ -1,0 +1,12 @@
+.DS_Store
+node_modules/
+.env
+.env.*
+!.env.example
+.openai/
+*.tar.gz
+data-tools/hyg_v41.csv
+data-tools/NGC.csv
+data-tools/psrcat.db
+data-tools/psrcat*.tar.gz
+data-tools/import-catalog.json

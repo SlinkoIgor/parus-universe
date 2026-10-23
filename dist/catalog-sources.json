@@ -1,0 +1,52 @@
+{
+  "retrieved": "2026-10-23",
+  "counts": {
+    "stars": 450,
+    "galaxies": 80,
+    "pulsars": 20,
+    "totalImported": 550
+  },
+  "coordinateFrame": "Equatorial J2000, raDeg and decDeg in degrees. All distances light-years. No proper motion propagation.",
+  "galaxyModel": {
+    "H0_km_s_Mpc": 70,
+    "omegaM": 0.3,
+    "omegaLambda": 0.7,
+    "d": "Dcom=(c/H0) integral_0^z dz/sqrt(Ωm(1+z)^3+ΩΛ)",
+    "DA": "Dcom/(1+z)",
+    "DL": "Dcom*(1+z)",
+    "reference": "https://ned.ipac.caltech.edu/level5/Hogg/Hogg_contents.html"
+  },
+  "provenance": [
+    {
+      "name": "HYG 4.1, David Nash / Astronexus",
+      "url": "https://github.com/astronexus/HYG-Database/tree/main/hyg",
+      "download": "https://raw.githubusercontent.com/astronexus/HYG-Database/main/hyg/CURRENT/hygdata_v41.csv",
+      "license": "CC-BY-SA-4.0",
+      "licenseURL": "https://raw.githubusercontent.com/astronexus/HYG-Database/main/hyg/CURRENT/LICENSE",
+      "changes": "450 nearest positive finite-distance rows selected; coordinates and distances converted to degrees / ly; lum labeled visual; missing masses/radii retained null.",
+      "sha256": "d9f69fd86bbf90a4e4d52b4c5c53eacfa6dfc0bfdef85bfd94f095e0bebe4ebd"
+    },
+    {
+      "name": "OpenNGC, Mattia Verga and contributors",
+      "url": "https://github.com/mattiaverga/OpenNGC",
+      "download": "https://raw.githubusercontent.com/mattiaverga/OpenNGC/master/database_files/NGC.csv",
+      "license": "CC-BY-SA-4.0",
+      "changes": "80 largest angular galaxies with V and .01≤z≤.03; cosmological distances, optical extents and V luminosities estimated as documented; missing masses retained null.",
+      "sha256": "54abea0b57b0a103831bfc7a8e3a99a23acfbf4bb581fcf3d8af539cbb826c84"
+    },
+    {
+      "name": "ATNF Pulsar Catalogue 2.9.0, Manchester et al. 2005 AJ129 1993",
+      "url": "https://www.atnf.csiro.au/research/pulsar/psrcat/",
+      "download": "https://www.atnf.csiro.au/research/pulsar/psrcat/downloads/psrcat_pkg.tar.gz",
+      "citation": "Manchester, R.N., Hobbs, G.B., Teoh, A. & Hobbs, M. (2005), AJ 129, 1993–2006. DOI:10.1086/428488",
+      "changes": "20 nearest entries with independent distance DIST_A; no canonical masses or radii inserted as measurements.",
+      "sha256": "bac32471fef3e60cfd734f1db85503a9bd0a565018cb98edff54475f87eb642f"
+    },
+    {
+      "name": "SIMBAD / CDS Strasbourg",
+      "url": "https://simbad.cds.unistra.fr/simbad/",
+      "query": "J2000 positions of original named objects via sim-tap/sync.",
+      "acknowledgement": "This research has made use of the SIMBAD database, operated at CDS, Strasbourg, France."
+    }
+  ]
+}
