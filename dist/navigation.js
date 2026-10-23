@@ -56,16 +56,17 @@ const Route={
   if(!this.isFlyby(f))return null;
   if(f.encounter&&Math.abs(f.encounter.beta-state.beta)<1e-12)return f.encounter;
   const body=object(f.target),next=object(f.route[f.legIndex+1].id),e=Gravity.encounter(f.from,body,next,state.beta);
-  if(!e.ok){f.route[f.legIndex].mode='stop';f.encounter=null;toast('Пролёт недоступен на фактической скорости. Автопилот выполняет остановку.');log('Пролёт заменён остановкой: '+body.name+'. '+e.reason);return null;}
+  if(!e.ok){f.route[f.legIndex].mode='stop';f.encounter=null;f.aim=null;f.from=Space.point(state.ship.p3);f.distance=distance(f.from,body);f.covered=0;f.maxBeta=state.beta;FlightMarks.plan(f);toast('Пролёт недоступен на фактической скорости. Автопилот выполняет остановку.');log('Пролёт заменён остановкой: '+body.name+'. '+e.reason);return null;}
   f.encounter={...e,beta:state.beta};return f.encounter;
  },
  gate(f=state.flight){if(f.aim)return 0;const e=this.prepare(f);return e?.plan?Math.min(f.distance,e.plan.R/LY):0;},
- enter(){const f=state.flight,e=this.prepare(f);if(!e)return;if(e.straight){this.next(f,state.ship,state.beta);return;}state.phase='flyby';state.acceleration=0;f.encounter.plan.elapsed=0;f.encounter.lastEarth=0;f.encounter.lastProper=0;f.encounter.lastPath=0;log('Пролёт: '+object(f.target).name+'. Поворот '+this.angleText(e.angle)+', rₚ = '+this.radiusText(e.rp)+'.');},
+ enter(){const f=state.flight,e=this.prepare(f);if(!e)return;if(e.straight){this.next(f,state.ship,state.beta);return;}state.phase='flyby';state.acceleration=0;f.encounter.plan.elapsedProper=0;f.encounter.lastEarth=0;f.encounter.lastProper=0;f.encounter.lastPath=0;log('Пролёт: '+object(f.target).name+'. Поворот '+this.angleText(e.angle)+', rₚ = '+this.radiusText(e.rp)+'.');},
  tick(dt){
-  const f=state.flight,e=f.encounter,p=e.plan,body=object(f.target);p.elapsed=Math.min(p.duration,p.elapsed+dt);const s=Gravity.sample(p,p.elapsed/p.duration);
+  const f=state.flight,e=f.encounter,p=e.plan,body=object(f.target),old=p.elapsedProper||0,used=Math.min(dt,Math.max(0,p.proper-old));
+  p.elapsedProper=old+used;const s=Gravity.atProper(p,p.elapsedProper);
   state.earth+=s.earth-e.lastEarth;state.proper+=s.proper-e.lastProper;state.totalDistance+=s.path-e.lastPath;e.lastEarth=s.earth;e.lastProper=s.proper;e.lastPath=s.path;
   state.ship=Space.point(V3.add(body.p3,s.offset));state.acceleration=0;state.beta=p.beta;
-  if(p.elapsed>=p.duration){if(!state.visited.includes(body.id))state.visited.push(body.id);this.next(f,state.ship,p.beta);}
+  if(p.elapsedProper>=p.proper){if(!state.visited.includes(body.id))state.visited.push(body.id);this.next(f,state.ship,p.beta);}return used;
  },
  next(old,from,beta){const nodes=old.route,index=old.legIndex+1,target=object(nodes[index]?.id);if(!target)return;state.selected=target.id;state.current=null;state.beta=beta;state.acceleration=0;state.phase='cruise';state.flight={from:{...from,p3:[...from.p3]},target:target.id,fromId:old.target,distance:distance(from,target),covered:0,coastRate:0,maxBeta:beta,boost:false,engine:null,wind:null,magnetic:null,missed:false,autoStopping:false,route:nodes,legIndex:index,encounter:null};this.configure();FlightMarks.plan();coastSetup();renderUI();fitRoute(target);persist();},
  afterStop(old){if(!old.route?.length||old.legIndex>=old.route.length-1)return;const index=old.legIndex+1;state.selected=old.route[index].id;launch();if(state.flight){state.flight.route=old.route;state.flight.legIndex=index;state.flight.encounter=null;this.configure();persist();}},
@@ -74,7 +75,7 @@ const Route={
   for(let i=start;i<nodes.length;i++){const o=object(nodes[i].id),b=screen(o);drawPhysicalSegment(i===start?(f?f.from:state.ship):object(nodes[i-1].id),o,'#919191',.9,[3,5]);circle(b.x,b.y,18,'#999999',.7);text(String(i+1),b.x,b.y+3,8,'#555555','center');a=b;}
  },
  drawEncounter(){
-  if(state.phase!=='flyby')return;const p=state.flight.encounter.plan,s=Gravity.sample(p,p.elapsed/p.duration),cx=width<700?width*.72:width*.48,cy=height*.30,scale=62/p.rp;
+  if(state.phase!=='flyby')return;const p=state.flight.encounter.plan,s=Gravity.atProper(p,p.elapsedProper||0),cx=width<700?width*.72:width*.48,cy=height*.30,scale=62/p.rp;
   // Explicit local diagram, independent of the interstellar map scale.
   ctx.save();ctx.beginPath();ctx.rect(cx-86,cy-86,172,172);ctx.clip();
   for(let i=1;i<p.rows.length;i++){const a=p.rows[i-1],b=p.rows[i];line(cx+Math.cos(a.phi)*a.r*scale,cy-Math.sin(a.phi)*a.r*scale,cx+Math.cos(b.phi)*b.r*scale,cy-Math.sin(b.phi)*b.r*scale,'#666666',1);}

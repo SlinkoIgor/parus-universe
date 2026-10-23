@@ -1,7 +1,7 @@
 'use strict';
 // SI for forces; rocket masses in tonnes, trajectories in Julian years/light-years.
 const Rocket=Object.freeze({
- c:299792458,year:31557600,dryMass:1,fuelCapacity:100,power:3e15,burnFraction:.10,
+ c:299792458,year:31557600,dryMass:.001,fuelCapacity:.001,initialFuel:.0005,power:3e15,
  massFlow(){return this.power/(this.c*this.c)*this.year/1000;},
  beta(m0,m){return Math.tanh(Math.log(m0/m));},
  acceleration(m){return this.power/(this.c*m*1000);},
@@ -13,10 +13,10 @@ const Rocket=Object.freeze({
   return{proper:dm/q,earth:g*(t+b*x),distance:g*(x+b*t),beta:Math.tanh(eta0+Math.log(m0/mb)),energy:this.energy(dm)};
  },
  plan(fuel,distance=Infinity,startBeta=0){
-  const eta0=Math.atanh(startBeta),m0=this.dryMass+Math.max(0,fuel);let budget=Math.max(0,fuel)*this.burnFraction;
+  const eta0=Math.atanh(startBeta),m0=this.dryMass+Math.max(0,fuel);let budget=Math.max(0,m0-Math.sqrt(this.dryMass*m0*Math.exp(eta0)));
   if(this.segment(m0,m0,m0-budget,eta0).distance>distance*.08){let lo=0,hi=budget;for(let i=0;i<55;i++){const mid=(lo+hi)/2;if(this.segment(m0,m0,m0-mid,eta0).distance>distance*.08)hi=mid;else lo=mid;}budget=lo;}
   const mf=m0-budget,leg=this.segment(m0,m0,mf,eta0);
-  return{m0,mf,eta0,budget,burned:0,initialFuel:fuel,beta:leg.beta,burnDistance:leg.distance,burnProper:leg.proper,burnEarth:leg.earth,properRate:leg.proper/6,energy:0,direction:1};
+  return{m0,mf,eta0,budget,burned:0,initialFuel:fuel,beta:leg.beta,burnDistance:leg.distance,burnProper:leg.proper,burnEarth:leg.earth,energy:0,direction:1};
  },
  retroSegment(m0,eta0,ma,mb){
   const q=this.massFlow(),dm=ma-mb,log=Math.log1p(dm/mb),a=Math.exp(eta0)*dm*(ma+mb)/(2*m0),b=Math.exp(-eta0)*m0*log;
@@ -26,7 +26,7 @@ const Rocket=Object.freeze({
  retroPlan(fuel,beta){
   const m0=this.dryMass+Math.max(0,fuel),eta0=Math.atanh(Math.max(0,Math.min(1-Number.EPSILON,beta))),mf=m0*Math.exp(-eta0),budget=m0-mf;
   const canStop=mf>=this.dryMass*(1-1e-10),leg=this.retroSegment(m0,eta0,m0,Math.max(this.dryMass,mf));
-  return{m0,mf:Math.max(this.dryMass,mf),eta0,budget:Math.min(fuel,budget),burned:0,initialFuel:fuel,beta:0,burnDistance:leg.distance,burnProper:leg.proper,burnEarth:leg.earth,properRate:leg.proper/6,energy:0,direction:-1,canStop};
+  return{m0,mf:Math.max(this.dryMass,mf),eta0,budget:Math.min(fuel,budget),burned:0,initialFuel:fuel,beta:0,burnDistance:leg.distance,burnProper:leg.proper,burnEarth:leg.earth,energy:0,direction:-1,canStop};
  }
 });
 const LY=Rocket.c*Rocket.year;
@@ -105,3 +105,12 @@ const Magnetic=Object.freeze({
   return{magnetic,engine,distance:magnetic.distance+engine.burnDistance,earth:magnetic.earth+engine.burnEarth,proper:magnetic.proper+engine.burnProper};
  }
 });
+
+// Invert physical proper time, never an animation duration.
+const ProperTime={
+ at(plan,model,years){
+  const total=plan.proper||0;if(years<=0)return{...model.sample(plan,0),p:0};if(years>=total)return{...model.sample(plan,1),p:1};
+  let lo=0,hi=1;for(let i=0;i<58;i++){const p=(lo+hi)/2;if(model.sample(plan,p).proper<years)lo=p;else hi=p;}
+  const p=(lo+hi)/2;return{...model.sample(plan,p),p};
+ }
+};

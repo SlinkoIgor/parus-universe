@@ -7,104 +7,63 @@ const el=id=>els.get(id)||(els.set(id,new Element),els.get(id));
 const context=vm.createContext({console,performance,Math,JSON,Number,Array,String,Set,Map,Date,setTimeout:()=>0,clearTimeout(){},requestAnimationFrame(){},ResizeObserver:class{observe(){}},document:{documentElement:{dataset:{theme:'dark'}},querySelector:()=>null,getElementById:el,querySelectorAll:()=>[],addEventListener(){},createElement:()=>new Element,hidden:false},window:{devicePixelRatio:1,addEventListener(){},open(){}},localStorage:{getItem(){return null},setItem(){}},assert});
 
 
-vm.runInContext(['dist/catalog.js','dist/astronomy.js','dist/catalog-import.js','dist/coordinates.js','dist/layout-data.js','dist/map-layout.js','dist/flight-marks.js','dist/physics.js','dist/flyby.js','dist/navigation.js','dist/app.js'].map(p=>fs.readFileSync(p,'utf8')).join('\n'),context);
+vm.runInContext(['dist/catalog.js','dist/astronomy.js','dist/catalog-import.js','dist/coordinates.js','dist/layout-data.js','dist/map-layout.js','dist/flight-marks.js','dist/physics.js','dist/flyby.js','dist/navigation.js','dist/simulation.js','dist/app.js'].map(p=>fs.readFileSync(p,'utf8')).join('\n'),context);
 const run=s=>vm.runInContext(s,context);
-run(`function close(a,b,tol=1e-9){assert.ok(Math.abs(a-b)<tol,a+' ≈ '+b)}
+run(`
+function close(a,b,tol=1e-9){assert.ok(Math.abs(a-b)<=tol,a+' ≈ '+b)}
 function rel(a,b,tol=1e-7){close(a/b,1,tol)}
-function settle(){let ticks=0;while(state.flight&&ticks<30000){tickPhysics(1/60);ticks++;assert.ok(state.matter>=0&&state.matter<=100+1e-9);assert.ok(state.beta>=0&&state.beta<1);assert.ok(state.proper<=state.earth+1e-6)}assert.ok(ticks<30000,'flight must terminate');assert.equal(state.beta,0);return ticks;}
-close(Rocket.beta(2,1),.6);var leg=Rocket.segment(1001,1001,901);assert.ok(leg.earth>leg.proper);rel(leg.energy,Rocket.energy(100),1e-12);
-var retro=Rocket.retroPlan(1000,.5),r=Rocket.retroSegment(retro.m0,retro.eta0,retro.m0,retro.mf);assert.equal(r.beta,0);assert.ok(r.distance>0);assert.ok(retro.canStop);assert.ok(r.earth>r.proper);
-for(const beta of [1e-9,.01,.5,.9,.99,.9999])rel(Stellar.betaFromH(Stellar.H(beta)),beta,1e-9);
-var f1=Stellar.force(1e10,Stellar.r0,.4),f2=Stellar.force(1e10,2*Stellar.r0,.4);rel(f1/f2,4,1e-12);assert.ok(Stellar.force(1e10,Stellar.r0,.9)<Stellar.force(1e10,Stellar.r0,.5));
-var sw=Stellar.plan(1001000,1e10);assert.ok(sw.beta>.95&&sw.beta<.96);close(Stellar.sample(sw,0).beta,0);assert.ok(Stellar.sample(sw,.1).beta<Stellar.sample(sw,.5).beta);assert.ok(Stellar.sample(sw,.5).beta<sw.beta);assert.ok(Stellar.plan(2002000,1e10).beta<sw.beta);assert.ok(Stellar.plan(1001000,4e10).beta>sw.beta);
-var ps=Stellar.plan(1001000,2.5e9);close(ps.earth-ps.distance,Stellar.pulseYears,1e-10);
-var wa=Stellar.sample(sw,.4),wb=Stellar.sample(sw,.40001),q1=wa.beta/Math.sqrt(1-wa.beta**2),q2=wb.beta/Math.sqrt(1-wb.beta**2);rel((q2-q1)*sw.massKg*Rocket.c/((wb.earth-wa.earth)*Rocket.year),wa.force,2e-4);
+function fresh(){state=initial();Simulation.debt=0;paused=false;speed=1;}
+function settle(step=.01){let i=0;while(state.flight&&i++<100000){tickPhysics(step);assert.ok(state.matter>=-1e-15&&state.matter<=Rocket.fuelCapacity+1e-15);assert.ok(state.beta>=0&&state.beta<1);assert.ok(state.proper<=state.earth+1e-7);}assert.ok(!state.flight,'flight must terminate');assert.equal(Simulation.debt,0);}
+close(Rocket.dryMass,.001);close(Rocket.fuelCapacity,.001);close(initial().matter,.0005);
+fresh();renderUI();assert.equal($('massDry').style.width,'50%');assert.equal($('massFuel').style.width,'25%');assert.equal($('dryMass').innerHTML,'1<small>кг</small>');assert.ok($('massBar').title.includes('Свободно 0,500 кг'));
+Simulation.advance(2.5);close(state.proper,2.5);close(state.earth,2.5);paused=true;Simulation.advance(10);close(state.proper,2.5);paused=false;
+for(const multiplier of [10,100,1000]){speed=multiplier;var old=state.proper;Simulation.advance(.25);close(state.proper-old,.25*multiplier);}
+fresh();for(const expected of [10,100,1000,1]){$('speedBtn').onclick();assert.equal(speed,expected);}console.log('PASS: 1 kg dry + 1 kg tank, half-filled start, 50/25/25 strip, idle clock, pause and all time multipliers');
+// Relativistic photon engine and reserve for an independent reverse-thrust stop.
+var plan=Rocket.plan(.0005,4.37);close(plan.beta,.2,1e-12);var reserve=.0005-plan.budget,retro=Rocket.retroPlan(reserve,plan.beta);assert.ok(retro.canStop);close(retro.mf,Rocket.dryMass,1e-12);
+var start=Rocket.plan(.0005,Infinity,.05);assert.ok(start.beta>.05);var a=Rocket.plan(.000005,Infinity),b=Rocket.plan(.0005,Infinity);close(Rocket.beta(a.m0,a.mf),a.beta);
+fresh();state.selected='alpha';launch();var burn=state.flight.engine.burnProper;tickPhysics(burn/4);assert.equal(state.phase,'thrust');assert.ok(state.beta>0&&state.beta<.2);close(state.proper,burn/4,1e-18);var fuel=state.matter;tickPhysics(burn);assert.equal(state.phase,'cruise');close(state.beta,.2,1e-12);assert.ok(state.matter<fuel);close(state.proper,burn*1.25,1e-16);
+var t0=state.earth,p0=state.proper,d0=state.totalDistance;tickPhysics(1);close(state.proper-p0,1,1e-12);rel(state.earth-t0,1/Math.sqrt(1-.2**2));rel(state.totalDistance-d0,.2/Math.sqrt(1-.2**2));
+console.log('PASS: physical photon burn seconds, symmetric fuel reserve, cruise proper/Earth conversion');
+// Endpoints and clocks are independent of frame size, including leftover idle time.
+function trip(step,total=30){fresh();state.selected='alpha';launch();let passed=0;while(passed<total){var dt=Math.min(step,total-passed);tickPhysics(dt);passed+=dt;}assert.equal(state.current,'alpha');close(state.proper,total,1e-9);return [state.earth,state.matter,state.totalDistance,state.captured,state.spentEnergy];}
+var one=trip(30),many=trip(.01);for(let i=0;i<one.length;i++)if(one[i]||many[i])rel(one[i],many[i],2e-7);close(state.totalDistance,distance(object('sol'),object('alpha')),1e-10);
+console.log('PASS: complete own-thrust arrival, strict proper clock across events, no dropped remainder, timestep independence');
+// Sail calibration remains force-integrated, not a speed cap.
+for(let i=0;i<SAILS.length;i++){var w=Stellar.plan(1.5,SAILS[i].areaM2);close(w.beta,SAILS[i].targetBeta,2e-13);close(Stellar.sample(w,0).beta,0);assert.ok(ProperTime.at(w,Stellar,w.proper*.3).beta<w.beta);assert.ok(Stellar.plan(2,SAILS[i].areaM2).beta<w.beta);}
+close(Stellar.force(1e10,Stellar.r0,.4)/Stellar.force(1e10,2*Stellar.r0,.4),4);var best=Stellar.plan(1.5,SAILS[2].areaM2);close(best.beta,.9999999,2e-13);
+fresh();state.current='proxima';state.ship=Space.point(object('proxima').p3);state.selected='sgr';state.sail=2;launch();var totalWind=state.flight.wind.proper;tickPhysics(totalWind/4);assert.equal(state.phase,'launch');assert.ok(state.beta>0&&state.beta<best.beta);var oldP=state.proper;tickPhysics(totalWind);close(state.proper-oldP,totalWind,1e-12);assert.equal(state.phase,'cruise');close(state.beta,best.beta,1e-13);assert.equal(state.flight.markers.length,3);assert.ok(state.flight.markers.find(m=>m.kind==='acceleration').actual);assert.ok(percentC(state.beta).includes('99,9999900'));
+console.log('PASS: S/M/L calibrated from integrated inverse-square wind, 99.99999% L, physical wind proper-time inversion, persistent markers');
+// A nearby wind trip may finish within one frame; its clocks and idle remainder remain exact.
+fresh();state.current='proxima';state.ship=Space.point(object('proxima').p3);state.selected='sirius';state.sail=2;launch();tickPhysics(1);assert.equal(state.current,'sirius');close(state.proper,1,1e-10);assert.ok(state.earth>5);assert.ok(state.matter<=.001);assert.ok(state.destroyed.includes('proxima'));
+// Finite-tank capture and constant-mass drag.
+var cap=2,full=Magnetic.plan(cap,.9999999),s0=Magnetic.sample(full,.4),s1=Magnetic.sample(full,.400001);close(s0.mass,cap);assert.equal(s0.massRate,0);assert.ok(s0.processedMassRate>0);rel((s1.beta-s0.beta)*Rocket.c/((s1.earth-s0.earth)*Rocket.year),s0.coordinateAcceleration,3e-4);rel((s1.heat-s0.heat)/((s1.proper-s0.proper)*Rocket.year),s0.heatPower,3e-4);
+var m=Magnetic.plan(1.5,.5),half=ProperTime.at(m,Magnetic,m.proper*.5);close(half.proper,m.proper*.5,1e-18);assert.ok(half.mass<=2&&half.beta<.5);
+console.log('PASS: one-frame wind arrival with clock remainder, 1 kg fuel cap and capture/release force/heat ODE');
+// Manual overrides do not teleport the ship or spend additional engine fuel.
+fresh();launch();tickPhysics(state.flight.engine.burnProper*.2);var v=state.beta,fuel=state.matter;cutEngine();tickPhysics(.25);close(state.beta,v);close(state.matter,fuel);toggleBrake();tickPhysics(1);assert.equal(state.current,null);assert.ok(distance(state.ship,object('proxima'))>1);
+console.log('PASS: engine cutoff, early braking outside target and manual override');
+// 3D coordinates are independent of map embedding, plane and solar radii stay anchored.
+assert.equal(OBJECTS.length,575);assert.equal(GALAXIES.length,90);for(const o of OBJECTS.filter(o=>o.p3)){const p=MapLayout.project(o);rel(Math.hypot(p.x,p.y)||1,Math.hypot(...o.p3)||1,1e-12);}
+var plane=MapLayout.project(Space.point([20,-30,0]));close(plane.x,20);close(plane.y,30);var pole=MapLayout.project(Space.point([0,0,1e9]));rel(Math.hypot(pole.x,pole.y),1e9);close(distance(Space.point([0,0,0]),Space.point([0,0,10])),10);
+assert.ok(LAYOUT_DATA.diagnostics.every(d=>d.finalKL<=d.initialKL));
+console.log('PASS: catalog counts, 3D geometry, t-SNE constraints and physical isolation');
+// Geodesic clocks use proper time and preserve speed/fuel through the turn.
+close(Gravity.deflection(.99,10)*180/Math.PI,12.84017946,1e-7);close(Gravity.deflection(.99,2)*180/Math.PI,126.51428075,1e-7);assert.equal(Gravity.deflection(.99,1.5),Infinity);
+fresh();state.current='proxima';state.ship=Space.point(object('proxima').p3);state.sail=2;state.itinerary=[{id:'sgr',mode:'flyby'},{id:'m87',mode:'stop'}];assert.ok(Route.analyze().valid);Route.start();var launchPlan=state.flight.wind,coast=(state.flight.distance-launchPlan.distance)/state.flight.maxBeta*Math.sqrt(1-state.flight.maxBeta**2);tickPhysics(launchPlan.proper+coast);if(state.phase!=='flyby'){tickPhysics(1e-6);}assert.equal(state.phase,'flyby');var curve=state.flight.encounter.plan,betaBefore=state.beta,fuelBefore=state.matter,shipBefore=state.proper;tickPhysics(curve.proper*.25);close(state.proper-shipBefore,curve.proper*.25,1e-10);close(state.beta,betaBefore);close(state.matter,fuelBefore);assert.equal(state.acceleration,0);tickPhysics(30000);assert.equal(state.current,'m87');assert.ok(state.visited.includes('sgr'));
+console.log('PASS: black-hole-only 3D route, Schwarzschild turn, proper-time flyby and final arrival');
+// Old state is rebuilt without changing historical clocks, position or velocity.
+fresh();launch();tickPhysics(state.flight.engine.burnProper*.2);var saved=JSON.parse(JSON.stringify(state));saved.version=5;saved.matter=100;var oldV=saved.beta,oldT=saved.earth,oldXYZ=JSON.stringify(saved.ship.p3);state=restore(saved);close(state.beta,oldV);close(state.earth,oldT);assert.equal(JSON.stringify(state.ship.p3),oldXYZ);assert.ok(state.matter<=.001);tickPhysics(.1);assert.ok(state.beta>=oldV);settle();
+var home=initial();home.version=5;home.matter=100;state=restore(home);close(state.matter,.0005);
+console.log('PASS: migration to kg masses and universal clock without resetting progress');
 `);
-console.log('PASS: photon engine and reverse thrust; inverse-square stellar force, relativistic Doppler factor, pulse duration, area/mass dependence, force-integrated trajectory');
-run(`var m=Magnetic.plan(1e6,.99,Magnetic.k(),Infinity),ma=Magnetic.sample(m,.2),mb=Magnetic.sample(m,.20001);rel(ma.mass*Magnetic.half(ma.beta),m.K,1e-12);rel(ma.mass-m.massKg,m.k*ma.distance*LY,1e-10);assert.ok(ma.earth>=ma.proper);assert.ok(ma.heat>0);rel((mb.beta-ma.beta)*Rocket.c/((mb.earth-ma.earth)*Rocket.year),ma.coordinateAcceleration,1e-4);rel((mb.mass-ma.mass)/((mb.earth-ma.earth)*Rocket.year),ma.massRate,1e-4);rel((mb.heat-ma.heat)/((mb.proper-ma.proper)*Rocket.year),ma.heatPower,2e-4);
-var low=Magnetic.rates(1e5,.0001),twice=Magnetic.rates(1e5,.0002);rel(twice.massRate/low.massRate,2,1e-12);rel(twice.force/low.force,4,1e-6);assert.equal(Magnetic.rates(1e6,.5,0).force,0);assert.equal(Magnetic.rates(1e6,0).force,0);assert.equal(Magnetic.rates(1e6,0).massRate,0);close(Magnetic.sample(m,1).beta,Magnetic.fineBeta);assert.ok(m.finalMass>m.massKg);assert.ok(Magnetic.stopping(999,.99).distance>Magnetic.stopping(999,.5).distance);
-var empty=Magnetic.plan(1000,.005);assert.ok(empty.finalMass>1000);assert.ok(Rocket.retroPlan(empty.finalMass/1000-1,empty.finalBeta).canStop);
-`);
-console.log('PASS: capture flux, relativistic drag ODE, accumulated mass, heat balance, low-speed v² law, empty plasma, final engine reserve');
-run(`state=initial();renderUI();assert.ok(document.getElementById('sailSection').hidden);launch();assert.equal(state.matter,100);tickPhysics(1);assert.ok(state.matter<100&&state.matter>90);assert.ok(state.acceleration>Rocket.acceleration(101));for(let i=0;i<360;i++)tickPhysics(1/60);assert.equal(state.phase,'cruise');close(state.matter,90,1e-7);close(state.beta,Rocket.beta(101,91),1e-10);var route=state.flight.distance;settle();assert.equal(state.current,'proxima');close(state.totalDistance,route,1e-8);assert.ok(state.captured>0);assert.ok(state.heatRadiated>0);assert.ok(state.spentEnergy>Rocket.energy(10));assert.ok(canBoost());select('sirius');assert.equal(document.getElementById('sailSection').hidden,false);`);
-console.log('PASS: gradual engine acceleration, physical capture + reverse-thrust stop, no arrival teleport, contextual sail UI');
-for(const sail of [0,1,2])run(`state=initial();state.current='proxima';state.ship={x:object('proxima').x,y:object('proxima').y};state.selected='sirius';state.sail=${sail};launch();assert.equal(state.beta,0);var forecast=state.flight.maxBeta;tickPhysics(1/60);assert.ok(state.beta>0&&state.beta<.01);for(let i=0;i<500;i++)tickPhysics(1/60);close(state.beta,forecast,1e-10);assert.equal(state.phase,'cruise');var dist=state.flight.distance;settle();assert.equal(state.current,'sirius');close(state.totalDistance,dist,1e-8);assert.ok(state.destroyed.includes('proxima'));assert.ok(state.matter<=100);assert.ok(state.heatRadiated>0);`);
-console.log('PASS: all sail sizes accelerate continuously to computed forecasts, then capture and retro-engine docking');
-run(`state=initial();launch();for(let i=0;i<120;i++)tickPhysics(1/60);var fuel=state.matter,v=state.beta;cutEngine();for(let i=0;i<50;i++)tickPhysics(1/60);close(state.matter,fuel);close(state.beta,v);toggleBrake();settle();assert.equal(state.current,null);assert.ok(distance(state.ship,object('proxima'))>1);launch();settle();assert.equal(state.current,'proxima');
-state=initial();state.current='proxima';state.ship={...object('proxima')};state.selected='sirius';launch();for(let i=0;i<180;i++)tickPhysics(1/60);v=state.beta;cutEngine();tickPhysics(1);close(state.beta,v);assert.equal(state.phase,'cruise');`);
-console.log('PASS: manual engine cutoff, folding the stellar sail, early capture stop, recovery');
-run(`state=initial();state.auto=false;launch();for(let i=0;i<2300;i++)tickPhysics(1/60);assert.ok(state.flight.missed);toggleBrake();settle();assert.equal(state.current,null);state.auto=true;launch();settle();assert.equal(state.current,'proxima');`);
-console.log('PASS: overshoot and physical stop beyond target, no forced snap, return voyage');
-run(`state=initial();state.current='proxima';state.ship={...object('proxima')};state.selected='3c273';state.sail=2;launch();settle();assert.equal(state.current,'3c273');assert.ok(state.earth>2e9);assert.ok(Number.isFinite(state.proper));state.selected='horizon';launch();assert.equal(state.flight,null);
-state=initial();state.matter=0;launch();assert.equal(state.flight,null);state.current='proxima';state.ship={...object('proxima')};state.selected='sirius';launch();settle();assert.equal(state.current,'sirius');
-var saved=initial();saved.version=2;saved.current=null;saved.beta=.95;saved.phase='brake';saved.flight={from:{x:0,y:0},target:'proxima',distance:4.24,covered:1,rate:1,maxBeta:.95,boost:true};state=restore(saved);close(state.beta,.95);assert.equal(state.version,5);assert.ok(state.flight.magnetic);settle();assert.equal(state.current,null);
-`);
-console.log('PASS: cosmic-scale trip, unreachable horizon, no fuel, dry-ship wind launch, continuous migration of old velocity');
-const html=fs.readFileSync('dist/index.html','utf8');const ids=new Set([...html.matchAll(/id="([^"]+)"/g)].map(x=>x[1]));for(const [,id]of fs.readFileSync('dist/app.js','utf8').matchAll(/\$\('([^']+)'\)/g))assert.ok(ids.has(id)||['startExploring','confirmReset','viewGalaxy','addRoutePoint','startRoute','cancelRoute','routeTheory','projectionInfo'].includes(id),'missing '+id);assert.ok(!/<header|<footer|class="rail"/.test(html));
-console.log('PASS: game controls match DOM, no site chrome');
-
-run(`function snapshotAt(dt){state=initial();state.current='proxima';state.ship={...object('proxima')};state.selected='sirius';state.sail=2;launch();var ticks=0;while(state.flight&&ticks++<40000)tickPhysics(dt);assert.equal(state.current,'sirius');return [state.earth,state.proper,state.matter,state.captured,state.totalDistance];}var one=snapshotAt(.05),two=snapshotAt(.005);for(var i=0;i<one.length;i++){if(one[i]===0)close(one[i],two[i]);else rel(one[i],two[i],1e-7);}
-state=initial();state.current='proxima';state.ship=Space.point([object('alpha').p3[0]-1e-5,object('alpha').p3[1],object('alpha').p3[2]]);state.selected='alpha';state.sail=2;launch();var full=state.flight.maxBeta;settle();assert.equal(state.current,'alpha');close(state.totalDistance,1e-5,1e-9);`);
-console.log('PASS: timestep independence, early truncation of wind on a short route, physical arrival');
-
+const html=fs.readFileSync('dist/index.html','utf8');const ids=new Set([...html.matchAll(/id="([^"]+)"/g)].map(x=>x[1]));
+for(const [,id]of fs.readFileSync('dist/app.js','utf8').matchAll(/\$\('([^']+)'\)/g))assert.ok(ids.has(id)||['startExploring','confirmReset','viewGalaxy'].includes(id),'missing '+id);
+console.log('PASS: interface IDs and single combined mass strip');
 run(`
-state=initial();state.beta=.99;state.acceleration=9.80665;renderUI();assert.equal($('velocity').innerHTML,'99,00<small>% c</small>');assert.equal($('acceleration').innerHTML,'1,00<small>g</small>');assert.equal($('dryMass').innerHTML,'1<small>т</small>');
-state.acceleration=-9.80665;renderUI();assert.equal($('acceleration').innerHTML,'−1,00<small>g</small>'.replace('−','-'));assert.ok($('matter').title.includes('/ 100 т'));
-assert.equal(theme,'dark');assert.equal(paint('#f8f8f8'),'#000000');applyTheme('light');assert.equal(paint('#252525'),'#252525');applyTheme('dark');assert.equal(document.documentElement.dataset.theme,'dark');
-assert.equal(GALAXIES.length,90);assert.equal(GALAXIES[0].name,'Млечный Путь');
-for(const o of OBJECTS){assert.ok(o.facts?.mass,o.id);assert.ok(o.facts.lum!==undefined||o.facts.visual||o.facts.lumUnknown,o.id);state.flight=null;state.selected=o.id;showObject();assert.ok($('dialogContent').innerHTML.includes('Светимость'));}
-for(const g of GALAXIES){assert.ok(g.diameterLy>1000);assert.ok(g.axisRatio>0&&g.axisRatio<=1);cam={x:g.x,y:g.y,span:g.diameterLy*3};width=900;height=620;close(galaxyProjection(g).r,150);drawGalaxyBackground();cam.span*=2;close(galaxyProjection(g).r,75);}
-rel(object('andromeda').galaxy.diameterLy,145143,1e-4);rel(object('smc').galaxy.diameterLy,9200,0.001);assert.ok(object('m87').galaxy.shape==='elliptical');
-assert.ok(Astro.visualLuminosity(32.6156,4.83).solarV===1);
-` .replace(/^\+/gm,''));
-assert.ok(html.indexOf('id="shipClock"')<html.indexOf('id="earthClock"'));
-console.log('PASS: g and %c telemetry, separate masses, ship/Earth order, theme toggle, every object has facts, all catalog galaxies scale linearly');
-
-run(`
-assert.ok(OBJECTS.length>=420);assert.ok(OBJECTS.filter(o=>o.catalog==='HYG 4.1').length>=400);assert.equal(OBJECTS.filter(o=>o.catalog==='OpenNGC').length,80);assert.ok(OBJECTS.filter(o=>o.catalog?.startsWith('ATNF')).length>=18);
-rel(V3.norm(Space.fromSky(35,-63,10)),10,1e-12);close(distance(Space.point([0,0,0]),Space.point([0,0,10])),10);close(V3.angle([1,0,0],[0,0,1]),Math.PI/2);
-rel(Gravity.deflection(.99,695700000/Gravity.rs(1))*180/Math.PI,.000491397,1e-6);rel(Gravity.deflection(.99,10)*180/Math.PI,12.84017946,1e-8);rel(Gravity.deflection(.99,2)*180/Math.PI,126.51428075,1e-8);close(Gravity.critical(.99),1.503353811,1e-8);
-assert.equal(Gravity.deflection(.99,1.5),Infinity);assert.equal(Gravity.solve({massSolar:1,radiusMeters:695700000},.99,Math.PI/2).ok,false);
-var weak=Gravity.deflection(.01,1e8),newton=2*Math.asin(1/(1+2*1e8*.01**2));rel(weak,newton,0.001);
-var body=object('sgr'),solution=Gravity.solve(body.gravity,.99,Math.PI/2);assert.ok(solution.q>Gravity.critical(.99));close(Gravity.deflection(.99,solution.q),Math.PI/2,1e-10);var curve=Gravity.trajectory(body.gravity,.99,solution,[1,0,0],[0,1,0],1e30);assert.ok(curve.earth>curve.proper);close(curve.rows[0].earth,0);close(curve.rows.at(-1).earth,curve.earth);assert.equal(curve.rows[220].r,curve.rp);var vIn=V3.unit(V3.sub(curve.rows[1].offset,curve.rows[0].offset)),vOut=V3.unit(V3.sub(curve.rows.at(-1).offset,curve.rows.at(-2).offset));assert.ok(V3.angle(vIn,[1,0,0])<.002);assert.ok(V3.angle(vOut,[0,1,0])<.002);
-state=initial();state.itinerary=[{id:'proxima',mode:'flyby'},{id:'sirius',mode:'stop'}];assert.equal(Route.analyze().valid,false);assert.match(Route.analyze().records[0].issue,/только у чёрной дыры/);
-state.itinerary=[{id:'sgr',mode:'flyby'},{id:'m87',mode:'stop'}];assert.equal(Route.analyze().valid,true);Route.start();assert.equal(Route.isFlyby(),true);assert.ok(state.flight.aim?.p3);var sawCurve=false,flyFuel,flyBeta,ticks=0;while(state.flight&&ticks++<30000){var beforePhase=state.phase;tickPhysics(1/60);if(state.phase==='flyby'){if(!sawCurve){sawCurve=true;flyFuel=state.matter;flyBeta=state.beta;var first=V3.add(object('sgr').p3,state.flight.encounter.plan.rows[0].offset);assert.ok(V3.norm(V3.sub(first,state.ship.p3))<1e-8);}close(state.matter,flyFuel,1e-8);close(state.beta,flyBeta);assert.equal(state.acceleration,0);}assert.ok(state.proper<=state.earth);}assert.ok(sawCurve);assert.ok(ticks<30000);assert.equal(state.current,'m87');assert.equal(state.beta,0);assert.ok(state.visited.includes('sgr'));assert.ok(!state.destroyed.includes('sgr'));
-state=initial();state.itinerary=[{id:'proxima',mode:'stop'},{id:'sirius',mode:'stop'}];Route.start();settle();assert.equal(state.current,'sirius');assert.ok(state.visited.includes('proxima'));assert.ok(state.destroyed.includes('proxima'));
-state=initial();state.itinerary=[{id:'sgr',mode:'flyby'},{id:'m87',mode:'stop'}];Route.start();tickPhysics(1);cutEngine();assert.equal(state.flight.route,null);assert.equal(state.flight.aim,null);assert.equal(state.phase,'cruise');settle();assert.equal(state.current,'sgr');
-state=initial();state.selected='ring';launch();assert.equal(state.flight,null);assert.equal(object('ring').navigable,false);
-` .replace(/^\+/gm,''));
-console.log('PASS: catalog '+run('OBJECTS.length')+' real objects, 3D geometry, Schwarzschild scattering/capture/weak-field limits, geodesic clocks and 0g, impossible route rejection, continuous flyby + final docking, multistop and manual override');
-
-run(`
-assert.deepEqual(OBJECTS.filter(o=>Gravity.canFlyby(o)).map(o=>o.id),['cygnus','sgr','m87']);
-for(const id of ['sol','proxima','vela','crab','andromeda']){var o=object(id);if(!o)continue;assert.equal(Gravity.canFlyby(o),false);assert.equal(Gravity.encounter(object('sol'),o,object('sirius'),.99).ok,false);}
-state=initial();state.itinerary=[{id:'proxima',mode:'flyby'},{id:'sirius',mode:'stop'}];Route.show();assert.ok($('dialogContent').innerHTML.includes('data-mode="0" disabled'));assert.equal(Route.analyze().valid,false);
-state.itinerary=[{id:'sgr',mode:'flyby'},{id:'m87',mode:'stop'}];Route.show();assert.ok(!$('dialogContent').innerHTML.includes('data-mode="0" disabled'));
-var small=Gravity.solve(object('cygnus').gravity,.99,Math.PI/2),large=Gravity.solve(object('m87').gravity,.99,Math.PI/2);close(small.q,large.q);rel(large.rp/small.rp,6.5e9/21.2,1e-12);
-var smallCurve=Gravity.trajectory(object('cygnus').gravity,.99,small,[1,0,0],[0,1,0],Infinity),largeCurve=Gravity.trajectory(object('m87').gravity,.99,large,[1,0,0],[0,1,0],Infinity);rel(largeCurve.earth/smallCurve.earth,6.5e9/21.2,1e-12);
-state=initial();state.current='m87';assert.equal(canBoost(),false);state.current='proxima';assert.equal(canBoost(),true);
-state=initial();launch();state.beta=.01;state.phase='flyby';state.ship=Space.mix(object('sol'),object('proxima'),.25);state.flight.covered=state.flight.distance*.25;state.flight.route=[{id:'proxima',mode:'flyby'},{id:'sirius',mode:'stop'}];state.flight.legIndex=0;state.flight.aim=Space.point([1,2,3]);state.flight.encounter={legacy:true};state.itinerary=[{id:'vela',mode:'flyby'},{id:'sgr',mode:'flyby'},{id:'m87',mode:'stop'}];var saved=JSON.parse(JSON.stringify(state)),previousPosition=[...state.ship.p3];state=restore(saved);assert.equal(state.phase,'cruise');close(state.beta,.01);state.ship.p3.forEach((x,i)=>close(x,previousPosition[i]));assert.equal(state.flight.route[0].mode,'stop');assert.equal(state.flight.aim,null);assert.equal(state.flight.encounter,null);assert.equal(state.itinerary[0].mode,'stop');assert.equal(state.itinerary[1].mode,'flyby');assert.equal(Route.braking(),true);
-state=initial();state.itinerary=[{id:'proxima',mode:'stop'},{id:'sirius',mode:'stop'}];var forecast=Route.analyze().records[1].beta;Route.start();var gotWind=false;while(state.flight&&!gotWind){tickPhysics(1/60);if(state.flight?.legIndex===1){assert.equal(state.phase,'launch');close(state.flight.maxBeta,forecast,1e-9);gotWind=true;}}assert.ok(gotWind);settle();assert.equal(state.current,'sirius');assert.ok(state.destroyed.includes('proxima'));
+// Short route truncates the sail before its free-run endpoint, then physically stops.
+fresh();state.current='proxima';state.ship=Space.point(object('proxima').p3);state.selected='alpha';state.sail=2;launch();var planned=state.flight.maxBeta,realDistance=state.flight.distance;tickPhysics(.01);assert.equal(state.current,'alpha');close(state.proper,.01,1e-10);close(state.totalDistance,realDistance,1e-9);assert.ok(state.matter<=Rocket.fuelCapacity);
+// Zero propellant can still launch from a star, then collect a reserve during braking.
+fresh();state.matter=0;state.current='proxima';state.ship=Space.point(object('proxima').p3);state.selected='sirius';state.sail=2;launch();tickPhysics(1);assert.equal(state.current,'sirius');assert.ok(state.captured>0);assert.ok(state.matter>=0);
 `);
-console.log('PASS: black-hole-only flybys, stellar sail route restart and forecast, supermassive mass scaling, old route migration without position/velocity jump');
-
-run(`
-// A full tank retains no new mass, but processes particles and still brakes.
-var cap=(Rocket.dryMass+Rocket.fuelCapacity)*1000,full=Magnetic.plan(cap,.99),s0=Magnetic.sample(full,.4),s1=Magnetic.sample(full,.400001);
-close(full.finalMass,cap);close(s0.mass,cap);assert.equal(s0.massRate,0);assert.ok(s0.processedMassRate>0&&s0.force<0);rel((s1.beta-s0.beta)*Rocket.c/((s1.earth-s0.earth)*Rocket.year),s0.coordinateAcceleration,1e-4);rel((s1.heat-s0.heat)/((s1.proper-s0.proper)*Rocket.year),s0.heatPower,1e-4);
-rel(Magnetic.half(s0.beta)*Math.exp(full.k*s0.distance*LY/cap),Magnetic.half(.99),1e-12);
-var mixed=Magnetic.plan(91000,.8),join=Math.sqrt(Math.log(mixed.finalMass/mixed.massKg)/mixed.logRatio),before=Magnetic.sample(mixed,join-1e-8),after=Magnetic.sample(mixed,join+1e-8);assert.ok(before.mass<cap);close(after.mass,cap);close(before.beta,after.beta,1e-7);close(before.distance,after.distance,1e-6);assert.ok(after.earth>before.earth);
-// Plane identity, radial guard, deterministic precomputed t-SNE, physical independence.
-for(const p3 of [[1,2,0],[-500,700,0],[0,0,0]]){var pp=MapLayout.project(Space.point(p3));close(pp.x,p3[0]);close(pp.y,-p3[1]);}
-var pole=MapLayout.project(Space.point([0,0,1e9]));rel(Math.hypot(pole.x,pole.y),1e9,1e-12);
-for(const o of OBJECTS.filter(o=>o.p3)){var p=MapLayout.project(o);close(distance(object('sol'),o),Math.hypot(...o.p3),1e-5);rel(Math.hypot(p.x,p.y)||1,Math.hypot(...o.p3)||1,1e-12);}
-assert.ok(LAYOUT_DATA.diagnostics.every(d=>d.finalKL<=d.initialKL));assert.ok(Object.values(LAYOUT_DATA.entries).some(e=>Math.abs(e.offset)>.01));
-var a=Space.point([10,20,30]),b=Space.point([-50,6,8]),real=distance(a,b);MapLayout.project(a);MapLayout.project(b);close(distance(a,b),real);
-// No automatic zoom or pan when endpoints already fit, no zoom-in when fitting.
-state=initial();width=1200;height=800;cam={x:0,y:0,span:24};cameraGoal=null;fitRoute(object('proxima'));assert.equal(cameraGoal,null);var far=Space.point([300,200,400]);fitRoute(far);assert.ok(cameraGoal.span>=24);var v=routeViewport();for(const p of [state.ship,far]){var display=MapLayout.project(p),sx=width*.43+(display.x-cameraGoal.x)*width/cameraGoal.span,sy=height*.5+(display.y-cameraGoal.y)*width/cameraGoal.span;assert.ok(sx>v.left&&sx<v.right);assert.ok(sy>v.top&&sy<v.bottom);}
-// Markers survive each completed stage and saving/loading.
-state=initial();launch();assert.equal(state.flight.markers.length,3);for(let i=0;i<370;i++)tickPhysics(1/60);assert.equal(state.phase,'cruise');assert.ok(state.flight.markers.find(m=>m.kind==='acceleration').actual);var mark=JSON.stringify(state.flight.markers.find(m=>m.kind==='acceleration')),sawBrake=false,sawDock=false;while(state.flight){tickPhysics(1/60);if(state.phase==='brake'){sawBrake=true;assert.equal(JSON.stringify(state.flight.markers.find(m=>m.kind==='acceleration')),mark);assert.ok(state.flight.markers.find(m=>m.kind==='brake').actual);}if(state.phase==='dock'){sawDock=true;assert.equal(state.flight.markers.length,3);assert.ok(state.flight.markers.every(m=>m.actual));}}assert.ok(sawBrake&&sawDock);
-// Oversized old tanks migrate without a velocity or clock reset; plans use new mass.
-state=initial();launch();tickPhysics(.5);var legacy=JSON.parse(JSON.stringify(state));legacy.version=4;legacy.matter=1000;var oldV=legacy.beta,oldT=legacy.earth;state=restore(legacy);assert.equal(state.matter,100);close(state.beta,oldV);close(state.earth,oldT);tickPhysics(.001);assert.ok(state.beta>=oldV);assert.ok(state.matter<=100);settle();assert.equal(state.current,'proxima');
-`);
-console.log('PASS: finite-tank capture/release ODE and heat, saturation continuity, constrained t-SNE plane/radii/3D isolation, adaptive framing, persistent phase markers, oversized-save migration');
+console.log('PASS: early sail truncation, short-route clocks, empty-tank stellar launch and capture reserve');

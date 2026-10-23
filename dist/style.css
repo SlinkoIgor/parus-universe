@@ -76,3 +76,28 @@ html[data-theme="dark"]{--tone-999:#999;--tone-aaa:#888;--tone-9b9b9b:#999;--ton
 html[data-theme="dark"]{--tone-2225:#000b;--tone-0002:#000a;}
 /* t-SNE is a schematic display; no misleading rectangular distance ruler. */
 .scale-line{width:auto;border-bottom:0;margin-bottom:7px}.scale-line i{display:none}
+
+/* One 2 kg capacity strip: 1 kg dry + up to 1 kg fuel. */
+.telemetry{grid-template-columns:1fr 1fr 1.7fr 1.8fr auto;gap:24px}
+.mass-bar{height:13px;border:1px solid var(--ink);display:flex;overflow:hidden;margin-top:11px;background:var(--paper)}
+.mass-bar i{display:block;height:100%;flex-shrink:0}.mass-dry{width:50%;background:var(--ink);border-right:2px solid var(--paper)}
+.mass-fuel{width:25%;background:repeating-linear-gradient(135deg,var(--ink) 0 1px,transparent 1px 4px);border-right:1px solid var(--ink)}
+.mass-legend{display:flex;justify-content:space-between;gap:10px;margin-top:6px;font:6px var(--mono);color:var(--muted)}
+.mass-legend b{font-weight:400;color:var(--ink);white-space:nowrap}.mass-legend small{font:inherit;margin-left:3px}
+.time-controls{position:relative}.time-rate{position:absolute;right:0;top:-18px;font:6px var(--mono);white-space:nowrap;color:var(--muted)}
+.sail-options span{font-size:7px}.sail-options button{padding:9px 6px;gap:3px}
+@media(max-width:900px){.telemetry{gap:14px;padding-left:18px;padding-right:18px}.telemetry-cell+.telemetry-cell,.clocks{padding-left:14px}.telemetry strong{font-size:18px}.clocks{gap:10px}.clocks strong{font-size:15px}.mass-legend{font-size:5px}}
+@media(max-width:650px){:root{--hud:164px}.telemetry{grid-template-columns:1fr 1fr 1.35fr;grid-template-rows:auto auto;gap:14px 12px;padding:14px 18px}.telemetry-cell+.telemetry-cell{padding-left:12px}.mass-cell{grid-column:3}.clocks{grid-column:1 / 3;grid-row:2;border-left:0;padding-left:0;gap:18px}.time-controls{grid-column:3;grid-row:2;justify-self:end}.time-rate{font-size:5px;top:-13px}.mass-legend{flex-wrap:wrap;gap:3px}.mass-bar{margin-top:10px}.mass-legend span{font-size:5px}.telemetry strong{font-size:17px}.sail-options{gap:4px}.sail-options b{font-size:11px}.sail-options span{font-size:6px}.flight-card{max-height:calc(100dvh - var(--hud) - 112px)}}
+@media(max-width:650px){.telemetry #velocity{font-size:clamp(12px,3.5vw,18px)}}
+/* Compact screens: one full-width mass strip between motion and clock rows. */
+@media(max-width:700px){
+ :root{--hud:174px}.telemetry{grid-template-columns:1fr 1fr auto;grid-template-rows:1fr 1fr 1fr;padding:10px 18px;gap:8px 12px}
+ .telemetry .telemetry-cell:nth-child(1){grid-column:1;grid-row:1}
+ .telemetry .telemetry-cell:nth-child(2){grid-column:2 / 4;grid-row:1}
+ .telemetry .telemetry-cell.mass-cell:nth-child(3){grid-column:1 / 4;grid-row:2;padding:0;border:0}
+ .telemetry .clocks{grid-column:1 / 3;grid-row:3;gap:8px;padding:0}.telemetry .clocks strong{font-size:12px;margin:0}
+ .telemetry .clocks>div{display:block}.telemetry .clock-divider{padding-top:9px}
+ .telemetry .time-controls{grid-column:3;grid-row:3}.time-rate{font-size:6px;top:-10px}
+ .mass-bar{height:11px;margin-top:6px}.mass-legend{font-size:6px;flex-wrap:nowrap;margin-top:4px}.mass-legend span{font-size:6px}
+ .telemetry #velocity{font-size:clamp(12px,3.5vw,18px)}
+}

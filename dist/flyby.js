@@ -51,6 +51,11 @@ const Gravity={
   const rows=[...half].reverse().map(r=>point(r,-1)).concat(half.slice(1).map(r=>point(r,1)));
   return{rows,beta,q,rp,R,angle:solution.angle,earth:2*earth,proper:2*proper,path:2*path,elapsed:0,duration:8,profile,ex,ey,tMax};
  },
+ atProper(plan,proper){
+  if(proper<=0)return this.sample(plan,0);if(proper>=plan.proper)return this.sample(plan,1);
+  let lo=0,hi=plan.rows.length-1;while(hi-lo>1){const mid=(lo+hi)>>1;if(plan.rows[mid].proper<proper)lo=mid;else hi=mid;}
+  const a=plan.rows[lo],b=plan.rows[hi],f=(proper-a.proper)/(b.proper-a.proper);return this.sample(plan,(lo+f)/(plan.rows.length-1));
+ },
  sample(plan,p){const at=Math.max(0,Math.min(1,p))*(plan.rows.length-1),i=Math.floor(at),a=plan.rows[i],b=plan.rows[Math.min(i+1,plan.rows.length-1)],t=at-i;return{offset:a.offset.map((v,k)=>v+(b.offset[k]-v)*t),earth:a.earth+(b.earth-a.earth)*t,proper:a.proper+(b.proper-a.proper)*t,path:a.path+(b.path-a.path)*t,r:a.r+(b.r-a.r)*t,phi:a.phi+(b.phi-a.phi)*t,localBeta:a.localBeta+(b.localBeta-a.localBeta)*t};},
  encounter(origin,body,next,beta){
   if(!this.canFlyby(body))return{ok:false,reason:'Гравитационный поворот доступен только у чёрной дыры.'};

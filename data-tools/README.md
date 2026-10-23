@@ -9,3 +9,7 @@ The shipped HYG/OpenNGC data portions are licensed CC BY-SA4.0, https://creative
 ## Display embedding
 
 Run `node data-tools/create-layout.mjs` from the repository root after updating coordinates. It computes deterministic constrained t-SNE (3D affinity probabilities, Student-t KL objective, solar-radius constraints, Galactic-plane anchors). The generated `dist/layout-data.js` is display-only; physical coordinates stay in `dist/coordinates.js`. Implementation and constraints are documented in `docs/physics.md`.
+
+## Sail calibration
+
+Run `node data-tools/calibrate-sails.mjs` from the root to reproduce the S/M/L areas in dist/catalog.js. It bisects the integrated stellar-wind solution at reference mass1.5kg to beta targets .999/.99999/.9999999. Speeds at other payload masses are derived from the same force, never clamped to those targets.
