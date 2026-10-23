@@ -12,4 +12,4 @@ Run `node data-tools/create-layout.mjs` from the repository root after updating 
 
 ## Sail calibration
 
-Run `node data-tools/calibrate-sails.mjs` from the root to reproduce the S/M/L areas in dist/catalog.js. It bisects the integrated stellar-wind solution at reference mass1.5kg to beta targets .999/.99999/.9999999. Speeds at other payload masses are derived from the same force, never clamped to those targets.
+Run `node data-tools/calibrate-sails.mjs` from the root to reproduce S/M/L areas and verify the integrated finite-flash solutions. Reference launch mass is 1mg (empty tank), acceleration capped at100g. M is the previously discussed 4.719e12m² sail; S/M/L areas scale1e-4/1/1e4, with nominal automatic folding at beta .99999/.9999999/.999999999. Earlier braking or insufficient available light lowers the achieved speed; it is never assigned instantly.

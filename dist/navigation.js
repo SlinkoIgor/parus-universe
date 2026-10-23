@@ -12,13 +12,13 @@ const Route={
  angleText(radians){const d=radians*180/Math.PI;return d!==0&&d<.01?d.toExponential(2).replace('.',',')+'°':fmt(d,2)+'°';},
  radiusText(m){return m<1e10?compact(m/1000)+' км':fmt(m/149597870700,3)+' а.е.';},
  isFlyby(f=state.flight){return !!f?.route?.length&&Gravity.canFlyby(object(f.target))&&f.route[f.legIndex]?.mode==='flyby'&&f.legIndex<f.route.length-1;},
- braking(){return !!state.flight?.route?.length?!this.isFlyby():state.auto;},
+ braking(){if(state.flight?.manualCoast)return false;return !!state.flight?.route?.length?!this.isFlyby():state.auto;},
  analyze(nodes=state.itinerary){
   let from=state.ship,fuel=state.matter,beta=0,valid=nodes.length>0,records=[],departure=object(state.current),usedStars=new Set(state.destroyed);
   for(let i=0;i<nodes.length;i++){
    const n=nodes[i],o=object(n.id),d=o?distance(from,o):0;let issue='';
    if(!o?.navigable||!from.p3||d<1e-12){issue='Нет физических координат или точка совпадает с предыдущей.';valid=false;}
-   if(beta===0&&d>0){if(departure?.kind==='star'&&!usedStars.has(departure.id)){beta=Stellar.plan((Rocket.dryMass+fuel)*1000,SAILS[state.sail].areaM2).beta;usedStars.add(departure.id);}else{const engine=Rocket.plan(fuel,d);beta=engine.beta;fuel=Math.max(0,fuel-engine.budget);if(beta===0){issue='Нет горючего для нового разгона.';valid=false;}}}
+   if(beta===0&&d>0){if(departure?.kind==='star'&&!usedStars.has(departure.id)){fuel=0;beta=Stellar.plan(Rocket.dryMass*1000,SAILS[state.sail].areaM2,0,Stellar.r0,Math.max(1,state.controlG||100),Stellar.pulseYears,SAILS[state.sail].targetBeta).beta;usedStars.add(departure.id);}else{const engine=Rocket.plan(fuel,d);beta=engine.beta;fuel=Math.max(0,fuel-engine.budget);if(beta===0){issue='Нет горючего для нового разгона.';valid=false;}}}
    const r={id:n.id,mode:n.mode,d,beta,issue};
    if(n.mode==='flyby'){
     const next=object(nodes[i+1]?.id);
@@ -49,14 +49,14 @@ const Route={
   $('routeTheory').onclick=()=>showNavigationTheory();
  },
  add(id){if(state.itinerary.length>=12){toast('До 12 точек в одном маршруте.');return;}const o=object(id);if(!o?.navigable){toast('Для этого ориентира нет точных координат.');return;}if(state.itinerary.at(-1)?.id===id||(!state.itinerary.length&&state.current===id)){toast('Эта точка уже является началом текущего участка.');return;}state.itinerary.push({id,mode:'stop'});persist();},
- abort(){const f=state.flight;if(!f?.route?.length)return;f.route=null;state.auto=true;if(f.aim){f.from={...state.ship,p3:[...state.ship.p3]};f.distance=distance(state.ship,object(f.target));f.covered=0;f.aim=null;f.encounter=null;coastSetup();}},
- start(){const check=this.analyze();if(!check.valid||state.flight)return;const nodes=state.itinerary.map(n=>({...n}));$('infoDialog').close();state.selected=nodes[0].id;launch();if(state.flight){state.flight.route=nodes;state.flight.legIndex=0;state.flight.encounter=null;this.configure();state.itinerary=[];log('Маршрут: '+nodes.map(n=>object(n.id).name+(n.mode==='flyby'?' [пролёт]':' [остановка]')).join(' → '));renderUI();persist();}},
- configure(){const f=state.flight;if(!this.isFlyby(f))return;const e=Gravity.encounter(f.from,object(f.target),object(f.route[f.legIndex+1].id),f.maxBeta);if(!e.ok)return;f.encounter={...e,beta:f.maxBeta};if(e.plan){f.aim=Space.point(V3.add(object(f.target).p3,e.plan.rows[0].offset));f.distance=distance(f.from,f.aim);}FlightMarks.plan(f);},
+ abort(){const f=state.flight;if(!f?.route?.length)return;f.route=null;state.auto=true;if(f.aim){const anchor=FlightView.ship();f.from={...state.ship,p3:[...state.ship.p3]};f.distance=distance(state.ship,object(f.target));f.covered=0;f.aim=null;f.encounter=null;f.view={a:anchor,b:MapLayout.project(object(f.target))};coastSetup();}},
+ start(){syncClock();const check=this.analyze();if(!check.valid||state.flight)return;const nodes=state.itinerary.map(n=>({...n}));$('infoDialog').close();state.selected=nodes[0].id;launch();if(state.flight){state.flight.route=nodes;state.flight.legIndex=0;state.flight.encounter=null;this.configure();state.itinerary=[];log('Маршрут: '+nodes.map(n=>object(n.id).name+(n.mode==='flyby'?' [пролёт]':' [остановка]')).join(' → '));renderUI();persist();}},
+ configure(){const f=state.flight;if(!this.isFlyby(f))return;const e=Gravity.encounter(f.from,object(f.target),object(f.route[f.legIndex+1].id),f.maxBeta);if(!e.ok)return;f.encounter={...e,beta:f.maxBeta};if(e.plan){delete f.view;f.aim=Space.point(V3.add(object(f.target).p3,e.plan.rows[0].offset));f.distance=distance(f.from,f.aim);}FlightMarks.plan(f);},
  prepare(f=state.flight){
   if(!this.isFlyby(f))return null;
   if(f.encounter&&Math.abs(f.encounter.beta-state.beta)<1e-12)return f.encounter;
   const body=object(f.target),next=object(f.route[f.legIndex+1].id),e=Gravity.encounter(f.from,body,next,state.beta);
-  if(!e.ok){f.route[f.legIndex].mode='stop';f.encounter=null;f.aim=null;f.from=Space.point(state.ship.p3);f.distance=distance(f.from,body);f.covered=0;f.maxBeta=state.beta;FlightMarks.plan(f);toast('Пролёт недоступен на фактической скорости. Автопилот выполняет остановку.');log('Пролёт заменён остановкой: '+body.name+'. '+e.reason);return null;}
+  if(!e.ok){f.route[f.legIndex].mode='stop';f.encounter=null;f.aim=null;f.from=Space.point(state.ship.p3);f.distance=distance(f.from,body);f.covered=0;f.maxBeta=state.beta;delete f.view;FlightMarks.plan(f);toast('Пролёт недоступен на фактической скорости. Автопилот выполняет остановку.');log('Пролёт заменён остановкой: '+body.name+'. '+e.reason);return null;}
   f.encounter={...e,beta:state.beta};return f.encounter;
  },
  gate(f=state.flight){if(f.aim)return 0;const e=this.prepare(f);return e?.plan?Math.min(f.distance,e.plan.R/LY):0;},
@@ -68,7 +68,7 @@ const Route={
   state.ship=Space.point(V3.add(body.p3,s.offset));state.acceleration=0;state.beta=p.beta;
   if(p.elapsedProper>=p.proper){if(!state.visited.includes(body.id))state.visited.push(body.id);this.next(f,state.ship,p.beta);}return used;
  },
- next(old,from,beta){const nodes=old.route,index=old.legIndex+1,target=object(nodes[index]?.id);if(!target)return;state.selected=target.id;state.current=null;state.beta=beta;state.acceleration=0;state.phase='cruise';state.flight={from:{...from,p3:[...from.p3]},target:target.id,fromId:old.target,distance:distance(from,target),covered:0,coastRate:0,maxBeta:beta,boost:false,engine:null,wind:null,magnetic:null,missed:false,autoStopping:false,route:nodes,legIndex:index,encounter:null};this.configure();FlightMarks.plan();coastSetup();renderUI();fitRoute(target);persist();},
+ next(old,from,beta){const nodes=old.route,index=old.legIndex+1,target=object(nodes[index]?.id);if(!target)return;state.selected=target.id;state.current=null;state.beta=beta;state.acceleration=0;state.phase='cruise';state.flight={view:{a:MapLayout.project(object(old.target)),b:MapLayout.project(target)},from:{...from,p3:[...from.p3]},target:target.id,fromId:old.target,distance:distance(from,target),covered:0,coastRate:0,maxBeta:beta,boost:false,engine:null,wind:null,magnetic:null,missed:false,autoStopping:false,route:nodes,legIndex:index,encounter:null};this.configure();FlightMarks.plan();coastSetup();renderUI();fitRoute(target);persist();},
  afterStop(old){if(!old.route?.length||old.legIndex>=old.route.length-1)return;const index=old.legIndex+1;state.selected=old.route[index].id;launch();if(state.flight){state.flight.route=old.route;state.flight.legIndex=index;state.flight.encounter=null;this.configure();persist();}},
  draw(){
   const f=state.flight,nodes=f?.route||state.itinerary;if(!nodes.length)return;let a=f?screen(f.from):screen(state.ship);const start=f?f.legIndex:0;
