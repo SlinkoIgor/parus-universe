@@ -30,13 +30,12 @@ function restore(saved){
   upgraded.journal.push({t:upgraded.earth,text:'Атлас обновлён: направления переведены в Galactic 3D; исторические часы сохранены. Остаток полёта перестроен.'});
  }
  if(!Array.isArray(upgraded.itinerary))upgraded.itinerary=[];
- return upgraded;
+ return Route.sanitize(upgraded);
 }
 try{state=restore(JSON.parse(localStorage.getItem(STORE)));}catch{state=initial();}
 const canvas=$('map'),ctx=canvas.getContext('2d');
 let width=0,height=0,dpr=1,cam={x:0,y:0,span:24},cameraGoal=null,effects=[];
 let pointer={down:false,x:0,y:0,startX:0,startY:0,moved:false,id:null};
-const bgPoints=Array.from({length:95},(_,i)=>({x:((Math.sin(i*127.1+31)*43758.5453)%1+1)%1,y:((Math.sin(i*311.7+17)*93758.2513)%1+1)%1}));
 function persist(){try{localStorage.setItem(STORE,JSON.stringify(state));}catch{}}
 function log(text){state.journal.push({t:state.earth,text});if(state.journal.length>100)state.journal.shift();persist();}
 function toast(text){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,4200);}
@@ -60,7 +59,7 @@ function updateMapHeading(){const view=cameraGoal||cam,span=view.span;let title,
  $('mapTitle').textContent=title;$('mapSubtitle').textContent=sub;$('mapSheet').textContent='/ '+sheet;
  document.querySelectorAll('[data-scale]').forEach(b=>b.classList.toggle('active',Math.abs(Math.log10(span/Number(b.dataset.scale)))<.32));
 }
-function canBoost(){const current=object(state.current);return !!current&&['star','galaxy'].includes(current.kind)&&!state.destroyed.includes(current.id);}
+function canBoost(){const current=object(state.current);return !!current&&current.kind==='star'&&!state.destroyed.includes(current.id);}
 const windCache=new Map();
 function windPlan(index=state.sail){const mass=(Rocket.dryMass+state.matter)*1000,key=mass+':'+index;if(!windCache.has(key)){if(windCache.size>12)windCache.clear();windCache.set(key,Stellar.plan(mass,SAILS[index].areaM2));}return windCache.get(key);}
 function quantity(n){const abs=Math.abs(n);if(abs!==0&&(abs>=1e3||abs<.01)){const e=Math.floor(Math.log10(abs));return fmt(n/10**e,1)+'·10<sup>'+e+'</sup>';}return fmt(n,2);}
@@ -221,7 +220,6 @@ function drawGrid(){const unit=nice(cam.span/7),pixels=unit*width/cam.span;const
  for(let y=((origin.y%pixels)+pixels)%pixels;y<height;y+=pixels){ctx.moveTo(0,y);ctx.lineTo(width,y);}ctx.stroke();
  if(origin.x>-20&&origin.x<width+20)line(origin.x,0,origin.x,height,'#c9c9c9',.7,[3,7]);
  if(origin.y>-20&&origin.y<height+20)line(0,origin.y,width,origin.y,'#c9c9c9',.7,[3,7]);
- for(let i=0;i<bgPoints.length;i++){const p=bgPoints[i],x=p.x*width,y=p.y*height;if(i%4===0){line(x-2,y,x+2,y,'#bbbbbb',.65);line(x,y-2,x,y+2,'#bbbbbb',.65);}else{ctx.fillStyle=paint('#cdcdcd');ctx.fillRect(x,y,.8,.8);}}
  if(width>500&&cam.span<200&&cam.span>.15){for(let r=unit;r<cam.span*1.1;r+=unit){let rp=r*width/cam.span;if(rp<12)continue;circle(origin.x,origin.y,rp,'#d1d1d1',.5,[2,5]);if(rp<Math.min(width,height)*.8)text(compact(r)+' св. л.',origin.x+rp*.707+5,origin.y-rp*.707-5,7,'#9f9f9f');}}
  $('scaleValue').textContent=distanceText(nice(110*cam.span/width));
 }
@@ -242,7 +240,7 @@ function drawGalaxyBackground(){
   if(r>35&&r<Math.max(width,height)*1.5){const yy=center.y+Math.min(r*.65,height*.35);text(g.name.toUpperCase(),center.x,yy,8,'#8b8b8b','center');text('ОПТИЧЕСКИЙ КОНТУР · '+distanceText(g.diameterLy),center.x,yy+14,6,'#9b9b9b','center');}
  }
 }
-function drawCosmicWeb(){if(cam.span<1e8)return;const a=screen({x:0,y:0}),mult=clamp(3e9/cam.span,.2,8),points=bgPoints.slice(0,40).map(p=>({x:a.x+(p.x-.5)*width*1.8*mult,y:a.y+(p.y-.5)*height*1.8*mult}));for(let i=0;i<points.length;i++){const p=points[i];const closest=points.map((q,j)=>({q,j,d:Math.hypot(p.x-q.x,p.y-q.y)})).filter(o=>o.j>i).sort((a,b)=>a.d-b.d).slice(0,2);for(const n of closest)if(n.d<width*.27)line(p.x,p.y,n.q.x,n.q.y,'#dbdbdb',.7,[1,3]);circle(p.x,p.y,2,'#c5c5c5',.7);}if(cam.span>4e10){const r=465e8*width/cam.span;circle(a.x,a.y,r,'#a7a7a7',.8,[7,5]);}}
+function drawHorizonBoundary(){if(cam.span>4e10){const a=screen({x:0,y:0}),r=465e8*width/cam.span;circle(a.x,a.y,r,'#a7a7a7',.8,[7,5]);}}
 function drawSymbol(o,p,selected=false){const destroyed=state.destroyed.includes(o.id)&&o.kind==='star';const ink=selected?'#252525':'#646464';ctx.save();ctx.translate(p.x,p.y);ctx.strokeStyle=paint(ink);ctx.lineWidth=.9;
  if(destroyed){circle(0,0,9,ink,.7,[2,3]);line(-5,-5,5,5,ink,.8);line(-5,5,5,-5,ink,.8);}
  else if(o.kind==='home'){circle(0,0,14,ink,.8);circle(0,0,8,ink,1);ctx.fillStyle=paint(ink);ctx.beginPath();ctx.arc(0,0,2,0,Math.PI*2);ctx.fill();for(let i=0;i<8;i++){const a=i*Math.PI/4;line(Math.cos(a)*18,Math.sin(a)*18,Math.cos(a)*22,Math.sin(a)*22,ink,.7);}}
@@ -296,7 +294,7 @@ function drawShip(time){const p=screen(state.ship),f=state.flight,target=f?objec
 function drawEffects(dt){effects=effects.filter(e=>e.age<8);for(const e of effects){e.age+=paused?0:dt*speed;const p=screen(e);for(let k=0;k<3;k++){const r=(e.age*48+k*24)%370;circle(p.x,p.y,r,`rgba(37,38,32,${Math.max(0,.38-r/980)})`,.7,k===1?[2,6]:[]);}for(let i=0;i<40;i++){const a=i*2.399,r=e.age*25+(i%5)*9;ctx.fillStyle=paint('#8b8b8b');ctx.fillRect(p.x+Math.cos(a)*r,p.y+Math.sin(a)*r,1,1);}}}
 function drawHover(){if(!hover)return;const p=screen(hover);circle(p.x,p.y,27,'#969696',.6,[2,4]);}
 
-let lastFrame=performance.now();function frame(now){const realDt=Math.min((now-lastFrame)/1000,.1);lastFrame=now;if(!document.hidden){if(cameraGoal){const a=1-Math.exp(-realDt*8);cam.x+=(cameraGoal.x-cam.x)*a;cam.y+=(cameraGoal.y-cam.y)*a;cam.span=Math.exp(Math.log(cam.span)+(Math.log(cameraGoal.span)-Math.log(cam.span))*a);if(Math.abs(Math.log(cam.span/cameraGoal.span))<.0005&&Math.hypot(cam.x-cameraGoal.x,cam.y-cameraGoal.y)<cam.span*.0001){cam={...cameraGoal};cameraGoal=null;}}if(!paused&&state.flight){let rest=realDt*speed;while(rest>0&&state.flight){const step=Math.min(rest,1/60);tickPhysics(step);rest-=step;}}drawGrid();drawGalaxyBackground();drawCosmicWeb();Route.draw();drawRoute();drawEffects(realDt);drawObjects();drawShip(now);Route.drawEncounter();drawHover();if(now-lastUI>100){renderUI();lastUI=now;}if(now-saveTick>1500){if(state.flight)persist();saveTick=now;}}requestAnimationFrame(frame);}
+let lastFrame=performance.now();function frame(now){const realDt=Math.min((now-lastFrame)/1000,.1);lastFrame=now;if(!document.hidden){if(cameraGoal){const a=1-Math.exp(-realDt*8);cam.x+=(cameraGoal.x-cam.x)*a;cam.y+=(cameraGoal.y-cam.y)*a;cam.span=Math.exp(Math.log(cam.span)+(Math.log(cameraGoal.span)-Math.log(cam.span))*a);if(Math.abs(Math.log(cam.span/cameraGoal.span))<.0005&&Math.hypot(cam.x-cameraGoal.x,cam.y-cameraGoal.y)<cam.span*.0001){cam={...cameraGoal};cameraGoal=null;}}if(!paused&&state.flight){let rest=realDt*speed;while(rest>0&&state.flight){const step=Math.min(rest,1/60);tickPhysics(step);rest-=step;}}drawGrid();drawGalaxyBackground();drawHorizonBoundary();Route.draw();drawRoute();drawEffects(realDt);drawObjects();drawShip(now);Route.drawEncounter();drawHover();if(now-lastUI>100){renderUI();lastUI=now;}if(now-saveTick>1500){if(state.flight)persist();saveTick=now;}}requestAnimationFrame(frame);}
 
 canvas.addEventListener('wheel',e=>{e.preventDefault();cameraGoal=null;const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,before=world(x,y),factor=Math.exp(clamp(e.deltaY,-220,220)*.006);cam.span=clamp(cam.span*factor,.00006,1.4e11);const after=world(x,y);cam.x+=before.x-after.x;cam.y+=before.y-after.y;updateMapHeading();},{passive:false});
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;pointer={down:true,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,moved:false,id:e.pointerId};canvas.setPointerCapture(e.pointerId);cameraGoal=null;});

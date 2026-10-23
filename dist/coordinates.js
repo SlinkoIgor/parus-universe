@@ -26,12 +26,10 @@ for(const entry of IMPORTED_CATALOG.objects){
  }
  OBJECTS.push(o);
 }
-// Individual, rounded component masses/radii already documented in the atlas.
-const GRAVITY_STARS={sol:[1,1],proxima:[.12,.14],alpha:[1.08,1.22],barnard:[.15,.19],wolf:[.09,.15],lalande:[.40,.39],sirius:[2.06,1.71],luyten:[.12,.16],ross:[.18,.21],epsilon:[.82,.76],tau:[.78,.79],procyon:[1.5,2.05],trappist:[.09,.119],vega:[2,2.8],polaris:[5.1,46],betelgeuse:[17.5,1000]};
+// Only explicitly catalogued black holes are gravitational turning points.
 for(const o of OBJECTS){
- if(GRAVITY_STARS[o.id]){const [massSolar,radiusSolar]=GRAVITY_STARS[o.id];o.gravity={massSolar,radiusMeters:radiusSolar*695700000,note:'Округлённые параметры звезды; в двойной системе — главная компонента. Минимум сближения 1,05 радиуса. Погрешность параметров влияет на прогноз.'};}
- if(o.kind==='pulsar')o.gravity={massSolar:1.4,radiusMeters:12000,assumed:true,note:'Модельные 1,4 M☉ и 12 км. Это типовые параметры нейтронной звезды, а не измеренная масса данного пульсара.'};
- const bh={cygnus:21.2,sgr:4.3e6,m87:6.5e9}[o.id];if(bh)o.gravity={massSolar:bh,radiusMeters:0,note:'Метрика Шварцшильда для центральной чёрной дыры; вращение, аккреционный диск и джет не моделируются.'};
+ const bh={cygnus:21.2,sgr:4.3e6,m87:6.5e9}[o.id];
+ if(bh)o.gravity={kind:'blackhole',massSolar:bh,radiusMeters:0,note:'Поворот вокруг чёрной дыры. Метрика Шварцшильда; вращение, аккреционный диск и джет не моделируются.'};
  if(o.galaxy)Object.assign(o.galaxy,{x:o.x,y:o.y});
 }
 Object.assign(GALAXIES[0],{x:OBJECTS.find(o=>o.id==='sgr').x,y:OBJECTS.find(o=>o.id==='sgr').y,axisRatio:1});

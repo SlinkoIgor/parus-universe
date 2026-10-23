@@ -8,6 +8,7 @@ const V3={
  angle(a,b){const u=this.unit(a),v=this.unit(b);return Math.atan2(this.norm(this.cross(u,v)),Math.max(-1,Math.min(1,this.dot(u,v))));}
 };
 const Gravity={
+ canFlyby(body){return body?.gravity?.kind==='blackhole'&&body.gravity.massSolar>0&&body.navigable;},
  G:6.67430e-11,solarMass:1.98847e30,solarRadius:695700000,
  rs(massSolar){return 2*this.G*this.solarMass*massSolar/Rocket.c**2;},
  critical(beta){const y=Math.sqrt(1-8*(1-beta*beta)/9);return 3*(1+y)/(1+3*y);},
@@ -52,6 +53,7 @@ const Gravity={
  },
  sample(plan,p){const at=Math.max(0,Math.min(1,p))*(plan.rows.length-1),i=Math.floor(at),a=plan.rows[i],b=plan.rows[Math.min(i+1,plan.rows.length-1)],t=at-i;return{offset:a.offset.map((v,k)=>v+(b.offset[k]-v)*t),earth:a.earth+(b.earth-a.earth)*t,proper:a.proper+(b.proper-a.proper)*t,path:a.path+(b.path-a.path)*t,r:a.r+(b.r-a.r)*t,phi:a.phi+(b.phi-a.phi)*t,localBeta:a.localBeta+(b.localBeta-a.localBeta)*t};},
  encounter(origin,body,next,beta){
+  if(!this.canFlyby(body))return{ok:false,reason:'Гравитационный поворот доступен только у чёрной дыры.'};
   let incoming=V3.unit(V3.sub(body.p3,origin.p3)),outgoing=V3.unit(V3.sub(next.p3,body.p3));
   const neighbourhood=Math.min(V3.norm(V3.sub(body.p3,origin.p3)),V3.norm(V3.sub(next.p3,body.p3)))*LY*.001;
   let result;
