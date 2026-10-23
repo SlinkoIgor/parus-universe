@@ -70,7 +70,7 @@ function fitRoute(target){
  const span=Math.max(current.span,Math.abs(a.x-b.x)*width/(v.right-v.left)*1.25,Math.abs(a.y-b.y)*width/(v.bottom-v.top)*1.25);
  goCamera((a.x+b.x)/2-((v.left+v.right)/2-width*.43)*span/width,(a.y+b.y)/2-((v.top+v.bottom)/2-height*(width<700?.39:.50))*span/width,span);
 }
-function select(id,fit=false){const o=object(id);if(!o)return;state.selected=id;if(fit)fitRoute(o);renderUI();renderCatalog();persist();}
+function select(id,fit=false){const o=object(id);if(!o)return;state.selected=id;renderUI();if(fit)fitRoute(o);renderCatalog();persist();}
 function resize(){const r=canvas.getBoundingClientRect();width=r.width;height=r.height;dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
 new ResizeObserver(resize).observe(canvas);
 function updateMapHeading(){const view=cameraGoal||cam,span=view.span;let title,sub,sheet;const localGalaxy=GALAXIES.find(g=>g.id!=='milkyway'&&Math.hypot(view.x-g.x,view.y-g.y)<Math.max(g.diameterLy,span*.3)&&span<g.diameterLy*10);
@@ -131,7 +131,7 @@ function launch(forceEngine=false){
  state.beta=0;state.acceleration=boost?Stellar.force(wind.area,wind.startR,0)/wind.massKg:Rocket.acceleration(Rocket.dryMass+state.matter);state.phase=boost?'launch':'thrust';paused=false;
  if(boost){const current=object(state.current);state.destroyed.push(current.id);effects.push({x:from.x,y:from.y,p3:from.p3,age:0});log('Звёздный взрыв: '+current.name+'. Парус '+SAILS[state.sail].name+'. Прогноз свободного разгона '+percentC(wind.beta)+'.');toast('Парус раскрыт. Разгон потоком взрыва.');}
  else log('Фотонный разгон. Курс: '+target.name+'. Начальная масса '+fmt(engine.m0,2)+' т; запас на разгон '+fmt(engine.budget,2)+' т.');
- state.current=null;FlightMarks.plan();fitRoute(target);renderUI();persist();
+ state.current=null;FlightMarks.plan();renderUI();fitRoute(target);persist();
 }
 function cutEngine(manual=true){const f=state.flight;if(!f)return;if(['launch','thrust'].includes(state.phase))FlightMarks.actual('acceleration');if(manual)Route.abort();if(state.phase==='launch'){state.phase='cruise';state.acceleration=0;f.windFolded=true;coastSetup();if(manual)toast('Парус сложен. Скорость сохраняется.');}
  else if((state.phase==='thrust'||state.phase==='dock')&&f.engine){state.phase='cruise';state.acceleration=0;coastSetup();if(manual){log('Двигатель выключен. Скорость '+percentC(state.beta)+'.');toast('Тяга выключена. Неизрасходованное вещество сохранено.');}}
