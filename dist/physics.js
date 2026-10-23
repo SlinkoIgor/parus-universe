@@ -1,21 +1,22 @@
 'use strict';
 // SI for forces; rocket masses in tonnes, trajectories in Julian years/light-years.
 const Rocket=Object.freeze({
- c:299792458,year:31557600,dryMass:1,power:3e15,burnFraction:.10,
+ c:299792458,year:31557600,dryMass:1,fuelCapacity:100,power:3e15,burnFraction:.10,
  massFlow(){return this.power/(this.c*this.c)*this.year/1000;},
  beta(m0,m){return Math.tanh(Math.log(m0/m));},
  acceleration(m){return this.power/(this.c*m*1000);},
  energy(dm){return dm*1000*this.c*this.c;},
- segment(m0,ma,mb){
+ segment(m0,ma,mb,eta0=0){
   if(!(m0>=ma&&ma>=mb&&mb>=this.dryMass))throw new RangeError('Invalid rocket mass');
   const q=this.massFlow(),dm=ma-mb,log=Math.log1p(dm/mb),term=dm*(ma+mb)/(2*m0);
-  return{proper:dm/q,earth:(m0*log+term)/(2*q),distance:Math.max(0,(m0*log-term)/(2*q)),beta:this.beta(m0,mb),energy:this.energy(dm)};
+  const t=(m0*log+term)/(2*q),x=Math.max(0,(m0*log-term)/(2*q)),g=Math.cosh(eta0),b=Math.tanh(eta0);
+  return{proper:dm/q,earth:g*(t+b*x),distance:g*(x+b*t),beta:Math.tanh(eta0+Math.log(m0/mb)),energy:this.energy(dm)};
  },
- plan(fuel,distance=Infinity){
-  const m0=this.dryMass+Math.max(0,fuel);let budget=Math.max(0,fuel)*this.burnFraction;
-  if(this.segment(m0,m0,m0-budget).distance>distance*.08){let lo=0,hi=budget;for(let i=0;i<55;i++){const mid=(lo+hi)/2;if(this.segment(m0,m0,m0-mid).distance>distance*.08)hi=mid;else lo=mid;}budget=lo;}
-  const mf=m0-budget,leg=this.segment(m0,m0,mf);
-  return{m0,mf,budget,burned:0,initialFuel:fuel,beta:leg.beta,burnDistance:leg.distance,burnProper:leg.proper,burnEarth:leg.earth,properRate:leg.proper/6,energy:0,direction:1};
+ plan(fuel,distance=Infinity,startBeta=0){
+  const eta0=Math.atanh(startBeta),m0=this.dryMass+Math.max(0,fuel);let budget=Math.max(0,fuel)*this.burnFraction;
+  if(this.segment(m0,m0,m0-budget,eta0).distance>distance*.08){let lo=0,hi=budget;for(let i=0;i<55;i++){const mid=(lo+hi)/2;if(this.segment(m0,m0,m0-mid,eta0).distance>distance*.08)hi=mid;else lo=mid;}budget=lo;}
+  const mf=m0-budget,leg=this.segment(m0,m0,mf,eta0);
+  return{m0,mf,eta0,budget,burned:0,initialFuel:fuel,beta:leg.beta,burnDistance:leg.distance,burnProper:leg.proper,burnEarth:leg.earth,properRate:leg.proper/6,energy:0,direction:1};
  },
  retroSegment(m0,eta0,ma,mb){
   const q=this.massFlow(),dm=ma-mb,log=Math.log1p(dm/mb),a=Math.exp(eta0)*dm*(ma+mb)/(2*m0),b=Math.exp(-eta0)*m0*log;
@@ -68,24 +69,36 @@ const Magnetic=Object.freeze({
  n:1e5,protonMass:1.67262192369e-27,area:1e15,fineBeta:.01,duration:10,
  rho(){return this.n*this.protonMass;},k(){return this.rho()*this.area;},
  half(beta){return beta/(1+Math.sqrt(Math.max(0,1-beta*beta)));},
- rates(massKg,beta,k=this.k()){
+ rates(massKg,beta,k=this.k(),capacityKg=(Rocket.dryMass+Rocket.fuelCapacity)*1000){
   const gamma=1/Math.sqrt(1-beta*beta),v=beta*Rocket.c,dm=k*v,force=beta>0&&k>0?-k*gamma*gamma*v*v:0;
-  return{massRate:dm,particles:dm/this.protonMass,properParticles:gamma*dm/this.protonMass,force,properAcceleration:force/massKg,coordinateAcceleration:force/(massKg*gamma**3),heatPower:gamma*(gamma-1)*dm*Rocket.c**2};
+  return{massRate:massKg<capacityKg*(1-1e-12)?dm:0,processedMassRate:dm,particles:dm/this.protonMass,properParticles:gamma*dm/this.protonMass,force,properAcceleration:force/massKg,coordinateAcceleration:force/(massKg*gamma**3),heatPower:gamma*(gamma-1)*dm*Rocket.c**2};
  },
  integrals(m0,m,K,k=this.k()){
   if(m<=m0||K<=0)return{earth:0,proper:0,distance:0,heat:0};const z=(m-m0)/m0,h=K/m0,base=m0/(k*Rocket.c*Rocket.year),a=z*(2+z)/(4*h),b=h*Math.log1p(z)/2;
   return{earth:base*(a+b),proper:base*(a-b),distance:(m-m0)/(k*LY),heat:K*Rocket.c**2*(2*Math.atanh(h)-2*Math.atanh(K/m))};
  },
- plan(massKg,beta,k=this.k()){
+ // Full tank: cool incoming ions and release them at rest in the ship frame.
+ // The drag remains, retained mass rate becomes zero; all heat is radiated.
+ fixedIntegrals(massKg,beta0,beta,k=this.k()){
+  if(beta>=beta0||beta0<=0)return{earth:0,proper:0,distance:0,heat:0};
+  const h0=this.half(beta0),h=this.half(beta),base=massKg/(k*Rocket.c*Rocket.year);
+  return{earth:base*(Math.sqrt(1-beta*beta)/beta-Math.sqrt(1-beta0*beta0)/beta0),proper:base*(1/beta-1/beta0),distance:massKg/(k*LY)*Math.log(h0/h),heat:massKg*Rocket.c**2*Math.log1p((h0*h0-h*h)/(1-h0*h0))};
+ },
+ plan(massKg,beta,k=this.k(),capacityKg=(Rocket.dryMass+Rocket.fuelCapacity)*1000){
+  massKg=Math.min(massKg,capacityKg);
   const h=this.half(beta),K=massKg*h,dry=Rocket.dryMass*1000,root=(K+dry+Math.sqrt((K+dry)**2+4*dry*K))/2;
   const mFine=beta>this.fineBeta?K/this.half(this.fineBeta):massKg;
-  const finalMass=beta<=0?massKg:Math.max(massKg,mFine,root*(1+1e-12));const finalHalf=K/finalMass,finalBeta=K?2*finalHalf/(1+finalHalf*finalHalf):0;
-  const leg=this.integrals(massKg,finalMass,K,k);
-  return{massKg,beta,K,k,finalMass,finalBeta,duration:this.duration,elapsed:0,logRatio:Math.log(finalMass/massKg),...leg};
+  const wanted=beta<=0?massKg:Math.max(massKg,mFine,root*(1+1e-12)),finalMass=Math.min(capacityKg,wanted),capHalf=K/finalMass,capBeta=K?2*capHalf/(1+capHalf*capHalf):0;
+  const finalBeta=wanted>capacityKg?Math.min(this.fineBeta,capBeta):capBeta,finalHalf=this.half(finalBeta);
+  const capture=this.integrals(massKg,finalMass,K,k),fixed=this.fixedIntegrals(finalMass,capBeta,finalBeta,k),leg={};
+  for(const key of ['earth','proper','distance','heat'])leg[key]=capture[key]+fixed[key];
+  return{massKg,beta,K,k,capacityKg,finalMass,capBeta,finalBeta,capture,duration:this.duration,elapsed:0,logRatio:h>0?Math.log(h/finalHalf):0,...leg};
  },
  sample(plan,p){
-  p=Math.max(0,Math.min(1,p));const mass=p===1?plan.finalMass:plan.massKg*Math.exp(plan.logRatio*p*p),h=plan.K/mass,beta=h?2*h/(1+h*h):0;
-  return{mass,beta,...this.integrals(plan.massKg,mass,plan.K,plan.k),...this.rates(mass,beta,plan.k)};
+  p=Math.max(0,Math.min(1,p));const h=this.half(plan.beta)*Math.exp(-plan.logRatio*p*p),beta=h?2*h/(1+h*h):0,mass=plan.K?Math.min(plan.finalMass,plan.K/h):plan.massKg;
+  let leg=this.integrals(plan.massKg,mass,plan.K,plan.k);
+  if(mass>=plan.finalMass&&beta<plan.capBeta){const fixed=this.fixedIntegrals(mass,plan.capBeta,beta,plan.k);for(const key of ['earth','proper','distance','heat'])leg[key]+=fixed[key];}
+  return{mass,beta,...leg,...this.rates(mass,beta,plan.k,plan.capacityKg)};
  },
  stopping(fuel,beta){
   if(beta<=0)return{distance:0,earth:0,proper:0};const magnetic=this.plan((Rocket.dryMass+fuel)*1000,beta),engine=Rocket.retroPlan(magnetic.finalMass/1000-Rocket.dryMass,magnetic.finalBeta);

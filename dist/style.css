@@ -74,3 +74,5 @@ html[data-theme="dark"]{--tone-999:#999;--tone-aaa:#888;--tone-9b9b9b:#999;--ton
 @media(max-width:700px){.route-node-name>b{font-size:13px}.route-node p{font-size:9px}.map-heading .eyebrow{width:85px}.route-button{font-size:19px;min-width:29px}}
 
 html[data-theme="dark"]{--tone-2225:#000b;--tone-0002:#000a;}
+/* t-SNE is a schematic display; no misleading rectangular distance ruler. */
+.scale-line{width:auto;border-bottom:0;margin-bottom:7px}.scale-line i{display:none}
