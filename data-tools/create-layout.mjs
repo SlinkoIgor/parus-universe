@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 const ctx=vm.createContext({console});
-vm.runInContext(['catalog','astronomy','catalog-import','coordinates'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),ctx);
+vm.runInContext(['catalog','astronomy','catalog-import','coordinates','cosmic-catalog'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),ctx);
 const objects=vm.runInContext('OBJECTS.filter(o=>o.p3&&o.d>0).map(o=>({id:o.id,p3:o.p3,d:Math.hypot(...o.p3)}))',ctx);
 const groups=[objects.filter(o=>o.d<100),objects.filter(o=>o.d>=100&&o.d<1e5),objects.filter(o=>o.d>=1e5&&o.d<1e8),objects.filter(o=>o.d>=1e8)];
 const entries={},diagnostics=[];

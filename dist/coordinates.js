@@ -35,4 +35,4 @@ for(const o of OBJECTS){
  if(o.galaxy)Object.assign(o.galaxy,{x:o.x,y:o.y});
 }
 Object.assign(GALAXIES[0],{x:OBJECTS.find(o=>o.id==='sgr').x,y:OBJECTS.find(o=>o.id==='sgr').y,axisRatio:1});
-const CATALOG_COUNTS=Object.freeze({all:OBJECTS.length,stars:OBJECTS.filter(o=>o.kind==='star').length,galaxies:GALAXIES.length,pulsars:OBJECTS.filter(o=>o.kind==='pulsar').length});
+const CATALOG_COUNTS=Object.freeze({get all(){return OBJECTS.length;},get stars(){return OBJECTS.filter(o=>o.kind==='star').length;},get galaxies(){return OBJECTS.filter(o=>o.kind==='galaxy').length;},get pulsars(){return OBJECTS.filter(o=>o.kind==='pulsar').length;}});

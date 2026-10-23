@@ -5,7 +5,9 @@
     "namedRegistry": 652,
     "namedOpenNGC": 133,
     "unresolvedDistances": 46,
-    "totalImported": 1037
+    "totalImported": 1037,
+    "curatedCosmicLandmarks": 12,
+    "totalAfterNormalization": 1066
   },
   "coordinateFrame": "Equatorial J2000, raDeg and decDeg in degrees. All distances light-years. No proper motion propagation.",
   "galaxyModel": {
@@ -83,5 +85,12 @@
     "namedScope": "All current IAU WGSN CSN names plus HYG traditional proper names and curated named deep-sky landmarks. Not every informal name ever used.",
     "unresolvedDistances": "Objects remain searchable but not navigable. HYG sentinel100000pc is never treated as a physical distance.",
     "namedDeepSky": "All OpenNGC Common names (132 rows) plus familiar M101; original famous landmarks retained; arbitrary nearest ATNF and numbered-galaxy filler removed."
+  },
+  "curatedCosmicLandmarks": {
+    "file": "cosmic-catalog.js",
+    "references": "Individual source URLs, position assumptions, extent definitions and candidate status retained per record.",
+    "distance": "Present-epoch comoving distance integrated from redshift in common flat LCDM H0=70, OmegaM=0.3, OmegaLambda=0.7; radiation neglected. Light-travel time is separately integrated, never used as distance.",
+    "nearbyVoid": "Local Void anchor: Cosmicflows-3 Lacerta-2.4 SG XYZ=(22,-9,22) Mpc, transformed using the Lahav/de Vaucouleurs supergalactic basis.",
+    "display": "Illustrative contours; widths or central directions without measured footprints are explicitly identified. No decorative filler."
   }
 }

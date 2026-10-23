@@ -3,7 +3,10 @@
 const Simulation={
  debt:0,
  tolerance(f){return Math.max(1e-13,Math.abs(f.distance)*64*Number.EPSILON);},
- replayRate(){const f=state.flight;return f&&['thrust','launch','brake','dock'].includes(state.phase)?Math.min(speed,f.replayRate>0?f.replayRate:speed):speed;},
+ // Automatic replay is a slowdown factor only. Only the player's speed button
+ // can raise the requested proper-time rate, including during a stellar boost.
+ slowMotionFactor(){const f=state.flight;if(!f||!['thrust','launch','brake','dock'].includes(state.phase))return 1;return Number.isFinite(f.replayRate)&&f.replayRate>0?Math.min(1,f.replayRate):1;},
+ replayRate(){return speed*this.slowMotionFactor();},
  wallDebt:0,
  advance(realSeconds){
   if(paused)return;let remaining=realSeconds+this.wallDebt;this.wallDebt=0;
@@ -32,23 +35,23 @@ const Simulation={
    const e=f.engine;if(!e){state.phase='cruise';return 0;}
    const before=Rocket.dryMass+state.matter,unburned=Math.max(0,e.budget-e.burned),retro=e.direction<0;
    if(unburned<=Math.max(1e-30,e.budget*1e-12)){
-    if(retro){state.beta=0;finishFlight(Math.abs(f.covered-f.distance)<=tol*4);}else cutEngine(false);return 0;
+    if(retro){state.beta=0;finishFlight(Math.abs(f.covered-f.distance)<=tol*4);}else cutEngine();return 0;
    }
    const dm=Math.min(unburned,Rocket.burnedIn(before,dt,e.maxG||100),state.matter);
    const predict=p=>{const after=Math.max(e.mf,before-dm*p),leg=retro?Rocket.retroSegment(e.m0,e.eta0,before,after,e.maxG||100):Rocket.segment(e.m0,before,after,e.eta0||0,e.maxG||100);return{...leg,fuel:Math.max(0,after-Rocket.dryMass)};};
    const fraction=retro?1:autoFraction(predict),step=predict(fraction),used=before-(Rocket.dryMass+step.fuel);
    state.matter=step.fuel;e.burned+=used;e.energy+=step.energy;state.spentEnergy+=step.energy;state.beta=step.beta;state.acceleration=(retro?-1:1)*Rocket.acceleration(Rocket.dryMass+state.matter,e.maxG||100);advance(step.distance,step.earth,step.proper);
    if(!retro&&fraction<1-1e-10)beginBrake(true);
-   else if(e.budget-e.burned<=Math.max(1e-30,e.budget*1e-12)){if(retro){state.beta=0;finishFlight(Math.abs(f.covered-f.distance)<=tol*4);}else cutEngine(false);}
+   else if(e.budget-e.burned<=Math.max(1e-30,e.budget*1e-12)){if(retro){state.beta=0;finishFlight(Math.abs(f.covered-f.distance)<=tol*4);}else cutEngine();}
    return step.proper;
   }
   if(state.phase==='launch'&&f.wind){
    const w=f.wind,old=w.lastSample||ProperTime.at(w,Stellar,w.elapsedProper||0),span=Math.min(dt,Math.max(0,w.proper-old.proper));
-   if(span===0){cutEngine(false);return 0;}
+   if(span===0){cutEngine();return 0;}
    const predict=p=>{const now=ProperTime.at(w,Stellar,old.proper+span*p);return{...now,distance:now.distance-old.distance,fuel:state.matter};};
    const fraction=autoFraction(predict),now=ProperTime.at(w,Stellar,old.proper+span*fraction),used=now.proper-old.proper;
    w.elapsedProper=now.proper;w.progress=now.p;w.lastSample=now;state.beta=now.beta;state.acceleration=now.force/w.massKg;advance(now.distance-old.distance,now.earth-old.earth,used);
-   if(fraction<1-1e-10)beginBrake(true);else if(now.p===1)cutEngine(false);
+   if(fraction<1-1e-10)beginBrake(true);else if(now.p===1)cutEngine();
    return used;
   }
   if(state.phase==='cruise'){

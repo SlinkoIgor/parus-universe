@@ -13,7 +13,7 @@ const REGION_DATA={
  arc:{shape:'arc',major:3.262e9,minor:1.2e9,note:'Кандидат: размах ≈1 Гпк (3,26 млрд св. лет). Кривизна и ширина рисунка условные.',url:'https://arxiv.org/abs/2201.06875'}
 };
 for(const o of OBJECTS){
- const r=REGION_DATA[o.id]||(o.p3&&['nebula','cluster'].includes(o.kind)&&o.diameterLy?{shape:'ellipse',major:o.diameterLy,minor:o.minorDiameterLy||o.diameterLy,note:'Оптические оси ≈'+o.diameterLy.toPrecision(3)+' × '+(o.minorDiameterLy||o.diameterLy).toPrecision(3)+' св. лет; угловые размеры OpenNGC.',url:o.source}:null);
+ const r=o.regionData||REGION_DATA[o.id]||(o.p3&&['nebula','cluster'].includes(o.kind)&&o.diameterLy?{shape:'ellipse',major:o.diameterLy,minor:o.minorDiameterLy||o.diameterLy,note:'Оптические оси ≈'+o.diameterLy.toPrecision(3)+' × '+(o.minorDiameterLy||o.diameterLy).toPrecision(3)+' св. лет; угловые размеры OpenNGC.',url:o.source}:null);
  if(r){o.region=r;if(r.url&&!o.facts.refs.some(a=>a[0]===r.url))o.facts.refs.push([r.url,'Размер области']);}
 }
 const RegionMap={
@@ -24,14 +24,14 @@ const RegionMap={
   if(r.shape==='ribbon'){const u=t<=.5?t*2:2-t*2;x=(u-.5)*r.major;y=Math.sin(u*Math.PI*3)*r.minor*.18+(t<=.5?-1:1)*r.minor*.28;}
   else if(r.shape==='arc'){x=(t-.5)*r.major;y=(4*(t-.5)**2-.5)*r.minor;}
   else{const f=r.shape==='basin'?1+.09*Math.sin(3*a)+.045*Math.cos(5*a):1;x=Math.cos(a)*r.major*.5*f;y=Math.sin(a)*r.minor*.5*f;}p.push({x,y});}return p;},
- draw(){this.hits=[];for(const o of OBJECTS){const r=o.region;if(!r)continue;const c=screen(this.center(o)),scale=width/cam.span,rx=r.major*.5*scale,ry=r.minor*.5*scale;
-  if(rx<5||rx>20000||c.x+rx*1.2<0||c.x-rx*1.2>width||c.y+ry*1.2<0||c.y-ry*1.2>height)continue;
-  const points=this.outline(r).map(p=>({x:c.x+p.x*scale,y:c.y+p.y*scale}));
-  ctx.save();ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));if(r.shape!=='arc')ctx.closePath();ctx.strokeStyle=paint(o.id===state.selected?'#555555':'#aaaaaa');ctx.lineWidth=o.id===state.selected?1.3:.8;ctx.setLineDash(r.shape==='ring'?[7,5]:[3,5]);
-  if(r.shape==='arc'){ctx.lineWidth=Math.max(1,Math.min(14,rx*.025));}else{ctx.fillStyle=paint('#f0f0f0');ctx.globalAlpha=.25;ctx.fill();ctx.globalAlpha=1;}ctx.stroke();ctx.restore();
-  const label={x:clamp(c.x,100,width-130),y:clamp(c.y+Math.min(ry*.6,80),125,height-100)};
-  text(o.name.toUpperCase(),label.x,label.y,9,'#757575','center');text('ПРИБЛИЖЁННАЯ ОБЛАСТЬ'+(r.illustrative?' · ГРАНИЦА НЕ ОПРЕДЕЛЕНА':''),label.x,label.y+14,6,'#969696','center');
-  this.hits.push({o,points,label,closed:r.shape!=='arc'});
+ draw(){this.hits=[];for(const o of OBJECTS.filter(o=>o.region).sort((a,b)=>b.region.major-a.region.major)){const r=o.region,c=screen(this.center(o)),scale=width/cam.span,rx=r.major*.5*scale,ry=r.minor*.5*scale;
+  if(rx<4||rx>20000||c.x+rx*1.2<0||c.x-rx*1.2>width||c.y+ry*1.2<0||c.y-ry*1.2>height)continue;
+  const points=this.outline(r).map(p=>({x:c.x+p.x*scale,y:c.y+p.y*scale})),selected=o.id===state.selected,highlighted=selected||hover?.id===o.id;
+  ctx.save();ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));if(r.shape!=='arc')ctx.closePath();ctx.strokeStyle=paint(highlighted?'#777777':'#b5b5b5');ctx.lineWidth=highlighted?1.25:.7;ctx.setLineDash(r.shape==='ring'?[7,5]:[3,6]);ctx.stroke();ctx.restore();
+  // Labels follow visible edges. A containing region never gets clamped onto the map centre.
+  const edge=points.filter(p=>p.x>30&&p.x<width-30&&p.y>120&&p.y<height-65).sort((a,b)=>b.y-a.y||Math.abs(a.x-c.x)-Math.abs(b.x-c.x));
+  const hit={o,points,label:null,closed:r.shape!=='arc'};this.hits.push(hit);
+  if(rx>=18)MapLabels.add({key:'region-'+o.id,name:o.name.toUpperCase(),detail:r.illustrative?'ГРАНИЦА УСЛОВНАЯ':'ПРИБЛИЖЁННАЯ ОБЛАСТЬ',priority:selected?100:30,size:9,color:selected?'#454545':'#757575',candidates:edge.map(p=>({x:p.x,y:p.y-9,align:'center'})),onPlace:box=>{hit.label=box;}});
  }},
- hit(x,y){for(const h of [...this.hits].reverse()){if(Math.abs(x-h.label.x)<100&&Math.abs(y-h.label.y)<17)return h.o;const p=h.points;for(let i=1;i<p.length;i++){const a=p[i-1],b=p[i],dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1)));if(Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<9)return h.o;}}return null;}
+ hit(x,y){for(const h of [...this.hits].reverse()){if(h.label&&x>=h.label.x&&x<=h.label.x+h.label.w&&y>=h.label.y&&y<=h.label.y+h.label.h)return h.o;const p=h.points;for(let i=1;i<p.length;i++){const a=p[i-1],b=p[i],dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1)));if(Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<9)return h.o;}}return null;}
 };

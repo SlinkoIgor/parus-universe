@@ -14,10 +14,11 @@ const Rocket=Object.freeze({
   return{proper:k*delta,earth:k*(Math.sinh(etaB)-Math.sinh(etaA)),distance:k*(Math.cosh(etaB)-Math.cosh(etaA)),beta:Math.tanh(etaB),energy:this.energy(ma-mb)};
  },
  plan(fuel,distance=Infinity,startBeta=0,maxG=this.maxG){
-  const eta0=Math.atanh(startBeta),m0=this.dryMass+Math.max(0,fuel);let budget=Math.max(0,m0-Math.sqrt(this.dryMass*m0*Math.exp(eta0)));
-  if(this.segment(m0,m0,m0-budget,eta0,maxG).distance>distance*.08){let lo=0,hi=budget;for(let i=0;i<55;i++){const mid=(lo+hi)/2;if(this.segment(m0,m0,m0-mid,eta0,maxG).distance>distance*.08)hi=mid;else lo=mid;}budget=lo;}
+  // Use all available propellant. Magnetic capture supplies the final reverse burn.
+  // The flight integrator ends acceleration early only when stopping at the target requires it.
+  const eta0=Math.atanh(startBeta),m0=this.dryMass+Math.max(0,fuel),budget=Math.max(0,fuel);
   const mf=m0-budget,leg=this.segment(m0,m0,mf,eta0,maxG);
-  return{m0,mf,eta0,maxG,budget,burned:0,initialFuel:fuel,beta:leg.beta,burnDistance:leg.distance,burnProper:leg.proper,burnEarth:leg.earth,energy:0,direction:1};
+  return{fullTank:true,m0,mf,eta0,maxG,budget,burned:0,initialFuel:fuel,beta:leg.beta,burnDistance:leg.distance,burnProper:leg.proper,burnEarth:leg.earth,energy:0,direction:1};
  },
  retroSegment(m0,eta0,ma,mb,maxG=this.maxG){
   const delta=Math.log1p((ma-mb)/mb),etaA=Math.max(0,eta0-Math.log(m0/ma)),etaB=Math.max(0,etaA-delta),k=this.c/(maxG*9.80665*this.year);
@@ -138,5 +139,41 @@ const ProperTime={
   const total=plan.proper||0;if(years<=0)return{...model.sample(plan,0),p:0};if(years>=total)return{...model.sample(plan,1),p:1};
   let lo=0,hi=1;for(let i=0;i<58;i++){const p=(lo+hi)/2;if(model.sample(plan,p).proper<years)lo=p;else hi=p;}
   const p=(lo+hi)/2;return{...model.sample(plan,p),p};
+ }
+};
+
+// ETA uses the same acceleration samples, coast and stopping plans as Simulation.
+// Cache arrival epochs, then subtract the clocks; never rerun an integral per frame.
+const FlightEstimate={
+ idleKey:null,idleValue:null,active:new WeakMap(),
+ leg(remaining,fuel,beta,engine=null,wind=null,windProper=0,flyby=false,gate=0,encounter=null){
+  const g=engine?.maxG||wind?.maxG||100,ma=Rocket.dryMass+fuel;
+  const oldWind=wind?Stellar.sampleProper(wind,windProper):null;
+  const sample=p=>{
+   if(wind){const q=Stellar.sampleProper(wind,windProper+(wind.proper-windProper)*p);return{proper:q.proper-oldWind.proper,earth:q.earth-oldWind.earth,distance:q.distance-oldWind.distance,beta:q.beta,fuel};}
+   if(engine){const mb=p===1?engine.mf:ma*Math.exp(-Math.log(ma/engine.mf)*p),q=Rocket.segment(engine.m0,ma,mb,engine.eta0||0,g);return{...q,fuel:Math.max(0,mb-Rocket.dryMass)};}
+   return{proper:0,earth:0,distance:0,beta,fuel};
+  };
+  const stopping=q=>flyby?{proper:encounter?.proper||0,earth:encounter?.earth||0,distance:gate}:Magnetic.stopping(q.fuel,q.beta,g);
+  let q=sample(1),stop=stopping(q);
+  if(!flyby&&q.distance+stop.distance>remaining){let lo=0,hi=1;for(let i=0;i<60;i++){const m=(lo+hi)/2,s=sample(m);if(s.distance+stopping(s).distance>remaining)hi=m;else lo=m;}q=sample((lo+hi)/2);stop=stopping(q);}
+  if(!(q.beta>0))return null;
+  const coast=Math.max(0,remaining-q.distance-stop.distance),earth=coast/q.beta,proper=earth*Math.sqrt((1-q.beta)*(1+q.beta));
+  return{proper:q.proper+proper+stop.proper,earth:q.earth+earth+stop.earth};
+ },
+ remaining(){
+  const f=state.flight;
+  if(state.phase==='dock'){const e=f.engine,q=Rocket.retroSegment(e.m0,e.eta0,Rocket.dryMass+state.matter,e.mf,e.maxG);return{proper:q.proper,earth:q.earth};}
+  if(state.phase==='brake'){const m=f.magnetic,q=m.lastSample||ProperTime.at(m,Magnetic,m.elapsedProper||0),e=Rocket.retroPlan(m.finalMass/1000-Rocket.dryMass,m.finalBeta,m.maxG);return{proper:Math.max(0,m.proper-q.proper)+e.burnProper,earth:Math.max(0,m.earth-q.earth)+e.burnEarth};}
+  if(state.phase==='flyby'){const p=f.encounter.plan,q=Gravity.atProper(p,p.elapsedProper||0);return{proper:Math.max(0,p.proper-q.proper),earth:Math.max(0,p.earth-q.earth)};}
+  return this.leg(f.distance-f.covered,state.matter,state.beta,state.phase==='thrust'?f.engine:null,state.phase==='launch'?f.wind:null,f.wind?.elapsedProper||0,Route.isFlyby(),f.aim?0:(f.encounter?.plan?.R||0)/LY,f.encounter?.plan);
+ },
+ get(){
+  const f=state.flight;
+  if(f){const key=[state.phase,f.distance,f.target,Route.isFlyby(),f.encounter?.beta].join(':');let cache=this.active.get(f);if(!cache||cache.key!==key){const q=this.remaining();cache={key,value:q?{proper:state.proper+q.proper,earth:state.earth+q.earth}:null};this.active.set(f,cache);}return cache.value?{proper:Math.max(0,cache.value.proper-state.proper),earth:Math.max(0,cache.value.earth-state.earth)}:null;}
+  const target=object(state.selected);if(!target?.navigable||state.current===target.id)return null;
+  const d=distance(state.ship,target),boost=canBoost(),key=[state.current,state.selected,d,state.matter,boost,state.sail].join(':');
+  if(this.idleKey!==key){this.idleKey=key;this.idleValue=this.leg(d,boost?0:state.matter,0,boost?null:Rocket.plan(state.matter,d),boost?windPlan():null);}
+  return this.idleValue;
  }
 };

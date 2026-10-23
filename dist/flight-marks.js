@@ -14,7 +14,8 @@ const FlightMarks={
  },
  actual(kind){const f=state.flight;if(f)this.set(f,kind,state.ship.p3,true);},
  draw(f=state.flight){
-  const labels={acceleration:'КОНЕЦ РАЗГОНА',brake:'МАГНИТНОЕ ТОРМОЖЕНИЕ',fine:'ТОЧНОЕ ТОРМОЖЕНИЕ'},offsets={acceleration:-20,brake:20,fine:36};
-  const occupied=[];for(const m of f?.markers||[]){const p=screen(FlightView.at(f,FlightView.fraction(f,m.p3)));circle(p.x,p.y,4,'#666666',.9,m.actual?[]:[2,2]);let dy=offsets[m.kind];while(occupied.some(t=>Math.abs(t.x-p.x)<175&&Math.abs(t.y-(p.y+dy))<14))dy+=16;occupied.push({x:p.x,y:p.y+dy});line(p.x,p.y+Math.sign(dy)*6,p.x,p.y+dy-Math.sign(dy)*5,'#888888',.6);text(labels[m.kind]+(m.actual?'':' · ПРОГНОЗ'),p.x+8,p.y+dy,7,'#777777');}
+  const labels={acceleration:'КОНЕЦ РАЗГОНА',brake:'МАГНИТНОЕ ТОРМОЖЕНИЕ',fine:'ТОЧНОЕ ТОРМОЖЕНИЕ'};
+  for(const m of f?.markers||[]){const p=screen(FlightView.at(f,FlightView.fraction(f,m.p3)));circle(p.x,p.y,4,'#666666',.9,m.actual?[]:[2,2]);MapLabels.point({key:'flight-mark-'+m.kind,name:labels[m.kind]+(m.actual?'':' · ПРОГНОЗ'),p,priority:115,size:8});}
+
  }
 };
