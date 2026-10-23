@@ -10,3 +10,8 @@ data-tools/NGC.csv
 data-tools/psrcat.db
 data-tools/psrcat*.tar.gz
 data-tools/import-catalog.json
+
+data-tools/raw/
+__pycache__/
+*.pyc
+work/

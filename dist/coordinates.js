@@ -16,13 +16,15 @@ for(const o of OBJECTS){
 }
 const originals=OBJECTS.slice();
 for(const entry of IMPORTED_CATALOG.objects){
- if(entry.kind==='star'&&originals.some(o=>o.kind==='star'&&known[o.id]&&(String(known[o.id].hygId)===String(entry.hygId)||(Math.abs(o.raDeg-entry.raDeg)*Math.cos(entry.decDeg*Math.PI/180)<.02&&Math.abs(o.decDeg-entry.decDeg)<.02&&Math.abs(o.d-entry.d)<o.d*.06))))continue;
- if(entry.psrJ&&Object.values(known).some(k=>k.psrJ===entry.psrJ))continue;
- const o={...entry,...Space.point(Space.fromSky(entry.raDeg,entry.decDeg,entry.d)),navigable:true,index:OBJECTS.length,desc:'Реальный объект из каталога '+entry.catalog+'. '+entry.distanceMethod};
- o.facts={class:entry.type,mass:'Нет индивидуальной оценки в выбранном каталоге.',band:'V',visual:entry.absoluteV===null?null:{absoluteV:entry.absoluteV,solarV:entry.visualLuminositySolar},lumUnknown:entry.visualLuminositySolar===null?entry.luminosityNote:null,note:[entry.luminosityNote,entry.distanceMethod,entry.sizeNote].filter(Boolean).join(' '),refs:[[entry.source,entry.catalog],["catalog-sources.json","Происхождение, преобразования и лицензии"]]};
+ const duplicate=entry.legacyId?originals.find(o=>o.id===entry.legacyId):entry.kind==='star'?originals.find(o=>o.kind==='star'&&known[o.id]&&(entry.hygId!=null&&known[o.id].hygId!=null&&String(known[o.id].hygId)===String(entry.hygId)||(known[o.id].hygId==null&&Number.isFinite(entry.d)&&Math.abs(o.raDeg-entry.raDeg)*Math.cos(entry.decDeg*Math.PI/180)<.02&&Math.abs(o.decDeg-entry.decDeg)<.02&&Math.abs(o.d-entry.d)<o.d*.06))):null;
+ if(duplicate){for(const k of ['hygId','hip','hd','ngc','messier','apparentV'])if(entry[k]!==undefined)duplicate[k]=entry[k];duplicate.aliases=[...new Set([...(duplicate.aliases||[]),entry.name,...(entry.aliases||[])])];duplicate.iauNames=[...new Set([...(duplicate.iauNames||[]),...(entry.iauNames||[])])];duplicate.selection=[...new Set([...(duplicate.selection||[]),...(entry.selection||[])])];continue;}
+ const located=Number.isFinite(entry.d)&&entry.d>0&&Number.isFinite(entry.raDeg)&&Number.isFinite(entry.decDeg);
+ const o={...entry,...(located?Space.point(Space.fromSky(entry.raDeg,entry.decDeg,entry.d)):{p3:null,x:NaN,y:NaN}),navigable:located,index:OBJECTS.length,desc:'Реальный объект: '+entry.catalog+'. '+entry.distanceMethod};
+ o.facts={class:entry.type,mass:'Нет индивидуальной оценки в выбранном каталоге.',band:'V',visual:entry.absoluteV==null?null:{absoluteV:entry.absoluteV,solarV:entry.visualLuminositySolar},lumUnknown:entry.visualLuminositySolar==null?entry.luminosityNote:null,note:[entry.luminosityNote,entry.distanceMethod,entry.sizeNote].filter(Boolean).join(' '),refs:[[entry.source,entry.catalog],["catalog-sources.json","Происхождение, преобразования и лицензии"]]};
+ if(!located)o.coordinateNote='Не хватает надёжного расстояния или направления для полной 3D-позиции. Объект присутствует в атласе; точка физического маршрута недоступна.';
  if(entry.periodSeconds)o.facts.extra=['Период вращения',entry.periodSeconds.toLocaleString('ru-RU',{maximumSignificantDigits:6})+' с'];
- if(entry.kind==='galaxy'){
-  const g={id:o.id,name:o.name,x:o.x,y:o.y,diameterLy:entry.diameterLy,axisRatio:entry.minorDiameterLy/entry.diameterLy,shape:/^E|^S0/.test(entry.hubbleType)?'elliptical':/^I/.test(entry.hubbleType)?'irregular':'spiral',rotation:(entry.positionAngleDeg||0)*Math.PI/180};o.galaxy=g;GALAXIES.push(g);
+ if(entry.kind==='galaxy'&&located&&entry.diameterLy){
+  const g={id:o.id,name:o.name,x:o.x,y:o.y,diameterLy:entry.diameterLy,axisRatio:entry.minorDiameterLy/entry.diameterLy||1,shape:/^E|^S0/.test(entry.hubbleType)?'elliptical':/^I/.test(entry.hubbleType)?'irregular':'spiral',rotation:(entry.positionAngleDeg||0)*Math.PI/180};o.galaxy=g;GALAXIES.push(g);
  }
  OBJECTS.push(o);
 }

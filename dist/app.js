@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 const fmt=(n,d=2)=>Number(n).toLocaleString('ru-RU',{maximumFractionDigits:d,minimumFractionDigits:d});
 const compact=n=>n<0?'−'+compact(-n):n>=1e9?fmt(n/1e9,n>=1e10?1:2)+' млрд':n>=1e6?fmt(n/1e6,n>=1e7?1:2)+' млн':n>=1e3?fmt(n/1e3,1)+' тыс.':fmt(n,n<100?2:0);
-const distanceText=n=>compact(n)+' св. лет';
+const distanceText=n=>Number.isFinite(n)?compact(n)+' св. лет':'расстояние неизвестно';
 const object=id=>OBJECTS.find(o=>o.id===id);
 const distance=(a,b)=>Space.distance(a,b);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -18,7 +18,12 @@ function paint(color){if(theme==='light')return color;if(color==='#f8f8f8')retur
 let state,paused=false,speed=1,filter='all',toastTimer,hover=null,hitObjects=[],lastUI=0,saveTick=0;
 const initial=()=>({version:7,controlG:100,current:'sol',selected:'proxima',sail:1,beta:0,acceleration:0,matter:Rocket.initialFuel,captured:0,spentEnergy:0,heatRadiated:0,earth:0,proper:0,totalDistance:0,ship:Space.point([0,0,0]),itinerary:[],visited:['sol'],destroyed:[],phase:'idle',flight:null,auto:true,journal:[{t:0,text:'Ковчег — 01. Корпус: 1 мг. Топливо: 1 / 1 мг. Фотонный двигатель готов.'}]});
 function restore(saved){
- if(![1,2,3,4,5,6,7].includes(saved?.version)||!object(saved.selected)||!saved.ship||!Array.isArray(saved.visited))return initial();
+ if(![1,2,3,4,5,6,7].includes(saved?.version)||!saved.ship||!Array.isArray(saved.visited))return initial();
+ // Restore only old catalog objects still referenced by the player's expedition.
+ for(const id of new Set([saved.current,saved.selected,saved.flight?.target,saved.flight?.fromId,...(saved.flight?.route||[]).map(n=>n.id),...(saved.itinerary||[]).map(n=>n.id)])){
+  if(id&&!object(id)){const old=RETIRED_OBJECTS.find(o=>o.id===id);if(old)OBJECTS.push({...old,index:OBJECTS.length,retired:true});}
+ }
+ if(!object(saved.selected))saved.selected=object(saved.current)?.id||'proxima';
  const upgraded={...initial(),...saved,version:7,acceleration:0,spentEnergy:saved.spentEnergy||0,heatRadiated:saved.heatRadiated||0};
  if(saved.version<3&&upgraded.flight){const f=upgraded.flight;delete f.legacy;f.coastRate=f.rate||1;f.wind=null;f.magnetic=null;
   if(upgraded.phase==='launch'){f.wind=Stellar.plan((Rocket.dryMass+upgraded.matter)*1000,SAILS[upgraded.sail].areaM2,upgraded.beta,Stellar.r0+f.covered*LY);f.wind.baseCovered=f.covered;f.wind.elapsed=0;f.maxBeta=f.wind.beta;if(f.wind.distance===0)upgraded.phase='cruise';}
@@ -70,7 +75,7 @@ function routeViewport(){
  return{left:pad,top:112,right:Math.max(pad+100,right),bottom:Math.max(180,bottom)};
 }
 function fitRoute(target){
- if(width<=0||height<=0)return;const a=FlightView.ship(),b=MapLayout.project(target),v=routeViewport(),current=cameraGoal||cam;
+ if(width<=0||height<=0||!target||!Number.isFinite(target.x)||!Number.isFinite(target.y))return;const a=FlightView.ship(),b=MapLayout.project(target),v=routeViewport(),current=cameraGoal||cam;
  const sx=p=>width*.43+(p.x-current.x)*width/current.span,sy=p=>height*(width<700?.39:.50)+(p.y-current.y)*width/current.span;
  if([a,b].every(p=>sx(p)>=v.left&&sx(p)<=v.right&&sy(p)>=v.top&&sy(p)<=v.bottom))return;
  const span=Math.max(current.span,Math.abs(a.x-b.x)*width/(v.right-v.left)*1.25,Math.abs(a.y-b.y)*width/(v.bottom-v.top)*1.25);
@@ -100,7 +105,7 @@ function renderUI(){
  const f=state.flight,target=object(f?f.target:state.selected),current=object(state.current),active=!!f,boost=canBoost(),arrived=!active&&state.current===target.id;
  $('targetName').textContent=target.name;$('targetType').textContent=state.destroyed.includes(target.id)&&target.kind==='star'?'ОСТАТОК ЗВЕЗДЫ':target.type;$('targetVisited').hidden=!state.visited.includes(target.id);
  $('flightCard').classList.toggle('in-flight',active);
- const d=target.navigable?distance(state.ship,target):target.d;$('targetDistance').innerHTML=compact(d)+' <small>св. лет</small>';
+ const d=target.navigable?distance(state.ship,target):target.d;$('targetDistance').innerHTML=Number.isFinite(d)?compact(d)+' <small>св. лет</small>':'<small>Расстояние неизвестно</small>';
  const planningBoost=!active&&boost&&!arrived&&target.navigable;$('sailSection').hidden=!planningBoost;
  const sail=SAILS[state.sail];document.querySelectorAll('[data-sail]').forEach(b=>{const i=+b.dataset.sail;b.classList.toggle('active',i===state.sail);b.disabled=!planningBoost;if(planningBoost)b.querySelector('span').textContent='≈'+percentC(windPlan(i).beta);});
  if(planningBoost){const predicted=windPlan();$('sailArea').textContent=compact(sail.areaM2/1e6)+' км²';$('sailGamma').textContent=fmt(1/Math.sqrt(1-predicted.beta**2));$('sailDiagram').querySelector('text').textContent='≈ '+percentC(predicted.beta)+' →';}
@@ -115,7 +120,7 @@ function renderUI(){
  let action,hint;
  if(active){action='';hint=f.missed?'Цель пройдена. Остановка потребует оставшегося тормозного пути.':state.phase==='thrust'?'Двигатель расходует массу. Скорость растёт по ракетному уравнению.':state.phase==='launch'?'Парус впереди корабля. Поток слабеет с квадратом расстояния и с ростом скорости.':state.phase==='brake'?'Частицы передают импульс ловушке. Их сбор увеличивает массу корабля.':state.phase==='dock'?'Магнитное торможение ослабло. Последнюю скорость гасит двигатель обратной тягой.':'Инерционный полёт. Тормозной путь рассчитывается по текущей скорости и массе.';}
  else if(arrived){action='Выбрать следующую цель';hint=boost?'Прибытие. Выберите цель — и подготовьте звёздный парус.':'Прибытие. Следующая точка ждёт в атласе.';}
- else if(!target.navigable){action='Ориентир атласа';hint='Для этой протяжённой области нет однозначных 3D-координат. Она не используется как точка физического маршрута.';}
+ else if(!target.navigable){action='Ориентир атласа';hint=Number.isFinite(target.d)?'Область атласа с условным положением; физический маршрут не назначается.':'Объект есть в каталоге, но надёжное расстояние неизвестно. Точка полёта не выдумывается.';}
  else if(boost){action=current.kind==='star'?'Взорвать звезду и отчалить':'Импульс местной звезды';hint='Перед взрывом бак опустошается. Раннее торможение уменьшит прогноз скорости.';}
  else{action=state.current==='sol'?'К звезде на тяге':'К цели на тяге';hint=state.matter>1e-24?'Автопилот сохраняет запас на обратную тягу. Захват и обратная тяга остановят корабль у цели.':'Запас рабочего вещества исчерпан.';}
  $('launchBtn').hidden=active;$('launchBtn').querySelector('span').textContent=action;$('launchBtn').disabled=!target.navigable||!arrived&&!boost&&state.matter<1e-24;$('flightHint').textContent=hint;
@@ -176,10 +181,10 @@ function autoFraction(predict){
 }
 function tickPhysics(dt){Simulation.tick(dt);}
 
-function renderCatalog(){const term=$('search').value.trim().toLocaleLowerCase('ru');const items=OBJECTS.filter(o=>(filter==='all'||filter==='star'&&['star','home','pulsar','blackhole','nebula'].includes(o.kind)||filter==='galaxy'&&o.kind==='galaxy'||filter==='structure'&&['cluster','structure','wall','void','quasar','ring','arc','horizon'].includes(o.kind))&&(`${o.name} ${o.type} ${o.id} ${o.hip||''} ${o.hd||''} ${o.gliese||''}`).toLocaleLowerCase('ru').includes(term)).sort((a,b)=>a.d-b.d);
+function renderCatalog(){const term=$('search').value.trim().toLocaleLowerCase('ru');const items=OBJECTS.filter(o=>(filter==='all'||filter==='star'&&['star','home','pulsar','blackhole','nebula'].includes(o.kind)||filter==='galaxy'&&o.kind==='galaxy'||filter==='structure'&&['cluster','structure','wall','void','quasar','ring','arc','horizon'].includes(o.kind))&&(`${o.name} ${(o.aliases||[]).join(' ')} ${o.type} ${o.id} ${o.hip||''} ${o.hd||''} ${o.gliese||''}`).toLocaleLowerCase('ru').includes(term)).sort((a,b)=>(a.d??Infinity)-(b.d??Infinity));
  $('catalogCount').textContent=items.length+' / '+OBJECTS.length;
  $('catalogList').replaceChildren();if(!items.length){const e=document.createElement('p');e.className='empty-state';e.textContent='Объекты не найдены.';$('catalogList').append(e);}
- items.forEach(o=>{const b=document.createElement('button');b.className='catalog-item';b.innerHTML='<span>'+String(o.index+1).padStart(2,'0')+'</span><span><strong>'+o.name+'</strong><small>'+distanceText(o.d)+(o.navigable?'':' · СХЕМА')+(state.visited.includes(o.id)?' · ИССЛЕДОВАНО':'')+'</small></span><span>↗</span>';b.addEventListener('click',()=>{select(o.id,true);const picking=Route.picking;closeCatalog();if(picking){Route.add(o.id);Route.show();}});$('catalogList').append(b);});
+ items.forEach(o=>{const b=document.createElement('button');b.className='catalog-item';b.innerHTML='<span>'+String(o.index+1).padStart(2,'0')+'</span><span><strong>'+o.name+'</strong><small>'+distanceText(o.d)+(o.navigable?'':Number.isFinite(o.d)?' · СХЕМА':' · НЕТ ОЦЕНКИ ДАЛЬНОСТИ')+(state.visited.includes(o.id)?' · ИССЛЕДОВАНО':'')+'</small></span><span>↗</span>';b.addEventListener('click',()=>{select(o.id,true);const picking=Route.picking;closeCatalog();if(picking){Route.add(o.id);Route.show();}});$('catalogList').append(b);});
 }
 function closeMenu(){$('menu').hidden=true;$('menuBtn').setAttribute('aria-expanded','false');}
 function openCatalog(){closeMenu();$('catalog').hidden=false;renderCatalog();$('search').focus();}
@@ -191,12 +196,15 @@ function showObject(){
  const o=object(state.flight?state.flight.target:state.selected),f=o.facts,g=o.galaxy;
  const row=(label,value)=>'<div class="fact-row"><dt>'+label+'</dt><dd>'+value+'</dd></div>';
  let luminosity=f.lum!==undefined?'≈ '+quantity(f.lum)+' L☉<small>Болометрическая мощность: ≈ '+quantity(f.lum*Astro.solarLuminosity)+' Вт</small>':f.visual?'≈ '+quantity(f.visual.solarV)+' L☉,'+(f.band||'V')+'<small>Собственная светимость в полосе '+(f.band||'V')+'; абсолютная величина M'+(f.band||'V')+' ≈ '+fmt(f.visual.absoluteV,1)+' mag</small>':f.lumUnknown;
- const sizeButton=(g||o.id==='sgr')?'<button class="map-size-action" id="viewGalaxy">Показать галактику в масштабе <span>↗</span></button>':'';
+ const sizeButton=o.region?'<button class="map-size-action" id="viewRegion">Показать область ↗</button>':(g||o.id==='sgr')?'<button class="map-size-action" id="viewGalaxy">Показать галактику в масштабе <span>↗</span></button>':'';
  let html='<div class="modal-eyebrow">АТЛАС / '+String(o.index+1).padStart(3,'0')+'</div><h2>'+o.name+'</h2><p>'+o.desc+'</p>'+sizeButton+'<dl class="object-facts">'+row('Класс',f.class)+row('Масса',f.mass)+row('Светимость',luminosity);
+ if(o.region)html+=row('Область',o.region.note+'<small>Форма и ориентация приблизительны: t-SNE не сохраняет локальные углы и размеры между объектами.</small>');
+ if(o.apparentV!=null)html+=row('Видимая величина V',fmt(o.apparentV,2)+' mag<small>Яркость с Земли: чем меньше число, тем ярче. Не абсолютная светимость.</small>');if(o.iauNames?.length)html+=row('Имена IAU',o.iauNames.join(', '));if(o.aliases?.length)html+=row('Другие обозначения',o.aliases.join(' · '));
  if(g)html+=row('Оптический размер',distanceText(g.diameterLy)+' × '+distanceText(g.diameterLy*g.axisRatio)+'<small>Большая × малая ось проекции; размеры контура в масштабе карты</small>');
  else if(f.radius)html+=row('Размер',f.radius);
  if(f.extra)html+=row(...f.extra);
  if(o.p3){html+=row('Galactic XYZ',o.p3.map(v=>compact(v)).join(' / ')+' св. лет<small>Физические координаты относительно Солнца; не координаты схемы</small>')+row('Глубина Zg',distanceText(o.p3[2])+'<small>Координата вне плоскости карты, относительно Солнца</small>');if(o.raDeg!==undefined)html+=row('Направление J2000',fmt(o.raDeg,4)+'° / '+fmt(o.decDeg,4)+'°<small>Прямое восхождение / склонение</small>');}
+ if(!o.p3&&Number.isFinite(o.raDeg))html+=row('Направление J2000',fmt(o.raDeg,4)+'° / '+fmt(o.decDeg,4)+'°');
  if(o.gravity)html+=row('Модель пролёта',o.gravity.note);
  if(o.coordinateNote)html+=row('Координаты',o.coordinateNote);
  html+=row('От Солнца',distanceText(o.d))+'</dl>';
@@ -204,7 +212,7 @@ function showObject(){
  if(f.visual)html+='<p class="object-note">Полосовая светимость рассчитана из каталожной фотометрии и расстояния атласа: M = m − 5 log₁₀(d/10 пк), L/L☉ = 10⁰·⁴⁽ᴹ☉⁻ᴹ⁾. Без поправки на поглощение пылью; это приблизительная оценка, не полная болометрическая мощность.</p>';
  if(f.note)html+='<p class="object-note">'+f.note+'</p>';
  html+='<p class="object-sources">'+f.refs.map(([url,label])=>'<a href="'+url+'" target="_blank" rel="noopener">'+label+' ↗</a>').join('')+'</p>';
- showDialog(html);if(g||o.id==='sgr')$('viewGalaxy').onclick=()=>{const shape=g||GALAXIES[0];$('infoDialog').close();focusGalaxy(shape);};
+ showDialog(html);if(o.region)$('viewRegion').onclick=()=>{$('infoDialog').close();RegionMap.focus(o);};if(g||o.id==='sgr')$('viewGalaxy').onclick=()=>{const shape=g||GALAXIES[0];$('infoDialog').close();focusGalaxy(shape);};
 }
 function focusGalaxy(g){const span=g.diameterLy*Math.max(2.5,width/Math.max(height*.58,1));const p=MapLayout.project(g);goCamera(p.x,p.y,span);toast('Оптический контур · '+distanceText(g.diameterLy)+' · в масштабе карты');}
 function showJournal(){showDialog('<div class="modal-eyebrow">КОВЧЕГ — 01 / ЖУРНАЛ</div><h2>След экспедиции.</h2><p>Исследовано '+state.visited.length+' из '+(OBJECTS.length-1)+' точек · пройдено '+distanceText(state.totalDistance)+' · собрано '+massText(state.captured)+' · аннигилировано на '+compact(state.spentEnergy/1e15)+' ПДж; отведено тепла '+compact(state.heatRadiated/1e15)+' ПДж.</p>'+[...state.journal].reverse().map(e=>'<div class="journal-entry"><time>'+compact(e.t)+' лет</time><p>'+e.text+'</p></div>').join(''));}
@@ -257,7 +265,7 @@ function drawSymbol(o,p,selected=false){const destroyed=state.destroyed.includes
  else{for(let i=0;i<11;i++){const a=i*2.4,r=4+Math.sqrt(i)*3;circle(Math.cos(a)*r,Math.sin(a)*r,1.4,ink,.7);}circle(0,0,18,ink,.4,[2,4]);}
  if(selected){for(let a=0;a<4;a++){ctx.save();ctx.rotate(a*Math.PI/2);ctx.beginPath();ctx.moveTo(21,-16);ctx.lineTo(21,-21);ctx.lineTo(16,-21);ctx.stroke();ctx.restore();}}
  ctx.restore();}
-function drawObjects(){hitObjects=[];const departure=state.flight?.fromId||state.current;const occupied=[],labelRects=[{x:0,y:0,w:Math.min(width-40,420),h:120},{x:0,y:height-35,w:width,h:35},{x:width-340,y:height-260,w:340,h:260}],visible=OBJECTS.filter(o=>o.kind!=='horizon'||cam.span>3e10).map(o=>({o,p:screen(o)})).filter(({p})=>p.x>-90&&p.x<width+90&&p.y>-50&&p.y<height+50).sort((a,b)=>(b.o.id===state.selected?4:b.o.id===departure?3:b.o.id==='sol'?2:0)-(a.o.id===state.selected?4:a.o.id===departure?3:a.o.id==='sol'?2:0)||b.o.d-a.o.d);
+function drawObjects(){hitObjects=[];const departure=state.flight?.fromId||state.current;const occupied=[],labelRects=[{x:0,y:0,w:Math.min(width-40,420),h:120},{x:0,y:height-35,w:width,h:35},{x:width-340,y:height-260,w:340,h:260}],visible=OBJECTS.filter(o=>!o.region&&(o.kind!=='horizon'||cam.span>3e10)).map(o=>({o,p:screen(o)})).filter(({p})=>p.x>-90&&p.x<width+90&&p.y>-50&&p.y<height+50).sort((a,b)=>(b.o.id===state.selected?4:b.o.id===departure?3:b.o.id==='sol'?2:0)-(a.o.id===state.selected?4:a.o.id===departure?3:a.o.id==='sol'?2:0)||b.o.d-a.o.d);
  for(const{o,p}of visible){const special=o.id===state.selected||o.id==='sol'||o.id===departure;if(!special&&occupied.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<27))continue;occupied.push(p);drawSymbol(o,p,o.id===state.selected);hitObjects.push({o,p});const selected=o.id===state.selected;let dx=selected?31:16,dy=selected?-29:-12;
  if(p.x>width-160){dx=-16;ctx.textAlign='right';}const align=dx<0?'right':'left';
  if(selected){line(p.x+Math.sign(dx)*19,p.y-17,p.x+dx,p.y+dy-3,'#767676',.7);line(p.x+dx,p.y+dy-3,p.x+dx+Math.sign(dx)*85,p.y+dy-3,'#767676',.7);text('ЦЕЛЬ / '+String(o.index+1).padStart(3,'0'),p.x+dx,p.y+dy-11,7,'#8a8a8a',align);}
@@ -279,7 +287,7 @@ function drawRoute(){const f=state.flight,target=object(f?f.target:state.selecte
  FlightMarks.draw(f);
 }
 function sailGeometry(radius,braking=false){const side=braking?-1:1;return{side,radius,rim:30*side,belly:54*side,tether:side*4};}
-function drawShip(time){const p=screen(state.ship),f=state.flight,target=f?object(f.target):object(state.selected),ahead=f?screen(FlightView.at(f,f.covered/f.distance+1)):screen(target),angle=Math.atan2(ahead.y-p.y,ahead.x-p.x);
+function drawShip(time){const p=screen(state.ship),f=state.flight,target=f?object(f.target):object(state.selected),ahead=f?screen(FlightView.at(f,f.covered/f.distance+1)):screen(target),angle=Number.isFinite(ahead.x)&&Number.isFinite(ahead.y)?Math.atan2(ahead.y-p.y,ahead.x-p.x):0;
  ctx.save();ctx.translate(p.x,p.y);ctx.rotate(angle+(state.phase==='dock'?Math.PI:0));ctx.lineWidth=.9;ctx.strokeStyle=paint('#252525');
  const braking=state.phase==='brake',sailOpen=!!f&&(state.phase==='launch'||braking);
  if(sailOpen){const g=sailGeometry([15,21,27][state.sail],braking);let opening=1;if(state.phase==='launch')opening=Math.max(.035,Math.sqrt(Stellar.sampleProper(f.wind,f.wind.elapsedProper||0).opening));const r=g.radius*opening;
@@ -297,14 +305,14 @@ function drawHover(){if(!hover)return;const p=screen(hover);circle(p.x,p.y,27,'#
 
 let lastFrame=performance.now();function frame(now){const realDt=Math.max(0,(now-lastFrame)/1000);lastFrame=now;Simulation.advance(realDt);
  if(!document.hidden){if(cameraGoal){const a=1-Math.exp(-Math.min(realDt,.1)*8);cam.x+=(cameraGoal.x-cam.x)*a;cam.y+=(cameraGoal.y-cam.y)*a;cam.span=Math.exp(Math.log(cam.span)+(Math.log(cameraGoal.span)-Math.log(cam.span))*a);if(Math.abs(Math.log(cam.span/cameraGoal.span))<.0005&&Math.hypot(cam.x-cameraGoal.x,cam.y-cameraGoal.y)<cam.span*.0001){cam={...cameraGoal};cameraGoal=null;}}
- drawGrid();drawGalaxyBackground();drawHorizonBoundary();Route.draw();drawRoute();drawEffects(Math.min(realDt,.1));drawObjects();drawShip(now);Route.drawEncounter();drawHover();if(now-lastUI>100){renderUI();lastUI=now;}}
+ drawGrid();drawGalaxyBackground();RegionMap.draw();drawHorizonBoundary();Route.draw();drawRoute();drawEffects(Math.min(realDt,.1));drawObjects();drawShip(now);Route.drawEncounter();drawHover();if(now-lastUI>100){renderUI();lastUI=now;}}
  if(now-saveTick>1500){persist();saveTick=now;}requestAnimationFrame(frame);
 }
 
 canvas.addEventListener('wheel',e=>{e.preventDefault();cameraGoal=null;const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,before=world(x,y),factor=Math.exp(clamp(e.deltaY,-220,220)*.006);cam.span=clamp(cam.span*factor,.00006,1.4e11);const after=world(x,y);cam.x+=before.x-after.x;cam.y+=before.y-after.y;updateMapHeading();},{passive:false});
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;pointer={down:true,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,moved:false,id:e.pointerId};canvas.setPointerCapture(e.pointerId);cameraGoal=null;});
-canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;if(pointer.down&&e.pointerId===pointer.id){const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.hypot(e.clientX-pointer.startX,e.clientY-pointer.startY)>5)pointer.moved=true;if(pointer.moved){cam.x-=dx*cam.span/width;cam.y-=dy*cam.span/width;canvas.style.cursor='grabbing';}pointer.x=e.clientX;pointer.y=e.clientY;}else{hover=hitObjects.find(({p})=>Math.hypot(x-p.x,y-p.y)<23)?.o||null;canvas.style.cursor=hover?'pointer':'crosshair';}});
-canvas.addEventListener('pointerup',e=>{if(!pointer.down||e.pointerId!==pointer.id)return;if(!pointer.moved){const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const hit=hitObjects.map(h=>({...h,d:Math.hypot(x-h.p.x,y-h.p.y)})).filter(h=>h.d<28).sort((a,b)=>a.d-b.d)[0];if(hit)select(hit.o.id);}pointer.down=false;canvas.style.cursor='crosshair';});
+canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;if(pointer.down&&e.pointerId===pointer.id){const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.hypot(e.clientX-pointer.startX,e.clientY-pointer.startY)>5)pointer.moved=true;if(pointer.moved){cam.x-=dx*cam.span/width;cam.y-=dy*cam.span/width;canvas.style.cursor='grabbing';}pointer.x=e.clientX;pointer.y=e.clientY;}else{hover=hitObjects.find(({p})=>Math.hypot(x-p.x,y-p.y)<23)?.o||RegionMap.hit(x,y);canvas.style.cursor=hover?'pointer':'crosshair';}});
+canvas.addEventListener('pointerup',e=>{if(!pointer.down||e.pointerId!==pointer.id)return;if(!pointer.moved){const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const hit=hitObjects.map(h=>({...h,d:Math.hypot(x-h.p.x,y-h.p.y)})).filter(h=>h.d<28).sort((a,b)=>a.d-b.d)[0];if(hit)select(hit.o.id);else{const region=RegionMap.hit(x,y);if(region)select(region.id);}}pointer.down=false;canvas.style.cursor='crosshair';});
 canvas.addEventListener('pointercancel',()=>{pointer.down=false;canvas.style.cursor='crosshair';});canvas.addEventListener('pointerleave',()=>hover=null);
 
 $('zoomIn').onclick=()=>goCamera(cam.x,cam.y,cam.span/2);$('zoomOut').onclick=()=>goCamera(cam.x,cam.y,cam.span*2);$('shipBtn').onclick=()=>goCamera(FlightView.ship().x,FlightView.ship().y,state.flight?cam.span:24);

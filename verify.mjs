@@ -7,7 +7,8 @@ const el=id=>els.get(id)||(els.set(id,new Element),els.get(id));
 const context=vm.createContext({console,performance,Math,JSON,Number,Array,String,Set,Map,Date,setTimeout:()=>0,clearTimeout(){},requestAnimationFrame(){},ResizeObserver:class{observe(){}},document:{documentElement:{dataset:{theme:'dark'}},querySelector:()=>null,getElementById:el,querySelectorAll:()=>[],addEventListener(){},createElement:()=>new Element,hidden:false},window:{devicePixelRatio:1,addEventListener(){},open(){}},localStorage:{getItem(){return null},setItem(){}},assert});
 
 
-vm.runInContext(['dist/catalog.js','dist/astronomy.js','dist/catalog-import.js','dist/coordinates.js','dist/layout-data.js','dist/map-layout.js','dist/flight-view.js','dist/flight-marks.js','dist/physics.js','dist/flyby.js','dist/navigation.js','dist/simulation.js','dist/app.js'].map(p=>fs.readFileSync(p,'utf8')).join('\n'),context);
+vm.runInContext(['dist/catalog.js','dist/astronomy.js','dist/catalog-import.js','dist/catalog-retired.js','dist/coordinates.js','dist/layout-data.js','dist/map-layout.js','dist/regions.js','dist/flight-view.js','dist/flight-marks.js','dist/physics.js','dist/flyby.js','dist/navigation.js','dist/simulation.js','dist/app.js'].map(p=>fs.readFileSync(p,'utf8')).join('\n'),context);
+context.CATALOG_AUDIT=JSON.parse(fs.readFileSync('data-tools/selection-audit.json','utf8'));
 const run=s=>vm.runInContext(s,context);
 run(`
 function close(a,b,tol=1e-10){assert.ok(Math.abs(a-b)<=tol,a+' ≈ '+b)}
@@ -36,7 +37,15 @@ console.log('PASS explicit slow replay, pause, stage transitions and return to n
 // All displayed intermediates use one affine map segment; physical xyz is independent.
 var f=state.flight,aa=FlightView.at(f,0),bb=FlightView.at(f,1);for(let i=0;i<=100;i++){const t=i/100,p=FlightView.at(f,t);close(p.x,aa.x+(bb.x-aa.x)*t,1e-10);close(p.y,aa.y+(bb.y-aa.y)*t,1e-10);const xyz=Space.mix(f.from,f.aim||object(f.target),t);close(FlightView.fraction(f,xyz.p3),t,1e-12);}var xyzBefore=JSON.stringify(state.ship.p3),covered=f.covered;for(let i=0;i<20;i++)FlightView.ship();assert.equal(JSON.stringify(state.ship.p3),xyzBefore);close(f.covered,covered);
 for(const mark of f.markers){const frac=FlightView.fraction(f,mark.p3),p=FlightView.at(f,frac);assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y));}
-assert.equal(OBJECTS.length,575);assert.equal(GALAXIES.length,90);assert.ok(LAYOUT_DATA.diagnostics.every(d=>d.finalKL<=d.initialKL));
+assert.ok(OBJECTS.length>1000);assert.ok(GALAXIES.length>=40);
+var audit=CATALOG_AUDIT;
+assert.equal(new Set(OBJECTS.flatMap(o=>o.iauNames||[])).size,652);
+for(const name of audit.iauNames)assert.ok(OBJECTS.some(o=>o.iauNames?.includes(name)),name);
+for(const id of [...audit.nearestHygIds,...audit.brightestHygIds])assert.ok(OBJECTS.some(o=>o.hygId===id),'missing HYG '+id);
+for(const o of OBJECTS.filter(o=>o.d==null)){assert.equal(o.navigable,false);assert.equal(o.p3,null);}
+assert.ok(object('bootes').region.major===300e6);assert.ok(object('sloan').region.shape==='ribbon');
+var before=JSON.stringify(object('proxima').p3);RegionMap.draw();assert.equal(JSON.stringify(object('proxima').p3),before);
+assert.ok(LAYOUT_DATA.diagnostics.every(d=>d.finalKL<=d.initialKL));
 console.log('PASS straight affine route, collinear ship/markers, catalog and isolated 3D physics');
 // Full tank does not remove drag. Capture, heat and 100g limit remain consistent.
 var cap=2e-6,full=Magnetic.plan(cap,.9999999),q0=Magnetic.sample(full,.4),q1=Magnetic.sample(full,.400001);rel(q0.mass,cap);assert.equal(q0.massRate,0);assert.ok(q0.processedMassRate>0);assert.ok(-q0.properAcceleration<=100*G0*(1+1e-12));rel((q1.beta-q0.beta)*Rocket.c/((q1.earth-q0.earth)*Rocket.year),q0.coordinateAcceleration,4e-4);rel((q1.heat-q0.heat)/((q1.proper-q0.proper)*Rocket.year),q0.heatPower,4e-4);
@@ -53,6 +62,7 @@ close(Gravity.deflection(.99,10)*180/Math.PI,12.84017946,1e-7);close(Gravity.def
 fresh();state.current='proxima';state.ship=Space.point(object('proxima').p3);state.sail=1;state.itinerary=[{id:'sgr',mode:'flyby'},{id:'m87',mode:'stop'}];assert.ok(Route.analyze().valid);Route.start();var launchPlan=state.flight.wind,coast=(state.flight.distance-launchPlan.distance)/state.flight.maxBeta*Math.sqrt(1-state.flight.maxBeta**2);tickPhysics(launchPlan.proper+coast);if(state.phase!=='flyby')tickPhysics(1e-6);assert.equal(state.phase,'flyby');var curve=state.flight.encounter.plan,betaBefore=state.beta,fuelBefore=state.matter;tickPhysics(curve.proper*.25);close(state.beta,betaBefore);close(state.matter,fuelBefore);tickPhysics(30000);assert.equal(state.current,'m87');assert.ok(state.visited.includes('sgr'));
 console.log('PASS black-hole-only route and proper-time Schwarzschild turn');
 fresh();launch(true);tickPhysics(state.flight.engine.burnProper*.2);var saved=JSON.parse(JSON.stringify(state));saved.version=6;saved.matter=.0005;var oldV=saved.beta,oldT=saved.earth,oldXYZ=JSON.stringify(saved.ship.p3);state=restore(saved);close(state.beta,oldV);close(state.earth,oldT);assert.equal(JSON.stringify(state.ship.p3),oldXYZ);rel(state.matter,Rocket.fuelCapacity*.5);settle();var home=initial();home.version=6;home.matter=.0005;state=restore(home);rel(state.matter,Rocket.fuelCapacity);
+var retired=RETIRED_OBJECTS.find(o=>!object(o.id));var oldSave=initial();oldSave.selected=retired.id;oldSave.earth=123;var migrated=restore(oldSave);assert.equal(migrated.selected,retired.id);assert.equal(migrated.earth,123);assert.ok(object(retired.id).retired);
 console.log('PASS migration preserves physical position, historical clocks and tank fraction');
 `);
-const html=fs.readFileSync('dist/index.html','utf8'),ids=new Set([...html.matchAll(/id="([^" ]+)"/g)].map(x=>x[1]));for(const [,id]of fs.readFileSync('dist/app.js','utf8').matchAll(/\$\('([^']+)'\)/g))assert.ok(ids.has(id)||['startExploring','confirmReset','viewGalaxy'].includes(id),'missing '+id);console.log('PASS interface IDs');
+const html=fs.readFileSync('dist/index.html','utf8'),ids=new Set([...html.matchAll(/id="([^" ]+)"/g)].map(x=>x[1]));for(const [,id]of fs.readFileSync('dist/app.js','utf8').matchAll(/\$\('([^']+)'\)/g))assert.ok(ids.has(id)||['startExploring','confirmReset','viewGalaxy','viewRegion'].includes(id),'missing '+id);console.log('PASS interface IDs');
