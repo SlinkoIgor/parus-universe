@@ -7,6 +7,25 @@ const distanceText=n=>Number.isFinite(n)?compact(n)+' св. лет':'расст�
 const object=id=>OBJECTS.find(o=>o.id===id)||ExtendedCatalog.get(id);
 const distance=(a,b)=>Space.distance(a,b);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const SPEED_TICKS=[0,.09,.99,.999,.9999,.99999,.999999,.9999999,.99999999,.999999999];
+function speedScale(beta){
+ beta=clamp(beta,0,SPEED_TICKS.at(-1));const x=-Math.log1p(-beta)/Math.LN10;
+ for(let i=1;i<SPEED_TICKS.length;i++)if(beta<=SPEED_TICKS[i]){const a=-Math.log1p(-SPEED_TICKS[i-1])/Math.LN10,b=-Math.log1p(-SPEED_TICKS[i])/Math.LN10;return(i-1+(x-a)/(b-a))/(SPEED_TICKS.length-1);}
+ return 1;
+}
+function clockRate(){
+ const beta=clamp(state.beta,0,1-Number.EPSILON);
+ if(state.phase==='flyby'&&state.flight?.encounter?.plan){const p=state.flight.encounter.plan,q=Gravity.atProper(p,p.elapsedProper||0),lapse=1-p.rp/(p.q*q.r);return clamp(lapse*Math.sqrt((1-p.beta)*(1+p.beta)),0,1);}
+ return Math.sqrt((1-beta)*(1+beta));
+}
+function renderVelocity(){
+ $('velocity').innerHTML=speedNumber(state.beta)+'<small>% c</small>';
+ $('velocityFill').style.width=(speedScale(state.beta)*100)+'%';
+ $('velocityBar').setAttribute('aria-valuenow',String(state.beta*100));$('velocityBar').setAttribute('aria-valuetext',percentC(state.beta));
+ const rate=clockRate(),slow=100*(1-rate);
+ $('timeDilation').textContent=fmt(slow,slow>99.99?7:2)+'%';
+ $('timeDilationRow').title='Бортовые часы идут со скоростью '+fmt(rate*100,rate<.0001?7:4)+'% земных. '+(state.phase==='flyby'?'Учтены скорость и гравитация чёрной дыры.':'По специальной теории относительности: dτ/dt = √(1 − β²).');
+}
 const STORE='parus-expedition-v1';
 const G0=9.80665;
 const speedDigits=beta=>beta>=.99999999?9:beta>=.9999?7:beta>=.99?4:2;
@@ -19,16 +38,16 @@ function applyTheme(value){theme=value;document.documentElement.dataset.theme=va
 // Map the existing engineering ink palette to a neutral dark drawing palette.
 function paint(color){if(theme==='light')return color;if(color==='#f8f8f8')return '#000000';if(color.startsWith('rgba'))return color.replace('37,38,32','218,218,218');const h=color.slice(1);if(!/^[0-9a-f]{3,6}$/i.test(h))return color;const hex=h.length===3?[...h].map(c=>c+c).join(''):h;return '#'+[0,2,4].map(i=>(255-parseInt(hex.slice(i,i+2),16)).toString(16).padStart(2,'0')).join('');}
 let state,paused=false,speed=1,filter='all',toastTimer,hover=null,hitObjects=[],lastUI=0,saveTick=0;
-const initial=()=>({version:8,controlG:100,current:'sol',selected:'proxima',sail:1,beta:0,acceleration:0,matter:Rocket.initialFuel,captured:0,spentEnergy:0,heatRadiated:0,earth:0,proper:0,totalDistance:0,ship:Space.point([0,0,0]),itinerary:[],visited:['sol'],destroyed:[],phase:'idle',flight:null,auto:true,journal:[{t:0,text:'Ковчег — 01. Корпус: 1 мг. Топливо: 1 / 1 мг. Фотонный двигатель готов.'}]});
+const initial=()=>({version:9,controlG:100,current:'sol',selected:'proxima',sail:1,beta:0,acceleration:0,matter:Rocket.initialFuel,captured:0,spentEnergy:0,heatRadiated:0,earth:0,proper:0,totalDistance:0,ship:Space.point([0,0,0]),itinerary:[],visited:['sol'],destroyed:[],phase:'idle',flight:null,auto:true,journal:[{t:0,text:'Ковчег — 01. Корпус: 1 мг. Топливо: 1 / 1 мг. Фотонный двигатель готов.'}]});
 function restore(saved){
  ExtendedCatalog.restore(saved);
- if(![1,2,3,4,5,6,7,8].includes(saved?.version)||!saved.ship||!Array.isArray(saved.visited))return initial();
+ if(![1,2,3,4,5,6,7,8,9].includes(saved?.version)||!saved.ship||!Array.isArray(saved.visited))return initial();
  // Restore only old catalog objects still referenced by the player's expedition.
  for(const id of new Set([saved.current,saved.selected,saved.flight?.target,saved.flight?.fromId,...(saved.flight?.route||[]).map(n=>n.id),...(saved.itinerary||[]).map(n=>n.id)])){
   if(id&&!object(id)){const old=RETIRED_OBJECTS.find(o=>o.id===id);if(old)OBJECTS.push({...old,index:OBJECTS.length,retired:true});}
  }
  if(!object(saved.selected))saved.selected=object(saved.current)?.id||'proxima';
- const upgraded={...initial(),...saved,version:8,acceleration:0,spentEnergy:saved.spentEnergy||0,heatRadiated:saved.heatRadiated||0};
+ const upgraded={...initial(),...saved,version:9,acceleration:0,spentEnergy:saved.spentEnergy||0,heatRadiated:saved.heatRadiated||0};
  if(saved.version<3&&upgraded.flight){const f=upgraded.flight;delete f.legacy;f.coastRate=f.rate||1;f.wind=null;f.magnetic=null;
   if(upgraded.phase==='launch'){f.wind=Stellar.plan((Rocket.dryMass+upgraded.matter)*1000,SAILS[upgraded.sail].areaM2,upgraded.beta,Stellar.r0+f.covered*LY);f.wind.baseCovered=f.covered;f.wind.elapsed=0;f.maxBeta=f.wind.beta;if(f.wind.distance===0)upgraded.phase='cruise';}
   if(upgraded.phase==='brake'){f.magnetic=Magnetic.plan((Rocket.dryMass+upgraded.matter)*1000,upgraded.beta);if(f.magnetic.distance===0){f.engine=Rocket.retroPlan(upgraded.matter,upgraded.beta);upgraded.phase='dock';}}
@@ -62,7 +81,7 @@ function restore(saved){
   f.engine=Rocket.plan(upgraded.matter,f.distance-f.covered,upgraded.beta,100);f.engine.baseCovered=f.covered;f.maxBeta=f.engine.beta;f.replayRate=f.engine.burnProper/5;
   f.markers=[];upgraded.phase='thrust';
  }
- if(saved.version<8&&upgraded.flight&&upgraded.phase!=='flyby'){
+ if(saved.version<9&&upgraded.flight&&upgraded.phase!=='flyby'){
   const f=upgraded.flight,target=object(f.target),covered=f.covered;
   f.from=Space.point(upgraded.ship.p3);f.distance=distance(f.from,target);f.covered=0;f.aim=null;f.encounter=null;f.markers=[];delete f.view;
   f.medium=GasMedium.forLeg(f.from,target,upgraded.sail);
@@ -140,7 +159,7 @@ function renderUI(){
  if(planningEngine){const e=Rocket.plan(state.matter,d);$('engineLabel').textContent='ФОТОННАЯ ТЯГА · ДО 100 g';$('engineReadout').innerHTML='Масса <b>'+massText(Rocket.dryMass)+' + '+massText(state.matter)+'</b><br>Разгон <b>до '+massText(e.budget)+' → '+percentC(e.beta)+'</b>';}
  if(photon){const e=f.engine;$('engineLabel').textContent=e.direction<0?'ОБРАТНАЯ ФОТОННАЯ ТЯГА':'АННИГИЛЯЦИЯ ВЕЩЕСТВА';$('engineReadout').innerHTML='Расход <b>'+massText(e.burned)+' / '+massText(e.budget)+'</b><br>Энергия <b>'+quantity(e.energy/1e15)+' ПДж</b>';$('burnBar').style.width=(e.budget?100*e.burned/e.budget:0)+'%';}
  if(wind){const sample=f.wind.lastSample||Stellar.sampleProper(f.wind,f.wind.elapsedProper||0),r=sample.r,force=sample.force;$('engineLabel').textContent='СВЕТ ВЗРЫВА · РАСКРЫТИЕ '+fmt(sample.opening*100,2)+'%';$('engineReadout').innerHTML='До звезды <b>'+compact(r/Stellar.r0)+' а.е.</b><br>Сила <b>'+quantity(force)+' Н</b>';}
- if(mag){const rates=f.magnetic.lastSample||ProperTime.at(f.magnetic,Magnetic,f.magnetic.elapsedProper||0);$('engineLabel').textContent='ПАРУС · ЗАХВАТ ЧАСТИЦ · ДО 1 g';$('engineReadout').innerHTML=f.medium.label+'<br>Площадь паруса <b>'+fmt(f.medium.area/1e6,0)+' км²</b><br>Поток <b>'+quantity(rates.particles)+' частиц/с</b><br>В бак <b>'+quantity(rates.massRate)+' кг/с</b>'+(state.matter>=Rocket.fuelCapacity*(1-1e-9)?'<br>Бак заполнен · частицы выпускаются':'');}
+ if(mag){const rates=f.magnetic.lastSample||ProperTime.at(f.magnetic,Magnetic,f.magnetic.elapsedProper||0);$('engineLabel').textContent='ПАРУС · ГАЗ И ПЫЛЬ · ДО 100 g';$('engineReadout').innerHTML=f.medium.label+'<br>Площадь паруса <b>'+fmt(f.medium.area/1e6,0)+' км²</b><br>Поток <b>'+quantity(rates.particles)+' частиц/с</b><br>В бак <b>'+quantity(rates.massRate)+' кг/с</b>'+(state.matter>=Rocket.fuelCapacity*(1-1e-9)?'<br>Бак заполнен · частицы выпускаются':'');}
  if(state.phase==='flyby'){const p=f.encounter.plan,local=Gravity.atProper(p,p.elapsedProper||0);$('engineLabel').textContent='ГРАВИТАЦИОННЫЙ ПРОЛЁТ · 0 g';$('engineReadout').innerHTML='Поворот <b>'+Route.angleText(p.angle)+'</b><br>Перицентр <b>'+Route.radiusText(p.rp)+'</b><br>Локальная скорость <b>'+percentC(local.localBeta)+'</b>';}
  $('routeCount').textContent=(f?.route?.length||state.itinerary.length)||'';
  let action,hint;
@@ -156,7 +175,7 @@ function renderUI(){
  const eta=FlightEstimate.get();$('arrivalEstimate').hidden=arrived||!target.navigable;
  $('arrivalLabel').textContent=Route.isFlyby()?'ДО КОНЦА ПРОЛЁТА ≈':'ДО ПРИБЫТИЯ ≈';
  $('arrivalProper').textContent=eta?durationText(eta.proper):'—';$('arrivalEarth').textContent=eta?durationText(eta.earth):'—';
- $('velocity').innerHTML=speedNumber(state.beta)+'<small>% c</small>';renderAcceleration();
+ renderVelocity();renderAcceleration();
  $('matter').innerHTML=fmt(state.matter*1e9,3)+' / 1<small>мг</small>';$('dryMass').innerHTML='1<small>мг</small>';
  const dryWidth=Rocket.dryMass/(Rocket.dryMass+Rocket.fuelCapacity)*100,fuelWidth=state.matter/(Rocket.dryMass+Rocket.fuelCapacity)*100;
  $('massDry').style.width=dryWidth+'%';$('massFuel').style.width=fuelWidth+'%';$('massTotal').textContent=massText(Rocket.dryMass+state.matter);
@@ -201,7 +220,7 @@ function finishFlight(arrived){const f=state.flight,target=object(f.target);
  state.beta=0;state.acceleration=0;state.phase='idle';state.flight=null;renderUI();renderCatalog();persist();if(arrived)Route.afterStop(f);
 }
 function autoFraction(predict){
- const f=state.flight;if(!Route.braking())return 1;const remaining=f.distance-f.covered;
+ const f=state.flight,remaining=f.distance-f.covered;if(Route.isFlyby()){if(predict(1).distance<=remaining)return 1;let lo=0,hi=1;for(let i=0;i<60;i++){const p=(lo+hi)/2;if(predict(p).distance>remaining)hi=p;else lo=p;}return(lo+hi)/2;}if(!Route.braking())return 1;
  const gap=p=>{const v=predict(p);return remaining-v.distance-Magnetic.stopping(v.fuel,v.beta,Math.max(1,Math.abs(state.controlG)||100)).distance;};
  if(gap(1)>=0)return 1;let lo=0,hi=1;for(let i=0;i<60;i++){const mid=(lo+hi)/2;if(gap(mid)>=0)lo=mid;else hi=mid;}return (lo+hi)/2;
 }
@@ -235,8 +254,9 @@ function showDialog(html){closeMenu();$('dialogContent').innerHTML=html;$('infoD
 function showHelp(){showDialog('<div class="modal-eyebrow">ПАРУС / ПОЛЁТ</div><h2>Поймать поток.<br>Рассчитать остановку.</h2><ol><li><b>Собственная тяга.</b> Фотонный двигатель расходует весь доступный запас для разгона. Для точной остановки вещество собирает парус. Масса уменьшается; мощность регулируется по выбранной перегрузке. Выключение двигателя и переход к торможению выполняет автопилот.</li><li><b>Звёздный парус.</b> После прибытия выберите следующую цель и площадь паруса. Показанная скорость — прогноз до автоматического складывания; на коротком маршруте торможение начнётся раньше. Сила падает как 1/r² и дополнительно ослабевает из-за удаления от догоняющего потока. Корабль разгоняется постепенно. Парус складывается автоматически после импульса, при ослаблении потока или перед торможением; ловить момент вручную не нужно.</li><li><b>Торможение парусом.</b> Поток встречных частиц пропорционален скорости, их импульс тоже растёт со скоростью. Тот же парус тормозит и собирает вещество в бак. Автопилот учитывает полный тормозной путь.</li><li><b>Точная остановка.</b> При малой скорости сопротивление газа ослабевает. Последнюю скорость гасит фотонный двигатель обратной тягой, расходуя вещество. Позднее включение захвата может привести к пролёту цели.</li></ol><p>Скорость и собственное ускорение показаны рядом внизу. Колесо меняет масштаб, перетаскивание двигает карту. Пробел — пауза; В обычном режиме 1 секунда игрока равна 1 году на борту. Короткие разгоны и торможения показываются замедленно; коэффициент виден рядом с часами. Кнопка 1× переключает 10×, 100× и 1000×. Пауза останавливает оба часа. Прогресс сохраняется в браузере.</p><button class="modal-start" id="startExploring">Продолжить →</button>');$('startExploring').onclick=()=>$('infoDialog').close();}
 function showModel(){
  const medium=state.flight?.medium||GasMedium.forLeg(state.ship,object(state.selected)||state.ship,state.sail);
- const stop=Magnetic.stopping(state.matter,state.beta>0?state.beta:SAILS[state.sail].targetBeta);
- showDialog('<div class="modal-eyebrow">ФИЗИКА / МОДЕЛЬ</div><h2>Один парус.<br>Свет и встречный газ.</h2><p>Корпус 1 мг, бак 1 мг. Перед звёздным импульсом бак опустошается. Сухая масса включает идеализированный парус; его прочность и нагрев не рассчитываются.</p><h3>Разгон</h3><p>Идеальное отражение вспышки, поток 1/r² с релятивистской доплеровской поправкой. Раскрытие ограничивает разгон до 100 g. S: 100 км², 99% c; M: 5 млн км², 99,99999% c; L: 50 млрд км², 99,9999999% c. На коротком маршруте автоматика заканчивает разгон раньше.</p><h3>Торможение тем же парусом</h3><div class="formula">ρ = n mₚ; Aэфф ≤ Aпаруса<br>F₀ = −ρAэффγ²v²<br>dM/dt = ρAэффv до заполнения бака</div><p>Парус принимает импульс газа, собирает рабочее вещество и излучает лишнюю энергию. При полном баке обработанные частицы выпускаются без скорости относительно корабля. Автоматика уменьшает встречную площадь и ограничивает торможение до 1 g; это выбранный режим управления, а не свойство плотности среды. После 0,01c остаток скорости гасится обратной фотонной тягой, тоже до 1 g.</p><p>Модель среды: 1 атом/см³ в галактическом диске, 0,3 в местном облаке, 0,001 в Местном пузыре, 1 атом/м³ вне галактик. Для участка используется наиболее разреженная из пересекаемых модельных областей; оценка сохраняется до прибытия. Это консервативная однородная оценка, не карта реального газа.</p><p><b>'+medium.label+'</b><br>Выбранный парус: '+fmt(medium.area/1e6,0)+' км². Торможение с '+percentC(state.beta>0?state.beta:SAILS[state.sail].targetBeta)+': '+durationText(stop.proper)+' на борту; '+durationText(stop.earth)+' на Земле; путь '+distanceText(stop.distance)+'.</p><h3>Часы</h3><p>1 секунда = 1 бортовой год на 1×. Слоумо плавно меняет только темп воспроизведения; физические часы и траектория интегрируются независимо. Пауза останавливает время. На таймерах показаны целые годы.</p><p><a href="https://science.nasa.gov/learn/basics-of-space-flight/chapter1-1/" target="_blank" rel="noopener">NASA: плотность среды</a> · <a href="https://solarsystem.nasa.gov/genesismission/educate/kitchen/resource/factsheets/Interstellarclouds.pdf" target="_blank" rel="noopener">NASA: межзвёздные облака</a></p>');
+ const beta=state.beta>0?state.beta:windPlan().beta,stop=Magnetic.stopping(state.matter,beta),raw=stop.magnetic.unthrottled;
+ const mass=(Rocket.dryMass+state.matter)*1000,fullG=-Magnetic.rates(mass,beta,Magnetic.rho(medium.n)*medium.area).properAcceleration/G0;
+ showDialog('<div class="modal-eyebrow">ФИЗИКА / МОДЕЛЬ</div><h2>Один парус.<br>Свет и встречный газ.</h2><p>Корпус 1 мг, бак 1 мг. Перед звёздным импульсом бак опустошается. Сухая масса включает идеализированный парус; его прочность и нагрев не рассчитываются.</p><h3>Разгон</h3><p>Идеальное отражение вспышки, поток 1/r² с релятивистской доплеровской поправкой. Раскрытие ограничивает разгон до 100 g. S: 100 км², 99% c; M: 1 млн км²; L: 1 млрд км². Скорости M/L вычисляются из доступного светового импульса и могут не достичь прежних номиналов. На коротком маршруте автоматика заканчивает разгон раньше.</p><h3>Торможение тем же парусом</h3><div class="formula">ρгаз = n mₚ; ρ = ρгаз / 0,99<br>Aэфф ≤ Aпаруса<br>F₀ = −ρAэффγ²v²<br>dM/dt = ρAэффv до заполнения бака</div><p>Парус принимает импульс газа и пыли, собирает рабочее вещество и излучает лишнюю энергию. При полном баке обработанные частицы выпускаются без скорости относительно корабля. Автоматика уменьшает встречную площадь и ограничивает торможение до 100 g; это предел прочности корабля. Дополнительного ограничения 1 g нет. После 0,01c остаток скорости гасится обратной фотонной тягой, тоже до 100 g.</p><p>Модель среды: 1 атом/см³ в галактическом диске, 0,3 в местном облаке, 0,001 в Местном пузыре, 1 атом/м³ вне галактик. Для участка используется наиболее разреженная из пересекаемых модельных областей; оценка сохраняется до прибытия. Это консервативная однородная оценка, не карта реального газа.</p><p><b>'+medium.label+'</b><br>Выбранный парус: '+fmt(medium.area/1e6,0)+' км². Торможение с '+percentC(beta)+': '+durationText(stop.proper)+' на борту; '+durationText(stop.earth)+' на Земле; путь '+distanceText(stop.distance)+'.</p><p>Плотность газа: '+quantity(Magnetic.gasDensity(medium.n))+' кг/м³; пыли: '+quantity(Magnetic.dustDensity(medium.n))+' кг/м³. Пыль принята равной 1% массы среды. Полный парус при этой скорости даёт около '+quantity(fullG)+' g. Без складывания участок захвата до '+percentC(stop.magnetic.finalBeta)+' занял бы '+durationText(raw.proper)+' на борту; фактически раскрытие ограничивается прочностью 100 g.</p><h3>Часы</h3><p>1 секунда = 1 бортовой год на 1×. Слоумо плавно меняет только темп воспроизведения; физические часы и траектория интегрируются независимо. Пауза останавливает время. На таймерах показаны целые годы.</p><p><a href="https://science.nasa.gov/learn/basics-of-space-flight/chapter1-1/" target="_blank" rel="noopener">NASA: плотность среды</a> · <a href="https://solarsystem.nasa.gov/genesismission/educate/kitchen/resource/factsheets/Interstellarclouds.pdf" target="_blank" rel="noopener">NASA: межзвёздные облака</a></p>');
 }
 function showObject(id=state.selected){
  const o=object(id);if(!o)return;ExtendedCatalog.ensureGalaxy(o);const f=o.facts,g=o.galaxy;

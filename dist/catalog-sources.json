@@ -121,6 +121,7 @@
       "count": 4,
       "distance": "Measured direction and host-galaxy distance, unresolved individual depth"
     },
-    "systemPositionAudit": "data-tools/system-position-audit.json"
+    "systemPositionAudit": "data-tools/system-position-audit.json",
+    "confirmedSystems": "data-tools/confirmed-systems.json: published physical relationships override conflicting individual distance estimates; common distances remain explicitly approximate."
   }
 }

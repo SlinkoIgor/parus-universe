@@ -7,3 +7,5 @@ Full HYG 4.1 / OpenNGC / ATNF snapshots → 138198 atlas records, bounded spatia
 The legacy curated audit `selection-audit.json` still verifies all 652 IAU names and the original nearest30 / brightest500 core. Licenses/provenance: `../dist/catalog-sources.json` and `../THIRD_PARTY_NOTICES.md`.
 
 Hipparcos I/239 parallax uncertainties: `hipparcos-errors.json`; relative errors above 50% exclude individual stars from the map. Four sourced extragalactic members: `nearby-galaxy-stars.json`, host distance and measured direction, unresolved individual depth. Megastructure contours remain; every mapped destination supports arrival and a departure star.
+
+Published system memberships and shared-distance exceptions: `confirmed-systems.json`; independently documented Alpha Centauri, Antennae and Cygnus X-1 also retain confirmed links. Update `../docs/catalog.md` with every selection/position rule change.

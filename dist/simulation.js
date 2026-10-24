@@ -24,6 +24,7 @@ const Simulation={
    // Ease the logarithm: a factor of 1000 should not jump in one frame.
    const previous=this.smoothedFactor??target;
    this.smoothedFactor=Math.exp(Math.log(previous)+(Math.log(target)-Math.log(previous))*(-Math.expm1(-slice/.4)));
+   if(Math.abs(Math.log(this.smoothedFactor/target))<1e-6)this.smoothedFactor=target;
    const rate=this.replayRate();let years=slice*rate;
    for(let transitions=0;years>1e-15&&transitions<64;transitions++){
     if(!state.flight){state.proper+=years;state.earth+=years;years=0;break;}
@@ -57,7 +58,7 @@ const Simulation={
    const predict=p=>{const after=Math.max(e.mf,before-dm*p),leg=retro?Rocket.retroSegment(e.m0,e.eta0,before,after,e.maxG||100):Rocket.segment(e.m0,before,after,e.eta0||0,e.maxG||100);return{...leg,fuel:Math.max(0,after-Rocket.dryMass)};};
    const fraction=retro?1:autoFraction(predict),step=predict(fraction),used=before-(Rocket.dryMass+step.fuel);
    state.matter=step.fuel;e.burned+=used;e.energy+=step.energy;state.spentEnergy+=step.energy;state.beta=step.beta;state.acceleration=(retro?-1:1)*Rocket.acceleration(Rocket.dryMass+state.matter,e.maxG||100);advance(step.distance,step.earth,step.proper);
-   if(!retro&&fraction<1-1e-10)beginBrake(true);
+   if(!retro&&fraction<1-1e-10){if(Route.isFlyby())cutEngine();else beginBrake(true);}
    else if(e.budget-e.burned<=Math.max(1e-30,e.budget*1e-12)){if(retro){state.beta=0;finishFlight(Math.abs(f.covered-f.distance)<=tol*4);}else cutEngine();}
    return step.proper;
   }
@@ -67,7 +68,7 @@ const Simulation={
    const predict=p=>{const now=ProperTime.at(w,Stellar,old.proper+span*p);return{...now,distance:now.distance-old.distance,fuel:state.matter};};
    const fraction=autoFraction(predict),now=ProperTime.at(w,Stellar,old.proper+span*fraction),used=now.proper-old.proper;
    w.elapsedProper=now.proper;w.progress=now.p;w.lastSample=now;state.beta=now.beta;state.acceleration=now.force/w.massKg;advance(now.distance-old.distance,now.earth-old.earth,used);
-   if(fraction<1-1e-10)beginBrake(true);else if(now.p===1)cutEngine();
+   if(fraction<1-1e-10){if(Route.isFlyby())cutEngine();else beginBrake(true);}else if(now.p===1)cutEngine();
    return used;
   }
   if(state.phase==='cruise'){

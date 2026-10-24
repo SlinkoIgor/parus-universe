@@ -221,19 +221,20 @@ for base,rows in sorted(groups.items()):
     systems.append({'id':'system-'+norm(base),'name':base,'members':ids,'primary':ids[0],'links':[[ids[0],s] for s in ids[1:]],'schematic':True,'source':'https://github.com/astronexus/HYG-Database/blob/main/hyg/README.md','note':'Компоненты системы указаны в HYG. Эллипсы показывают связь; размеры, ориентация и иерархия условные, движение не моделируется.'})
 alpha=[rawmap['hyg:'+s] for s in ('71456','71453','70666')]
 systems=[s for s in systems if not any(i in alpha for i in s['members'])]
-systems.append({'id':'system-alpha-centauri','name':'Альфа Центавра','members':alpha,'primary':alpha[0],'links':[[alpha[0],alpha[1]],[alpha[0],alpha[2]]],'schematic':True,'source':'https://doi.org/10.1051/0004-6361/201629930','note':'A–B: около 80 лет; Проксима (C) обращается вокруг пары AB примерно за 550 000 лет. Внешний эллипс относится к барицентру AB. Контуры на карте — схема связи, не орбитальный расчёт.'})
+systems.append({'id':'system-alpha-centauri','name':'Альфа Центавра','confirmed':True,'relationship':'bound','members':alpha,'primary':alpha[0],'links':[[alpha[0],alpha[1]],[alpha[0],alpha[2]]],'schematic':True,'source':'https://doi.org/10.1051/0004-6361/201629930','note':'A–B: около 80 лет; Проксима (C) обращается вокруг пары AB примерно за 550 000 лет. Внешний эллипс относится к барицентру AB. Контуры на карте — схема связи, не орбитальный расчёт.'})
 # Documented non-stellar systems use the same rendering model.
 for q in ngc:
     if q['Type']=='GPair':
         ids=[rawmap.get('ngc:'+q['Name']+suffix) for suffix in ('A','B','C')]
         ids=[i for i in ids if i]
         if len(ids)>1:systems.append({'id':'system-'+norm(q['Name']),'name':q['Name'],'members':ids,'primary':ids[0],'links':[[ids[0],s] for s in ids[1:]],'schematic':True,'source':'https://github.com/mattiaverga/OpenNGC','note':'OpenNGC обозначает эту группу как пару галактик (GPair). Эллипсы показывают связь компонентов, а не вычисленные орбиты.'})
-systems.append({'id':'system-antennae','name':'Антенны','members':[rawmap['ngc:NGC4038'],rawmap['ngc:NGC4039']],'primary':rawmap['ngc:NGC4038'],'links':[[rawmap['ngc:NGC4038'],rawmap['ngc:NGC4039']]],'schematic':True,'source':'https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-caldwell-catalog/caldwell-60-61/','note':'NGC 4038 и NGC 4039 — взаимодействующие галактики Антенны. Эллипс обозначает взаимодействие, не измеренную орбиту.'})
+systems.append({'id':'system-antennae','name':'Антенны','confirmed':True,'relationship':'interacting','members':[rawmap['ngc:NGC4038'],rawmap['ngc:NGC4039']],'primary':rawmap['ngc:NGC4038'],'links':[[rawmap['ngc:NGC4038'],rawmap['ngc:NGC4039']]],'schematic':True,'source':'https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-caldwell-catalog/caldwell-60-61/','note':'NGC 4038 и NGC 4039 — взаимодействующие галактики Антенны. Эллипс обозначает взаимодействие, не измеренную орбиту.'})
 systems.append({'id':'system-cygnus-x1','name':'Лебедь X-1','members':['cygnus',rawmap['hyg:97987']],'primary':'cygnus','links':[['cygnus',rawmap['hyg:97987']]],'schematic':True,'source':'https://imagine.gsfc.nasa.gov/features/yba/CygX1_mass/cygX1_more.html','note':'Чёрная дыра Лебедь X-1 и звезда-сверхгигант HDE 226868 — компоненты двойной системы. Эллипс схематический; аккреция и движение не моделируются.'})
 renames={rawmap['hyg:97987']:'HDE 226868 · звезда Лебедя X-1',alpha[0]:'Альфа Центавра A',alpha[1]:'Альфа Центавра B',alpha[2]:'Альфа Центавра C · Проксима'}
 
 # Reconcile component distances only when a catalog explicitly groups the stars
 # and a more reliable component supplies the shared distance. Keep a full audit.
+confirmed_systems=json.loads((ROOT/'data-tools/confirmed-systems.json').read_text())['systems']
 record_byid={row[0]:row for row in records};system_audit=[]
 def component(ident):
     if ident in byid:
@@ -263,9 +264,18 @@ for system in systems:
         display=[bh['display']['x']+separation*tangent[0],bh['display']['y']-separation*tangent[1]]
         note='Расстояние двойной системы Лебедь X-1 ≈7200 св. лет (Miller-Jones et al. 2021). Масштаб разделения ≈0,24 а.е. из периода 5,6 суток и суммарной массы ≈61,8 M☉; ориентация и фаза игровой схемы условны.'
         update_component(q,math.hypot(*pos),note,display,pos)
-        system.update(source='https://doi.org/10.1126/science.abb3363',note=note,separationLy=separation)
+        system.update(source='https://doi.org/10.1126/science.abb3363',note=note,separationLy=separation,confirmed=True,relationship='bound')
         system_audit.append({'system':system['id'],'action':'published-system-distance','member':q['id'],'oldDistanceLy':q['d'],'distanceLy':bh['d'],'separationLy':separation})
         continue
+    confirmed=confirmed_systems.get(system['id'])
+    if confirmed:
+        system.update(confirmed=True,relationship=confirmed['relationship'],source=confirmed['membershipSource'],note=confirmed['note'])
+        for q in valid:
+            update_component(q,confirmed['distanceLy'],confirmed['note'])
+            if q['id'] in record_byid:record_byid[q['id']][11]['referenceURL']=confirmed['source']
+            else:patches[q['id']]['distanceSource']=confirmed['source']
+            system_audit.append({'system':system['id'],'action':'confirmed-membership-distance','member':q['id'],'oldDistanceLy':q['d'],'distanceLy':confirmed['distanceLy'],'source':confirmed['source']})
+        valid=[component(q['id']) for q in valid]
     spread=max(q['d'] for q in valid)/min(q['d'] for q in valid)-1
     is_hyg='HYG' in system['source']
     anchor=min(valid,key=lambda q:q['rel'] if q['rel'] is not None else 99)
@@ -281,7 +291,7 @@ for system in systems:
                 update_component(q,anchor['d'],note)
                 system_audit.append({'system':system['id'],'action':'shared-component-distance-estimate','member':q['id'],'anchor':anchor['id'],'oldDistanceLy':q['d'],'distanceLy':anchor['d']})
             valid=[component(q['id']) for q in valid];spread=max(q['d'] for q in valid)/min(q['d'] for q in valid)-1
-    if spread>.2:
+    if spread>.2 and not system.get('confirmed'):
         system['links']=[];system['associationOnly']=True
         system['note']='Каталожная группа обозначений; физическая связь не подтверждается согласованными расстояниями. Орбитальные эллипсы не показаны. Возможна оптическая пара либо ошибка расстояния.'
         system_audit.append({'system':system['id'],'action':'distance-conflict-no-orbit','members':valid})
@@ -335,7 +345,7 @@ for r in records:
     key=re.sub(r'(ngc|ic)0+(?=\d)',r'\1','|'+'|'.join(norm(v) for v in [r[0],r[1],*r[8],r[11].get('ngc','')])+'|')
     index.append([r[0],r[1],r[2],r[3],r[6],locations[r[0]],key,bool(r[11].get('atlasOnly'))])
 dump(OUT/'search.json',index)
-revision=hashlib.sha256(Path(__file__).read_bytes()+b''.join(hashlib.sha256(p.read_bytes()).digest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path,ROOT/'data-tools/hipparcos-errors.json',ROOT/'data-tools/nearby-galaxy-stars.json'])+json.dumps(core,ensure_ascii=False).encode()).hexdigest()[:12]
+revision=hashlib.sha256(Path(__file__).read_bytes()+b''.join(hashlib.sha256(p.read_bytes()).digest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path,ROOT/'data-tools/hipparcos-errors.json',ROOT/'data-tools/nearby-galaxy-stars.json',ROOT/'data-tools/confirmed-systems.json'])+json.dumps(core,ensure_ascii=False).encode()).hexdigest()[:12]
 summary={'version':1,'revision':revision,'total':len(core)+len(member_rows)+len(records),'core':len(core)+len(member_rows),'extra':len(records),'sourceCoverage':coverage,'mapRows':len(records)-len(atlas_only),'atlasOnlyRows':len(atlas_only),'unknownExtra':sum(r[6]=='unknown' for r in records),'approximateExtra':sum(r[6]=='approximate' for r in records),'nodes':nodes,'roots':roots,'search':'search.json','systems':len(systems),'foregroundWithin50':len(foreground)}
 dump(OUT/'manifest.json',summary)
 boot={'revision':revision,'members':member_rows,'policies':policies,'hiddenIds':[r[0] for r in atlas_only],'total':summary['total'],'patches':patches,'foreground':foreground,'systems':systems,'renames':renames,'sourceCoverage':coverage,'systemTiles':{i:locations[i] for s in systems for i in s['members'] if i in locations},'rawMap':{k:v for k,v in rawmap.items() if k.startswith('atnf:') and v in byid}}

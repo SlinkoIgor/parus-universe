@@ -1,0 +1,27 @@
+{
+  "retrieved": "2026-10-24",
+  "systems": {
+    "system-ngc3690": {
+      "relationship": "interacting",
+      "distanceLy": 140000000,
+      "source": "https://www.nasa.gov/image-article/chandra-samples-galactic-goulash/",
+      "membershipSource": "https://esahubble.org/images/heic0810as/",
+      "note": "NGC 3690 / Arp 299: взаимодействие подтверждено наблюдениями. Общая оценка расстояния ≈140 млн св. лет; индивидуальная глубина компонентов не определена. Эллипс обозначает взаимодействие, не орбиту."
+    },
+    "system-ngc7318": {
+      "relationship": "interacting",
+      "distanceLy": 300000000,
+      "source": "https://apod.nasa.gov/apod/ap190603.html",
+      "membershipSource": "https://science.nasa.gov/asset/hubble/star-clusters-born-among-the-interacting-galaxies-of-stephans-quintet/",
+      "note": "NGC 7318 A/B входят во взаимодействующую группу Квинтета Стефана. Принято общее расстояние ≈300 млн св. лет; глубина компонентов неизвестна. Эллипс обозначает взаимодействие, не замкнутую связанную орбиту."
+    },
+    "system-gl501": {
+      "relationship": "bound",
+      "distanceLy": 58.13835279714265,
+      "distanceSource": "HYG 4.1: original primary hyg-64037",
+      "source": "https://arxiv.org/abs/1501.05639",
+      "membershipSource": "https://arxiv.org/abs/1501.05639",
+      "note": "Альфа Волос Вероники / Diadem — подтверждённая двойная с измеренной орбитой ≈26 лет. Расстояние обоих компонентов оценено по исходной основной звезде HYG (≈58 св. лет); отдельная глубина неизвестна. Положение на эллипсе и ориентация схемы условны."
+    }
+  }
+}

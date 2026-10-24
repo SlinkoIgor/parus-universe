@@ -125,3 +125,18 @@ html[data-theme="dark"]{--tone-2225:#000b;--tone-0002:#000a;}
 
 .system-diagram{display:block;width:100%;max-height:220px;margin:16px 0;color:var(--ink,#888)}
 .system-diagram text{fill:currentColor;font:11px monospace}
+
+/* Motion telemetry: mass left, logarithmic speed in the middle. */
+.telemetry{grid-template-columns:minmax(135px,1.1fr) minmax(105px,.9fr) minmax(290px,2.6fr) minmax(180px,1.5fr) auto;gap:22px}
+.velocity-heading{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.speed-endpoint{font:5.5px var(--mono);color:var(--muted);white-space:nowrap}
+.velocity-bar{height:11px;border:1px solid var(--ink);margin-top:6px;background:var(--paper);position:relative;overflow:hidden}
+.velocity-bar>i{height:100%;display:block;width:0;background:repeating-linear-gradient(135deg,var(--ink) 0 1px,transparent 1px 4px)}
+.velocity-ticks{position:relative;height:27px;font:5.5px var(--mono);color:var(--muted)}
+.speed-tick{position:absolute;top:0}.speed-tick>i{display:block;height:3px;border-left:1px solid var(--muted)}
+.speed-tick>b{position:absolute;white-space:nowrap;font-weight:400;top:4px;transform:translateX(-50%)}
+.speed-tick.bottom>b{top:15px}.speed-tick:first-child>b{transform:none}.speed-tick.edge>b{display:none}
+.time-dilation{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font:6px var(--mono);color:var(--muted)}
+.time-dilation>b{font-size:9px;color:var(--ink);font-weight:400;white-space:nowrap}.telemetry .velocity-cell #velocity{font-size:clamp(16px,1.7vw,24px);margin-top:5px}
+@media(min-width:701px){:root{--hud:125px}.telemetry{padding-top:12px;padding-bottom:12px}.velocity-cell{align-self:center}}
+@media(min-width:701px) and (max-width:1050px){.telemetry{grid-template-columns:minmax(110px,.9fr) minmax(85px,.7fr) minmax(255px,2fr) minmax(150px,1.2fr) auto;gap:12px;padding-left:16px;padding-right:16px}.telemetry-cell+.telemetry-cell,.clocks{padding-left:12px}.speed-endpoint{font-size:5px}.velocity-ticks{font-size:5px}.time-dilation{font-size:5px}.clocks{gap:7px}.clocks strong{font-size:12px}}
+@media(max-width:700px){:root{--hud:212px}.telemetry{grid-template-columns:1fr 1fr auto;grid-template-rows:40px 79px 42px;padding:12px 18px;gap:10px 12px}.telemetry .telemetry-cell.mass-cell:nth-child(1){grid-column:1;grid-row:1;padding:0;border:0}.telemetry .telemetry-cell.acceleration-cell:nth-child(2){grid-column:2/4;grid-row:1;padding:0;border:0}.telemetry .telemetry-cell.velocity-cell:nth-child(3){grid-column:1/4;grid-row:2;padding:0;border:0}.telemetry .clocks{grid-row:3;grid-column:1/3}.telemetry .time-controls{grid-row:3;grid-column:3}.velocity-heading{position:absolute;right:18px;left:18px;pointer-events:none}.velocity-heading .speed-endpoint{font-size:5px}.telemetry .velocity-cell #velocity{margin-top:15px;font-size:18px;line-height:1.1}.velocity-ticks{height:24px;font-size:5px}.time-dilation{font-size:5px}.time-dilation>b{font-size:8px}.velocity-bar{margin-top:3px;height:8px}.mass-legend{font-size:5px;gap:5px;flex-wrap:wrap}.mass-legend span{font-size:5px}.mass-bar{margin-top:5px;height:9px}.telemetry .acceleration-cell strong{font-size:14px;margin-top:1px}.telemetry .clocks strong{font-size:12px}.flight-card{max-height:calc(100dvh - var(--hud) - 112px)}}

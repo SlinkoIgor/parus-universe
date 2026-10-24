@@ -112,13 +112,13 @@ const GasMedium={
  }
 };
 const Magnetic=Object.freeze({
- n:1e6,protonMass:1.67262192369e-27,area:5e12,fineBeta:.01,duration:10,maxG:1,
+ n:1e6,protonMass:1.67262192369e-27,area:1e12,fineBeta:.01,duration:10,maxG:100,dustToGas:.01/ .99,
  context(){return typeof state==='object'&&state?(state.flight?.medium||GasMedium.forLeg(state.ship,object(state.selected)||state.ship,state.sail)):{n:this.n,area:this.area};},
- rho(n=this.n){return n*this.protonMass;},k(){const m=this.context();return this.rho(m.n)*m.area;},
+ gasDensity(n=this.n){return n*this.protonMass;},dustDensity(n=this.n){return this.gasDensity(n)*this.dustToGas;},rho(n=this.n){return this.gasDensity(n)+this.dustDensity(n);},k(){const m=this.context();return this.rho(m.n)*m.area;},
  half(beta){return beta/(1+Math.sqrt(Math.max(0,1-beta*beta)));},
  rates(massKg,beta,k=this.k(),capacityKg=(Rocket.dryMass+Rocket.fuelCapacity)*1000){
   const gamma=1/Math.sqrt(1-beta*beta),v=beta*Rocket.c,dm=k*v,force=beta>0&&k>0?-k*gamma*gamma*v*v:0;
-  return{massRate:massKg<capacityKg*(1-1e-12)?dm:0,processedMassRate:dm,particles:dm/this.protonMass,properParticles:gamma*dm/this.protonMass,force,properAcceleration:force/massKg,coordinateAcceleration:force/(massKg*gamma**3),heatPower:gamma*(gamma-1)*dm*Rocket.c**2};
+  return{massRate:massKg<capacityKg*(1-1e-12)?dm:0,processedMassRate:dm,particles:dm/(1+this.dustToGas)/this.protonMass,properParticles:gamma*dm/(1+this.dustToGas)/this.protonMass,force,properAcceleration:force/massKg,coordinateAcceleration:force/(massKg*gamma**3),heatPower:gamma*(gamma-1)*dm*Rocket.c**2};
  },
  integrals(m0,m,K,k=this.k()){
   if(m<=m0||K<=0)return{earth:0,proper:0,distance:0,heat:0};const z=(m-m0)/m0,h=K/m0,base=m0/(k*Rocket.c*Rocket.year),a=z*(2+z)/(4*h),b=h*Math.log1p(z)/2;
@@ -139,7 +139,7 @@ const Magnetic=Object.freeze({
   const finalBeta=wanted>capacityKg?Math.min(this.fineBeta,capBeta):capBeta,finalHalf=this.half(finalBeta);
   const capture=this.integrals(massKg,finalMass,K,k),fixed=this.fixedIntegrals(finalMass,capBeta,finalBeta,k),leg={};
   for(const key of ['earth','proper','distance','heat'])leg[key]=capture[key]+fixed[key];
-  const plan={massKg,beta,K,k,capacityKg,maxG,finalMass,capBeta,finalBeta,capture,duration:this.duration,elapsed:0,logRatio:h>0?Math.log(h/finalHalf):0,...leg};Object.assign(plan,this.cappedLeg(plan,finalBeta));return plan;
+  const plan={massKg,beta,K,k,capacityKg,maxG,finalMass,capBeta,finalBeta,capture,unthrottled:{...leg},duration:this.duration,elapsed:0,logRatio:h>0?Math.log(h/finalHalf):0,...leg};Object.assign(plan,this.cappedLeg(plan,finalBeta));return plan;
  },
  cappedLeg(plan,beta){
   const eta0=Math.atanh(plan.beta),eta=Math.atanh(beta),cap=plan.maxG*9.80665,finalMass=plan.K?Math.min(plan.finalMass,plan.K/this.half(beta)):plan.massKg;
@@ -188,7 +188,7 @@ const FlightEstimate={
   };
   const stopping=q=>flyby?{proper:encounter?.proper||0,earth:encounter?.earth||0,distance:gate}:Magnetic.stopping(q.fuel,q.beta,g);
   let q=sample(1),stop=stopping(q);
-  if(!flyby&&q.distance+stop.distance>remaining){let lo=0,hi=1;for(let i=0;i<60;i++){const m=(lo+hi)/2,s=sample(m);if(s.distance+stopping(s).distance>remaining)hi=m;else lo=m;}q=sample((lo+hi)/2);stop=stopping(q);}
+  if(q.distance+stop.distance>remaining){let lo=0,hi=1;for(let i=0;i<60;i++){const m=(lo+hi)/2,s=sample(m);if(s.distance+stopping(s).distance>remaining)hi=m;else lo=m;}q=sample((lo+hi)/2);stop=stopping(q);}
   if(!(q.beta>0))return null;
   const coast=Math.max(0,remaining-q.distance-stop.distance),earth=coast/q.beta,proper=earth*Math.sqrt((1-q.beta)*(1+q.beta));
   return{proper:q.proper+proper+stop.proper,earth:q.earth+earth+stop.earth};
