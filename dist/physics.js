@@ -202,10 +202,11 @@ const FlightEstimate={
  },
  get(){
   const f=state.flight;
+  if(f?.cosmic&&state.phase==='cruise'){const key='cosmic:'+state.expansion;let cache=this.active.get(f);if(!cache||cache.key!==key){const q=Cosmology.eta(Math.max(0,f.distance-f.covered),state.beta,state.cosmicTime||0);cache={key,value:q?{proper:state.proper+q.proper,earth:state.earth+q.earth}:null};this.active.set(f,cache);}return cache.value?{proper:Math.max(0,cache.value.proper-state.proper),earth:Math.max(0,cache.value.earth-state.earth)}:null;}
   if(f){const key=[state.phase,f.distance,f.target,Route.isFlyby(),f.encounter?.beta].join(':');let cache=this.active.get(f);if(!cache||cache.key!==key){const q=this.remaining();cache={key,value:q?{proper:state.proper+q.proper,earth:state.earth+q.earth}:null};this.active.set(f,cache);}return cache.value?{proper:Math.max(0,cache.value.proper-state.proper),earth:Math.max(0,cache.value.earth-state.earth)}:null;}
   const target=object(state.selected);if(!target?.navigable||state.current===target.id)return null;
-  const d=distance(state.ship,target),boost=wantsBoost(),key=[state.current,state.selected,d,state.matter,boost,state.sail].join(':');
-  if(this.idleKey!==key){this.idleKey=key;this.idleValue=this.leg(d,boost?0:state.matter,0,boost?null:Rocket.plan(state.matter,d),boost?windPlan():null);}
+  const d=distance(state.ship,target),boost=wantsBoost(),key=[state.current,state.selected,d,state.matter,boost,state.sail,state.expansion,Math.floor((state.cosmicTime||0)/1e5)].join(':');
+  if(this.idleKey!==key){this.idleKey=key;this.idleValue=this.leg(d,boost?0:state.matter,0,boost?null:Rocket.plan(state.matter,d),boost?windPlan():null);if(Cosmology.isCosmic(object(state.current)||state.ship,target)){const beta=boost?windPlan().beta:Rocket.plan(state.matter,d).beta;this.idleValue=Cosmology.eta(d,beta,state.cosmicTime||0);}}
   return this.idleValue;
  }
 };

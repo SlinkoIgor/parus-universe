@@ -7,11 +7,7 @@ const Simulation={
  // can raise the requested proper-time rate, including during a stellar boost.
  slowMotionFactor(){
   const f=state.flight;if(!f)return 1;
-  if(state.phase==='cruise'&&f.distance&&state.beta>0&&Route.braking()){
-   const stop=Magnetic.stopping(state.matter,state.beta),left=Math.max(0,f.distance-f.covered-stop.distance),until=left/state.beta*Math.sqrt((1-state.beta)*(1+state.beta));
-   const x=Math.max(0,Math.min(1,1-until/Math.max(speed,1))),smooth=x*x*(3-2*x);
-   return Math.exp(Math.log(Math.min(1,stop.proper/3))*smooth);
-  }
+  // Coasting is never slowed in anticipation of a future braking phase.
   if(!['thrust','launch','brake','dock'].includes(state.phase))return 1;
   return Number.isFinite(f.replayRate)&&f.replayRate>0?Math.min(1,f.replayRate):1;
  },
@@ -27,7 +23,7 @@ const Simulation={
    if(Math.abs(Math.log(this.smoothedFactor/target))<1e-6)this.smoothedFactor=target;
    const rate=this.replayRate();let years=slice*rate;
    for(let transitions=0;years>1e-15&&transitions<64;transitions++){
-    if(!state.flight){state.proper+=years;state.earth+=years;years=0;break;}
+    if(!state.flight){state.proper+=years;state.earth+=years;Cosmology.elapse(state,years);years=0;break;}
     const used=this.step(years);if(!(used>=0&&Number.isFinite(used)))throw new Error('Invalid replay step');years=Math.max(0,years-used);
    }
    if(years>1e-15)this.debt+=years;remaining=Math.max(0,remaining-slice);
@@ -37,7 +33,7 @@ const Simulation={
  tick(years){
   let remaining=years+this.debt;this.debt=0;
   for(let transitions=0;remaining>0&&transitions<256;transitions++){
-   if(!state.flight){state.proper+=remaining;state.earth+=remaining;remaining=0;break;}
+   if(!state.flight){state.proper+=remaining;state.earth+=remaining;Cosmology.elapse(state,remaining);remaining=0;break;}
    const used=this.step(remaining);if(!(used>=0&&Number.isFinite(used)))throw new Error('Invalid proper-time step');
    remaining=Math.max(0,remaining-used);
   }
@@ -47,7 +43,7 @@ const Simulation={
  step(dt){
   const f=state.flight,tol=this.tolerance(f);
   if(state.phase==='flyby')return Route.tick(dt);
-  if(Route.braking()&&['thrust','launch','cruise'].includes(state.phase)&&state.beta>0){const stop=Magnetic.stopping(state.matter,state.beta,Math.max(1,Math.abs(state.controlG)||100)).distance;if(f.distance-f.covered<=stop+tol){beginBrake(true);return 0;}}
+  if(Route.braking()&&['thrust','launch','cruise'].includes(state.phase)&&state.beta>0){const stop=Magnetic.stopping(state.matter,state.beta,Math.max(1,Math.abs(state.controlG)||100)).distance;if(f.distance-f.covered<=stop/Cosmology.factor(f)+tol){beginBrake(true);return 0;}}
   if(state.phase==='thrust'||state.phase==='dock'){
    const e=f.engine;if(!e){state.phase='cruise';return 0;}
    const before=Rocket.dryMass+state.matter,unburned=Math.max(0,e.budget-e.burned),retro=e.direction<0;
@@ -73,6 +69,13 @@ const Simulation={
   }
   if(state.phase==='cruise'){
    if(state.beta<=0){finishFlight(false);return 0;}
+   if(f.cosmic){
+    const remaining=f.distance-f.covered,sample=proper=>Cosmology.coast(state.beta,proper,state.cosmicTime||0,state.expansion!==false),gap=q=>remaining-q.distance-(Route.braking()?Magnetic.stopping(state.matter,q.beta,Math.max(1,Math.abs(state.controlG)||100)).distance/Cosmology.factor(f,(state.cosmicTime||0)+(state.expansion!==false?q.earth:0)):Route.gate());
+    let q=sample(dt),transition=gap(q)<=0;
+    if(transition){let lo=0,hi=dt;for(let n=0;n<80;n++){const mid=(lo+hi)/2;if(mid===lo||mid===hi)break;if(gap(sample(mid))>0)lo=mid;else hi=mid;}q=sample((lo+hi)/2);}
+    state.beta=q.beta;state.acceleration=0;advance(q.distance,q.earth,q.proper,true,q.path);
+    if(transition){if(Route.isFlyby())Route.enter();else beginBrake(true);}return q.proper;
+   }
    const inverseGamma=Math.sqrt((1-state.beta)*(1+state.beta)),rate=state.beta/inverseGamma,remaining=f.distance-f.covered;
    if(Route.isFlyby()){
     const encounter=Route.prepare();if(!encounter)return 0;

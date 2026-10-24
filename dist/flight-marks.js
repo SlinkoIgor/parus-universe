@@ -6,11 +6,11 @@ const FlightMarks={
  },
  at(f,ds){return Space.mix(f.from,f.aim||object(f.target),ds/f.distance).p3;},
  plan(f=state.flight){
-  if(!f)return;const accelerating=!!(f.wind||f.engine?.direction>0),end=f.wind?(f.wind.baseCovered||0)+f.wind.distance:(f.engine?.baseCovered||0)+(f.engine?.burnDistance||0);
+  if(!f)return;const accelerating=!!(f.wind||f.engine?.direction>0),end=f.wind?(f.wind.baseCovered||0)+f.wind.distance/Cosmology.factor(f):(f.engine?.baseCovered||0)+(f.engine?.burnDistance||0)/Cosmology.factor(f);
   if(accelerating)this.set(f,'acceleration',this.at(f,Math.min(f.distance,end)));
   if(Route.isFlyby(f)){f.markers=(f.markers||[]).filter(m=>m.kind==='acceleration');return;}
   const fuel=f.engine?.direction>0?state.matter-f.engine.budget:state.matter,stop=Magnetic.stopping(Math.max(0,fuel),f.maxBeta||state.beta,Math.max(1,Math.abs(state.controlG)||100));
-  if(stop.magnetic){const brake=Math.max(0,f.distance-stop.distance);this.set(f,'brake',this.at(f,brake));this.set(f,'fine',this.at(f,brake+stop.magnetic.distance));}
+  if(stop.magnetic){const brake=Math.max(0,f.distance-stop.distance/Cosmology.factor(f));this.set(f,'brake',this.at(f,brake));this.set(f,'fine',this.at(f,brake+stop.magnetic.distance/Cosmology.factor(f)));}
  },
  actual(kind){const f=state.flight;if(f)this.set(f,kind,state.ship.p3,true);},
  draw(f=state.flight){

@@ -7,13 +7,13 @@ const el=id=>els.get(id)||(els.set(id,new Element),els.get(id));
 const context=vm.createContext({console,performance,Math,JSON,Number,Array,String,Set,Map,Date,setTimeout:()=>0,clearTimeout(){},requestAnimationFrame(){},ResizeObserver:class{observe(){}},document:{documentElement:{dataset:{theme:'dark'}},querySelector:()=>null,getElementById:el,querySelectorAll:()=>[],addEventListener(){},createElement:()=>new Element,hidden:false},window:{devicePixelRatio:1,addEventListener(){},open(){}},localStorage:{getItem(){return null},setItem(){}},assert});
 
 
-vm.runInContext(['dist/catalog.js','dist/astronomy.js','dist/catalog-import.js','dist/catalog-retired.js','dist/coordinates.js','dist/cosmic-catalog.js','dist/layout-data.js','dist/map-layout.js','dist/map-details.js','dist/catalog-extended.js','dist/catalog-stream.js','dist/regions.js','dist/flight-view.js','dist/flight-marks.js','dist/physics.js','dist/flyby.js','dist/navigation.js','dist/simulation.js','dist/app.js'].map(p=>fs.readFileSync(p,'utf8')).join('\n'),context);
+vm.runInContext(['dist/catalog.js','dist/astronomy.js','dist/catalog-import.js','dist/catalog-retired.js','dist/coordinates.js','dist/cosmic-catalog.js','dist/layout-data.js','dist/map-layout.js','dist/cosmology.js','dist/map-details.js','dist/catalog-extended.js','dist/catalog-stream.js','dist/nuclear-stars.js','dist/regions.js','dist/flight-view.js','dist/flight-marks.js','dist/physics.js','dist/flyby.js','dist/navigation.js','dist/simulation.js','dist/app.js'].map(p=>fs.readFileSync(p,'utf8')).join('\n'),context);
 context.CATALOG_AUDIT=JSON.parse(fs.readFileSync('data-tools/selection-audit.json','utf8'));
 const run=s=>vm.runInContext(s,context);
 run(`
 function close(a,b,tol=1e-10){assert.ok(Math.abs(a-b)<=tol,a+' ≈ '+b)}
 function rel(a,b,tol=1e-7){close(a/b,1,tol)}
-function fresh(){state=initial();Simulation.debt=0;Simulation.wallDebt=0;delete Simulation.smoothedFactor;paused=false;speed=1;}
+function fresh(){state=initial();state.expansion=false;Simulation.debt=0;Simulation.wallDebt=0;delete Simulation.smoothedFactor;paused=false;speed=1;}
 function settle(step=.01){let i=0;while(state.flight&&i++<100000){tickPhysics(step);assert.ok(state.matter>=-1e-25&&state.matter<=Rocket.fuelCapacity*(1+1e-12));assert.ok(state.beta>=0&&state.beta<1);assert.ok(state.proper<=state.earth+1e-7);}assert.ok(!state.flight,'flight must terminate');assert.equal(Simulation.debt,0);}
 rel(Rocket.dryMass,1e-9);rel(Rocket.fuelCapacity,1e-9);rel(initial().matter,1e-9);
 fresh();renderUI();assert.equal($('massDry').style.width,'50%');assert.equal($('massFuel').style.width,'50%');assert.equal($('dryMass').innerHTML,'1<small>мг</small>');assert.ok($('massBar').title.includes('Свободно 0,000 мг'));
@@ -72,7 +72,7 @@ var retired=RETIRED_OBJECTS.find(o=>!object(o.id));var oldSave=initial();oldSave
 var oldManual=initial();oldManual.auto=false;oldManual.controlG=-20;var migratedAuto=restore(oldManual);assert.equal(migratedAuto.auto,true);assert.equal(migratedAuto.controlG,100);
 console.log('PASS migration preserves physical position, historical clocks and tank fraction');
 `);
-const html=fs.readFileSync('dist/index.html','utf8'),ids=new Set([...html.matchAll(/id="([^" ]+)"/g)].map(x=>x[1]));for(const [,id]of fs.readFileSync('dist/app.js','utf8').matchAll(/\$\('([^']+)'\)/g))assert.ok(ids.has(id)||['startExploring','confirmReset','viewGalaxy','viewRegion','viewSystem','viewLocalStar','viewUnknown'].includes(id),'missing '+id);console.log('PASS interface IDs');
+const html=fs.readFileSync('dist/index.html','utf8'),ids=new Set([...html.matchAll(/id="([^" ]+)"/g)].map(x=>x[1]));for(const [,id]of fs.readFileSync('dist/app.js','utf8').matchAll(/\$\('([^']+)'\)/g))assert.ok(ids.has(id)||['startExploring','confirmReset','viewGalaxy','viewRegion','viewSystem','viewLocalStar','viewUnknown','viewNuclearCluster'].includes(id),'missing '+id);console.log('PASS interface IDs');
 run(`
 function exactArrival(){let count=0;while(state.flight&&count++<40)Simulation.step(1e12);assert.ok(!state.flight,'exact arrival terminates');return{proper:state.proper,earth:state.earth};}
 for(const spec of [

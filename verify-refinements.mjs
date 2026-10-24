@@ -1,7 +1,7 @@
 import vm from 'node:vm';import fs from 'node:fs';import assert from 'node:assert/strict';
 let harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';const {context,run}=await import('data:text/javascript,'+encodeURIComponent(harness));
 run(`
-function resetRefinement(){state=initial();paused=false;speed=1;Simulation.debt=0;Simulation.wallDebt=0;delete Simulation.smoothedFactor;}
+function resetRefinement(){state=initial();state.expansion=false;paused=false;speed=1;Simulation.debt=0;Simulation.wallDebt=0;delete Simulation.smoothedFactor;}
 resetRefinement();state.proper=12345.99;state.earth=999999.9;renderUI();assert.ok(!$('shipClock').innerHTML.includes(','));assert.ok(!$('earthClock').innerHTML.includes(','));assert.ok($('shipClock').innerHTML.replace(/[^0-9]/g,'').startsWith('12345'));
 assert.equal(SAILS[0].targetBeta,.99);assert.equal(JSON.stringify(SAILS.map(s=>s.areaM2/1e6)),'[100,1000000,1000000000]');
 for(const sail of SAILS){const w=Stellar.plan(1e-6,sail.areaM2,0,Stellar.r0,100,Stellar.pulseYears,sail.targetBeta);assert.ok(w.beta>0&&w.beta<=sail.targetBeta+2e-15);if(sail.name==='S')assert.ok(Math.abs(w.beta-.99)<2e-15);}
@@ -16,7 +16,7 @@ beginBrake(true);Simulation.smoothedFactor=.8;Simulation.advance(.01);assert.ok(
 const bh=object('cygnus'),star=object('hyg-97987'),separation=Space.distance(bh,star)*63241.077;assert.ok(separation>.2&&separation<.3);assert.ok(star.navigable&&!star.atlasOnly);assert.ok(star.catalogDistanceLy<2000);const a=MapLayout.project(bh),b=MapLayout.project(star);assert.ok(Math.hypot(a.x-b.x,a.y-b.y)*63241.077<.3);assert.ok(star.facts.visual.solarV>1000);
 resetRefinement();for(let i=0;i<SPEED_TICKS.length;i++){assert.ok(Math.abs(speedScale(SPEED_TICKS[i])-i/(SPEED_TICKS.length-1))<1e-10);}
 let previous=-1;for(let i=0;i<=1000;i++){const b=1-10**(-9*i/1000),x=speedScale(b);assert.ok(x>=previous);previous=x;}
-state.beta=.99;renderVelocity();renderClockRatio();assert.equal($('timeDilation').textContent,'7,09 лет на Земле');assert.ok(Math.abs(clockRate()-Math.sqrt(1-.99**2))<1e-15);assert.ok(Math.abs(parseFloat($('velocityFill').style.width)-200/9)<1e-9);
+state.beta=.99;state.flight={};renderVelocity();renderClockRatio();assert.equal($('timeDilation').textContent,'7,09 лет на Земле');assert.ok(Math.abs(clockRate()-Math.sqrt(1-.99**2))<1e-15);assert.ok(Math.abs(parseFloat($('velocityFill').style.width)-200/9)<1e-9);
 assert.ok(dense.unthrottled.proper<dense.proper);assert.ok(Magnetic.dustDensity(1e6)>0);assert.ok(Math.abs(Magnetic.dustDensity(1e6)/Magnetic.rho(1e6)-.01)<1e-12);
 for(const id of ['system-alpha-centauri','system-antennae','system-cygnus-x1','system-gl501','system-ngc3690','system-ngc7318']){const s=EXTENDED_BOOT.systems.find(s=>s.id===id);assert.ok(s.confirmed&&s.links.length>0,id+' confirmed links must survive conflicting catalog distances');}
 for(const s of EXTENDED_BOOT.systems)if(s.associationOnly)assert.equal(s.links.length,0);
