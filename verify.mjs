@@ -13,7 +13,7 @@ const run=s=>vm.runInContext(s,context);
 run(`
 function close(a,b,tol=1e-10){assert.ok(Math.abs(a-b)<=tol,a+' ≈ '+b)}
 function rel(a,b,tol=1e-7){close(a/b,1,tol)}
-function fresh(){state=initial();Simulation.debt=0;Simulation.wallDebt=0;paused=false;speed=1;}
+function fresh(){state=initial();Simulation.debt=0;Simulation.wallDebt=0;delete Simulation.smoothedFactor;paused=false;speed=1;}
 function settle(step=.01){let i=0;while(state.flight&&i++<100000){tickPhysics(step);assert.ok(state.matter>=-1e-25&&state.matter<=Rocket.fuelCapacity*(1+1e-12));assert.ok(state.beta>=0&&state.beta<1);assert.ok(state.proper<=state.earth+1e-7);}assert.ok(!state.flight,'flight must terminate');assert.equal(Simulation.debt,0);}
 rel(Rocket.dryMass,1e-9);rel(Rocket.fuelCapacity,1e-9);rel(initial().matter,1e-9);
 fresh();renderUI();assert.equal($('massDry').style.width,'50%');assert.equal($('massFuel').style.width,'50%');assert.equal($('dryMass').innerHTML,'1<small>мг</small>');assert.ok($('massBar').title.includes('Свободно 0,000 мг'));
@@ -27,7 +27,7 @@ function trip(step,total=30){fresh();state.selected='alpha';launch();let passed=
 var one=trip(30),many=trip(.01);for(let i=0;i<one.length;i++)if(one[i]||many[i])rel(one[i],many[i],2e-6);close(state.totalDistance,distance(object('sol'),object('alpha')),1e-9);
 console.log('PASS capped photon rocket, full-tank acceleration, complete physical stop, proper-time timestep independence');
 for(const sail of SAILS){var w=Stellar.plan(1e-6,sail.areaM2,0,Stellar.r0,100,Stellar.pulseYears,sail.targetBeta);close(w.beta,sail.targetBeta,2e-15);assert.equal(w.reason,'target');assert.ok(w.rows.at(-1).source<Stellar.pulseYears);for(const p of [0,.1,.5,.9,1]){const q=Stellar.sample(w,p);assert.ok(q.force/w.massKg<=100*G0*(1+1e-12));assert.ok(q.opening>=0&&q.opening<=1);}assert.ok(Stellar.sample(w,0).opening<Stellar.sample(w,.5).opening);}
-var w=Stellar.plan(1e-6,SAILS[1].areaM2,0,Stellar.r0,100,Stellar.pulseYears,SAILS[1].targetBeta);rel(w.proper*365.25,30.67064003,1e-6);rel(w.distance,26.97863465,1e-6);close(Stellar.force(1e10,Stellar.r0,.4)/Stellar.force(1e10,2*Stellar.r0,.4),4);
+var w=Stellar.plan(1e-6,SAILS[1].areaM2,0,Stellar.r0,100,Stellar.pulseYears,SAILS[1].targetBeta);rel(w.proper*365.25,30.51754649572491,1e-6);rel(w.distance,26.111899506491472,1e-6);close(Stellar.force(1e10,Stellar.r0,.4)/Stellar.force(1e10,2*Stellar.r0,.4),4);
 // A short flash cannot attain the nominal target at <=100g, regardless of mass.
 var short=Stellar.plan(1e-12,SAILS[1].areaM2,0,Stellar.r0,100,1200/Rocket.year,SAILS[1].targetBeta);assert.equal(short.reason,'pulse');assert.ok(short.beta<.004);close(short.rows.at(-1).source,1200/Rocket.year,1e-15);
 fresh();state.current='proxima';state.ship=Space.point(object('proxima').p3);state.selected='sgr';state.sail=1;var forecast=windPlan().beta;launch();assert.equal(state.matter,0);close(state.flight.wind.massKg,1e-6,1e-20);close(state.flight.maxBeta,forecast,1e-15);var totalWind=state.flight.wind.proper;tickPhysics(totalWind/4);assert.equal(state.phase,'launch');assert.ok(state.beta>0&&state.beta<forecast);tickPhysics(totalWind);assert.equal(state.phase,'cruise');close(state.beta,forecast,1e-15);assert.equal(state.flight.markers.length,3);assert.ok(state.flight.markers.find(m=>m.kind==='acceleration').actual);
@@ -48,12 +48,12 @@ assert.ok(object('bootes').region.major===300e6);assert.ok(object('sloan').regio
 var before=JSON.stringify(object('proxima').p3);RegionMap.draw();assert.equal(JSON.stringify(object('proxima').p3),before);
 assert.ok(LAYOUT_DATA.diagnostics.every(d=>d.finalKL<=d.initialKL));
 console.log('PASS straight affine route, collinear ship/markers, catalog and isolated 3D physics');
-// Full tank does not remove drag. Capture, heat and 100g limit remain consistent.
-var cap=2e-6,full=Magnetic.plan(cap,.9999999),q0=Magnetic.sample(full,.4),q1=Magnetic.sample(full,.400001);rel(q0.mass,cap);assert.equal(q0.massRate,0);assert.ok(q0.processedMassRate>0);assert.ok(-q0.properAcceleration<=100*G0*(1+1e-12));rel((q1.beta-q0.beta)*Rocket.c/((q1.earth-q0.earth)*Rocket.year),q0.coordinateAcceleration,4e-4);rel((q1.heat-q0.heat)/((q1.proper-q0.proper)*Rocket.year),q0.heatPower,4e-4);
+// Full tank does not remove drag. Capture, heat and 1g braking remain consistent.
+var cap=2e-6,full=Magnetic.plan(cap,.9999999),q0=Magnetic.sample(full,.4),q1=Magnetic.sample(full,.400001);rel(q0.mass,cap);assert.equal(q0.massRate,0);assert.ok(q0.processedMassRate>0);assert.ok(-q0.properAcceleration<=Magnetic.maxG*G0*(1+1e-12));rel((q1.beta-q0.beta)*Rocket.c/((q1.earth-q0.earth)*Rocket.year),q0.coordinateAcceleration,4e-4);rel((q1.heat-q0.heat)/((q1.proper-q0.proper)*Rocket.year),q0.heatPower,4e-4);
 fresh();state.current='proxima';state.ship=Space.point(object('proxima').p3);state.selected='alpha';state.sail=1;launch();var realDistance=state.flight.distance;settle(.001);assert.equal(state.current,'alpha');close(state.totalDistance,realDistance,1e-9);assert.ok(state.captured>0);assert.ok(state.matter<=Rocket.fuelCapacity);
 assert.equal(Magnetic.sample(Magnetic.plan(1e-6,.999999999),0).distance,0);
 for(const frame of [1/60,.047]){fresh();state.current='proxima';state.ship=Space.point(object('proxima').p3);state.selected='sgr';launch();var n=0;while(state.flight&&n++<5000)Simulation.advance(frame);assert.equal(state.current,'sgr','wall-clock arrival '+frame);assert.equal(Simulation.wallDebt,0);}
-console.log('PASS 100g magnetic capture, finite tank, heat derivative and high-gamma frame-boundary arrival');
+console.log('PASS 1g sail gas capture, finite tank, heat derivative and high-gamma frame-boundary arrival');
 // No manual force command: the autopilot always controls stopping.
 fresh();state.current='proxima';state.ship=Space.point(object('proxima').p3);state.selected='alpha';launch();state.auto=false;state.flight.manualCoast=true;assert.equal(Route.braking(),true);settle(.001);assert.equal(state.current,'alpha');
 for(const requested of [1,10,100,1000]){
@@ -61,7 +61,7 @@ for(const requested of [1,10,100,1000]){
  while(state.flight&&count++<5000){const before=state.proper,rate=Simulation.replayRate();assert.ok(rate>0&&rate<=requested);Simulation.advance(1/60);assert.ok(state.proper-before<=requested/60+1e-9);assert.equal(speed,requested);}
  assert.equal(state.current,'sgr');assert.ok(count<5000);
 }
-fresh();state.flight={replayRate:10};state.phase='launch';assert.equal(Simulation.replayRate(),1);state.flight.replayRate=.01;assert.equal(Simulation.replayRate(),.01);speed=100;assert.equal(Simulation.replayRate(),1);state.phase='cruise';assert.equal(Simulation.replayRate(),100);
+fresh();state.flight={replayRate:10};state.phase='launch';assert.equal(Simulation.replayRate(),1);state.flight.replayRate=.01;assert.equal(Simulation.replayRate(),.01);speed=100;assert.equal(Simulation.replayRate(),1);state.phase='cruise';delete Simulation.smoothedFactor;assert.equal(Simulation.replayRate(),100);
 fresh();state.flight={};for(const g of [-100,-35,0,20,100]){state.acceleration=g*G0;renderAcceleration();assert.equal($('accelerationFill').style.width,Math.abs(g)/2+'%');assert.equal($('accelerationFill').style.left,(g<0?50+g/2:50)+'%');}
 console.log('PASS automatic stopping, passive signed g meter, manual-only speed increases and capped slow motion across boost transitions');
 close(Gravity.deflection(.99,10)*180/Math.PI,12.84017946,1e-7);close(Gravity.deflection(.99,2)*180/Math.PI,126.51428075,1e-7);assert.equal(Gravity.deflection(.99,1.5),Infinity);

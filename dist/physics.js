@@ -84,9 +84,37 @@ const Stellar=Object.freeze({
  sample(plan,p){return this.sampleProper(plan,Math.max(0,Math.min(1,p))*plan.proper);}
 
 });
+// Coarse environment model, not a measured gas map. A conservative uniform
+// density is selected for each leg; never apply disk density throughout a void.
+const GasMedium={
+ source:'https://science.nasa.gov/learn/basics-of-space-flight/chapter1-1/',
+ at(p){
+  const d=Math.hypot(...p);if(d<15)return{n:3e5,label:'Местное облако · 0,3 атома/см³'};
+  if(d<300)return{n:1e3,label:'Местный пузырь · 0,001 атома/см³'};
+  const mw=OBJECTS.find(o=>o.id==='sgr');
+  if(mw?.p3&&Math.hypot(p[0]-mw.p3[0],p[1]-mw.p3[1])<60000&&Math.abs(p[2])<1500)return{n:1e6,label:'Галактический диск · 1 атом/см³'};
+  for(const g of OBJECTS)if(g.kind==='galaxy'&&g.p3&&g.galaxy&&Math.hypot(...p.map((v,i)=>v-g.p3[i]))<g.galaxy.diameterLy*.5)return{n:1e6,label:'Галактическая среда · 1 атом/см³'};
+  return{n:1,label:'Межгалактическая среда · 1 атом/м³'};
+ },
+ forLeg(from,target,sail){
+  if(!from?.p3||!target?.p3)return{n:1,area:SAILS[sail].areaM2,label:'Среда неизвестна · 1 атом/м³',model:2};
+  const key=[...from.p3,...target.p3,sail].join(':');if(this.cache?.key===key)return this.cache.value;
+  const origin=from.p3,delta=target.p3.map((v,i)=>v-origin[i]),cuts=[0,1];
+  const sphere=(center,radius,dimensions=3)=>{let a=0,b=0,c=-radius*radius;for(let i=0;i<dimensions;i++){const q=origin[i]-center[i];a+=delta[i]**2;b+=2*q*delta[i];c+=q*q;}const discriminant=b*b-4*a*c;if(a>0&&discriminant>=0)for(const t of [(-b-Math.sqrt(discriminant))/(2*a),(-b+Math.sqrt(discriminant))/(2*a)])if(t>0&&t<1)cuts.push(t);};
+  sphere([0,0,0],15);sphere([0,0,0],300);
+  const mw=OBJECTS.find(o=>o.id==='sgr');if(mw?.p3)sphere(mw.p3,60000,2);
+  if(delta[2])for(const z of [-1500,1500]){const t=(z-origin[2])/delta[2];if(t>0&&t<1)cuts.push(t);}
+  for(const g of OBJECTS)if(g.kind==='galaxy'&&g.p3&&g.galaxy)sphere(g.p3,g.galaxy.diameterLy*.5);
+  cuts.sort((a,b)=>a-b);let medium=this.at(origin);
+  for(let i=0;i<cuts.length;i++){const t=i?(cuts[i-1]+cuts[i])/2:cuts[i],q=this.at(origin.map((v,j)=>v+delta[j]*t));if(q.n<medium.n)medium=q;}
+  const end=this.at(target.p3);if(end.n<medium.n)medium=end;
+  const value={...medium,area:SAILS[sail].areaM2,model:2};this.cache={key,value};return value;
+ }
+};
 const Magnetic=Object.freeze({
- n:1e5,protonMass:1.67262192369e-27,area:1e15,fineBeta:.01,duration:10,
- rho(){return this.n*this.protonMass;},k(){return this.rho()*this.area;},
+ n:1e6,protonMass:1.67262192369e-27,area:5e12,fineBeta:.01,duration:10,maxG:1,
+ context(){return typeof state==='object'&&state?(state.flight?.medium||GasMedium.forLeg(state.ship,object(state.selected)||state.ship,state.sail)):{n:this.n,area:this.area};},
+ rho(n=this.n){return n*this.protonMass;},k(){const m=this.context();return this.rho(m.n)*m.area;},
  half(beta){return beta/(1+Math.sqrt(Math.max(0,1-beta*beta)));},
  rates(massKg,beta,k=this.k(),capacityKg=(Rocket.dryMass+Rocket.fuelCapacity)*1000){
   const gamma=1/Math.sqrt(1-beta*beta),v=beta*Rocket.c,dm=k*v,force=beta>0&&k>0?-k*gamma*gamma*v*v:0;
@@ -104,7 +132,7 @@ const Magnetic=Object.freeze({
   return{earth:base*(Math.sqrt(1-beta*beta)/beta-Math.sqrt(1-beta0*beta0)/beta0),proper:base*(1/beta-1/beta0),distance:massKg/(k*LY)*Math.log(h0/h),heat:massKg*Rocket.c**2*Math.log1p((h0*h0-h*h)/(1-h0*h0))};
  },
  plan(massKg,beta,k=this.k(),capacityKg=(Rocket.dryMass+Rocket.fuelCapacity)*1000,maxG=100){
-  massKg=Math.min(massKg,capacityKg);
+  massKg=Math.min(massKg,capacityKg);maxG=Math.min(this.maxG,maxG);
   const h=this.half(beta),K=massKg*h,dry=Rocket.dryMass*1000,root=(K+dry+Math.sqrt((K+dry)**2+4*dry*K))/2;
   const mFine=beta>this.fineBeta?K/this.half(this.fineBeta):massKg;
   const wanted=beta<=0?massKg:Math.max(massKg,mFine,root*(1+1e-12)),finalMass=Math.min(capacityKg,wanted),capHalf=K/finalMass,capBeta=K?2*capHalf/(1+capHalf*capHalf):0;
@@ -116,8 +144,12 @@ const Magnetic=Object.freeze({
  cappedLeg(plan,beta){
   const eta0=Math.atanh(plan.beta),eta=Math.atanh(beta),cap=plan.maxG*9.80665,finalMass=plan.K?Math.min(plan.finalMass,plan.K/this.half(beta)):plan.massKg;
   if(this.rates(finalMass,beta,plan.k,plan.capacityKg).properAcceleration<=-cap){const base=Rocket.c/(cap*Rocket.year);return{proper:base*(eta0-eta),earth:base*(Math.sinh(eta0)-Math.sinh(eta)),distance:base*(Math.cosh(eta0)-Math.cosh(eta))};}
-  let proper=0,earth=0,distance=0;const mid=(eta0+eta)/2,half=(eta0-eta)/2;
-  for(let i=0;i<8;i++){const e=mid+half*QUAD_X[i],b=Math.tanh(e),mass=Math.min(plan.finalMass,plan.K/this.half(b)),a=Math.min(cap,-this.rates(mass,b,plan.k,plan.capacityKg).properAcceleration),dt=Rocket.c/a/Rocket.year*half*QUAD_W[i];proper+=dt;earth+=dt*Math.cosh(e);distance+=dt*Math.sinh(e);}return{proper,earth,distance};
+  const rawLeg=b=>{const mass=plan.K?Math.min(plan.finalMass,plan.K/this.half(b)):plan.massKg,leg=this.integrals(plan.massKg,mass,plan.K,plan.k);if(mass>=plan.finalMass&&b<plan.capBeta){const tail=this.fixedIntegrals(mass,plan.capBeta,b,plan.k);for(const key of ['earth','proper','distance','heat'])leg[key]+=tail[key];}return leg;};
+  const acceleration=e=>{const b=Math.tanh(e),mass=Math.min(plan.finalMass,plan.K/this.half(b));return -this.rates(mass,b,plan.k,plan.capacityKg).properAcceleration;};
+  const result=rawLeg(beta);if(acceleration(eta0)<=cap)return result;
+  let low=eta,high=eta0;for(let i=0;i<56;i++){const mid=(low+high)/2;if(acceleration(mid)<cap)low=mid;else high=mid;}
+  const crossing=(low+high)/2,cut=rawLeg(Math.tanh(crossing)),base=Rocket.c/(cap*Rocket.year);
+  return{proper:result.proper-cut.proper+base*(eta0-crossing),earth:result.earth-cut.earth+base*(Math.sinh(eta0)-Math.sinh(crossing)),distance:result.distance-cut.distance+base*(Math.cosh(eta0)-Math.cosh(crossing))};
  },
  sample(plan,p){
   p=Math.max(0,Math.min(1,p));const h=this.half(plan.beta)*Math.exp(-plan.logRatio*p*p),beta=p===0?plan.beta:p===1?plan.finalBeta:h?2*h/(1+h*h):0,mass=p===0?plan.massKg:plan.K?Math.min(plan.finalMass,plan.K/h):plan.massKg;
@@ -126,8 +158,8 @@ const Magnetic=Object.freeze({
   const raw=this.rates(mass,beta,plan.k,plan.capacityKg),factor=raw.properAcceleration?Math.min(1,plan.maxG*9.80665/-raw.properAcceleration):1;
   for(const key of ["massRate","processedMassRate","particles","properParticles","force","properAcceleration","coordinateAcceleration","heatPower"])raw[key]*=factor;return{mass,beta,...leg,...this.cappedLeg(plan,beta),...raw};
  },
- stopping(fuel,beta,maxG=100){
-  if(beta<=0)return{distance:0,earth:0,proper:0};const magnetic=this.plan((Rocket.dryMass+fuel)*1000,beta,this.k(),(Rocket.dryMass+Rocket.fuelCapacity)*1000,maxG),engine=Rocket.retroPlan(magnetic.finalMass/1000-Rocket.dryMass,magnetic.finalBeta,maxG);
+ stopping(fuel,beta,maxG=100,medium=this.context()){
+  if(beta<=0)return{distance:0,earth:0,proper:0};const magnetic=this.plan((Rocket.dryMass+fuel)*1000,beta,this.rho(medium.n)*medium.area,(Rocket.dryMass+Rocket.fuelCapacity)*1000,maxG),engine=Rocket.retroPlan(magnetic.finalMass/1000-Rocket.dryMass,magnetic.finalBeta,Math.min(this.maxG,maxG));
   return{magnetic,engine,distance:magnetic.distance+engine.burnDistance,earth:magnetic.earth+engine.burnEarth,proper:magnetic.proper+engine.burnProper};
  }
 });

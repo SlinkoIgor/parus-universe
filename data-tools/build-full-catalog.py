@@ -232,6 +232,77 @@ systems.append({'id':'system-antennae','name':'Антенны','members':[rawmap
 systems.append({'id':'system-cygnus-x1','name':'Лебедь X-1','members':['cygnus',rawmap['hyg:97987']],'primary':'cygnus','links':[['cygnus',rawmap['hyg:97987']]],'schematic':True,'source':'https://imagine.gsfc.nasa.gov/features/yba/CygX1_mass/cygX1_more.html','note':'Чёрная дыра Лебедь X-1 и звезда-сверхгигант HDE 226868 — компоненты двойной системы. Эллипс схематический; аккреция и движение не моделируются.'})
 renames={rawmap['hyg:97987']:'HDE 226868 · звезда Лебедя X-1',alpha[0]:'Альфа Центавра A',alpha[1]:'Альфа Центавра B',alpha[2]:'Альфа Центавра C · Проксима'}
 
+# Reconcile component distances only when a catalog explicitly groups the stars
+# and a more reliable component supplies the shared distance. Keep a full audit.
+record_byid={row[0]:row for row in records};system_audit=[]
+def component(ident):
+    if ident in byid:
+        o=byid[ident];patch=patches.get(ident,{})
+        return {'id':ident,'d':patch.get('d',o.get('d')),'ra':patch.get('raDeg',o.get('raDeg')),'dec':patch.get('decDeg',o.get('decDeg')),'rel':policies.get(ident,{}).get('distanceRelativeError'),'hip':o.get('hip')}
+    row=record_byid[ident]
+    return {'id':ident,'d':row[3],'ra':row[4],'dec':row[5],'rel':row[11].get('distanceRelativeError'),'hip':row[11].get('hip')}
+def update_component(q,d,note,display=None,p3=None):
+    ident=q['id'];ra=q['ra'];dec=q['dec'];pos=p3 or sky(ra,dec,d)
+    display=display or projection(ra,dec,d,'star',ident)
+    if ident in byid:
+        patches[ident]={'d':d,'raDeg':ra,'decDeg':dec,'p3':pos,'positionQuality':'approximate','distanceMethod':note,'display':display,'catalogDistanceLy':q['d']}
+        policies[ident]={'atlasOnly':False,'distanceRelativeError':q['rel'],'positionReason':''}
+    else:
+        row=record_byid[ident];row[11].update(catalogDistanceLy=q['d'],atlasOnly=False);row[3]=d;row[6]='approximate';row[7]=note;row[12],row[13]=display
+for system in systems:
+    members=[component(i) for i in system['members']]
+    valid=[q for q in members if q['d'] and q['ra'] is not None and q['dec'] is not None]
+    if len(valid)<2:continue
+    if system['id']=='system-cygnus-x1':
+        bh=byid['cygnus'];q=component(rawmap['hyg:97987']);period=5.6/365.25
+        separation=(61.8*period**2)**(1/3)/63241.077
+        # Relative orbital phase is not in the catalog: choose a labelled snapshot.
+        ra=math.radians(bh['raDeg']);tangent=[-math.sin(ra),math.cos(ra),0]
+        tangent=[sum(x*y for x,y in zip(row,tangent)) for row in MATRIX]
+        pos=[v+separation*tangent[i] for i,v in enumerate(bh['p3'])]
+        display=[bh['display']['x']+separation*tangent[0],bh['display']['y']-separation*tangent[1]]
+        note='Расстояние двойной системы Лебедь X-1 ≈7200 св. лет (Miller-Jones et al. 2021). Масштаб разделения ≈0,24 а.е. из периода 5,6 суток и суммарной массы ≈61,8 M☉; ориентация и фаза игровой схемы условны.'
+        update_component(q,math.hypot(*pos),note,display,pos)
+        system.update(source='https://doi.org/10.1126/science.abb3363',note=note,separationLy=separation)
+        system_audit.append({'system':system['id'],'action':'published-system-distance','member':q['id'],'oldDistanceLy':q['d'],'distanceLy':bh['d'],'separationLy':separation})
+        continue
+    spread=max(q['d'] for q in valid)/min(q['d'] for q in valid)-1
+    is_hyg='HYG' in system['source']
+    anchor=min(valid,key=lambda q:q['rel'] if q['rel'] is not None else 99)
+    if spread>.1 and is_hyg and anchor['rel'] is not None and anchor['rel']<=.2:
+        precise=[q for q in valid if q['rel'] is not None and q['rel']<=.2]
+        conflict=any(abs(q['d']-anchor['d'])>3*math.hypot(q['d']*q['rel'],anchor['d']*anchor['rel']) for q in precise)
+        if not conflict:
+            for q in valid:
+                angle=math.hypot((q['ra']-anchor['ra'])*math.cos(math.radians(anchor['dec'])),q['dec']-anchor['dec'])
+                if q['id']==anchor['id'] or angle>.1:continue
+                if q['rel'] is not None and q['rel']<=anchor['rel']:continue
+                note='Оценка расстояния по компоненту '+anchor['id']+' той же группы HYG; собственная глубина не измерена. Исходное каталожное расстояние сохранено отдельно.'
+                update_component(q,anchor['d'],note)
+                system_audit.append({'system':system['id'],'action':'shared-component-distance-estimate','member':q['id'],'anchor':anchor['id'],'oldDistanceLy':q['d'],'distanceLy':anchor['d']})
+            valid=[component(q['id']) for q in valid];spread=max(q['d'] for q in valid)/min(q['d'] for q in valid)-1
+    if spread>.2:
+        system['links']=[];system['associationOnly']=True
+        system['note']='Каталожная группа обозначений; физическая связь не подтверждается согласованными расстояниями. Орбитальные эллипсы не показаны. Возможна оптическая пара либо ошибка расстояния.'
+        system_audit.append({'system':system['id'],'action':'distance-conflict-no-orbit','members':valid})
+        continue
+    # One local display transform for close components avoids t-SNE tearing pairs.
+    primary=component(system['primary']);base=patches.get(primary['id'],{}).get('display') or (byid[primary['id']]['display'].values() if primary['id'] in byid else record_byid[primary['id']][12:14])
+    base=list(base)
+    if any(v is None for v in base):base=projection(primary['ra'],primary['dec'],primary['d'],'star',primary['id'])
+    center=sky(primary['ra'],primary['dec'],primary['d'])
+    for q in valid:
+        pos=sky(q['ra'],q['dec'],q['d']);offset=math.hypot(*[pos[i]-center[i] for i in range(3)])
+        if offset>primary['d']*.1:continue
+        display=[base[0]+pos[0]-center[0],base[1]-pos[1]+center[1]]
+        if q['id'] in byid:
+            # A display patch doesn't alter a component's independent 3D position.
+            o=byid[q['id']];old=patches.get(q['id'],{})
+            patches[q['id']]={**old,'d':q['d'],'raDeg':q['ra'],'decDeg':q['dec'],'distanceMethod':old.get('distanceMethod',o.get('coordinateNote','Каталожная позиция.')),'positionQuality':old.get('positionQuality','catalog'),'display':display}
+        else:record_byid[q['id']][12:14]=display
+
+dump(ROOT/'data-tools/system-position-audit.json',system_audit)
+
 OUT.mkdir(exist_ok=True)
 for f in OUT.glob('*.json'):
     if re.fullmatch(r'(?:\d+|atlas-\d+|search|manifest)\.json',f.name):f.unlink()

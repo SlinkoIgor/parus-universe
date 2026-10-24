@@ -44,4 +44,4 @@ const OBJECTS=[
  ['arc','Гигантская дуга',9200000000,-8,'arc','КАНДИДАТ В СВЕРХСТРУКТУРЫ','Сообщаемая дуга протяжённостью около 3,3 миллиарда световых лет. Наблюдается в той же далёкой области, что и Большое кольцо.','ring'],
  ['horizon','Обозримый горизонт',46500000000,180,'horizon','ГРАНИЦА НАБЛЮДАЕМОЙ ОБЛАСТИ','Радиус наблюдаемой Вселенной сегодня — примерно 46 миллиардов световых лет. Горизонт является ориентиром атласа, а не достижимой точкой.','universe']
 ].map((a,i)=>({id:a[0],name:a[1],d:a[2],angle:a[3],kind:a[4],type:a[5],desc:a[6],source:SOURCES[a[7]]||(a[0]==='proxima'?SOURCES.near:null),index:i,x:a[2]*Math.cos(a[3]*Math.PI/180),y:a[2]*Math.sin(a[3]*Math.PI/180)}));
-const SAILS=[{"name":"S","areaM2":471927614.5413182,"referenceMassKg":0.000001,"targetBeta":0.99999},{"name":"M","areaM2":4719276145413.182,"referenceMassKg":0.000001,"targetBeta":0.9999999},{"name":"L","areaM2":47192761454131816,"referenceMassKg":0.000001,"targetBeta":0.999999999}];
+const SAILS=[{name:'S',areaM2:100e6,referenceMassKg:1e-6,targetBeta:.99},{name:'M',areaM2:5e12,referenceMassKg:1e-6,targetBeta:.9999999},{name:'L',areaM2:5e16,referenceMassKg:1e-6,targetBeta:.999999999}];

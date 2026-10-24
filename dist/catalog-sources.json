@@ -114,12 +114,13 @@
     "search": "Lazy 17 MB compact index in a Web Worker; at most 100 results initially",
     "map": "Spatial binary tree by radial bands; max256 leaf rows, max48 cached tiles, max32 requested view nodes, max4 concurrent loads, max8000 streamed points per view",
     "uncertainty": "Unknown distances and historical NonEx/Dup are atlas-only. Hipparcos relative parallax error >50% or unusable parallax is atlas-only, unless a separate original distance is preserved. No invented radial shells. Model and redshift distances labelled approximate. Megastructure contours retained; arrival anchors explicitly game-defined for extended regions.",
-    "systems": "Catalog component groups; Alpha Centauri AB-C hierarchy added from Kervella et al. 2017. Ellipses illustrative.",
+    "systems": "461 catalog groups; shared-distance estimates explicitly labelled. Distance conflicts suppress orbital diagrams; Cygnus X-1/HDE226868 use the published system distance. Local shared display transform prevents t-SNE separation of close components.",
     "fictionalStars": "Known nearby stars preferred; otherwise explicitly fictional departure stars at every mapped destination, persisted with expedition.",
     "nearbyGalaxyStars": {
       "snapshot": "data-tools/nearby-galaxy-stars.json",
       "count": 4,
       "distance": "Measured direction and host-galaxy distance, unresolved individual depth"
-    }
+    },
+    "systemPositionAudit": "data-tools/system-position-audit.json"
   }
 }

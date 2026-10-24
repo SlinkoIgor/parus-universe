@@ -5,15 +5,31 @@ const Simulation={
  tolerance(f){return Math.max(1e-13,Math.abs(f.distance)*64*Number.EPSILON);},
  // Automatic replay is a slowdown factor only. Only the player's speed button
  // can raise the requested proper-time rate, including during a stellar boost.
- slowMotionFactor(){const f=state.flight;if(!f||!['thrust','launch','brake','dock'].includes(state.phase))return 1;return Number.isFinite(f.replayRate)&&f.replayRate>0?Math.min(1,f.replayRate):1;},
- replayRate(){return speed*this.slowMotionFactor();},
+ slowMotionFactor(){
+  const f=state.flight;if(!f)return 1;
+  if(state.phase==='cruise'&&f.distance&&state.beta>0&&Route.braking()){
+   const stop=Magnetic.stopping(state.matter,state.beta),left=Math.max(0,f.distance-f.covered-stop.distance),until=left/state.beta*Math.sqrt((1-state.beta)*(1+state.beta));
+   const x=Math.max(0,Math.min(1,1-until/Math.max(speed,1))),smooth=x*x*(3-2*x);
+   return Math.exp(Math.log(Math.min(1,stop.proper/3))*smooth);
+  }
+  if(!['thrust','launch','brake','dock'].includes(state.phase))return 1;
+  return Number.isFinite(f.replayRate)&&f.replayRate>0?Math.min(1,f.replayRate):1;
+ },
+ replayRate(){return speed*(this.smoothedFactor??this.slowMotionFactor());},
  wallDebt:0,
  advance(realSeconds){
   if(paused)return;let remaining=realSeconds+this.wallDebt;this.wallDebt=0;
-  for(let i=0;remaining>1e-12&&i<256;i++){
-   if(!state.flight){state.proper+=remaining*speed;state.earth+=remaining*speed;remaining=0;break;}
-   const rate=this.replayRate();if(!(rate>0)){this.tick(0);break;}
-   const used=this.step(remaining*rate);if(!(used>=0&&Number.isFinite(used)))throw new Error('Invalid replay step');remaining=Math.max(0,remaining-used/rate);
+  for(let i=0;remaining>1e-12&&i<8192;i++){
+   const slice=Math.min(remaining,1/60),target=this.slowMotionFactor();
+   // Ease the logarithm: a factor of 1000 should not jump in one frame.
+   const previous=this.smoothedFactor??target;
+   this.smoothedFactor=Math.exp(Math.log(previous)+(Math.log(target)-Math.log(previous))*(-Math.expm1(-slice/.4)));
+   const rate=this.replayRate();let years=slice*rate;
+   for(let transitions=0;years>1e-15&&transitions<64;transitions++){
+    if(!state.flight){state.proper+=years;state.earth+=years;years=0;break;}
+    const used=this.step(years);if(!(used>=0&&Number.isFinite(used)))throw new Error('Invalid replay step');years=Math.max(0,years-used);
+   }
+   if(years>1e-15)this.debt+=years;remaining=Math.max(0,remaining-slice);
   }
   this.wallDebt=remaining;
  },

@@ -25,7 +25,7 @@ const Route={
     if(!Gravity.canFlyby(o)){r.issue='Гравитационный поворот доступен только у чёрной дыры.';valid=false;}
     else if(!next?.p3){r.issue='Пролёт требует следующей точки маршрута.';valid=false;}
     else{const angle=V3.angle(V3.sub(o.p3,from.p3),V3.sub(next.p3,o.p3)),sol=Gravity.solve(o.gravity,beta,angle);Object.assign(r,sol,{required:angle});if(!sol.ok){r.issue=sol.reason;valid=false;}else if(!sol.straight&&sol.rp*5>Math.min(d,distance(o,next))*.001*LY){r.issue='Область пролёта перекрывает соседнюю точку.';valid=false;}}
-   }else if(beta>0){const stop=Magnetic.stopping(fuel,beta);fuel=Math.max(0,stop.magnetic.finalMass/1000-Rocket.dryMass-stop.engine.budget);beta=0;}
+   }else if(beta>0){const stop=Magnetic.stopping(fuel,beta,100,GasMedium.forLeg(from,o,state.sail));fuel=Math.max(0,stop.magnetic.finalMass/1000-Rocket.dryMass-stop.engine.budget);beta=0;}
    records.push(r);if(o){from=o;departure=o;}
   }
   return{valid,records};

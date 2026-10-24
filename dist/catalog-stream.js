@@ -21,11 +21,11 @@ const ExtendedCatalog={
   for(const [id,p] of Object.entries(EXTENDED_BOOT.patches)){
    const o=OBJECTS.find(o=>o.id===id);if(!o)continue;Object.assign(o,p);
    const located=p.d>0&&Number.isFinite(p.raDeg)&&Number.isFinite(p.decDeg);
-   Object.assign(o,located?Space.point(Space.fromSky(p.raDeg,p.decDeg,p.d)):{p3:null,x:p.display[0],y:p.display[1]});
+   Object.assign(o,located?Space.point(p.p3||Space.fromSky(p.raDeg,p.decDeg,p.d)):{p3:null,x:p.display[0],y:p.display[1]});
    // Generated positions are compact [x,y], while original map coordinates stay unchanged.
    o.mapPosition={x:p.display[0],y:p.display[1]};o.navigable=located;
    o.coordinateNote=located?'Приблизительная позиция. Полёт разрешён по оценке расстояния. '+p.distanceMethod:p.distanceMethod;
-   if(o.facts)o.facts.note=p.distanceMethod;MapLayout.cache.delete(id);
+   if(o.facts){o.facts.note=p.distanceMethod;if(o.facts.visual&&o.apparentV!=null){const absoluteV=o.apparentV-5*Math.log10(p.d/3.2615637771674336)+5;o.absoluteV=absoluteV;o.visualLuminositySolar=10**((4.83-absoluteV)/2.5);o.facts.visual={absoluteV,solarV:o.visualLuminositySolar};}}MapLayout.cache.delete(id);
   }
   for(const [id,name] of Object.entries(EXTENDED_BOOT.renames)){const o=OBJECTS.find(o=>o.id===id);if(o){o.aliases=[...new Set([o.name,...(o.aliases||[]),name])];o.name=name;}}
   for(const [id,policy] of Object.entries(EXTENDED_BOOT.policies||{})){const o=this.coreIndex.get(id);if(o)Object.assign(o,policy);}
@@ -42,7 +42,7 @@ const ExtendedCatalog={
    if(o.atlasOnly&&!area){o.navigable=false;o.coordinateNote=o.positionReason||'Недостаточно данных для положения на карте. Только атлас.';}
    else if(o.p3?.every(Number.isFinite)){o.navigable=true;if(area&&!o.arrivalAnchor)o.coordinateNote=(o.coordinateNote||'')+' Полёт разрешён к оценочной точке прибытия в область; это не компактное тело.';}
   }
-  for(const s of EXTENDED_BOOT.systems)for(const id of s.members)this.systemByMember.set(id,s);
+  for(const s of EXTENDED_BOOT.systems)for(const id of s.members){this.systemByMember.set(id,s);const o=this.coreIndex.get(id);if(s.id==='system-cygnus-x1'&&o?.facts)o.facts.refs=[...(o.facts.refs||[]).filter(r=>r[0]!==s.source),[s.source,'Расстояние и параметры двойной системы']];}
  },
  start(){
   if(typeof fetch!=='function'&&!globalThis.PARUS_CATALOG_FILES)return;
@@ -82,7 +82,7 @@ const ExtendedCatalog={
   const file=entry.tile||EXTENDED_BOOT.systemTiles?.[entry.id];if(!file)throw Error('Нет адреса записи каталога');
   const rows=await this.tile(file),o=rows.find(o=>o.id===entry.id);if(!o)throw Error('Запись не найдена в каталоге');return this.pin(o);
  },
- focus(o){if(o.atlasOnly){toast(o.positionReason||'Для этого объекта недостаточно точное положение. Он доступен только в атласе.');return;}const p=MapLayout.project(o),span=o.kind==='galaxy'?(o.galaxy?.diameterLy||30000)*2.8:o.positionQuality==='unknown'?Math.max(400,Math.hypot(p.x,p.y)*.04):o.synthetic?2:o.kind==='star'?24:Math.max(24,Math.min(20000,(o.d||100)*.03));goCamera(p.x,p.y,span);this.ensureGalaxy(o);},
+ focus(o){if(o.atlasOnly){toast(o.positionReason||'Для этого объекта недостаточно точное положение. Он доступен только в атласе.');return;}const p=MapLayout.project(o),span=o.kind==='galaxy'?(o.galaxy?.diameterLy||30000)*2.8:o.positionQuality==='unknown'?Math.max(400,Math.hypot(p.x,p.y)*.04):o.synthetic?2:o.kind==='star'?24:Math.max(24,Math.min(20000,(o.d||100)*.03));const system=this.systemByMember.get(o.id);goCamera(p.x,p.y,system?.separationLy?Math.max(.00006,system.separationLy*6):span);this.ensureGalaxy(o);},
  capture(saved){
   const ids=new Set([saved.current,saved.selected,saved.flight?.target,saved.flight?.fromId,...(saved.visited||[]),...(saved.destroyed||[]),...(saved.itinerary||[]).map(n=>n.id),...(saved.flight?.route||[]).map(n=>n.id)]);
   // Include the parent galaxy so a generated star can still be identified on reload.
@@ -128,7 +128,7 @@ const ExtendedCatalog={
   const s=this.systemByMember.get(id);if(!s)return;
   try{const members=await Promise.all(s.members.map(id=>this.resolve({id})));const labels=members.map((o,i)=>'<button class="map-size-action" data-system-member="'+i+'">'+o.name+' ↗</button>').join('');
    const tertiary=members.length>2?'<ellipse cx="180" cy="95" rx="158" ry="72"/><circle cx="320" cy="62" r="4"/>':'';
-   showDialog('<div class="modal-eyebrow">СВЯЗАННАЯ СИСТЕМА · УСЛОВНАЯ СХЕМА</div><h2>'+s.name+'</h2><svg class="system-diagram" viewBox="0 0 360 190" role="img" aria-label="Схема связи компонентов: '+s.name+'"><g fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 5">'+tertiary+'<ellipse cx="160" cy="95" rx="68" ry="28"/></g><g fill="currentColor"><circle cx="148" cy="95" r="5"/><circle cx="218" cy="81" r="4"/></g><text x="140" y="120">A</text><text x="220" y="70">B</text>'+(members.length>2?'<text x="325" y="53">C</text>':'')+'</svg><p>'+s.note+'</p>'+labels+'<p class="object-sources"><a href="'+s.source+'" target="_blank" rel="noopener">Источник связи ↗</a></p>');
+   showDialog('<div class="modal-eyebrow">'+(s.associationOnly?'КАТАЛОЖНАЯ ГРУППА · СВЯЗЬ НЕ ПОДТВЕРЖДЕНА':'СВЯЗАННАЯ СИСТЕМА · УСЛОВНАЯ СХЕМА')+'</div><h2>'+s.name+'</h2>'+(s.associationOnly?'':'<svg class="system-diagram" viewBox="0 0 360 190" role="img" aria-label="Схема связи компонентов: '+s.name+'"><g fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 5">'+tertiary+'<ellipse cx="160" cy="95" rx="68" ry="28"/></g><g fill="currentColor"><circle cx="148" cy="95" r="5"/><circle cx="218" cy="81" r="4"/></g><text x="140" y="120">A</text><text x="220" y="70">B</text>'+(members.length>2?'<text x="325" y="53">C</text>':'')+'</svg>')+'<p>'+s.note+'</p>'+labels+'<p class="object-sources"><a href="'+s.source+'" target="_blank" rel="noopener">Источник связи ↗</a></p>');
    for(let i=0;i<members.length;i++){const b=document.querySelector('[data-system-member="'+i+'"]');if(b)b.onclick=()=>{$('infoDialog').close();this.pin(members[i]);select(members[i].id);this.focus(members[i]);};}
   }catch(e){toast(e.message);}
  },
@@ -136,7 +136,7 @@ const ExtendedCatalog={
   if(globalThis.PARUS_CATALOG_FILES||typeof Worker!=='function'){
    this.fallbackIndex ||= this.readJSON('catalog-data/search.json');const rows=await this.fallbackIndex,key=MapDetails.searchKey(term);const all=rows.filter(r=>this.matches(r[2],filter)&&r[6].includes(key)).sort((a,b)=>(key?Number(b[6].includes('|'+key+'|'))-Number(a[6].includes('|'+key+'|')):0)||(a[3]??Infinity)-(b[3]??Infinity));return{total:all.length,items:all.slice(0,limit).map(r=>({id:r[0],name:r[1],kind:r[2],d:r[3],positionQuality:r[4],tile:r[5],atlasOnly:!!r[7],streamed:true,searchExact:!!key&&r[6].includes('|'+key+'|')}))};
   }
-  if(!this.worker){this.worker=new Worker('catalog-search-worker.js?v=29');this.pendingSearch=new Map();this.worker.onmessage=({data})=>{const p=this.pendingSearch.get(data.seq);if(p){this.pendingSearch.delete(data.seq);data.error?p.reject(Error(data.error)):p.resolve(data);}};this.worker.onerror=()=>{for(const p of this.pendingSearch.values())p.reject(Error('Не удалось открыть поиск полного каталога'));this.pendingSearch.clear();this.worker.terminate();this.worker=null;};}
+  if(!this.worker){this.worker=new Worker('catalog-search-worker.js?v=30');this.pendingSearch=new Map();this.worker.onmessage=({data})=>{const p=this.pendingSearch.get(data.seq);if(p){this.pendingSearch.delete(data.seq);data.error?p.reject(Error(data.error)):p.resolve(data);}};this.worker.onerror=()=>{for(const p of this.pendingSearch.values())p.reject(Error('Не удалось открыть поиск полного каталога'));this.pendingSearch.clear();this.worker.terminate();this.worker=null;};}
   const seq=++this.seq;return new Promise((resolve,reject)=>{this.pendingSearch.set(seq,{resolve,reject});this.worker.postMessage({seq,term,filter,limit,version:EXTENDED_BOOT.revision});});
  },
  matches(kind,filter){return filter==='all'||filter==='star'&&['star','home','pulsar','blackhole','nebula'].includes(kind)||filter==='galaxy'&&kind==='galaxy'||filter==='structure'&&['cluster','structure','wall','void','quasar','ring','arc','horizon'].includes(kind);}
