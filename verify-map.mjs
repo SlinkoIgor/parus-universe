@@ -30,10 +30,10 @@ assert.equal(JSON.stringify(object('alpha').p3),before);
 assert.ok(object('mom-z14').d>3e10);assert.ok(object('mom-z14').cosmology.lookbackYears<14e9);
 assert.ok(object('hyperion').d>object('ring').d);
 assert.ok(object('boss-wall').region);assert.ok(object('eridanus-supervoid').region);
-assert.equal(object('local-void').navigable,false);
+assert.equal(object('local-void').navigable,true);
 assert.equal(new Set(OBJECTS.map(o=>o.id)).size,OBJECTS.length);
 assert.equal(new Set(OBJECTS.flatMap(o=>o.iauNames||[])).size,652);
-assert.equal(CATALOG_COUNTS.all,1066);
+assert.equal(CATALOG_COUNTS.all,1066+EXTENDED_BOOT.members.length);
 
 // Sample actual animation frames with a fixed camera. Moving ship/flight labels
 // must never move stars, displace an atlas label or introduce a trajectory caption.

@@ -16,21 +16,23 @@ for(const node of manifest.nodes){
  for(const r of rows){assert.ok(Number.isFinite(r[12])&&Number.isFinite(r[13]),r[0]+' must have a map point');assert.ok(r[3]==null||r[3]>0);}
  if(!node.children.length){leaves.set(node.file,new Set(rows.map(r=>r[0])));for(const r of rows){assert.ok(!ids.has(r[0]));ids.add(r[0]);}}
 }
-assert.equal(ids.size,137128);assert.equal(search.length,ids.size);
-for(const r of search)assert.ok(leaves.get(r[5])?.has(r[0]),r[0]+' must resolve from search');
-assert.equal(manifest.total,138194);assert.equal(manifest.sourceCoverage.HYG.represented,119626);assert.equal(manifest.sourceCoverage.OpenNGC.represented,13970);assert.equal(manifest.sourceCoverage.ATNF.represented,4503);
-run(`assert.ok(EXTENDED_BOOT.foreground.length<=100);assert.equal(new Set(OBJECTS.flatMap(o=>o.iauNames||[])).size,652);for(const o of OBJECTS)assert.ok(Number.isFinite(MapLayout.project(o).x)&&Number.isFinite(MapLayout.project(o).y),o.id+' has map position');assert.ok(object('alpha').name.includes('Центавра A'));assert.ok(object('proxima').name.includes('Центавра C'));`);
-console.log('PASS all 138194 records represented, every search entry resolves to a leaf, all tiles bounded, unknown points mapped');
+const mapIds=new Set(ids);
+for(const file of new Set(search.map(r=>r[5]))){if(leaves.has(file))continue;const rows=JSON.parse(fs.readFileSync('dist/catalog-data/'+file,'utf8'));leaves.set(file,new Set(rows.map(r=>r[0])));for(const r of rows){assert.ok(r[11].atlasOnly);assert.equal(r[12],null);assert.equal(r[13],null);ids.add(r[0]);}}
+assert.equal(ids.size,manifest.extra);assert.equal(search.length,ids.size);
+for(const r of search){assert.ok(leaves.get(r[5])?.has(r[0]));assert.equal(mapIds.has(r[0]),!r[7]);}
+assert.equal(manifest.sourceCoverage.HYG.represented,119626);assert.equal(manifest.sourceCoverage.OpenNGC.represented,13970);assert.equal(manifest.sourceCoverage.ATNF.represented,4503);
+run(`assert.ok(EXTENDED_BOOT.foreground.length<=100);assert.equal(new Set(OBJECTS.flatMap(o=>o.iauNames||[])).size,652);for(const o of OBJECTS){if(o.atlasOnly){assert.equal(MapDetails.visible(o,24),false);continue;}assert.ok(o.navigable,o.id+' must allow arrival');assert.ok(o.p3?.every(Number.isFinite),o.id+' must have a travel anchor');}for(const id of ['laniakea','cfa','sloan','ring','arc','bootes','local-void']){assert.ok(object(id).region);assert.ok(!object(id).atlasOnly);assert.ok(object(id).navigable);}assert.equal(EXTENDED_BOOT.members.length,4);`);
+console.log('PASS uncertain records stay searchable but out of spatial tiles; every mapped object has an arrival anchor; megastructures retained');
 
 run('ExtendedCatalog.manifest='+JSON.stringify(manifest));
 context.testEntry=search.find(r=>r[0]==='hyg-100000');
 await run(`(async()=>{const r=testEntry;var o=await ExtendedCatalog.resolve({id:r[0],tile:r[5]});assert.ok(o.p3.every(Number.isFinite));assert.ok(o.navigable);state=initial();state.selected=o.id;ExtendedCatalog.capture(state);var saved=JSON.parse(JSON.stringify(state));ExtendedCatalog.pinned.clear();state=restore(saved);assert.equal(state.selected,o.id);assert.ok(object(o.id).navigable);assert.ok(state.catalogObjects.length<10);})();`);
 context.unknownEntry=search.find(r=>r[4]==='unknown');
-await run(`(async()=>{const r=unknownEntry;var o=await ExtendedCatalog.resolve({id:r[0],tile:r[5]});assert.equal(o.navigable,false);assert.equal(o.p3,null);assert.ok(Number.isFinite(MapLayout.project(o).x));state.selected=o.id;ExtendedCatalog.capture(state);var saved=JSON.parse(JSON.stringify(state));ExtendedCatalog.pinned.clear();state=restore(saved);assert.equal(state.selected,o.id,'unknown selection also survives reload');})();`);
-console.log('PASS lazy lookup, finite 3D coordinates, unknown-position display, bounded saved references and selection restore');
+await run(`(async()=>{const r=unknownEntry;var o=await ExtendedCatalog.resolve({id:r[0],tile:r[5]});assert.equal(o.navigable,false);assert.equal(o.p3,null);assert.ok(o.atlasOnly);assert.equal(MapDetails.visible(o,24),false);assert.ok(!Number.isFinite(MapLayout.project(o).x));state.selected=o.id;ExtendedCatalog.capture(state);var saved=JSON.parse(JSON.stringify(state));ExtendedCatalog.pinned.clear();state=restore(saved);assert.equal(state.selected,o.id,'unknown selection also survives reload');})();`);
+console.log('PASS lazy lookup, finite 3D coordinates, atlas-only unknown positions, bounded saved references and selection restore');
 
 run(`
-state=initial();var galaxy=object('andromeda'),star=ExtendedCatalog.ensureGalaxy(galaxy);assert.ok(star);assert.ok(star.kind==='star');assert.ok(star.synthetic);assert.ok(Space.distance(star,galaxy)<1);
+state=initial();var galaxy=object('bode'),star=ExtendedCatalog.ensureGalaxy(galaxy);assert.ok(star);assert.ok(star.kind==='star');assert.ok(star.synthetic);assert.ok(Space.distance(star,galaxy)<1);
 state.current=galaxy.id;state.ship=Space.point(galaxy.p3);state.selected=star.id;state.paused=false;paused=false;speed=1;launch();assert.ok(state.flight);assert.equal(state.flight.boost,false);
 var guard=0;while(state.flight&&guard++<100)Simulation.step(1e5);assert.equal(state.current,star.id);assert.ok(canBoost());
 state.selected='triangulum';launch();assert.ok(state.flight.boost);assert.ok(state.destroyed.includes(star.id));
@@ -60,3 +62,8 @@ assert.ok((await query('NGC 7001')).total>0);
 assert.ok((await query('J0002+6216')).total>0);
 assert.equal((await query('')).total,137128);assert.equal((await query('')).items.length,100);
 console.log('PASS real worker search across HYG/OpenNGC/ATNF and bounded result pages');
+
+run(`state=initial();for(const host of ['andromeda','lmc','smc']){const g=object(host),stars=OBJECTS.filter(o=>o.parentGalaxy===host&&o.galaxyMember);assert.ok(stars.length>0);assert.ok(stars.every(o=>!o.synthetic&&o.navigable));const found=ExtendedCatalog.ensureGalaxy(g);assert.ok(found.galaxyMember&&!found.synthetic);assert.ok(MapDetails.visible(found,g.galaxy.diameterLy*2));}
+for(const id of ['vela','sgr','bootes','laniakea','ring','local-void']){const body=object(id),star=ExtendedCatalog.ensureGalaxy(body);assert.ok(star&&star.kind==='star');assert.ok(star.navigable);state.current=id;state.ship=Space.point(body.p3);state.selected=star.id;state.matter=Rocket.initialFuel;state.flight=null;state.beta=0;launch();assert.ok(state.flight,id+' must reach its departure star');var n=0;while(state.flight&&n++<100)Simulation.step(1e9);assert.equal(state.current,star.id);assert.ok(canBoost());}
+`);
+console.log('PASS actual stars in M31/LMC/SMC and departure stars after arrival at pulsars, black holes, voids and mega-regions');

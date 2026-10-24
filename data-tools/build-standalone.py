@@ -17,7 +17,10 @@ html=re.sub(r'<script src="([^" ]+)"></script>',lambda m:'<script>'+ (root/m[1].
 # requested tile. HTTP preview remains the efficient, bounded-memory default.
 catalog=root/'catalog-data'
 if catalog.exists():
- files={'catalog-data/'+p.name:p.read_text() for p in catalog.glob('*.json')}
+ manifest=json.loads((catalog/'manifest.json').read_text())
+ search=json.loads((catalog/'search.json').read_text())
+ names={'manifest.json','search.json'}|{n['file'] for n in manifest['nodes']}|{row[5] for row in search}
+ files={'catalog-data/'+name:(catalog/name).read_text() for name in sorted(names)}
  payload=json.dumps(files,ensure_ascii=False,separators=(',',':')).replace('</script','<\\/script')
  html=html.replace('</head>','<script>globalThis.PARUS_CATALOG_FILES='+payload+';</script></head>')
 output=Path(sys.argv[1]);output.parent.mkdir(parents=True,exist_ok=True);output.write_text(html)

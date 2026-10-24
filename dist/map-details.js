@@ -7,6 +7,7 @@ const MapDetails={
  },
  searchKey(s){return s.normalize('NFKD').toLocaleLowerCase('ru').replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]/gu,'').replace(/(ngc|ic)0+(?=\d)/g,'$1');},
  maxSpan(o){
+  if(o.galaxyMember)return (o.hostDiameterLy||30000)*5;
   if(o.positionQuality==='unknown')return Infinity;
   if(o.synthetic)return 2500;
   if(o.cosmicLandmark)return Infinity;
@@ -20,7 +21,7 @@ const MapDetails={
   return Infinity;
  },
  opacity(o,span){const max=this.maxSpan(o);if(span>=max)return 0;if(span<=max*.45)return 1;const t=(span/max-.45)/.55;return 1-t*t*(3-2*t);},
- visible(o,span){return this.opacity(o,span)>.03;}
+ visible(o,span){if(o.atlasOnly)return false;return this.opacity(o,span)>.03;}
 };
 for(const o of OBJECTS){const name=MapDetails.cleanName(o);if(name!==o.name){o.aliases=[...new Set([...(o.aliases||[]),o.name])];o.name=name;}if(o.galaxy)o.galaxy.name=o.name;}
 const MapLabels={

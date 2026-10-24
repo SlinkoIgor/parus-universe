@@ -5,14 +5,15 @@ const ExtendedCatalog={
  sources:{HYG:['https://github.com/astronexus/HYG-Database','HYG 4.1'],OpenNGC:['https://github.com/mattiaverga/OpenNGC','OpenNGC'],ATNF:['https://www.atnf.csiro.au/research/pulsar/psrcat/','ATNF 2.9.0']},
  get total(){return EXTENDED_BOOT.total+[...this.pinned.values()].filter(o=>o.synthetic).length;},
  get(id){return this.coreIndex?.get(id)||this.pinned.get(id)||this.visibleMap.get(id);},
- background(o){return !o.synthetic&&!o.messier&&(o.streamed||o.kind==='star'&&o.d>0&&o.d<=50&&!this.foreground.has(o.id));},
+ background(o){return !o.synthetic&&!o.messier&&!o.galaxyMember&&(o.streamed||o.kind==='star'&&o.d>0&&o.d<=50&&!this.foreground.has(o.id));},
  readJSON(path){if(globalThis.PARUS_CATALOG_FILES?.[path])return Promise.resolve().then(()=>{const v=globalThis.PARUS_CATALOG_FILES[path];return typeof v==='string'?JSON.parse(v):v;});return fetch(path+'?v='+EXTENDED_BOOT.revision).then(r=>{if(!r.ok)throw Error('Не удалось загрузить '+path);return r.json();});},
  decode(r){
   const [id,name,kind,d,raDeg,decDeg,positionQuality,distanceMethod,aliases,apparentV,source,extra,x,y]=r,located=d>0&&Number.isFinite(raDeg)&&Number.isFinite(decDeg),ref=extra.referenceURL?[extra.referenceURL,source]:this.sources[source]||this.sources.HYG;
-  const o={id,name,kind,d,raDeg,decDeg,positionQuality,distanceMethod,aliases,apparentV,...extra,source:ref[0],catalog:ref[1],streamed:true,mapPosition:{x,y},...(located?Space.point(Space.fromSky(raDeg,decDeg,d)):{p3:null,x,y}),navigable:located&&!extra.invalidIdentification,type:({star:'ЗВЕЗДА',pulsar:'ПУЛЬСАР',galaxy:'ГАЛАКТИКА',cluster:'СКОПЛЕНИЕ',nebula:'ТУМАННОСТЬ'})[kind]+' · '+source};
+  const o={id,name,kind,d,raDeg,decDeg,positionQuality,distanceMethod,aliases,apparentV,...extra,source:ref[0],catalog:ref[1],streamed:true,mapPosition:{x,y},...(located?Space.point(Space.fromSky(raDeg,decDeg,d)):{p3:null,x,y}),navigable:located&&!extra.invalidIdentification&&!extra.atlasOnly,type:({star:'ЗВЕЗДА',pulsar:'ПУЛЬСАР',galaxy:'ГАЛАКТИКА',cluster:'СКОПЛЕНИЕ',nebula:'ТУМАННОСТЬ'})[kind]+' · '+source};
   o.desc='Реальная каталожная запись '+ref[1]+'. '+distanceMethod+(extra.identificationNote?' '+extra.identificationNote:'');
-  o.coordinateNote=positionQuality==='unknown'?'Положение неизвестно: точка на условной оболочке показывает только направление. Радиус оболочки не является физическим расстоянием.':positionQuality==='approximate'?'Приблизительная позиция; полёт разрешён по указанной оценке. '+distanceMethod:'Каталожная позиция J2000; собственное движение не моделируется.';
+  o.coordinateNote=positionQuality==='unknown'?'Недостаточно данных для положения на карте. Объект доступен только в атласе.':positionQuality==='approximate'?'Приблизительная позиция; полёт разрешён по указанной оценке. '+distanceMethod:'Каталожная позиция J2000; собственное движение не моделируется.';
   o.facts={class:o.type,mass:'Нет индивидуальной оценки в этом каталоге.',lumUnknown:'Болометрическая светимость не указана.',note:distanceMethod+(extra.sizeEstimated?' Контур галактики имеет условный игровой размер: угловой диаметр в каталоге отсутствует.':''),refs:[ref]};
+  if(extra.membershipSource)o.facts.refs.push([extra.membershipSource,'Принадлежность к галактике']);if(extra.memberType)o.type=o.facts.class=extra.memberType;if(extra.positionReason)o.coordinateNote=extra.positionReason;
   if(extra.periodSeconds)o.facts.extra=['Период вращения',String(extra.periodSeconds)+' с'];return o;
  },
  init(){
@@ -27,6 +28,20 @@ const ExtendedCatalog={
    if(o.facts)o.facts.note=p.distanceMethod;MapLayout.cache.delete(id);
   }
   for(const [id,name] of Object.entries(EXTENDED_BOOT.renames)){const o=OBJECTS.find(o=>o.id===id);if(o){o.aliases=[...new Set([o.name,...(o.aliases||[]),name])];o.name=name;}}
+  for(const [id,policy] of Object.entries(EXTENDED_BOOT.policies||{})){const o=this.coreIndex.get(id);if(o)Object.assign(o,policy);}
+  for(const row of EXTENDED_BOOT.members||[]){const o=this.decode(row);o.streamed=false;OBJECTS.push(o);this.coreIndex.set(o.id,o);}
+  this.hiddenIds=new Set(EXTENDED_BOOT.hiddenIds||[]);
+  for(const o of OBJECTS){
+   const area=['structure','wall','void','ring','arc','horizon'].includes(o.kind);
+   if(area)o.coordinateNote=(o.coordinateNote||'').replace(/не используется в физических маршрутах\.|В физические маршруты не включён\.|Область не является точкой остановки\./g,'');
+   if(area&&!o.p3&&Number.isFinite(o.d)&&Number.isFinite(o.x)&&Number.isFinite(o.y)){
+    const angle=Math.atan2(-o.y,o.x);o.p3=[o.d*Math.cos(angle),o.d*Math.sin(angle),0];o.arrivalAnchor=true;
+    o.coordinateNote=(o.coordinateNote||'')+' Игровая точка прибытия в протяжённую область; не измеренный компактный центр.';
+   }
+   if(!area&&(o.positionQuality==='unknown'||!o.p3?.every(Number.isFinite)))o.atlasOnly=true;
+   if(o.atlasOnly&&!area){o.navigable=false;o.coordinateNote=o.positionReason||'Недостаточно данных для положения на карте. Только атлас.';}
+   else if(o.p3?.every(Number.isFinite)){o.navigable=true;if(area&&!o.arrivalAnchor)o.coordinateNote=(o.coordinateNote||'')+' Полёт разрешён к оценочной точке прибытия в область; это не компактное тело.';}
+  }
   for(const s of EXTENDED_BOOT.systems)for(const id of s.members)this.systemByMember.set(id,s);
  },
  start(){
@@ -50,7 +65,7 @@ const ExtendedCatalog={
  },
  update(now){
   if(now-this.lastUpdate<180)return;this.lastUpdate=now;
-  if(this.manifest){this.wanted=this.nodesForView(cam,width,height);const rows=[];for(const file of this.wanted){const loaded=this.cache.get(file);if(loaded)rows.push(...loaded);else if(this.inflight.size<4&&now-(this.errors.get(file)||-Infinity)>3000)this.tile(file).then(()=>{this.lastUpdate=-Infinity;}).catch(()=>{});}this.visible=rows.slice(0,8000);this.visibleMap=new Map(this.visible.map(o=>[o.id,o]));}
+  if(this.manifest){this.wanted=this.nodesForView(cam,width,height);const rows=[];for(const file of this.wanted){const loaded=this.cache.get(file);if(loaded)rows.push(...loaded);else if(this.inflight.size<4&&now-(this.errors.get(file)||-Infinity)>3000)this.tile(file).then(()=>{this.lastUpdate=-Infinity;}).catch(()=>{});}this.visible=rows.filter(o=>!o.atlasOnly).slice(0,8000);this.visibleMap=new Map(this.visible.map(o=>[o.id,o]));}
   if(cam.span<200000)for(const g of GALAXIES){if(g.id==='milkyway')continue;const p=MapLayout.project(g);if(Math.hypot(cam.x-p.x,cam.y-p.y)<cam.span)this.ensureGalaxy(OBJECTS.find(o=>o.id===g.id)||this.get(g.id));}
  },
  pin(o){
@@ -67,25 +82,28 @@ const ExtendedCatalog={
   const file=entry.tile||EXTENDED_BOOT.systemTiles?.[entry.id];if(!file)throw Error('Нет адреса записи каталога');
   const rows=await this.tile(file),o=rows.find(o=>o.id===entry.id);if(!o)throw Error('Запись не найдена в каталоге');return this.pin(o);
  },
- focus(o){const p=MapLayout.project(o),span=o.kind==='galaxy'?(o.galaxy?.diameterLy||30000)*2.8:o.positionQuality==='unknown'?Math.max(400,Math.hypot(p.x,p.y)*.04):o.synthetic?2:o.kind==='star'?24:Math.max(24,Math.min(20000,(o.d||100)*.03));goCamera(p.x,p.y,span);this.ensureGalaxy(o);},
+ focus(o){if(o.atlasOnly){toast(o.positionReason||'Для этого объекта недостаточно точное положение. Он доступен только в атласе.');return;}const p=MapLayout.project(o),span=o.kind==='galaxy'?(o.galaxy?.diameterLy||30000)*2.8:o.positionQuality==='unknown'?Math.max(400,Math.hypot(p.x,p.y)*.04):o.synthetic?2:o.kind==='star'?24:Math.max(24,Math.min(20000,(o.d||100)*.03));goCamera(p.x,p.y,span);this.ensureGalaxy(o);},
  capture(saved){
   const ids=new Set([saved.current,saved.selected,saved.flight?.target,saved.flight?.fromId,...(saved.visited||[]),...(saved.destroyed||[]),...(saved.itinerary||[]).map(n=>n.id),...(saved.flight?.route||[]).map(n=>n.id)]);
   // Include the parent galaxy so a generated star can still be identified on reload.
-  for(const id of [...ids]){const o=this.get(id);if(o?.parentGalaxy)ids.add(o.parentGalaxy);if(o?.departureStar)ids.add(o.departureStar);}
+  for(const id of [...ids]){const o=this.get(id);if(o?.parentGalaxy)ids.add(o.parentGalaxy);if(o?.parentObject)ids.add(o.parentObject);if(o?.departureStar)ids.add(o.departureStar);}
   saved.catalogObjects=[...ids].map(id=>this.pinned.get(id)).filter(Boolean);
   for(const id of this.pinned.keys())if(!ids.has(id))this.pinned.delete(id);
  },
- restore(saved){for(const o of saved?.catalogObjects||[])if(o&&typeof o.id==='string'&&(o.p3==null||o.p3.every(Number.isFinite))&&Number.isFinite(o.mapPosition?.x)&&Number.isFinite(o.mapPosition?.y))this.pin(o);},
+ restore(saved){for(const o of saved?.catalogObjects||[]){if(!o||typeof o.id!=='string')continue;if(this.hiddenIds.has(o.id)||o.positionQuality==='unknown'){o.atlasOnly=true;o.navigable=false;}if((o.p3==null||o.p3.every(Number.isFinite))&&(o.atlasOnly||Number.isFinite(o.mapPosition?.x)&&Number.isFinite(o.mapPosition?.y)))this.pin(o);}},
  ensureGalaxy(g){
-  if(!g||g.kind!=='galaxy'||!g.p3)return null;this.prepareGalaxy(g);
-  const radius=Math.max(.01,Math.min(10000,(g.galaxy?.diameterLy||30000)*.45));
-  const real=[...OBJECTS,...this.pinned.values()].find(o=>o.kind==='star'&&!o.synthetic&&o.p3&&!state.destroyed.includes(o.id)&&Space.distance(o,g)<radius);
+  if(!g||!g.p3||g.atlasOnly&&g.id!==state.current)return null;
+  // An unspent star is already a sail source; don't point its arrival button at itself.
+  if(g.kind==='star'&&!state.destroyed.includes(g.id))return null;
+  this.prepareGalaxy(g);
+  const candidates=[...OBJECTS,...this.pinned.values()].filter(o=>o.id!==g.id&&o.kind==='star'&&!o.synthetic&&!o.atlasOnly&&o.p3&&!state.destroyed.includes(o.id));
+  const radius=g.kind==='home'?10:g.kind==='galaxy'?Math.max(1,(g.galaxy?.diameterLy||30000)*.6):g.region?Math.max(1,Math.min(10000,g.region.major*.5)):Math.max(1,g.diameterLy||0);
+  const real=candidates.filter(o=>o.parentGalaxy===g.id||Space.distance(o,g)<radius).sort((a,b)=>Space.distance(a,g)-Space.distance(b,g))[0];
   if(real){g.departureStar=real.id;return real;}
   let n=1;while(state.destroyed.includes('game-star:'+g.id+':'+n))n++;
   const id='game-star:'+g.id+':'+n;if(this.pinned.has(id)){g.departureStar=id;return this.pinned.get(id);}
-  // A labelled fictional star close to the arrival point, never a catalog measurement.
   const a=n*2.399963,offset=[.12*Math.cos(a),.12*Math.sin(a),.025],p=MapLayout.project(g);
-  const o={id,name:'Неизвестная звезда · '+g.name+(n>1?' · '+n:''),aliases:[g.name,'Игровая звезда'],kind:'star',type:'УСЛОВНАЯ ИГРОВАЯ ЗВЕЗДА',synthetic:true,parentGalaxy:g.id,p3:g.p3.map((v,i)=>v+offset[i]),mapPosition:{x:p.x+offset[0],y:p.y-offset[1]},navigable:true,positionQuality:'fictional',desc:'Игровая звезда для продолжения экспедиции в '+g.name+'. Индивидуальная реальная звезда в этой позиции не известна; положение создано для игры.',coordinateNote:'Условная игровая позиция рядом с точкой прибытия; не астрономическое измерение.',facts:{class:'Условная игровая звезда',mass:'Не задана.',lumUnknown:'Использует игровую модель звёздного импульса.',note:'Существует для возможности парусного разгона после прибытия в галактику.',refs:[]}};
+  const o={id,name:'Неизвестная звезда · '+g.name+(n>1?' · '+n:''),aliases:[g.name,'Игровая звезда'],kind:'star',type:'УСЛОВНАЯ ИГРОВАЯ ЗВЕЗДА',synthetic:true,parentObject:g.id,...(g.kind==='galaxy'?{parentGalaxy:g.id}:{}),p3:g.p3.map((v,i)=>v+offset[i]),mapPosition:{x:p.x+offset[0],y:p.y-offset[1]},navigable:true,positionQuality:'fictional',desc:'Игровая звезда рядом с точкой прибытия: '+g.name+'. Индивидуальная реальная звезда в этой позиции не известна; положение создано для продолжения игры.',coordinateNote:'Условная игровая позиция рядом с точкой прибытия; не астрономическое измерение.',facts:{class:'Условная игровая звезда',mass:'Не задана.',lumUnknown:'Использует игровую модель звёздного импульса.',note:'Доступна для парусного разгона; отдельная звезда в этой позиции не измерена.',refs:[]}};
   Object.assign(o,Space.point(o.p3));o.d=Math.hypot(...o.p3);this.pin(o);g.departureStar=id;return o;
  },
  draw(){
@@ -97,7 +115,7 @@ const ExtendedCatalog={
   }
  },
  drawSystems(){
-  const get=id=>this.get(id);
+  const get=id=>{const o=this.get(id);return o?.atlasOnly?null:o;};
   for(const s of EXTENDED_BOOT.systems){const members=s.members.map(get).filter(Boolean);if(members.length<2||cam.span>2000&&members.every(o=>o.kind==='star'))continue;
    for(let i=0;i<s.links.length;i++){const [ai,bi]=s.links[i],a=get(ai),b=get(bi);if(!a||!b)continue;let pa=screen(a),pb=screen(b);
     if(s.id==='system-alpha-centauri'&&i===1){const other=get(s.members[1]);if(other){const p=screen(other);pa={x:(pa.x+p.x)/2,y:(pa.y+p.y)/2};}}
@@ -116,9 +134,9 @@ const ExtendedCatalog={
  },
  async search(term,filter,limit){
   if(globalThis.PARUS_CATALOG_FILES||typeof Worker!=='function'){
-   this.fallbackIndex ||= this.readJSON('catalog-data/search.json');const rows=await this.fallbackIndex,key=MapDetails.searchKey(term);const all=rows.filter(r=>this.matches(r[2],filter)&&r[6].includes(key)).sort((a,b)=>(key?Number(b[6].includes('|'+key+'|'))-Number(a[6].includes('|'+key+'|')):0)||(a[3]??Infinity)-(b[3]??Infinity));return{total:all.length,items:all.slice(0,limit).map(r=>({id:r[0],name:r[1],kind:r[2],d:r[3],positionQuality:r[4],tile:r[5],streamed:true,searchExact:!!key&&r[6].includes('|'+key+'|')}))};
+   this.fallbackIndex ||= this.readJSON('catalog-data/search.json');const rows=await this.fallbackIndex,key=MapDetails.searchKey(term);const all=rows.filter(r=>this.matches(r[2],filter)&&r[6].includes(key)).sort((a,b)=>(key?Number(b[6].includes('|'+key+'|'))-Number(a[6].includes('|'+key+'|')):0)||(a[3]??Infinity)-(b[3]??Infinity));return{total:all.length,items:all.slice(0,limit).map(r=>({id:r[0],name:r[1],kind:r[2],d:r[3],positionQuality:r[4],tile:r[5],atlasOnly:!!r[7],streamed:true,searchExact:!!key&&r[6].includes('|'+key+'|')}))};
   }
-  if(!this.worker){this.worker=new Worker('catalog-search-worker.js?v=28');this.pendingSearch=new Map();this.worker.onmessage=({data})=>{const p=this.pendingSearch.get(data.seq);if(p){this.pendingSearch.delete(data.seq);data.error?p.reject(Error(data.error)):p.resolve(data);}};this.worker.onerror=()=>{for(const p of this.pendingSearch.values())p.reject(Error('Не удалось открыть поиск полного каталога'));this.pendingSearch.clear();this.worker.terminate();this.worker=null;};}
+  if(!this.worker){this.worker=new Worker('catalog-search-worker.js?v=29');this.pendingSearch=new Map();this.worker.onmessage=({data})=>{const p=this.pendingSearch.get(data.seq);if(p){this.pendingSearch.delete(data.seq);data.error?p.reject(Error(data.error)):p.resolve(data);}};this.worker.onerror=()=>{for(const p of this.pendingSearch.values())p.reject(Error('Не удалось открыть поиск полного каталога'));this.pendingSearch.clear();this.worker.terminate();this.worker=null;};}
   const seq=++this.seq;return new Promise((resolve,reject)=>{this.pendingSearch.set(seq,{resolve,reject});this.worker.postMessage({seq,term,filter,limit,version:EXTENDED_BOOT.revision});});
  },
  matches(kind,filter){return filter==='all'||filter==='star'&&['star','home','pulsar','blackhole','nebula'].includes(kind)||filter==='galaxy'&&kind==='galaxy'||filter==='structure'&&['cluster','structure','wall','void','quasar','ring','arc','horizon'].includes(kind);}

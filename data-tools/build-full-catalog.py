@@ -1,7 +1,7 @@
 """Build local, bounded spatial tiles and a lazy worker search index from full snapshots.
 
-No network. HYG sentinel distances are never used. Unknown objects receive ONLY a
-schematic 2D position; approximate measured/model distances remain navigable.
+No network. HYG sentinel distances are never used. Unknown objects receive only
+an atlas-only record; approximate measured/model distances remain navigable.
 """
 import csv, json, math, re, hashlib, unicodedata, collections, subprocess
 from pathlib import Path
@@ -39,7 +39,9 @@ hyg=list(csv.DictReader((RAW/'hyg_v41.csv').open()))
 ngc=list(csv.DictReader((RAW/'NGC.csv').open(),delimiter=';'))
 cache=json.loads((ROOT/'data-tools/named-astrometry.json').read_text())
 literature=json.loads((ROOT/'data-tools/galaxy-distances.json').read_text())
-patches={}; records=[]; rawmap={}; systems=[]; coverage={}
+patches={}; records=[]; rawmap={}; systems=[]; coverage={}; policies={}; member_rows=[]
+hip_errors=json.loads((ROOT/'data-tools/hipparcos-errors.json').read_text())['rows']
+MAX_RELATIVE_ERROR=.5
 
 # A coarse field of the existing t-SNE offsets keeps extra stars in its vicinity
 # without extending the quadratic layout optimizer to 140,000 objects.
@@ -51,13 +53,7 @@ for o in core:
         off=math.atan2(math.sin(off),math.cos(off))
         anchors[int(math.log2(d))].append((p,off))
 def projection(ra,dec,d,kind,ident):
-    if ra is None or dec is None:
-        angle=int(hashlib.sha256(ident.encode()).hexdigest()[:8],16)/2**32*math.tau
-        radius=60000 if kind in ('star','pulsar') else 5e7
-        return [radius*math.cos(angle),radius*math.sin(angle)]
-    if not d:
-        radius=60000 if kind in ('star','pulsar') else 180000 if kind in ('nebula','cluster') else 5e7
-        p=sky(ra,dec,radius);a=math.atan2(-p[1],p[0]);return [radius*math.cos(a),radius*math.sin(a)]
+    if ra is None or dec is None or not d:return [None,None]
     p=sky(ra,dec,d); band=int(math.log2(d)); candidates=[v for k in range(band-1,band+2) for v in anchors[k]]
     near=sorted(((sum((p[i]-v[0][i])**2 for i in range(3)),v[1]) for v in candidates),key=lambda x:x[0])[:4]
     weights=[(1/max(1e-20,s),off) for s,off in near]
@@ -68,7 +64,8 @@ def projection(ra,dec,d,kind,ident):
 # Tuple schema keeps individual tiles and the search worker small.
 # id,name,kind,d,ra,dec,quality,method,aliases,V,source,extra,mapX,mapY
 def add(ident,name,kind,d,ra,dec,quality,method,aliases,mag,source,extra):
-    x,y=projection(ra,dec,d,kind,ident)
+    if d is None or ra is None or dec is None:extra['atlasOnly']=True
+    x,y=projection(ra,dec,d,kind,ident) if not extra.get('atlasOnly') else [None,None]
     row=[ident,name,kind,d,ra,dec,quality,method,list(dict.fromkeys(a for a in aliases if a)),mag,source,extra,x,y]
     records.append(row);return row
 
@@ -83,13 +80,24 @@ for q in hyg:
         d=1000/plx*PC;quality='approximate';method='Приблизительно: положительный параллакс SIMBAD; большая или неизвестная погрешность.'
     aliases=[q['proper'],q['bf'].strip(),q['gl'],'HIP '+q['hip'] if q['hip'] else '', 'HD '+q['hd'] if q['hd'] else '', 'HR '+q['hr'] if q['hr'] else '', 'HYG '+q['id']]
     extra={'hygId':int(q['id']),'spectral':q['spect'],'hip':q['hip'],'hd':q['hd'],'gliese':q['gl']}
+    hp=hip_errors.get(q['hip']);rel=hp[1]/hp[0] if hp and hp[0]>0 else None
+    if ast and plx and plx>0 and not 0<pc<100000:
+        err=number(ast.get('plx_err'));rel=err/plx if err is not None else None
+    bad=(hp is not None and (hp[0]<=0 or rel is None or rel>MAX_RELATIVE_ERROR)) or (rel is not None and rel>MAX_RELATIVE_ERROR)
+    # Keep an independently supplied original distance when it differs from HYG.
+    original=byid.get(ident)
+    if original and original.get('p3') and d and abs(original['d']-d)/d>.01:bad=False
+    extra['distanceRelativeError']=rel
+    if bad:extra.update(atlasOnly=True,positionReason='Погрешность параллакса превышает 50% либо параллакс неположителен. Только атлас.')
+    if original:policies[ident]={'atlasOnly':bad or not bool(original.get('p3') or d),'distanceRelativeError':rel,'positionReason':extra.get('positionReason','Недостаточно данных для положения на карте.')}
+
     if ident in byid:
         o=byid[ident]
         if o.get('p3'):continue
         if o.get('d') and o['d']<100000*PC:d=o['d'];quality='approximate'
         patches[ident]={'d':d,'raDeg':ra,'decDeg':dec,'positionQuality':quality,'distanceMethod':method,'display':projection(ra,dec,d,o['kind'],ident)}
         continue
-    add(ident,q['proper'] or q['bf'].strip() or q['gl'] or ('HIP '+q['hip'] if q['hip'] else 'HYG '+q['id']),'star',d,ra,dec,quality,method if d else 'Расстояние неизвестно. Показано направление на условной оболочке; её радиус не является расстоянием.',aliases,number(q['mag']),'HYG',extra)
+    add(ident,q['proper'] or q['bf'].strip() or q['gl'] or ('HIP '+q['hip'] if q['hip'] else 'HYG '+q['id']),'star',d,ra,dec,quality,method if d else 'Расстояние неизвестно. Запись доступна только в атласе.',aliases,number(q['mag']),'HYG',extra)
 coverage['HYG']={'rows':len(hyg),'represented':len(hyg),'sunIncluded':True}
 
 def hubble(z):
@@ -135,7 +143,7 @@ coverage['Messier']={'rows':110,'represented':110}
 for row in records:
     if row[11].get('catalogType') in ('NonEx','Dup'):
         row[11]['identificationNote']='Запись OpenNGC: '+('исторический несуществующий объект' if row[11]['catalogType']=='NonEx' else 'дублирующее обозначение; см. идентификаторы')
-        row[11]['invalidIdentification']=True
+        row[11]['invalidIdentification']=True;row[11]['atlasOnly']=True;row[12]=row[13]=None
 
 psr_path=RAW/'psrcat.db'
 if not psr_path.exists():psr_path=ROOT.parent/'research-data/psrcat.db'
@@ -168,8 +176,20 @@ for q in pulsars:
     add(ident,'PSR '+name,'pulsar',d,ra,dec,quality,method,['PSR '+name,name,q.get('PSRB','')],None,'ATNF',ext)
 coverage['ATNF']={'rows':len(pulsars),'represented':len(pulsars)}
 
-# The IAU snapshot has a few stars not in HYG. Relax the old error cut-off, but
-# explicitly call those distances approximate. Keep genuinely absent values absent.
+# Measured directions of individually known members of nearby galaxies.
+# Their depth is unresolved: use the host distance, explicitly labelled.
+for member in json.loads((ROOT/'data-tools/nearby-galaxy-stars.json').read_text())['stars']:
+    host=byid[member['host']];d=host['d'];p3=sky(member['raDeg'],member['decDeg'],d)
+    note='Измеренное направление отдельной звезды. Расстояние принято по '+host['name']+'; глубина внутри галактики не определена. Это не индивидуальный параллакс.'
+    row=add('member-'+member['id'],member['name'],'star',d,member['raDeg'],member['decDeg'],'approximate',note,[*member['aliases'],host['name'],member['host']],None,'SIMBAD',{'galaxyMember':True,'parentGalaxy':host['id'],'referenceURL':member['source'],'membershipSource':member.get('membershipSource',member['source']),'memberType':member['type'],'hostDiameterLy':host.get('galaxy',{}).get('diameterLy',30000)})
+    # Anchor the measured local offset to the existing galaxy drawing; never
+    # interpolate the global t-SNE field independently across a small galaxy.
+    row[12]=host['display']['x']+p3[0]-host['p3'][0]
+    row[13]=host['display']['y']-(p3[1]-host['p3'][1])
+    records.pop();member_rows.append(row)
+coverage['NearbyGalaxyStars']={'rows':len(member_rows),'represented':len(member_rows)}
+
+# Apply the same uncertainty ceiling to non-HYG named stars using SIMBAD.
 for o in core:
     if o.get('p3') or o['id'] in patches or o.get('region') or o['kind'] in ('structure','wall','ring','arc','horizon'):continue
     ast=None
@@ -179,8 +199,10 @@ for o in core:
     if ra is None:ra=number(o.get('raDeg'))
     if dec is None:dec=number(o.get('decDeg'))
     px=number((ast or {}).get('plx_value'));d=o.get('d')
-    if not d and px and px>0:d=1000/px*PC
-    patches[o['id']]={'d':d,'raDeg':ra,'decDeg':dec,'positionQuality':'approximate' if d else 'unknown','distanceMethod':'Приблизительно: положительный параллакс SIMBAD с большой или неизвестной ошибкой.' if d else 'Положение неизвестно. Только схематическая точка, без физического расстояния.','display':projection(ra,dec,d,o['kind'],o['id'])}
+    if not d and px and px>0:
+        d=1000/px*PC;err=number(ast.get('plx_err'));rel=err/px if err is not None else None
+        policies[o['id']]={'atlasOnly':rel is None or rel>MAX_RELATIVE_ERROR,'distanceRelativeError':rel,'positionReason':'Погрешность параллакса превышает 50% либо не определена. Только атлас.'}
+    patches[o['id']]={'d':d,'raDeg':ra,'decDeg':dec,'positionQuality':'approximate' if d else 'unknown','distanceMethod':'Приблизительно: положительный параллакс SIMBAD с большой или неизвестной ошибкой.' if d else 'Положение неизвестно. Только атлас.','display':projection(ra,dec,d,o['kind'],o['id'])}
 
 # Rank the existing local foreground first: official/traditional names, famous
 # original landmarks, then apparent brightness. Background stars never reserve labels.
@@ -211,7 +233,8 @@ systems.append({'id':'system-cygnus-x1','name':'Лебедь X-1','members':['cy
 renames={rawmap['hyg:97987']:'HDE 226868 · звезда Лебедя X-1',alpha[0]:'Альфа Центавра A',alpha[1]:'Альфа Центавра B',alpha[2]:'Альфа Центавра C · Проксима'}
 
 OUT.mkdir(exist_ok=True)
-for f in OUT.glob('*.json'):f.unlink()
+for f in OUT.glob('*.json'):
+    if re.fullmatch(r'(?:\d+|atlas-\d+|search|manifest)\.json',f.name):f.unlink()
 nodes=[];index=[];locations={}; serial=0
 def tile(rows,depth=0):
     global serial
@@ -229,17 +252,23 @@ def tile(rows,depth=0):
     return ident
 # Radius bands prevent the nearby sky disappearing into a single huge bounding box.
 bands=collections.defaultdict(list)
-for r in records:bands[int(math.log10(max(1,math.hypot(r[12],r[13]))))].append(r)
+atlas_only=[]
+for r in records:
+    if r[11].get('atlasOnly') or r[6]=='unknown':r[11]['atlasOnly']=True;r[12]=r[13]=None;atlas_only.append(r)
+    else:bands[int(math.log10(max(1,math.hypot(r[12],r[13]))))].append(r)
 roots=[tile(rows) for _,rows in sorted(bands.items())]
+for i in range(0,len(atlas_only),256):
+    file='atlas-'+str(i//256)+'.json';rows=atlas_only[i:i+256];dump(OUT/file,rows)
+    for r in rows:locations[r[0]]=file
 for r in records:
     key=re.sub(r'(ngc|ic)0+(?=\d)',r'\1','|'+'|'.join(norm(v) for v in [r[0],r[1],*r[8],r[11].get('ngc','')])+'|')
-    index.append([r[0],r[1],r[2],r[3],r[6],locations[r[0]],key])
+    index.append([r[0],r[1],r[2],r[3],r[6],locations[r[0]],key,bool(r[11].get('atlasOnly'))])
 dump(OUT/'search.json',index)
-revision=hashlib.sha256(Path(__file__).read_bytes()+b''.join(hashlib.sha256(p.read_bytes()).digest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path])+json.dumps(core,ensure_ascii=False).encode()).hexdigest()[:12]
-summary={'version':1,'revision':revision,'total':len(core)+len(records),'core':len(core),'extra':len(records),'sourceCoverage':coverage,'unknownExtra':sum(r[6]=='unknown' for r in records),'approximateExtra':sum(r[6]=='approximate' for r in records),'nodes':nodes,'roots':roots,'search':'search.json','systems':len(systems),'foregroundWithin50':len(foreground)}
+revision=hashlib.sha256(Path(__file__).read_bytes()+b''.join(hashlib.sha256(p.read_bytes()).digest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path,ROOT/'data-tools/hipparcos-errors.json',ROOT/'data-tools/nearby-galaxy-stars.json'])+json.dumps(core,ensure_ascii=False).encode()).hexdigest()[:12]
+summary={'version':1,'revision':revision,'total':len(core)+len(member_rows)+len(records),'core':len(core)+len(member_rows),'extra':len(records),'sourceCoverage':coverage,'mapRows':len(records)-len(atlas_only),'atlasOnlyRows':len(atlas_only),'unknownExtra':sum(r[6]=='unknown' for r in records),'approximateExtra':sum(r[6]=='approximate' for r in records),'nodes':nodes,'roots':roots,'search':'search.json','systems':len(systems),'foregroundWithin50':len(foreground)}
 dump(OUT/'manifest.json',summary)
-boot={'revision':revision,'total':summary['total'],'patches':patches,'foreground':foreground,'systems':systems,'renames':renames,'sourceCoverage':coverage,'systemTiles':{i:locations[i] for s in systems for i in s['members'] if i in locations},'rawMap':{k:v for k,v in rawmap.items() if k.startswith('atnf:') and v in byid}}
+boot={'revision':revision,'members':member_rows,'policies':policies,'hiddenIds':[r[0] for r in atlas_only],'total':summary['total'],'patches':patches,'foreground':foreground,'systems':systems,'renames':renames,'sourceCoverage':coverage,'systemTiles':{i:locations[i] for s in systems for i in s['members'] if i in locations},'rawMap':{k:v for k,v in rawmap.items() if k.startswith('atnf:') and v in byid}}
 (ROOT/'dist/catalog-extended.js').write_text('// Generated from complete local source snapshots.\nconst EXTENDED_BOOT='+json.dumps(boot,ensure_ascii=False,separators=(',',':'),allow_nan=False)+';\n')
-dump(ROOT/'data-tools/full-catalog-audit.json',{'total':summary['total'],'core':len(core),'extra':len(records),'sourceCoverage':coverage,'mappedRows':len(records),'leafRecords':len(locations),'foreground':foreground,'systems':len(systems),'unknownExtra':summary['unknownExtra'],'approximateExtra':summary['approximateExtra'],'sourceSHA256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path]}})
+dump(ROOT/'data-tools/full-catalog-audit.json',{'total':summary['total'],'core':len(core)+len(member_rows),'extra':len(records),'sourceCoverage':coverage,'mappedRows':summary['mapRows'],'atlasOnlyRows':summary['atlasOnlyRows'],'leafRecords':len(locations),'foreground':foreground,'systems':len(systems),'unknownExtra':summary['unknownExtra'],'approximateExtra':summary['approximateExtra'],'sourceSHA256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path]}})
 html=ROOT/'dist/index.html';html.write_text(re.sub(r'(catalog-extended\.js\?v=)[^\"]+',lambda m:m[1]+revision,html.read_text()))
 print(json.dumps({k:v for k,v in summary.items() if k not in ('nodes','roots')},ensure_ascii=False,indent=2))

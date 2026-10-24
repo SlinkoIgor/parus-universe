@@ -24,7 +24,7 @@ const RegionMap={
   if(r.shape==='ribbon'){const u=t<=.5?t*2:2-t*2;x=(u-.5)*r.major;y=Math.sin(u*Math.PI*3)*r.minor*.18+(t<=.5?-1:1)*r.minor*.28;}
   else if(r.shape==='arc'){x=(t-.5)*r.major;y=(4*(t-.5)**2-.5)*r.minor;}
   else{const f=r.shape==='basin'?1+.09*Math.sin(3*a)+.045*Math.cos(5*a):1;x=Math.cos(a)*r.major*.5*f;y=Math.sin(a)*r.minor*.5*f;}p.push({x,y});}return p;},
- draw(){this.hits=[];for(const o of OBJECTS.filter(o=>o.region).sort((a,b)=>b.region.major-a.region.major)){const r=o.region,c=screen(this.center(o)),scale=width/cam.span,rx=r.major*.5*scale,ry=r.minor*.5*scale;
+ draw(){this.hits=[];for(const o of OBJECTS.filter(o=>o.region&&!o.atlasOnly).sort((a,b)=>b.region.major-a.region.major)){const r=o.region,c=screen(this.center(o)),scale=width/cam.span,rx=r.major*.5*scale,ry=r.minor*.5*scale;
   if(rx<4||rx>20000||c.x+rx*1.2<0||c.x-rx*1.2>width||c.y+ry*1.2<0||c.y-ry*1.2>height)continue;
   const points=this.outline(r).map(p=>({x:c.x+p.x*scale,y:c.y+p.y*scale})),selected=o.id===state.selected,highlighted=selected||hover?.id===o.id;
   ctx.save();ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));if(r.shape!=='arc')ctx.closePath();ctx.strokeStyle=paint(highlighted?'#777777':'#b5b5b5');ctx.lineWidth=highlighted?1.25:.7;ctx.setLineDash(r.shape==='ring'?[7,5]:[3,6]);ctx.stroke();ctx.restore();

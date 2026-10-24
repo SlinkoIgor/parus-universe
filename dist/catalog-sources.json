@@ -73,6 +73,12 @@
       "license": "ODbL for distance subset; see per-object reference",
       "snapshot": "data-tools/galaxy-distances.json",
       "changes": "Traceable non-redshift distance selections. Unresolved objects remain in atlas without invented physical positions."
+    },
+    {
+      "name": "Hipparcos ESA 1997 / VizieR I/239",
+      "url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=I/239/hip_main",
+      "snapshot": "data-tools/hipparcos-errors.json",
+      "changes": "HIP, parallax and standard error used to exclude >50% relative errors from individual map points."
     }
   ],
   "selection": {
@@ -96,18 +102,24 @@
   "fullCatalog": {
     "builder": "data-tools/build-full-catalog.py",
     "manifest": "catalog-data/manifest.json",
-    "records": 138194,
+    "records": 138198,
     "coverage": {
       "HYG": 119626,
       "OpenNGC": 13970,
       "ATNF": 4503,
       "IAUnames": 652,
-      "Messier": 110
+      "Messier": 110,
+      "NearbyGalaxyStars": 4
     },
     "search": "Lazy 17 MB compact index in a Web Worker; at most 100 results initially",
     "map": "Spatial binary tree by radial bands; max256 leaf rows, max48 cached tiles, max32 requested view nodes, max4 concurrent loads, max8000 streamed points per view",
-    "uncertainty": "Approximate positive-parallax, pulsar dispersion/independent estimates and redshift distances remain navigable. Missing distances are shown on explicitly schematic 2D shells without physical p3. NonEx/Dup rows remain historical identifiers.",
+    "uncertainty": "Unknown distances and historical NonEx/Dup are atlas-only. Hipparcos relative parallax error >50% or unusable parallax is atlas-only, unless a separate original distance is preserved. No invented radial shells. Model and redshift distances labelled approximate. Megastructure contours retained; arrival anchors explicitly game-defined for extended regions.",
     "systems": "Catalog component groups; Alpha Centauri AB-C hierarchy added from Kervella et al. 2017. Ellipses illustrative.",
-    "fictionalStars": "Explicitly labelled, deterministic local departure stars where known individual stars are absent; persisted with the expedition."
+    "fictionalStars": "Known nearby stars preferred; otherwise explicitly fictional departure stars at every mapped destination, persisted with expedition.",
+    "nearbyGalaxyStars": {
+      "snapshot": "data-tools/nearby-galaxy-stars.json",
+      "count": 4,
+      "distance": "Measured direction and host-galaxy distance, unresolved individual depth"
+    }
   }
 }

@@ -1,0 +1,63 @@
+{
+  "retrieved": "2026-10-24",
+  "distancePolicy": "Host-galaxy distance; measured individual sky direction, unresolved line-of-sight depth. Not an individual parallax distance.",
+  "stars": [
+    {
+      "id": "m31-v1",
+      "name": "V1 Хаббла · M31",
+      "host": "andromeda",
+      "raDeg": 10.362458333333334,
+      "decDeg": 41.16833333333333,
+      "aliases": [
+        "M31 V1",
+        "M31-V1",
+        "Hubble V1",
+        "Цефеида Хаббла"
+      ],
+      "source": "https://science.nasa.gov/asset/hubble/m31-cepheid-variable-star-v1/",
+      "type": "ЦЕФЕИДА"
+    },
+    {
+      "id": "af-and",
+      "name": "AF Андромеды",
+      "host": "andromeda",
+      "raDeg": 10.88785914295,
+      "decDeg": 41.202864324530005,
+      "aliases": [
+        "AF And",
+        "BASW 19"
+      ],
+      "source": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=AF%20And",
+      "membershipSource": "https://doi.org/10.1093/mnras/stu2597",
+      "type": "ГОЛУБАЯ ПЕРЕМЕННАЯ"
+    },
+    {
+      "id": "r136a1",
+      "name": "R136a1",
+      "host": "lmc",
+      "raDeg": 84.67665,
+      "decDeg": -69.10079722222221,
+      "aliases": [
+        "RMC 136a1",
+        "BAT99 108"
+      ],
+      "source": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=RMC%20136a1",
+      "membershipSource": "https://www.eso.org/public/news/eso1030/",
+      "type": "ЗВЕЗДА ВОЛЬФА — РАЙЕ"
+    },
+    {
+      "id": "hd5980",
+      "name": "HD 5980",
+      "host": "smc",
+      "raDeg": 14.86076618081,
+      "decDeg": -72.16497981592,
+      "aliases": [
+        "RMC 14",
+        "SMC AB 5"
+      ],
+      "source": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=HD%205980",
+      "membershipSource": "https://orbi.uliege.be/handle/2268/15931",
+      "type": "ЗВЁЗДНАЯ СИСТЕМА ВОЛЬФА — РАЙЕ"
+    }
+  ]
+}
