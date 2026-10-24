@@ -61,6 +61,8 @@ for(const m of ['M40','M45','M102'])assert.ok((await query(m)).items.some(o=>o.n
 assert.ok((await query('NGC 7001')).total>0);
 assert.ok((await query('J0002+6216')).total>0);
 assert.equal((await query('')).total,137128);assert.equal((await query('')).items.length,100);
+for(const [filter,kind] of [['star','star'],['pulsar','pulsar'],['nebula','nebula'],['galaxy','galaxy'],['stellar-cluster','cluster']]){const result=await query('',filter);assert.equal(result.total,search.filter(r=>r[2]===kind).length);assert.ok(result.items.every(o=>o.kind===kind));context.filterCheck=filter;context.kindCheck=kind;assert.ok(run(`ExtendedCatalog.matches(kindCheck,filterCheck)`));}
+for(const filter of ['blackhole','quasar','galaxy-cluster','structure','void','horizon'])assert.equal((await query('',filter)).total,0);
 console.log('PASS real worker search across HYG/OpenNGC/ATNF and bounded result pages');
 
 run(`state=initial();for(const host of ['andromeda','lmc','smc']){const g=object(host),stars=OBJECTS.filter(o=>o.parentGalaxy===host&&o.galaxyMember);assert.ok(stars.length>0);assert.ok(stars.every(o=>!o.synthetic&&o.navigable));const found=ExtendedCatalog.ensureGalaxy(g);assert.ok(found.galaxyMember&&!found.synthetic);assert.ok(MapDetails.visible(found,g.galaxy.diameterLy*2));}

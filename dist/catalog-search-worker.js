@@ -1,7 +1,7 @@
 'use strict';
 let indexPromise, lastKey, lastRows;
 const normalize=s=>s.normalize('NFKD').toLocaleLowerCase('ru').replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]/gu,'').replace(/(ngc|ic)0+(?=\d)/g,'$1');
-const matches=(kind,filter)=>filter==='all'||filter==='star'&&['star','home','pulsar','blackhole','nebula'].includes(kind)||filter==='galaxy'&&kind==='galaxy'||filter==='structure'&&['cluster','structure','wall','void','quasar','ring','arc','horizon'].includes(kind);
+const matches=(kind,filter)=>filter==='all'||filter==='star'&&['star','home'].includes(kind)||filter==='stellar-cluster'&&kind==='cluster'||filter==='structure'&&['structure','wall','ring','arc'].includes(kind)||filter===kind&&['pulsar','blackhole','quasar','nebula','galaxy','void','horizon'].includes(kind);
 self.onmessage=async({data})=>{
  try{
   indexPromise ||= fetch('catalog-data/search.json?v='+encodeURIComponent(data.version||'28')).then(r=>{if(!r.ok)throw Error('Не удалось открыть индекс');return r.json();}).catch(e=>{indexPromise=null;throw e;});
