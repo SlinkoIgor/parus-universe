@@ -92,5 +92,22 @@
     "distance": "Present-epoch comoving distance integrated from redshift in common flat LCDM H0=70, OmegaM=0.3, OmegaLambda=0.7; radiation neglected. Light-travel time is separately integrated, never used as distance.",
     "nearbyVoid": "Local Void anchor: Cosmicflows-3 Lacerta-2.4 SG XYZ=(22,-9,22) Mpc, transformed using the Lahav/de Vaucouleurs supergalactic basis.",
     "display": "Illustrative contours; widths or central directions without measured footprints are explicitly identified. No decorative filler."
+  },
+  "fullCatalog": {
+    "builder": "data-tools/build-full-catalog.py",
+    "manifest": "catalog-data/manifest.json",
+    "records": 138194,
+    "coverage": {
+      "HYG": 119626,
+      "OpenNGC": 13970,
+      "ATNF": 4503,
+      "IAUnames": 652,
+      "Messier": 110
+    },
+    "search": "Lazy 17 MB compact index in a Web Worker; at most 100 results initially",
+    "map": "Spatial binary tree by radial bands; max256 leaf rows, max48 cached tiles, max32 requested view nodes, max4 concurrent loads, max8000 streamed points per view",
+    "uncertainty": "Approximate positive-parallax, pulsar dispersion/independent estimates and redshift distances remain navigable. Missing distances are shown on explicitly schematic 2D shells without physical p3. NonEx/Dup rows remain historical identifiers.",
+    "systems": "Catalog component groups; Alpha Centauri AB-C hierarchy added from Kervella et al. 2017. Ellipses illustrative.",
+    "fictionalStars": "Explicitly labelled, deterministic local departure stars where known individual stars are absent; persisted with the expedition."
   }
 }

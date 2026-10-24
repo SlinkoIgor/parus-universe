@@ -5,8 +5,10 @@ const MapDetails={
   const m=Number(o.messier);if(m&&!/\bM\s*\d+/.test(name))name+=' · M'+m;
   return name||o.name;
  },
- searchKey(s){return s.normalize('NFKD').toLocaleLowerCase('ru').replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]/gu,'');},
+ searchKey(s){return s.normalize('NFKD').toLocaleLowerCase('ru').replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]/gu,'').replace(/(ngc|ic)0+(?=\d)/g,'$1');},
  maxSpan(o){
+  if(o.positionQuality==='unknown')return Infinity;
+  if(o.synthetic)return 2500;
   if(o.cosmicLandmark)return Infinity;
   if(o.galaxy)return Math.max(1e6,o.d*3,o.galaxy.diameterLy*100);
   if(o.kind==='home')return 600;

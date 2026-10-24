@@ -4,6 +4,7 @@ const MapLayout={
  cache:new Map(),anchors:[],
  base(p3,offset=0){const d=Math.hypot(...p3);if(!d)return{x:0,y:0};const a=Math.atan2(-p3[1],p3[0])+offset;return{x:d*Math.cos(a),y:d*Math.sin(a)};},
  project(p){
+  if(p.mapPosition)return p.mapPosition;
   if(p.id&&this.cache.has(p.id))return this.cache.get(p.id);
   if(!p.p3)return{x:p.x,y:p.y};
   const d=Math.hypot(...p.p3);if(!d)return{x:0,y:0};

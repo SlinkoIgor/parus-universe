@@ -1,6 +1,6 @@
 """Bundle the checked-in static game into one offline HTML file."""
 from pathlib import Path
-import base64,re,sys,mimetypes
+import base64,re,sys,mimetypes,json
 root=Path(__file__).resolve().parent.parent/'dist'
 html=(root/'index.html').read_text()
 def css(match):
@@ -13,5 +13,12 @@ def css(match):
  return '<style>'+re.sub(r'url\(([^)]+)\)',asset,text)+'</style>'
 html=re.sub(r'<link[^>]+href="([^" ]+\.css(?:\?[^" ]*)?)"[^>]*>',css,html)
 html=re.sub(r'<script src="([^" ]+)"></script>',lambda m:'<script>'+ (root/m[1].split('?')[0]).read_text().replace('</script','<\\/script')+'</script>',html)
+# file:// cannot fetch local tiles. Embed their JSON as strings; parse only the
+# requested tile. HTTP preview remains the efficient, bounded-memory default.
+catalog=root/'catalog-data'
+if catalog.exists():
+ files={'catalog-data/'+p.name:p.read_text() for p in catalog.glob('*.json')}
+ payload=json.dumps(files,ensure_ascii=False,separators=(',',':')).replace('</script','<\\/script')
+ html=html.replace('</head>','<script>globalThis.PARUS_CATALOG_FILES='+payload+';</script></head>')
 output=Path(sys.argv[1]);output.parent.mkdir(parents=True,exist_ok=True);output.write_text(html)
 print(output)

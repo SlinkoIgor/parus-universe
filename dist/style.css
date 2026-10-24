@@ -122,3 +122,6 @@ html[data-theme="dark"]{--tone-2225:#000b;--tone-0002:#000a;}
 .arrival-estimate>div{display:flex;justify-content:space-between;gap:12px;line-height:1.9}
 .arrival-estimate b{font-weight:400;white-space:nowrap}.arrival-estimate>div>span{color:var(--muted)}
 .telemetry #velocity{font-variant-numeric:tabular-nums;font-size:clamp(12px,1.45vw,21px)}
+
+.system-diagram{display:block;width:100%;max-height:220px;margin:16px 0;color:var(--ink,#888)}
+.system-diagram text{fill:currentColor;font:11px monospace}

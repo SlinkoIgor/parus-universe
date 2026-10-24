@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id);
 const fmt=(n,d=2)=>Number(n).toLocaleString('ru-RU',{maximumFractionDigits:d,minimumFractionDigits:d});
 const compact=n=>n<0?'−'+compact(-n):n>=1e9?fmt(n/1e9,n>=1e10?1:2)+' млрд':n>=1e6?fmt(n/1e6,n>=1e7?1:2)+' млн':n>=1e3?fmt(n/1e3,1)+' тыс.':fmt(n,n<100?2:0);
 const distanceText=n=>Number.isFinite(n)?compact(n)+' св. лет':'расстояние неизвестно';
-const object=id=>OBJECTS.find(o=>o.id===id);
+const object=id=>OBJECTS.find(o=>o.id===id)||ExtendedCatalog.get(id);
 const distance=(a,b)=>Space.distance(a,b);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const STORE='parus-expedition-v1';
@@ -20,6 +20,7 @@ function paint(color){if(theme==='light')return color;if(color==='#f8f8f8')retur
 let state,paused=false,speed=1,filter='all',toastTimer,hover=null,hitObjects=[],lastUI=0,saveTick=0;
 const initial=()=>({version:7,controlG:100,current:'sol',selected:'proxima',sail:1,beta:0,acceleration:0,matter:Rocket.initialFuel,captured:0,spentEnergy:0,heatRadiated:0,earth:0,proper:0,totalDistance:0,ship:Space.point([0,0,0]),itinerary:[],visited:['sol'],destroyed:[],phase:'idle',flight:null,auto:true,journal:[{t:0,text:'Ковчег — 01. Корпус: 1 мг. Топливо: 1 / 1 мг. Фотонный двигатель готов.'}]});
 function restore(saved){
+ ExtendedCatalog.restore(saved);
  if(![1,2,3,4,5,6,7].includes(saved?.version)||!saved.ship||!Array.isArray(saved.visited))return initial();
  // Restore only old catalog objects still referenced by the player's expedition.
  for(const id of new Set([saved.current,saved.selected,saved.flight?.target,saved.flight?.fromId,...(saved.flight?.route||[]).map(n=>n.id),...(saved.itinerary||[]).map(n=>n.id)])){
@@ -70,7 +71,7 @@ if(state.flight&&!state.flight.markers?.length)FlightMarks.plan();
 const canvas=$('map'),ctx=canvas.getContext('2d');
 let width=0,height=0,dpr=1,cam={x:0,y:0,span:24},cameraGoal=null,effects=[];
 let pointer={down:false,x:0,y:0,startX:0,startY:0,moved:false,id:null};
-function persist(){try{state.paused=paused;state.timeScale=speed;localStorage.setItem(STORE,JSON.stringify(state));}catch{}}
+function persist(){try{ExtendedCatalog.capture(state);state.paused=paused;state.timeScale=speed;localStorage.setItem(STORE,JSON.stringify(state));}catch{}}
 function log(text){state.journal.push({t:state.earth,text});if(state.journal.length>100)state.journal.shift();persist();}
 function toast(text){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,4200);}
 function screen(p){p=p===state.ship?FlightView.ship():MapLayout.project(p);return{x:width*.43+(p.x-cam.x)*width/cam.span,y:height*(width<700?.39:.50)+(p.y-cam.y)*width/cam.span};}
@@ -90,13 +91,13 @@ function fitRoute(target){
  const span=Math.max(current.span,Math.abs(a.x-b.x)*width/(v.right-v.left)*1.25,Math.abs(a.y-b.y)*width/(v.bottom-v.top)*1.25);
  goCamera((a.x+b.x)/2-((v.left+v.right)/2-width*.43)*span/width,(a.y+b.y)/2-((v.top+v.bottom)/2-height*(width<700?.39:.50))*span/width,span);
 }
-function select(id,fit=false){const o=object(id);if(!o)return;state.selected=id;renderUI();if(fit)fitRoute(o);renderCatalog();persist();if(state.flight&&!Route.picking)showObject(id);}
+function select(id,fit=false){const o=object(id);if(!o)return;ExtendedCatalog.pin(o);ExtendedCatalog.ensureGalaxy(o);state.selected=id;renderUI();if(fit)fitRoute(o);renderCatalog();persist();if(state.flight&&!Route.picking)showObject(id);}
 function resize(){const r=canvas.getBoundingClientRect();width=r.width;height=r.height;dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
 new ResizeObserver(resize).observe(canvas);
-function updateMapHeading(){const view=cameraGoal||cam,span=view.span;let title,sub,sheet;const localGalaxy=GALAXIES.find(g=>g.id!=='milkyway'&&Math.hypot(view.x-g.x,view.y-g.y)<Math.max(g.diameterLy,span*.3)&&span<g.diameterLy*10);
+function updateMapHeading(){const view=cameraGoal||cam,span=view.span;let title,sub,sheet;const localGalaxy=GALAXIES.find(g=>{const p=MapLayout.project(g);return g.id!=='milkyway'&&Math.hypot(view.x-p.x,view.y-p.y)<Math.max(g.diameterLy*.6,span*.3)&&span<g.diameterLy*10;});
  if(localGalaxy){title=localGalaxy.name;sub='Оптический контур в масштабе · '+distanceText(localGalaxy.diameterLy);sheet='Г';}
- else if(span<.01){title='Солнечная система';sub='Земля и Солнце. Нулевая точка экспедиции.';sheet='00';}
- else if(span<180){title='Солнечная окрестность';sub='';sheet='01';}
+ else if(span<.01&&Math.hypot(view.x,view.y)<.1){title='Солнечная система';sub='Земля и Солнце. Нулевая точка экспедиции.';sheet='00';}
+ else if(span<180&&Math.hypot(view.x,view.y)<100){title='Солнечная окрестность';sub='';sheet='01';}
  else if(span<10000){title='Звёздный рукав';sub='Маяки, туманности и далёкие солнца.';sheet='02';}
  else if(span<800000){title='Млечный Путь';sub='Наша Галактика и её ближайшие спутники.';sheet='03';}
  else if(span<30000000){title='Местная группа';sub='За пределами одного звёздного острова.';sheet='04';}
@@ -134,11 +135,11 @@ function renderUI(){
  $('routeCount').textContent=(f?.route?.length||state.itinerary.length)||'';
  let action,hint;
  if(active){action='';hint=f.missed?'Цель пройдена. Остановка потребует оставшегося тормозного пути.':state.phase==='thrust'?'Двигатель расходует массу. Скорость растёт по ракетному уравнению.':state.phase==='launch'?'Парус впереди корабля. Поток слабеет с квадратом расстояния и с ростом скорости.':state.phase==='brake'?'Частицы передают импульс ловушке. Их сбор увеличивает массу корабля.':state.phase==='dock'?'Магнитное торможение ослабло. Последнюю скорость гасит двигатель обратной тягой.':'Инерционный полёт. Тормозной путь рассчитывается по текущей скорости и массе.';}
- else if(arrived){action='Выбрать следующую цель';hint=boost?'Прибытие. Выберите цель — и подготовьте звёздный парус.':'Прибытие. Следующая точка ждёт в атласе.';}
- else if(!target.navigable){action='Ориентир атласа';hint=Number.isFinite(target.d)?'Область атласа с условным положением; физический маршрут не назначается.':'Объект есть в каталоге, но надёжное расстояние неизвестно. Точка полёта не выдумывается.';}
+ else if(arrived){action=target.departureStar?'Найти звезду для разгона':'Выбрать следующую цель';hint=boost?'Прибытие. Выберите цель — и подготовьте звёздный парус.':'Прибытие. Следующая точка ждёт в атласе.';}
+ else if(!target.navigable){action='Ориентир атласа';hint=target.positionQuality==='unknown'?'Положение неизвестно. Точка показана схематически; физическое расстояние не задано.':'Область атласа с условным положением; физический маршрут не назначается.';}
  else if(boost){action=current.kind==='star'?'Взорвать звезду и отчалить':'Импульс местной звезды';hint='Перед взрывом бак опустошается. Раннее торможение уменьшит прогноз скорости.';}
  else{action=state.current==='sol'?'К звезде на тяге':'К цели на тяге';hint=state.matter>1e-24?'Разгон использует весь бак. Магнитный захват пополнит его для точной остановки у цели.':'Запас рабочего вещества исчерпан.';}
- $('launchBtn').hidden=active;$('launchBtn').querySelector('span').textContent=action;$('launchBtn').disabled=!target.navigable||!arrived&&!boost&&state.matter<1e-24;$('flightHint').textContent=hint;
+ $('launchBtn').hidden=active;$('launchBtn').querySelector('span').textContent=action;$('launchBtn').disabled=!target.navigable||!arrived&&!boost&&state.matter<1e-24;$('flightHint').textContent=hint+(target.positionQuality==='approximate'?' Позиция приблизительная.':'');
  const phases={thrust:'ФОТОННАЯ ТЯГА',launch:'ЗВЁЗДНЫЙ ВЕТЕР',cruise:'ИНЕРЦИОННЫЙ ПОЛЁТ',brake:'МАГНИТНОЕ ТОРМОЖЕНИЕ',dock:'ТОЧНАЯ ОСТАНОВКА',flyby:'ГРАВИТАЦИОННЫЙ ПРОЛЁТ'};
  $('phaseTag').textContent=paused?'ПАУЗА':active?phases[state.phase]:arrived?'ПРИБЫТИЕ':current?'СТОЯНКА: '+(current.id==='sol'?'СОЛНЦЕ':current.name.toUpperCase()):'МЕЖЗВЁЗДНОЕ ПРОСТРАНСТВО';
  $('flightControls').hidden=!active;
@@ -185,7 +186,7 @@ function advance(ds,earth,proper){
  if(f.covered>f.distance+Math.max(1e-10,f.distance*1e-10)&&!f.missed&&state.beta>1e-8){f.missed=true;toast('Цель пройдена. Физический тормозной путь ещё не исчерпан.');}
 }
 function finishFlight(arrived){const f=state.flight,target=object(f.target);
- if(arrived){state.ship=Space.point(target.p3);state.current=target.id;if(!state.visited.includes(target.id))state.visited.push(target.id);log('Прибытие: '+target.name+'. Борт: '+compact(state.proper)+' лет; Земля: '+compact(state.earth)+' лет.');toast('Прибытие: '+target.name+'. Выберите следующую цель.');}
+ if(arrived){state.ship=Space.point(target.p3);state.current=target.id;if(!state.visited.includes(target.id))state.visited.push(target.id);ExtendedCatalog.ensureGalaxy(target);log('Прибытие: '+target.name+'. Борт: '+compact(state.proper)+' лет; Земля: '+compact(state.earth)+' лет.');toast('Прибытие: '+target.name+'. Выберите следующую цель.');}
  else{state.current=null;log('Остановка вне цели. До неё '+distanceText(distance(state.ship,target))+'.');toast('Корабль остановлен. До цели '+distanceText(distance(state.ship,target))+'.');}
  state.beta=0;state.acceleration=0;state.phase='idle';state.flight=null;renderUI();renderCatalog();persist();if(arrived)Route.afterStop(f);
 }
@@ -196,10 +197,26 @@ function autoFraction(predict){
 }
 function tickPhysics(dt){Simulation.tick(dt);}
 
-function renderCatalog(){const term=MapDetails.searchKey($('search').value.trim());const items=OBJECTS.filter(o=>(filter==='all'||filter==='star'&&['star','home','pulsar','blackhole','nebula'].includes(o.kind)||filter==='galaxy'&&o.kind==='galaxy'||filter==='structure'&&['cluster','structure','wall','void','quasar','ring','arc','horizon'].includes(o.kind))&&MapDetails.searchKey(`${o.name} ${(o.aliases||[]).join(' ')} ${o.type} ${o.id} ${o.ngc||''} ${o.hip||''} ${o.hd||''} ${o.gliese||''}`).includes(term)).sort((a,b)=>(a.d??Infinity)-(b.d??Infinity));
- $('catalogCount').textContent=items.length+' / '+OBJECTS.length;
- $('catalogList').replaceChildren();if(!items.length){const e=document.createElement('p');e.className='empty-state';e.textContent='Объекты не найдены.';$('catalogList').append(e);}
- items.forEach(o=>{const b=document.createElement('button');b.className='catalog-item';b.innerHTML='<span class="catalog-item-body"><strong>'+o.name+'</strong><small>'+distanceText(o.d)+(o.navigable?'':Number.isFinite(o.d)?' · СХЕМА':' · НЕТ ОЦЕНКИ ДАЛЬНОСТИ')+(state.visited.includes(o.id)?' · ИССЛЕДОВАНО':'')+'</small></span><span>↗</span>';b.addEventListener('click',()=>{select(o.id,true);const picking=Route.picking;closeCatalog();if(picking){Route.add(o.id);Route.show();}});$('catalogList').append(b);});
+let catalogRevision=0,catalogTimer;
+function catalogRows(items,total,loading=false,error=''){
+ $('catalogCount').textContent=total.toLocaleString('ru-RU')+' / '+ExtendedCatalog.total.toLocaleString('ru-RU')+(loading?' · поиск…':'');
+ $('catalogList').replaceChildren();
+ if(!items.length){const e=document.createElement('p');e.className='empty-state';e.textContent=loading?'Поиск по полному каталогу…':error||'Объекты не найдены.';$('catalogList').append(e);}
+ for(const entry of items){const b=document.createElement('button');b.className='catalog-item';const quality=entry.positionQuality==='unknown'?' · ПОЛОЖЕНИЕ НЕИЗВЕСТНО':entry.positionQuality==='approximate'?' · ПРИБЛИЗИТЕЛЬНО':entry.synthetic?' · ИГРОВАЯ ЗВЕЗДА':'';
+  const body=document.createElement('span');body.className='catalog-item-body';const name=document.createElement('strong');name.textContent=entry.name;const detail=document.createElement('small');detail.textContent=distanceText(entry.d)+quality+(state.visited.includes(entry.id)?' · ИССЛЕДОВАНО':'');body.append(name);body.append(detail);b.append(body);const arrow=document.createElement('span');arrow.textContent='↗';b.append(arrow);
+  b.addEventListener('click',async()=>{b.disabled=true;try{const o=await ExtendedCatalog.resolve(entry);const picking=Route.picking;select(o.id);closeCatalog();ExtendedCatalog.focus(o);if(picking){Route.add(o.id);Route.show();}}catch(e){toast(e.message);b.disabled=false;}});$('catalogList').append(b);
+ }
+ if(error&&items.length){const e=document.createElement('p');e.className='empty-state';e.textContent=error+' · показана основная выборка';$('catalogList').append(e);}
+ if(total>items.length&&!loading&&!error){const more=document.createElement('button');more.className='map-size-action';more.textContent='Ещё 100 объектов';more.onclick=()=>{ExtendedCatalog.searchLimit+=100;renderCatalog();};$('catalogList').append(more);}
+}
+function renderCatalog(){
+ if($('catalog').hidden)return;
+ const revision=++catalogRevision,term=MapDetails.searchKey($('search').value.trim()),limit=ExtendedCatalog.searchLimit;
+ const exact=o=>!!term&&[o.name,o.id,...(o.aliases||[]),o.ngc||'','HIP '+(o.hip||''),'HD '+(o.hd||'')].some(v=>MapDetails.searchKey(v)===term);
+ const core=[...OBJECTS,...ExtendedCatalog.pinned.values()].filter(o=>!o.streamed&&ExtendedCatalog.matches(o.kind,filter)&&MapDetails.searchKey(`${o.name} ${(o.aliases||[]).join(' ')} ${o.type} ${o.id} ${o.ngc||''} ${o.hip||''} ${o.hd||''} ${o.gliese||''}`).includes(term)).sort((a,b)=>Number(exact(b))-Number(exact(a))||(a.d??Infinity)-(b.d??Infinity));
+ catalogRows(core.slice(0,limit),core.length,true);
+ if(typeof fetch!=='function'&&!globalThis.PARUS_CATALOG_FILES){catalogRows(core.slice(0,limit),core.length);return;}
+ ExtendedCatalog.search(term,filter,limit).then(result=>{if(revision!==catalogRevision||$('catalog').hidden)return;const ids=new Set(core.map(o=>o.id));const items=[...core,...result.items.filter(o=>!ids.has(o.id))].sort((a,b)=>Number(b.searchExact||exact(b))-Number(a.searchExact||exact(a))||(a.d??Infinity)-(b.d??Infinity)||a.id.localeCompare(b.id)).slice(0,limit);catalogRows(items,core.length+result.total);}).catch(e=>{if(revision===catalogRevision)catalogRows(core.slice(0,limit),core.length,false,e.message);});
 }
 function closeMenu(){$('menu').hidden=true;$('menuBtn').setAttribute('aria-expanded','false');}
 function openCatalog(){closeMenu();$('catalog').hidden=false;renderCatalog();$('search').focus();}
@@ -208,7 +225,7 @@ function showDialog(html){closeMenu();$('dialogContent').innerHTML=html;$('infoD
 function showHelp(){showDialog('<div class="modal-eyebrow">ПАРУС / ПОЛЁТ</div><h2>Поймать поток.<br>Рассчитать остановку.</h2><ol><li><b>Собственная тяга.</b> Фотонный двигатель расходует весь доступный запас для разгона. Для точной остановки вещество собирает магнитная ловушка. Масса уменьшается; мощность регулируется по выбранной перегрузке. Выключение двигателя и переход к торможению выполняет автопилот.</li><li><b>Звёздный парус.</b> После прибытия выберите следующую цель и площадь паруса. Показанная скорость — прогноз до автоматического складывания; на коротком маршруте торможение начнётся раньше. Сила падает как 1/r² и дополнительно ослабевает из-за удаления от догоняющего потока. Корабль разгоняется постепенно. Парус складывается автоматически после импульса, при ослаблении потока или перед торможением; ловить момент вручную не нужно.</li><li><b>Магнитный захват.</b> Поток встречных частиц пропорционален скорости, их импульс тоже растёт со скоростью. Ловушка тормозит и увеличивает массу корабля. Автопилот учитывает полный тормозной путь.</li><li><b>Точная остановка.</b> При малой скорости магнитное торможение ослабевает. Последнюю скорость гасит фотонный двигатель обратной тягой, расходуя вещество. Позднее включение захвата может привести к пролёту цели.</li></ol><p>Скорость и собственное ускорение показаны рядом внизу. Колесо меняет масштаб, перетаскивание двигает карту. Пробел — пауза; В обычном режиме 1 секунда игрока равна 1 году на борту. Короткие разгоны и торможения показываются замедленно; коэффициент виден рядом с часами. Кнопка 1× переключает 10×, 100× и 1000×. Пауза останавливает оба часа. Прогресс сохраняется в браузере.</p><button class="modal-start" id="startExploring">Продолжить →</button>');$('startExploring').onclick=()=>$('infoDialog').close();}
 function showModel(){showDialog('<div class="modal-eyebrow">ФИЗИКА / МОДЕЛЬ</div><h2>Свет взрыва.<br>Предел 100 g.</h2><p>Корпус 1 мг, бак 1 мг, в начале бак полный. Перед каждым взрывом запас выпускается без изменения скорости: стартовая масса парусника 1 мг. При торможении рабочее вещество вновь собирается.</p><h3>Автопилот и фактическая тяга</h3><p>Автопилот регулирует раскрытие парусов и мощность двигателя с пределом 100 g, выбирает момент торможения и складывает паруса. Полоска рядом со скоростью показывает фактическое собственное ускорение: от −100 g при торможении до +100 g при разгоне. Координатное ускорение равно a₀/γ³.</p><h3>Световой парус</h3><div class="formula">I = L/(4πr²)<br>F₀ = 2AэффI/c · (1−β)/(1+β)<br>Aэфф ≤ Amax; F₀/M ≤ aкоманды</div><p>Разгоняет свет вспышки сверхновой. Модельный источник: L = 1,2·10³⁵ Вт в течение 30 суток в системе звезды. Конец импульса проверяется по запаздывающему времени t−(r−r₀)/c. Пока площади хватает, парус раскрывается постепенно и держит заданную перегрузку; затем ускорение ослабевает. Парус складывается при достижении номинальной скорости, окончании вспышки, исчерпании практически всего доступного импульса или начале торможения.</p><p>При 100 g и пустом баке S: 99,999%; M: 99,99999%; L: 99,9999999% c. M имеет площадь около 4,72 млн км²; S меньше в 10 000 раз, L больше в 10 000 раз. M набирает номинальную скорость примерно за 31 бортовые сутки и 27 св. лет. На коротком маршруте фактический максимум ниже. Парус с такой площадью и миллиграммовой массой — явное фантастическое допущение; нагрев и прочность не рассчитываются. Модельная стартовая орбита — 1 а.е.; оболочка конкретной сверхновой не моделируется.</p><h3>Собственная тяга</h3><div class="formula">η = η₀ ± ln(M₀/M)<br>v = c tanh η<br>P = Mc|a₀|; dm/dτ = −M|a₀|/c</div><p>Идеальная фотонная ракета аннигилирует рабочее вещество в направленное излучение. Мощность автоматически регулируется с пределом 100 g. Весь запас доступен для разгона; на коротком маршруте автопилот начинает торможение раньше. Вещество для обратной тяги собирает магнитная ловушка. Масса, энергия, путь и оба времени вычисляются вместе.</p><h3>Магнитное торможение</h3><div class="formula">F₀ = −ρAэффγ²v²<br>dM/dt = ρAэффv, пока есть место<br>M tanh(η/2) = const при захвате</div><p>Встречные частицы тормозят корабль и заполняют бак. При полном баке обработанные частицы выпускаются с нулевой скоростью относительно корабля; масса больше не растёт, сопротивление сохраняется. Избыток кинетической энергии изотропно излучается. Эффективная площадь регулируется по команде перегрузки, не превышая 10¹⁵ м²; плотность модельной плазмы 0,1 протона/см³. При малой скорости оставшийся импульс гасится обратной фотонной тягой. Идеальное охлаждение — допущение модели.</p><h3>Часы и карта</h3><div class="formula">dτ = dt/γ</div><p>На 1× одна секунда равна одному бортовому году. Короткие разгоны и торможения могут показываться в слоумо. Автоматика только уменьшает темп: ускорение 10×/100×/1000× включается кнопкой игрока. После слоумо возвращается выбранный игроком темп; физические путь и оба времени остаются согласованными. Пауза замораживает всё, доступны 10×/100×/1000×. Каталог расположен схемой t-SNE, но каждый участок на карте — прямая между его концами; корабль и отметки используют одну долю физического пути. Все расстояния, часы и манёвры считаются в исходном 3D. Чёрные дыры показывают физическую кривую локального пролёта на отдельном чертеже.</p><p><a href="https://arxiv.org/html/2002.03247" target="_blank" rel="noopener">Световые паруса у астрофизических источников</a> · <a href="https://arxiv.org/abs/1707.02801" target="_blank" rel="noopener">Магнитное торможение</a> · <a href="https://kirkmcd.princeton.edu/examples/ph205set4.pdf" target="_blank" rel="noopener">Релятивистская ракета</a></p>');}
 function showObject(id=state.selected){
- const o=object(id);if(!o)return;const f=o.facts,g=o.galaxy;
+ const o=object(id);if(!o)return;ExtendedCatalog.ensureGalaxy(o);const f=o.facts,g=o.galaxy;
  const row=(label,value)=>'<div class="fact-row"><dt>'+label+'</dt><dd>'+value+'</dd></div>';
  let luminosity=f.lum!==undefined?'≈ '+quantity(f.lum)+' L☉<small>Болометрическая мощность: ≈ '+quantity(f.lum*Astro.solarLuminosity)+' Вт</small>':f.visual?'≈ '+quantity(f.visual.solarV)+' L☉,'+(f.band||'V')+'<small>Собственная светимость в полосе '+(f.band||'V')+'; абсолютная величина M'+(f.band||'V')+' ≈ '+fmt(f.visual.absoluteV,1)+' mag</small>':f.lumUnknown;
  const sizeButton=o.region?'<button class="map-size-action" id="viewRegion">Показать область ↗</button>':(g||o.id==='sgr')?'<button class="map-size-action" id="viewGalaxy">Показать галактику в масштабе <span>↗</span></button>':'';
@@ -224,12 +241,16 @@ function showObject(id=state.selected){
  if(!o.p3&&Number.isFinite(o.raDeg))html+=row('Направление J2000',fmt(o.raDeg,4)+'° / '+fmt(o.decDeg,4)+'°');
  if(o.gravity)html+=row('Модель пролёта',o.gravity.note);
  if(o.coordinateNote)html+=row('Координаты',o.coordinateNote);
+ const system=ExtendedCatalog.systemByMember.get(o.id);if(system)html+=row('Связанная система',system.name+'<small>'+system.note+'</small>');
  html+=row('От Солнца',distanceText(o.d))+'</dl>';
+ if(ExtendedCatalog.systemByMember.has(o.id))html+='<button class="map-size-action" id="viewSystem">Показать связанную систему ↗</button>';
+ if(o.departureStar)html+='<button class="map-size-action" id="viewLocalStar">Найти звезду для разгона ↗</button>';
+ if(o.positionQuality==='unknown')html+='<button class="map-size-action" id="viewUnknown">Показать схематическую точку ↗</button>';
  html+='<p class="object-note">Оценки округлены. M☉ — масса Солнца; L☉ — его полная светимость, L☉,V и L☉,B — светимость Солнца в соответствующей полосе. Это собственное излучение, а не видимая яркость с Земли.</p>';
  if(f.visual)html+='<p class="object-note">Полосовая светимость рассчитана из каталожной фотометрии и расстояния атласа: M = m − 5 log₁₀(d/10 пк), L/L☉ = 10⁰·⁴⁽ᴹ☉⁻ᴹ⁾. Без поправки на поглощение пылью; это приблизительная оценка, не полная болометрическая мощность.</p>';
  if(f.note)html+='<p class="object-note">'+f.note+'</p>';
  html+='<p class="object-sources">'+f.refs.map(([url,label])=>'<a href="'+url+'" target="_blank" rel="noopener">'+label+' ↗</a>').join('')+'</p>';
- showDialog(html);if(o.region)$('viewRegion').onclick=()=>{$('infoDialog').close();RegionMap.focus(o);};if(g||o.id==='sgr')$('viewGalaxy').onclick=()=>{const shape=g||GALAXIES[0];$('infoDialog').close();focusGalaxy(shape);};
+ showDialog(html);if(ExtendedCatalog.systemByMember.has(o.id))$('viewSystem').onclick=()=>ExtendedCatalog.showSystem(o.id);if(o.departureStar)$('viewLocalStar').onclick=()=>{const star=ExtendedCatalog.ensureGalaxy(o);$('infoDialog').close();select(star.id);ExtendedCatalog.focus(star);};if(o.positionQuality==='unknown')$('viewUnknown').onclick=()=>{$('infoDialog').close();ExtendedCatalog.focus(o);};if(o.region)$('viewRegion').onclick=()=>{$('infoDialog').close();RegionMap.focus(o);};if(g||o.id==='sgr')$('viewGalaxy').onclick=()=>{const shape=g||GALAXIES[0];$('infoDialog').close();focusGalaxy(shape);};
 }
 function focusGalaxy(g){const span=g.diameterLy*Math.max(2.5,width/Math.max(height*.58,1));const p=MapLayout.project(g);goCamera(p.x,p.y,span);toast('Оптический контур · '+distanceText(g.diameterLy)+' · в масштабе карты');}
 function showJournal(){showDialog('<div class="modal-eyebrow">КОВЧЕГ — 01 / ЖУРНАЛ</div><h2>След экспедиции.</h2><p>Исследовано '+state.visited.length+' из '+(OBJECTS.length-1)+' точек · пройдено '+distanceText(state.totalDistance)+' · собрано '+massText(state.captured)+' · аннигилировано на '+compact(state.spentEnergy/1e15)+' ПДж; отведено тепла '+compact(state.heatRadiated/1e15)+' ПДж.</p>'+[...state.journal].reverse().map(e=>'<div class="journal-entry"><time>'+compact(e.t)+' лет</time><p>'+e.text+'</p></div>').join(''));}
@@ -284,9 +305,9 @@ function drawSymbol(o,p,selected=false){const destroyed=state.destroyed.includes
  if(selected){for(let a=0;a<4;a++){ctx.save();ctx.rotate(a*Math.PI/2);ctx.beginPath();ctx.moveTo(21,-16);ctx.lineTo(21,-21);ctx.lineTo(16,-21);ctx.stroke();ctx.restore();}}
  ctx.restore();}
 function drawObjects(){hitObjects=[];const departure=state.flight?.fromId||state.current,occupied=[];
- const priority=o=>o.id===state.selected?100:o.id===departure?85:o.cosmicLandmark?70:o.galaxy?50:o.id==='sol'?40:20;
- const visible=OBJECTS.filter(o=>!o.region&&MapDetails.visible(o,cam.span)&&(o.kind!=='horizon'||cam.span>3e10)).map(o=>({o,p:screen(o)})).filter(({p})=>p.x>-40&&p.x<width+40&&p.y>-40&&p.y<height+40).sort((a,b)=>priority(b.o)-priority(a.o)||(a.o.apparentV??20)-(b.o.apparentV??20)||a.o.id.localeCompare(b.o.id));
- for(const {o,p} of visible){if(occupied.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<24))continue;occupied.push(p);const selected=o.id===state.selected,opacity=MapDetails.opacity(o,cam.span);ctx.save();ctx.globalAlpha=opacity;drawSymbol(o,p,selected);ctx.restore();hitObjects.push({o,p});
+ const priority=o=>ExtendedCatalog.background(o)?10:o.id===state.selected?100:o.id===departure?85:o.cosmicLandmark?70:o.galaxy?50:o.id==='sol'?40:20;
+ const visible=[...new Map([...OBJECTS,...ExtendedCatalog.pinned.values(),...ExtendedCatalog.visible.filter(o=>!ExtendedCatalog.background(o))].map(o=>[o.id,o])).values()].filter(o=>!o.region&&(!ExtendedCatalog.background(o)||o.id===state.selected||o.id===state.current)&&MapDetails.visible(o,cam.span)&&(o.kind!=='horizon'||cam.span>3e10)).map(o=>({o,p:screen(o)})).filter(({p})=>p.x>-40&&p.x<width+40&&p.y>-40&&p.y<height+40).sort((a,b)=>priority(b.o)-priority(a.o)||(a.o.apparentV??20)-(b.o.apparentV??20)||a.o.id.localeCompare(b.o.id));
+ for(const {o,p} of visible){const bg=ExtendedCatalog.background(o);if(!bg&&occupied.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<24))continue;if(!bg)occupied.push(p);const selected=o.id===state.selected,opacity=MapDetails.opacity(o,cam.span);ctx.save();ctx.globalAlpha=opacity;if(bg){circle(p.x,p.y,3,'#969696',1);if(selected)circle(p.x,p.y,7,'#646464',.8,[2,3]);}else drawSymbol(o,p,selected);ctx.restore();hitObjects.push({o,p,r:bg?7:23,background:bg});
   // Large galaxy contours already queued their own label.
   if(!o.galaxy||galaxyProjection(o.galaxy).r<=18)MapLabels.point({key:'object-'+o.id,name:o.id==='sol'?'СОЛНЦЕ / ЗЕМЛЯ':o.name,detail:(o.id===(state.flight?.target||state.selected)?'ЦЕЛЬ · ':'')+(o.id==='sol'?'НАЧАЛО КООРДИНАТ':distanceText(o.d)),p,priority:priority(o),selected,opacity});
  }
@@ -317,27 +338,27 @@ function drawHover(){if(!hover||hover.region||['structure','wall','void','ring',
 
 let lastFrame=performance.now();function frame(now){const realDt=Math.max(0,(now-lastFrame)/1000);lastFrame=now;Simulation.advance(realDt);
  if(!document.hidden){if(cameraGoal){const a=1-Math.exp(-Math.min(realDt,.1)*8);cam.x+=(cameraGoal.x-cam.x)*a;cam.y+=(cameraGoal.y-cam.y)*a;cam.span=Math.exp(Math.log(cam.span)+(Math.log(cameraGoal.span)-Math.log(cam.span))*a);if(Math.abs(Math.log(cam.span/cameraGoal.span))<.0005&&Math.hypot(cam.x-cameraGoal.x,cam.y-cameraGoal.y)<cam.span*.0001){cam={...cameraGoal};cameraGoal=null;}}
- drawGrid();MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawHorizonBoundary();Route.draw();drawRoute();drawEffects(Math.min(realDt,.1));drawObjects();drawShip(now);MapLabels.draw();Route.drawEncounter();drawHover();if(now-lastUI>100){renderUI();lastUI=now;}}
+ ExtendedCatalog.update(now);drawGrid();MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawHorizonBoundary();Route.draw();drawRoute();drawEffects(Math.min(realDt,.1));ExtendedCatalog.drawSystems();drawObjects();ExtendedCatalog.draw();drawShip(now);MapLabels.draw();Route.drawEncounter();drawHover();if(now-lastUI>100){renderUI();lastUI=now;}}
  if(now-saveTick>1500){persist();saveTick=now;}requestAnimationFrame(frame);
 }
 
 canvas.addEventListener('wheel',e=>{e.preventDefault();cameraGoal=null;const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,before=world(x,y),factor=Math.exp(clamp(e.deltaY,-220,220)*.006);cam.span=clamp(cam.span*factor,.00006,1.4e11);const after=world(x,y);cam.x+=before.x-after.x;cam.y+=before.y-after.y;updateMapHeading();},{passive:false});
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;pointer={down:true,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,moved:false,id:e.pointerId};canvas.setPointerCapture(e.pointerId);cameraGoal=null;});
-canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;if(pointer.down&&e.pointerId===pointer.id){const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.hypot(e.clientX-pointer.startX,e.clientY-pointer.startY)>5)pointer.moved=true;if(pointer.moved){cam.x-=dx*cam.span/width;cam.y-=dy*cam.span/width;canvas.style.cursor='grabbing';}pointer.x=e.clientX;pointer.y=e.clientY;}else{hover=hitObjects.find(({p})=>Math.hypot(x-p.x,y-p.y)<23)?.o||RegionMap.hit(x,y);canvas.style.cursor=hover?'pointer':'crosshair';}});
-canvas.addEventListener('pointerup',e=>{if(!pointer.down||e.pointerId!==pointer.id)return;if(!pointer.moved){const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const hit=hitObjects.map(h=>({...h,d:Math.hypot(x-h.p.x,y-h.p.y)})).filter(h=>h.d<28).sort((a,b)=>a.d-b.d)[0];if(hit)select(hit.o.id);else{const region=RegionMap.hit(x,y);if(region)select(region.id);}}pointer.down=false;canvas.style.cursor='crosshair';});
+canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;if(pointer.down&&e.pointerId===pointer.id){const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.hypot(e.clientX-pointer.startX,e.clientY-pointer.startY)>5)pointer.moved=true;if(pointer.moved){cam.x-=dx*cam.span/width;cam.y-=dy*cam.span/width;canvas.style.cursor='grabbing';}pointer.x=e.clientX;pointer.y=e.clientY;}else{hover=hitObjects.find(({p,r=23})=>Math.hypot(x-p.x,y-p.y)<r)?.o||RegionMap.hit(x,y);canvas.style.cursor=hover?'pointer':'crosshair';}});
+canvas.addEventListener('pointerup',e=>{if(!pointer.down||e.pointerId!==pointer.id)return;if(!pointer.moved){const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const hit=hitObjects.map(h=>({...h,d:Math.hypot(x-h.p.x,y-h.p.y)})).filter(h=>h.d<(h.r||28)).sort((a,b)=>Number(!!a.background)-Number(!!b.background)||a.d-b.d)[0];if(hit)select(hit.o.id);else{const region=RegionMap.hit(x,y);if(region)select(region.id);}}pointer.down=false;canvas.style.cursor='crosshair';});
 canvas.addEventListener('pointercancel',()=>{pointer.down=false;canvas.style.cursor='crosshair';});canvas.addEventListener('pointerleave',()=>hover=null);
 
 $('zoomIn').onclick=()=>goCamera(cam.x,cam.y,cam.span/2);$('zoomOut').onclick=()=>goCamera(cam.x,cam.y,cam.span*2);$('shipBtn').onclick=()=>goCamera(FlightView.ship().x,FlightView.ship().y,state.flight?cam.span:24);
-$('catalogBtn').onclick=()=>{if($('catalog').hidden)openCatalog();else closeCatalog();};$('closeCatalog').onclick=closeCatalog;$('search').oninput=renderCatalog;
+$('catalogBtn').onclick=()=>{if($('catalog').hidden)openCatalog();else closeCatalog();};$('closeCatalog').onclick=closeCatalog;$('search').oninput=()=>{ExtendedCatalog.searchLimit=100;clearTimeout(catalogTimer);catalogTimer=setTimeout(renderCatalog,160);};
 $('themeBtn').onclick=()=>applyTheme(theme==='dark'?'light':'dark');
 $('menuBtn').onclick=()=>{const open=$('menu').hidden;$('menu').hidden=!open;$('menuBtn').setAttribute('aria-expanded',String(open));};
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('.menu-popover,.menu-button'))closeMenu();});
-$('catalogTabs').addEventListener('click',e=>{const b=e.target.closest('[data-filter]');if(!b)return;filter=b.dataset.filter;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('active',x===b));renderCatalog();});
+$('catalogTabs').addEventListener('click',e=>{const b=e.target.closest('[data-filter]');if(!b)return;filter=b.dataset.filter;ExtendedCatalog.searchLimit=100;document.querySelectorAll('[data-filter]').forEach(x=>x.classList.toggle('active',x===b));renderCatalog();});
 document.querySelectorAll('[data-sail]').forEach(b=>b.onclick=()=>{if(state.flight||!canBoost())return;state.sail=+b.dataset.sail;renderUI();persist();});
 
 $('speedBtn').onclick=()=>{syncClock();const speeds=[1,10,100,1000];speed=speeds[(speeds.indexOf(speed)+1)%speeds.length];renderUI();persist();};
 document.querySelectorAll('[data-scale]').forEach(b=>b.onclick=()=>{closeCatalog();goCamera(0,0,+b.dataset.scale);});
-$('launchBtn').onclick=()=>{syncClock();if(state.current===state.selected)openCatalog();else launch();};$('pauseBtn').onclick=()=>{syncClock();paused=!paused;renderUI();persist();};$('helpBtn').onclick=showHelp;$('modelBtn').onclick=showModel;$('journalBtn').onclick=showJournal;$('objectInfo').onclick=()=>showObject(state.flight?.target||state.selected);$('closeDialog').onclick=()=>$('infoDialog').close();
+$('launchBtn').onclick=()=>{syncClock();if(state.current===state.selected){const here=object(state.current),star=ExtendedCatalog.ensureGalaxy(here);if(star){select(star.id);ExtendedCatalog.focus(star);}else openCatalog();}else launch();};$('pauseBtn').onclick=()=>{syncClock();paused=!paused;renderUI();persist();};$('helpBtn').onclick=showHelp;$('modelBtn').onclick=showModel;$('journalBtn').onclick=showJournal;$('objectInfo').onclick=()=>showObject(state.flight?.target||state.selected);$('closeDialog').onclick=()=>$('infoDialog').close();
 $('infoDialog').addEventListener('click',e=>{if(e.target===$('infoDialog')){const r=$('infoDialog').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('infoDialog').close();}});
 $('resetBtn').onclick=()=>{showDialog('<div class="modal-eyebrow">НОВАЯ ЭКСПЕДИЦИЯ</div><h2>Снова от Солнца?</h2><p>Текущий прогресс в этом браузере будет сброшен.</p><button class="modal-start" id="confirmReset">Начать заново →</button>');$('confirmReset').onclick=()=>{state=initial();paused=false;speed=1;Simulation.debt=0;Simulation.wallDebt=0;lastFrame=performance.now();effects=[];goCamera(0,0,24);renderUI();persist();$('infoDialog').close();toast('Новая экспедиция. Солнечная система, нулевой год.');};};
 window.addEventListener('keydown',e=>{if(e.target.matches('input,textarea')||$('infoDialog').open)return;if(e.code==='Space'){e.preventDefault();syncClock();paused=!paused;renderUI();persist();}if(e.key==='Escape'){closeCatalog();closeMenu();}if(e.key==='+'||e.key==='=')goCamera(cam.x,cam.y,cam.span/2);if(e.key==='-')goCamera(cam.x,cam.y,cam.span*2);});
@@ -345,4 +366,4 @@ function syncClock(){const now=performance.now();Simulation.advance(Math.max(0,(
 document.addEventListener('visibilitychange',()=>{syncClock();persist();});window.addEventListener('pagehide',persist);
 resize();
 if(state.flight)fitRoute(object(state.flight.target));else if(state.current&&state.current!=='sol')goCamera(FlightView.ship().x,FlightView.ship().y,Math.max(object(state.current).d*2,24),true);
-Route.setup();applyTheme(theme);resize();renderUI();updateMapHeading();renderCatalog();requestAnimationFrame(frame);
+Route.setup();applyTheme(theme);resize();renderUI();updateMapHeading();renderCatalog();ExtendedCatalog.start();requestAnimationFrame(frame);
