@@ -5,7 +5,7 @@ const ExtendedCatalog={
  sources:{HYG:['https://github.com/astronexus/HYG-Database','HYG 4.1'],OpenNGC:['https://github.com/mattiaverga/OpenNGC','OpenNGC'],ATNF:['https://www.atnf.csiro.au/research/pulsar/psrcat/','ATNF 2.9.0']},
  get total(){return EXTENDED_BOOT.total+OBJECTS.filter(o=>o.nuclearStar).length+[...this.pinned.values()].filter(o=>o.synthetic).length;},
  get(id){return this.coreIndex?.get(id)||this.pinned.get(id)||this.visibleMap.get(id);},
- background(o){return !o.synthetic&&!o.messier&&!o.galaxyMember&&(o.streamed||o.kind==='star'&&o.d>0&&o.d<=50&&!this.foreground.has(o.id));},
+ background(o){return MapDetails.mass(o)===null&&!o.synthetic&&!o.messier&&!o.galaxyMember&&(o.streamed||o.kind==='star'&&o.d>0&&o.d<=50&&!this.foreground.has(o.id));},
  readJSON(path){if(globalThis.PARUS_CATALOG_FILES?.[path])return Promise.resolve().then(()=>{const v=globalThis.PARUS_CATALOG_FILES[path];return typeof v==='string'?JSON.parse(v):v;});return fetch(path+'?v='+EXTENDED_BOOT.revision).then(r=>{if(!r.ok)throw Error('Не удалось загрузить '+path);return r.json();});},
  decode(r){
   const [id,name,kind,d,raDeg,decDeg,positionQuality,distanceMethod,aliases,apparentV,source,extra,x,y]=r,located=d>0&&Number.isFinite(raDeg)&&Number.isFinite(decDeg),ref=extra.referenceURL?[extra.referenceURL,source]:this.sources[source]||this.sources.HYG;
@@ -57,16 +57,19 @@ const ExtendedCatalog={
  nodesForView(view,w,h){
   if(!this.manifest)return [];
   view=Cosmology.referenceView(view);
-  const s=view.span/Math.max(1,w),box=[view.x-w*.55*s,view.y-h*.60*s,view.x+w*.7*s,view.y+h*.6*s],chosen=[];
+  const pixel=view.span/Math.max(1,w),box=[view.x-w*.55*pixel,view.y-h*.60*pixel,view.x+w*.7*pixel,view.y+h*.6*pixel];
   const intersects=b=>b[0]<=box[2]&&b[2]>=box[0]&&b[1]<=box[3]&&b[3]>=box[1];
-  const visit=id=>{const n=this.manifest.nodes[id];if(!intersects(n.box))return;const size=Math.max(n.box[2]-n.box[0],n.box[3]-n.box[1])/s;if(n.children.length&&size>340)for(const c of n.children)visit(c);else chosen.push(n);};
-  for(const id of this.manifest.roots)visit(id);
-  // Nearest visible cells first, hard caps for frame work and network concurrency.
-  return chosen.sort((a,b)=>Math.hypot((a.box[0]+a.box[2])/2-view.x,(a.box[1]+a.box[3])/2-view.y)-Math.hypot((b.box[0]+b.box[2])/2-view.x,(b.box[1]+b.box[3])/2-view.y)).slice(0,32).map(n=>n.file);
+  // A complete visible tree cut: refine within the budget, never truncate coverage.
+  let cut=this.manifest.roots.map(id=>({id,node:this.manifest.nodes[id]})).filter(q=>intersects(q.node.box));
+  while(cut.length<32){let best=-1,score=-1,children=[];for(let i=0;i<cut.length;i++){const n=cut[i].node,cs=n.children.map(id=>({id,node:this.manifest.nodes[id]})).filter(q=>intersects(q.node.box));if(!cs.length||cut.length-1+cs.length>32)continue;const rows=cut.reduce((sum,q)=>sum+(q.node.children.length?48:q.node.count),0)-(n.children.length?48:n.count)+cs.reduce((sum,q)=>sum+(q.node.children.length?48:q.node.count),0);if(rows>8000)continue;const size=Math.max(n.box[2]-n.box[0],n.box[3]-n.box[1])/pixel;if(size<=340)continue;const overlap=Math.max(0,Math.min(n.box[2],box[2])-Math.max(n.box[0],box[0]))*Math.max(0,Math.min(n.box[3],box[3])-Math.max(n.box[1],box[1]));const area=Math.max(pixel*pixel,(n.box[2]-n.box[0])*(n.box[3]-n.box[1])),density=n.count*Math.min(1,overlap/area),value=size*Math.sqrt(1+density);if(value>score){best=i;score=value;children=cs;}}if(best<0)break;cut.splice(best,1,...children);}
+  return cut.map(q=>q.node.file);
+
  },
  update(now){
   if(now-this.lastUpdate<180)return;this.lastUpdate=now;
-  if(this.manifest){this.wanted=this.nodesForView(cam,width,height);const rows=[];for(const file of this.wanted){const loaded=this.cache.get(file);if(loaded)rows.push(...loaded);else if(this.inflight.size<4&&now-(this.errors.get(file)||-Infinity)>3000)this.tile(file).then(()=>{this.lastUpdate=-Infinity;}).catch(()=>{});}this.visible=rows.filter(o=>!o.atlasOnly).slice(0,8000);this.visibleMap=new Map(this.visible.map(o=>[o.id,o]));}
+  if(this.manifest){this.wanted=this.nodesForView(cam,width,height);for(const file of this.wanted)if(!this.cache.has(file)&&this.inflight.size<4&&now-(this.errors.get(file)||-Infinity)>3000)this.tile(file).then(()=>{this.lastUpdate=-Infinity;}).catch(()=>{});
+   if(this.wanted.every(file=>this.cache.has(file))){const rows=this.wanted.flatMap(file=>this.cache.get(file));this.visible=rows.filter(o=>!o.atlasOnly).slice(0,8000);this.visibleMap=new Map(this.visible.map(o=>[o.id,o]));}
+  }
   if(cam.span<200000)for(const g of GALAXIES){if(g.id==='milkyway')continue;const p=MapLayout.project(g);if(Math.hypot(cam.x-p.x,cam.y-p.y)<cam.span)this.ensureGalaxy(OBJECTS.find(o=>o.id===g.id)||this.get(g.id));}
  },
  pin(o){
@@ -83,7 +86,7 @@ const ExtendedCatalog={
   const file=entry.tile||EXTENDED_BOOT.systemTiles?.[entry.id];if(!file)throw Error('Нет адреса записи каталога');
   const rows=await this.tile(file),o=rows.find(o=>o.id===entry.id);if(!o)throw Error('Запись не найдена в каталоге');return this.pin(o);
  },
- focus(o){if(o.nuclearStar){NuclearStars.focus();return;}if(o.atlasOnly){toast(o.positionReason||'Для этого объекта недостаточно точное положение. Он доступен только в атласе.');return;}const p=MapLayout.project(o),span=o.kind==='galaxy'?(o.galaxy?.diameterLy||30000)*2.8:o.positionQuality==='unknown'?Math.max(400,Math.hypot(p.x,p.y)*.04):o.synthetic?2:o.kind==='star'?24:Math.max(24,Math.min(20000,(o.d||100)*.03));const system=this.systemByMember.get(o.id);goCamera(p.x,p.y,system?.separationLy?Math.max(.00006,system.separationLy*6):span);this.ensureGalaxy(o);},
+ focus(o){if(o.nuclearStar){NuclearStars.focus(o.orbit);return;}if(o.atlasOnly){toast(o.positionReason||'Для этого объекта недостаточно точное положение. Он доступен только в атласе.');return;}const p=MapLayout.project(o),span=o.kind==='galaxy'?(o.galaxy?.diameterLy||30000)*2.8:o.positionQuality==='unknown'?Math.max(400,Math.hypot(p.x,p.y)*.04):o.synthetic?2:o.kind==='star'?24:Math.max(24,Math.min(20000,(o.d||100)*.03));const system=this.systemByMember.get(o.id);goCamera(p.x,p.y,system?.separationLy?Math.max(.00006,system.separationLy*6):span);this.ensureGalaxy(o);},
  capture(saved){
   const ids=new Set([saved.current,saved.selected,saved.flight?.target,saved.flight?.fromId,...(saved.visited||[]),...(saved.destroyed||[]),...(saved.itinerary||[]).map(n=>n.id),...(saved.flight?.route||[]).map(n=>n.id)]);
   // Include the parent galaxy so a generated star can still be identified on reload.

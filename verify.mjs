@@ -7,7 +7,7 @@ const el=id=>els.get(id)||(els.set(id,new Element),els.get(id));
 const context=vm.createContext({console,performance,Math,JSON,Number,Array,String,Set,Map,Date,setTimeout:()=>0,clearTimeout(){},requestAnimationFrame(){},ResizeObserver:class{observe(){}},document:{documentElement:{dataset:{theme:'dark'}},querySelector:()=>null,getElementById:el,querySelectorAll:()=>[],addEventListener(){},createElement:()=>new Element,hidden:false},window:{devicePixelRatio:1,addEventListener(){},open(){}},localStorage:{getItem(){return null},setItem(){}},assert});
 
 
-vm.runInContext(['dist/catalog.js','dist/astronomy.js','dist/catalog-import.js','dist/catalog-retired.js','dist/coordinates.js','dist/cosmic-catalog.js','dist/layout-data.js','dist/map-layout.js','dist/cosmology.js','dist/map-details.js','dist/catalog-extended.js','dist/catalog-stream.js','dist/nuclear-stars.js','dist/regions.js','dist/flight-view.js','dist/flight-marks.js','dist/physics.js','dist/flyby.js','dist/navigation.js','dist/simulation.js','dist/app.js'].map(p=>fs.readFileSync(p,'utf8')).join('\n'),context);
+vm.runInContext(['dist/catalog.js','dist/astronomy.js','dist/catalog-import.js','dist/catalog-retired.js','dist/coordinates.js','dist/cosmic-catalog.js','dist/layout-data.js','dist/map-layout.js','dist/cosmology.js','dist/map-details.js','dist/catalog-extended.js','dist/catalog-stream.js','dist/nuclear-stars-data.js','dist/nuclear-stars.js','dist/regions.js','dist/flight-view.js','dist/flight-marks.js','dist/physics.js','dist/flyby.js','dist/navigation.js','dist/simulation.js','dist/app.js'].map(p=>fs.readFileSync(p,'utf8')).join('\n'),context);
 context.CATALOG_AUDIT=JSON.parse(fs.readFileSync('data-tools/selection-audit.json','utf8'));
 const run=s=>vm.runInContext(s,context);
 run(`

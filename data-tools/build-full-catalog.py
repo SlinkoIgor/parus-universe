@@ -331,13 +331,13 @@ def tile(rows,depth=0):
         dump(OUT/node['file'],rows)
         for r in rows:locations[r[0]]=node['file']
     return ident
-# Radius bands prevent the nearby sky disappearing into a single huge bounding box.
-bands=collections.defaultdict(list)
-atlas_only=[]
+# One spatial hierarchy, never radial bands. Parent hash samples are subsets of
+# the union of child samples, so refining preserves already visible representatives.
+atlas_only=[];mapped=[]
 for r in records:
     if r[11].get('atlasOnly') or r[6]=='unknown':r[11]['atlasOnly']=True;r[12]=r[13]=None;atlas_only.append(r)
-    else:bands[int(math.log10(max(1,math.hypot(r[12],r[13]))))].append(r)
-roots=[tile(rows) for _,rows in sorted(bands.items())]
+    else:mapped.append(r)
+roots=[tile(mapped)] if mapped else []
 for i in range(0,len(atlas_only),256):
     file='atlas-'+str(i//256)+'.json';rows=atlas_only[i:i+256];dump(OUT/file,rows)
     for r in rows:locations[r[0]]=file

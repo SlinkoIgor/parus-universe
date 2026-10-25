@@ -6,15 +6,23 @@ const MapDetails={
   return name||o.name;
  },
  searchKey(s){return s.normalize('NFKD').toLocaleLowerCase('ru').replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]/gu,'').replace(/(ngc|ic)0+(?=\d)/g,'$1');},
+ mass(o){
+  if(!o)return null;if(Number.isFinite(o.massSolar)&&o.massSolar>0)return o.massSolar;
+  const txt=o.facts?.mass||'',sup={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁻':'-'};
+  const m=txt.match(/([\d.,]+(?:\s*·\s*10[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+)?(?:\s*\+\s*[\d.,]+)?)(?:\s*(тыс|млн|млрд))?\s*M☉/);
+  if(m){const parts=m[1].split('+').map(v=>{const a=v.replace(/,/g,'.').replace(/\s/g,'').split('·10');return Number(a[0])*(a[1]?10**Number([...a[1]].map(c=>sup[c]??c).join('')):1);}),n=parts.reduce((a,b)=>a+b,0)*({тыс:1e3,млн:1e6,млрд:1e9}[m[2]]||1);if(n>0&&Number.isFinite(n))return n;}
+  return Number.isFinite(o.gravity?.massSolar)&&o.gravity.massSolar>0?o.gravity.massSolar:null;
+ },
+ massOrder(a,b){const ma=this.mass(a),mb=this.mass(b);return ma!==null&&mb!==null?mb-ma:ma!==null?-1:mb!==null?1:0;},
  maxSpan(o){
-  if(o.nuclearStar)return 150000;
+  if(o.nuclearStar)return 60000;
   if(o.galaxyMember)return (o.hostDiameterLy||30000)*5;
   if(o.positionQuality==='unknown')return Infinity;
   if(o.synthetic)return 2500;
   if(o.cosmicLandmark)return Infinity;
   if(o.galaxy)return Math.max(1e8,o.d*30,o.galaxy.diameterLy*300);
   if(o.kind==='home')return 600;
-  if(o.kind==='star')return Math.min(60000,Math.max(400,(o.d||0)*35));
+  if(o.kind==='star')return 60000;
   if(o.kind==='blackhole')return o.id==='sgr'?4e6:Math.max(100000,(o.d||0)*15);
   if(o.kind==='nebula')return Math.max(1e7,(o.d||0)*80);
   if(o.kind==='pulsar')return Math.min(3e6,Math.max(1000,(o.d||0)*25));
@@ -36,10 +44,10 @@ const MapLabels={
   else{const r=$('flightCard').getBoundingClientRect();this.boxes.push({x:r.left-12,y:Math.min(r.top-8,height*.45),w:r.width+24,h:height});}
  },
  add(label){this.queue.push(label);},
- point({key,name,detail,p,priority=20,selected=false,opacity=1,size}){
-  this.add({key,name,detail,priority,size:size||(selected?12:10),opacity,color:selected?'#171717':'#454545',candidates:[{x:p.x+19,y:p.y-18,align:'left'}]});
+ point({key,name,detail,p,mass=null,priority=20,selected=false,opacity=1,size}){
+  this.add({key,name,detail,mass,priority,size:size||(selected?12:10),opacity,color:selected?'#171717':'#454545',candidates:[{x:p.x+19,y:p.y-18,align:'left'}]});
  },
- draw(){this.queue.sort((a,b)=>Number(this.dynamic(a.key))-Number(this.dynamic(b.key))||b.priority-a.priority||a.key.localeCompare(b.key));for(const q of this.queue){const size=q.size||9;ctx.font=size+'px "Golos Text",Arial,sans-serif';const mainWidth=ctx.measureText(q.name).width;ctx.font='7px "IBM Plex Mono",monospace';const detailWidth=q.detail?ctx.measureText(q.detail).width:0,w=Math.max(mainWidth,detailWidth)+12,h=q.detail?33:20;
+ draw(){this.queue.sort((a,b)=>Number(this.dynamic(a.key))-Number(this.dynamic(b.key))||((b.mass??-Infinity)-(a.mass??-Infinity)||0)||b.priority-a.priority||a.key.localeCompare(b.key));for(const q of this.queue){const size=q.size||9;ctx.font=size+'px "Golos Text",Arial,sans-serif';const mainWidth=ctx.measureText(q.name).width;ctx.font='7px "IBM Plex Mono",monospace';const detailWidth=q.detail?ctx.measureText(q.detail).width:0,w=Math.max(mainWidth,detailWidth)+12,h=q.detail?33:20;
   const candidates=q.key.startsWith('galaxy-')?q.candidates.slice(0,1):q.candidates;
   for(const p of candidates){const x=p.align==='right'?p.x-w:p.align==='center'?p.x-w/2:p.x,box={x:x-4,y:p.y-size-5,w:w+8,h};if(box.x<8||box.x+box.w>width-8||box.y<8||box.y+box.h>height-8||this.boxes.some(b=>this.overlaps(box,b)))continue;
    if(!this.dynamic(q.key))this.slots.set(q.key,q.candidates.indexOf(p));

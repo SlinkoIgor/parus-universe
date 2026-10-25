@@ -31,7 +31,7 @@ const RegionMap={
   // Labels follow visible edges. A containing region never gets clamped onto the map centre.
   const edge=points.filter(p=>p.x>30&&p.x<width-30&&p.y>120&&p.y<height-65).sort((a,b)=>b.y-a.y||Math.abs(a.x-c.x)-Math.abs(b.x-c.x));
   const hit={o,points,label:null,closed:r.shape!=='arc'};this.hits.push(hit);
-  if(rx>=18)MapLabels.add({key:'region-'+o.id,name:o.name.toUpperCase(),detail:r.illustrative?'ГРАНИЦА УСЛОВНАЯ':'ПРИБЛИЖЁННАЯ ОБЛАСТЬ',priority:selected?100:30,size:9,color:selected?'#454545':'#757575',candidates:edge.map(p=>({x:p.x,y:p.y-9,align:'center'})),onPlace:box=>{hit.label=box;}});
+  if(rx>=18)MapLabels.add({key:'region-'+o.id,name:o.name.toUpperCase(),detail:r.illustrative?'ГРАНИЦА УСЛОВНАЯ':'ПРИБЛИЖЁННАЯ ОБЛАСТЬ',mass:MapDetails.mass(o),priority:selected?100:30,size:9,color:selected?'#454545':'#757575',candidates:edge.map(p=>({x:p.x,y:p.y-9,align:'center'})),onPlace:box=>{hit.label=box;}});
  }},
  hit(x,y){for(const h of [...this.hits].reverse()){if(h.label&&x>=h.label.x&&x<=h.label.x+h.label.w&&y>=h.label.y&&y<=h.label.y+h.label.h)return h.o;const p=h.points;for(let i=1;i<p.length;i++){const a=p[i-1],b=p[i],dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1)));if(Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<9)return h.o;}}return null;}
 };
