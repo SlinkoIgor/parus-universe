@@ -10,7 +10,7 @@ const ExtendedCatalog={
  decode(r){
   const [id,name,kind,d,raDeg,decDeg,positionQuality,distanceMethod,aliases,apparentV,source,extra,x,y]=r,located=d>0&&Number.isFinite(raDeg)&&Number.isFinite(decDeg),ref=extra.referenceURL?[extra.referenceURL,source]:this.sources[source]||this.sources.HYG;
   const o={id,name,kind,d,raDeg,decDeg,positionQuality,distanceMethod,aliases,apparentV,...extra,source:ref[0],catalog:ref[1],streamed:true,mapPosition:{x,y},...(located?Space.point(Space.fromSky(raDeg,decDeg,d)):{p3:null,x,y}),navigable:located&&!extra.invalidIdentification&&!extra.atlasOnly,type:({star:'ЗВЕЗДА',pulsar:'ПУЛЬСАР',galaxy:'ГАЛАКТИКА',cluster:'СКОПЛЕНИЕ',nebula:'ТУМАННОСТЬ'})[kind]+' · '+source};
-  o.desc='Реальная каталожная запись '+ref[1]+'. '+distanceMethod+(extra.identificationNote?' '+extra.identificationNote:'');
+  o.desc=distanceMethod+(extra.identificationNote?' '+extra.identificationNote:'');
   o.coordinateNote=positionQuality==='unknown'?'Недостаточно данных для положения на карте. Объект доступен только в атласе.':positionQuality==='approximate'?'Приблизительная позиция; полёт разрешён по указанной оценке. '+distanceMethod:'Каталожная позиция J2000; собственное движение не моделируется.';
   o.facts={class:o.type,mass:'Нет индивидуальной оценки в этом каталоге.',lumUnknown:'Болометрическая светимость не указана.',note:distanceMethod+(extra.sizeEstimated?' Контур галактики имеет условный игровой размер: угловой диаметр в каталоге отсутствует.':''),refs:[ref]};
   if(extra.membershipSource)o.facts.refs.push([extra.membershipSource,'Принадлежность к галактике']);if(extra.memberType)o.type=o.facts.class=extra.memberType;if(extra.positionReason)o.coordinateNote=extra.positionReason;

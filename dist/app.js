@@ -171,7 +171,7 @@ function renderFlightProfile(eta){
 function renderUI(){
  Cosmology.sync(state);$('expansionToggle').checked=state.expansion!==false;$('expansionFactor').textContent='a = '+fmt(Cosmology.scale(),Cosmology.scale()<10?6:2);
  const f=state.flight,target=object(f?f.target:state.selected),current=object(state.current),active=!!f,boost=wantsBoost(),arrived=!active&&state.current===target.id;
- $('targetName').textContent=target.name;$('targetType').textContent=state.destroyed.includes(target.id)&&target.kind==='star'?'ОСТАТОК ЗВЕЗДЫ':target.type;$('targetVisited').hidden=!state.visited.includes(target.id);
+ $('targetName').textContent=target.name;$('targetType').textContent=state.destroyed.includes(target.id)&&target.kind==='star'?'ОСТАТОК ЗВЕЗДЫ':MapDetails.typeName(target)+(MapDetails.component(target)?' · компонент '+MapDetails.component(target):'');$('targetVisited').hidden=!state.visited.includes(target.id);
  $('flightCard').classList.toggle('in-flight',active);
  const d=target.navigable?Cosmology.physicalDistance(state.ship,target):target.d;$('targetDistance').innerHTML=Number.isFinite(d)?compact(d)+' <small>св. лет</small>':'<small>Расстояние неизвестно</small>';
  $('departureSection').hidden=active||!canBoost()||arrived||!target.navigable;document.querySelectorAll('[data-departure]').forEach(b=>{const on=(state.departureMode||'burst')===b.dataset.departure;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
@@ -257,7 +257,7 @@ function catalogRows(items,total,loading=false,error=''){
  $('catalogList').replaceChildren();
  if(!items.length){const e=document.createElement('p');e.className='empty-state';e.textContent=loading?'Поиск по полному каталогу…':error||'Объекты не найдены.';$('catalogList').append(e);}
  for(const entry of items){const b=document.createElement('button');b.className='catalog-item';const quality=entry.atlasOnly||entry.positionQuality==='unknown'?' · ТОЛЬКО АТЛАС':entry.positionQuality==='approximate'?' · ПРИБЛИЗИТЕЛЬНО':entry.synthetic?' · ИГРОВАЯ ЗВЕЗДА':'';
-  const body=document.createElement('span');body.className='catalog-item-body';const name=document.createElement('strong');name.textContent=entry.name;const detail=document.createElement('small');detail.textContent=distanceText(entry.d)+quality+(state.visited.includes(entry.id)?' · ИССЛЕДОВАНО':'');body.append(name);body.append(detail);b.append(body);const arrow=document.createElement('span');arrow.textContent='↗';b.append(arrow);
+  const body=document.createElement('span');body.className='catalog-item-body';const name=document.createElement('strong');name.textContent=entry.name;const detail=document.createElement('small');detail.textContent=MapDetails.typeName(entry)+' · '+distanceText(entry.d)+quality+(state.visited.includes(entry.id)?' · ИССЛЕДОВАНО':'');body.append(name);body.append(detail);b.append(body);const arrow=document.createElement('span');arrow.textContent='↗';b.append(arrow);
   b.addEventListener('click',async()=>{b.disabled=true;try{const o=await ExtendedCatalog.resolve(entry);const picking=Route.picking;select(o.id);closeCatalog();ExtendedCatalog.focus(o);if(picking){Route.add(o.id);Route.show();}}catch(e){toast(e.message);b.disabled=false;}});$('catalogList').append(b);
  }
  if(error&&items.length){const e=document.createElement('p');e.className='empty-state';e.textContent=error+' · показана основная выборка';$('catalogList').append(e);}
@@ -288,7 +288,7 @@ function showObject(id=state.selected){
  const row=(label,value)=>'<div class="fact-row"><dt>'+label+'</dt><dd>'+value+'</dd></div>';
  let luminosity=f.lum!==undefined?'≈ '+quantity(f.lum)+' L☉<small>Болометрическая мощность: ≈ '+quantity(f.lum*Astro.solarLuminosity)+' Вт</small>':f.visual?'≈ '+quantity(f.visual.solarV)+' L☉,'+(f.band||'V')+'<small>Собственная светимость в полосе '+(f.band||'V')+'; абсолютная величина M'+(f.band||'V')+' ≈ '+fmt(f.visual.absoluteV,1)+' mag</small>':f.lumUnknown;
  const sizeButton=o.region?'<button class="map-size-action" id="viewRegion">Показать область ↗</button>':(g||o.id==='sgr')?'<button class="map-size-action" id="viewGalaxy">Показать галактику в масштабе <span>↗</span></button>':'';
- let html='<div class="modal-eyebrow">АТЛАС / ОБ ОБЪЕКТЕ</div><h2>'+o.name+'</h2><p>'+o.desc+'</p>'+sizeButton+'<dl class="object-facts">'+row('Класс',f.class)+row('Масса',f.mass)+row('Светимость',luminosity);
+ let html='<div class="modal-eyebrow">АТЛАС / ОБ ОБЪЕКТЕ</div><h2>'+o.name+'</h2><div class="object-type">'+MapDetails.typeName(o)+'</div><p>'+MapDetails.description(o)+'</p>'+(MapDetails.componentNote(o)?'<p>'+MapDetails.componentNote(o)+'</p>':'')+sizeButton+'<dl class="object-facts">'+row('Класс',f.class)+row('Масса',f.mass)+row('Светимость',luminosity);
  if(o.region)html+=row('Область',o.region.note+'<small>Форма и ориентация приблизительны: t-SNE не сохраняет локальные углы и размеры между объектами.</small>');
  if(o.ngc)html+=row('Каталог NGC / IC',o.ngc.replace(/^(NGC|IC)0*(\d+)/,'$1 $2'));
  if(o.cosmology)html+=row('Красное смещение',fmt(o.redshift,4)+'<small>Расстояние на карте — современное сопутствующее, ≈ '+distanceText(o.d)+'. Свет шёл ≈ '+compact(o.cosmology.lookbackYears)+' лет; это разные величины.</small>');
@@ -309,6 +309,7 @@ function showObject(id=state.selected){
  if(o.atlasOnly)html+='<p class="object-note">Только атлас: положение недостаточно точное. На карте объект не размещён.</p>';
  html+='<p class="object-note">Оценки округлены. M☉ — масса Солнца; L☉ — его полная светимость, L☉,V и L☉,B — светимость Солнца в соответствующей полосе. Это собственное излучение, а не видимая яркость с Земли.</p>';
  if(f.visual)html+='<p class="object-note">Полосовая светимость рассчитана из каталожной фотометрии и расстояния атласа: M = m − 5 log₁₀(d/10 пк), L/L☉ = 10⁰·⁴⁽ᴹ☉⁻ᴹ⁾. Без поправки на поглощение пылью; это приблизительная оценка, не полная болометрическая мощность.</p>';
+ if(MapDetails.component(o))html+='<p class="object-sources"><a href="https://www.nasa.gov/universe/chandra-scouts-nearest-star-system-for-possible-hazards/" target="_blank" rel="noopener">NASA · компоненты Альфы Центавра ↗</a></p>';
  if(f.note)html+='<p class="object-note">'+f.note+'</p>';
  html+='<p class="object-sources">'+f.refs.map(([url,label])=>'<a href="'+url+'" target="_blank" rel="noopener">'+label+' ↗</a>').join('')+'</p>';
  showDialog(html);if(o.id==='sgr'||o.nuclearStar)$('viewNuclearCluster').onclick=()=>{$('infoDialog').close();NuclearStars.focus();};if(ExtendedCatalog.systemByMember.has(o.id))$('viewSystem').onclick=()=>ExtendedCatalog.showSystem(o.id);if(o.departureStar)$('viewLocalStar').onclick=()=>{const star=ExtendedCatalog.ensureGalaxy(o);$('infoDialog').close();select(star.id);ExtendedCatalog.focus(star);};if(o.region)$('viewRegion').onclick=()=>{$('infoDialog').close();RegionMap.focus(o);};if(g||o.id==='sgr')$('viewGalaxy').onclick=()=>{const shape=g||GALAXIES[0];$('infoDialog').close();focusGalaxy(shape);};

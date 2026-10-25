@@ -12,7 +12,7 @@ const Astro={
 const STAR_FACTS={
  sol:{class:'Жёлтый карлик · G2 V',mass:'1 M☉ · Солнце',lum:1,radius:'1 R☉ · 695 700 км',extra:['Земля','Масса 5,972·10²⁴ кг; радиус 6 371 км'],ref:'https://nssdc.gsfc.nasa.gov/planetary/factsheet/sunfact.html'},
  proxima:{class:'Вспыхивающий красный карлик · M5.5 Ve',mass:'≈ 0,12 M☉',lum:.00155,radius:'≈ 0,14 R☉',ref:Astro.kmSource},
- alpha:{class:'Двойная система · G2 V + K1 V',mass:'≈ 1,08 + 0,91 M☉ · A и B',lum:2.004,radius:'≈ 1,22 + 0,86 R☉ · A и B',note:'Светимость — сумма A и B; Проксима учитывается отдельной точкой.',ref:'https://doi.org/10.3847/1538-3881/abfaff'},
+ alpha:{class:'Жёлтый карлик · G2 V · компонент A',mass:'≈ 1,08 M☉ · компонент A',lum:1.5,radius:'≈ 1,22 R☉ · компонент A',note:'Характеристики только компонента A; B и Проксима C показаны отдельными объектами.',ref:'https://doi.org/10.3847/1538-3881/abfaff'},
  barnard:{class:'Красный карлик · M4 V',mass:'≈ 0,15 M☉',lum:.00338,radius:'≈ 0,19 R☉',ref:Astro.kmSource},
  wolf:{class:'Вспыхивающий красный карлик · M6 V',mass:'≈ 0,09 M☉',lum:.001,radius:'≈ 0,15 R☉',note:'Вне вспышек; оценки светимости различаются примерно на 15%.',ref:'https://doi.org/10.1051/0004-6361/202453149'},
  lalande:{class:'Красный карлик · M2 V',mass:'≈ 0,40 M☉',lum:.01989,radius:'≈ 0,39 R☉',ref:Astro.kmSource},

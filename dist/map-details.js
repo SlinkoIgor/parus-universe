@@ -1,6 +1,17 @@
 'use strict';
 // Display hierarchy and one collision budget for every atlas label.
 const MapDetails={
+ typeName(o){
+  if(o.synthetic)return 'Искусственный игровой объект · звезда';
+  const code=o.catalogType||String(o.type||'').split(' · ')[1];
+  const subtype={OCl:'Рассеянное звёздное скопление',GCl:'Шаровое звёздное скопление','*Ass':'Звёздная ассоциация','Cl+N':'Звёздное скопление с туманностью',PN:'Планетарная туманность',EmN:'Эмиссионная туманность',RfN:'Отражательная туманность',SNR:'Остаток сверхновой',HII:'Область ионизированного водорода · туманность',GGroup:'Группа галактик',GPair:'Пара галактик',GTrpl:'Тройка галактик',Dup:'Дублирующая каталожная запись',NonEx:'Историческая неподтверждённая запись'}[code];
+  if(subtype)return subtype;
+  if(o.kind==='cluster')return /галактик/i.test([o.type,o.facts?.class,o.name].join(' '))?'Скопление галактик':'Звёздное скопление';
+  return {home:'Звезда · Солнце',star:'Звезда',pulsar:'Пульсар · нейтронная звезда',blackhole:'Чёрная дыра',quasar:'Квазар · активное ядро галактики',galaxy:'Галактика',nebula:'Туманность',structure:'Мегаструктура',wall:'Галактическая стена · мегаструктура',void:'Космический войд',ring:'Кольцевая мегаструктура · кандидат',arc:'Дуговая мегаструктура · кандидат',horizon:'Космологический горизонт'}[o.kind]||o.type||'Тип не определён';
+ },
+ description(o){return o.synthetic?o.desc:(o.desc||'').replace(/^Реальная каталожная запись [^.]+\.\s*/,'').replace(/^Реальный объект:\s*[^.]+\.\s*/,'');},
+ component(o){return {alpha:'A','hyg-71453':'B',proxima:'C'}[o.id];},
+ componentNote(o){const c=this.component(o);return c?'Компонент '+c+' тройной системы Альфа Центавра. A и B образуют тесную пару; C — Проксима Центавра, её далёкий компаньон. Буквы A, B, C обозначают компоненты одной системы; Бета Центавра — другая звёздная система.':'';},
  cleanName(o){let name=(o.name||'').replace(/\s*[·,]?\s*\b(?:NGC|IC)\s*\d+[A-Za-z]?\b/gi,'').replace(/\s*[·,]\s*$/,'').trim();
   const m=Number(o.messier);if(m&&!/\bM\s*\d+/.test(name))name+=' · M'+m;
   return name||o.name;

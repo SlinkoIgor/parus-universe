@@ -24,14 +24,15 @@ const RegionMap={
   if(r.shape==='ribbon'){const u=t<=.5?t*2:2-t*2;x=(u-.5)*r.major;y=Math.sin(u*Math.PI*3)*r.minor*.18+(t<=.5?-1:1)*r.minor*.28;}
   else if(r.shape==='arc'){x=(t-.5)*r.major;y=(4*(t-.5)**2-.5)*r.minor;}
   else{const f=r.shape==='basin'?1+.09*Math.sin(3*a)+.045*Math.cos(5*a):1;x=Math.cos(a)*r.major*.5*f;y=Math.sin(a)*r.minor*.5*f;}p.push({x,y});}return p;},
+ labelAnchor(r){return this.outline(r).reduce((a,p)=>p.y>a.y+1e-9||Math.abs(p.y-a.y)<1e-9&&Math.abs(p.x)<Math.abs(a.x)?p:a);},
  draw(){this.hits=[];for(const o of OBJECTS.filter(o=>o.region&&!o.atlasOnly).sort((a,b)=>b.region.major-a.region.major)){const r=o.region,c=screen(this.center(o)),scale=width/cam.span*Cosmology.regionScale(o),rx=r.major*.5*scale,ry=r.minor*.5*scale;
   if(rx<4||rx>20000||c.x+rx*1.2<0||c.x-rx*1.2>width||c.y+ry*1.2<0||c.y-ry*1.2>height)continue;
   const points=this.outline(r).map(p=>({x:c.x+p.x*scale,y:c.y+p.y*scale})),selected=o.id===state.selected,highlighted=selected||hover?.id===o.id;
   ctx.save();ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));if(r.shape!=='arc')ctx.closePath();ctx.strokeStyle=paint(highlighted?'#454545':'#777777');ctx.lineWidth=highlighted?1.25:.7;ctx.setLineDash(r.shape==='ring'?[7,5]:[3,6]);ctx.stroke();ctx.restore();
-  // Labels follow visible edges. A containing region never gets clamped onto the map centre.
-  const edge=points.filter(p=>p.x>30&&p.x<width-30&&p.y>120&&p.y<height-65).sort((a,b)=>b.y-a.y||Math.abs(a.x-c.x)-Math.abs(b.x-c.x));
+  // One permanent contour anchor in world coordinates; panning never selects a new vertex.
+  const anchor=this.labelAnchor(r),label={x:c.x+anchor.x*scale,y:c.y+anchor.y*scale-9,align:'center'};
   const hit={o,points,label:null,closed:r.shape!=='arc'};this.hits.push(hit);
-  if(rx>=18)MapLabels.add({key:'region-'+o.id,name:o.name.toUpperCase(),detail:r.illustrative?'ГРАНИЦА УСЛОВНАЯ':'ПРИБЛИЖЁННАЯ ОБЛАСТЬ',mass:MapDetails.mass(o),priority:selected?100:30,size:9,color:selected?'#454545':'#757575',candidates:edge.map(p=>({x:p.x,y:p.y-9,align:'center'})),onPlace:box=>{hit.label=box;}});
+  if(rx>=18)MapLabels.add({key:'region-'+o.id,name:o.name.toUpperCase(),detail:r.illustrative?'ГРАНИЦА УСЛОВНАЯ':'ПРИБЛИЖЁННАЯ ОБЛАСТЬ',mass:MapDetails.mass(o),priority:selected?100:30,size:9,color:selected?'#454545':'#757575',candidates:[label],onPlace:box=>{hit.label=box;}});
  }},
  hit(x,y){for(const h of [...this.hits].reverse()){if(h.label&&x>=h.label.x&&x<=h.label.x+h.label.w&&y>=h.label.y&&y<=h.label.y+h.label.h)return h.o;const p=h.points;for(let i=1;i<p.length;i++){const a=p[i-1],b=p[i],dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1)));if(Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<9)return h.o;}}return null;}
 };
