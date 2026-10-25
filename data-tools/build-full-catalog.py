@@ -4,6 +4,7 @@ No network. HYG sentinel distances are never used. Unknown objects receive only
 an atlas-only record; approximate measured/model distances remain navigable.
 """
 import csv, json, math, re, hashlib, unicodedata, collections, subprocess
+from disk_geometry import locate as locate_disk
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -41,7 +42,8 @@ cache=json.loads((ROOT/'data-tools/named-astrometry.json').read_text())
 literature=json.loads((ROOT/'data-tools/galaxy-distances.json').read_text())
 patches={}; records=[]; rawmap={}; systems=[]; coverage={}; policies={}; member_rows=[]
 hip_errors=json.loads((ROOT/'data-tools/hipparcos-errors.json').read_text())['rows']
-MAX_RELATIVE_ERROR=.5
+COORDINATE_POLICY=json.loads((ROOT/'data-tools/coordinate-policy.json').read_text())
+MAX_RELATIVE_ERROR=COORDINATE_POLICY['maxReportedRelativeError']
 
 # A coarse field of the existing t-SNE offsets keeps extra stars in its vicinity
 # without extending the quadratic layout optimizer to 140,000 objects.
@@ -166,8 +168,8 @@ for q in pulsars:
     independent=number(q.get('DIST_A'));px=number(q.get('PX'));pxerr=parameter_errors.get(name)
     dm=number(q.get('DIST_DM'));dm1=number(q.get('DIST_DM1'))
     # 25 kpc in YMW16 and ~50 kpc in NE2001 are model boundaries, not distances.
-    saturated=(dm is not None and dm>=25) or (dm1 is not None and dm1>=49.9)
-    conflict=bool(dm and dm1 and max(dm,dm1)/min(dm,dm1)>2)
+    saturated=(dm is not None and dm>=COORDINATE_POLICY['forbiddenDMModelKpc']['YMW16']) or (dm1 is not None and dm1>=COORDINATE_POLICY['forbiddenDMModelKpc']['NE2001'])
+    conflict=bool(dm and dm1 and max(dm,dm1)/min(dm,dm1)>COORDINATE_POLICY['maxDMModelRatio'])
     host=None
     association=re.search(r'(?:^|,)GC:([^,\[]+)',q.get('ASSOC',''))
     if association:
@@ -203,7 +205,8 @@ coverage['ATNF']={'rows':len(pulsars),'represented':len(pulsars),'unreliableAtla
 dump(ROOT/'data-tools/pulsar-distance-audit.json',{'policy':'DIST_A > PX signal/error >3 > identified cluster host > nonsaturated DM; model disagreement >2 is atlas-only','sources':['https://www.atnf.csiro.au/research/pulsar/psrcat/psrcat_help.html','https://doi.org/10.3847/1538-4357/835/1/29'],'rows':pulsar_audit})
 
 # Measured directions of individually known members of nearby galaxies.
-# Their depth is unresolved: use the host distance, explicitly labelled.
+# Use the same M31 disk frame as the bulk data; retain host distances for the Clouds.
+disk_models=json.loads((ROOT/'data-tools/galaxy-disk-models.json').read_text())
 for member in json.loads((ROOT/'data-tools/nearby-galaxy-stars.json').read_text())['stars']:
     host=byid[member['host']];d=host['d'];p3=sky(member['raDeg'],member['decDeg'],d)
     note='Измеренное направление отдельной звезды. Расстояние принято по '+host['name']+'; глубина внутри галактики не определена. Это не индивидуальный параллакс.'
@@ -212,8 +215,43 @@ for member in json.loads((ROOT/'data-tools/nearby-galaxy-stars.json').read_text(
     # interpolate the global t-SNE field independently across a small galaxy.
     row[12]=host['display']['x']+p3[0]-host['p3'][0]
     row[13]=host['display']['y']-(p3[1]-host['p3'][1])
+    if host['id']=='andromeda':
+        model=disk_models[host['id']];position=locate_disk({**member,'placement':'disk'},host,model,COORDINATE_POLICY)
+        if position and position['accepted']:
+            row[3]=position['distance'];note='Измеренное направление звезды; глубина оценена пересечением луча с наклонным диском M31. '+model['note'];row[7]=note
+            row[11].update(placementNote=note,geometrySource=model['reference'],positionEstimate={'method':'host-disk','anchor':host['id'],'localEnvelopeLy':position['localEnvelopeLy'],'referenceScaleLy':position['referenceScaleLy'],'localEnvelopeFraction':position['localEnvelopeLy']/position['referenceScaleLy'],'sharedDistanceErrorLy':None,'envelopeMeaning':'Модельный диапазон глубины и чувствительности к углам; не индивидуальный параллакс.','inclinationDeg':model['inclinationDeg'],'positionAngleDeg':model['positionAngleDeg'],'nearSideKnown':True})
+            g=host['galaxy'];angle=g['rotation'];u,v=position['major'],position['minor']*g['axisRatio'];row[12]=host['display']['x']+u*math.cos(angle)-v*math.sin(angle);row[13]=host['display']['y']+u*math.sin(angle)+v*math.cos(angle)
     records.pop();member_rows.append(row)
 coverage['NearbyGalaxyStars']={'rows':len(member_rows),'represented':len(member_rows)}
+
+# Observed members of nearby galaxies. Disk intersection is used only for
+# spectroscopically identified massive stars / gas; unaged PHAT clusters retain a host-depth envelope.
+disk_models=json.loads((ROOT/'data-tools/galaxy-disk-models.json').read_text());disk_audit=[]
+disk_rows=json.loads((ROOT/'data-tools/galaxy-disk-objects.json').read_text())['objects']
+for member in disk_rows:
+    host=byid[member['host']];model=disk_models[host['id']];position=locate_disk(member,host,model,COORDINATE_POLICY)
+    duplicates=[r for r in member_rows if r[11].get('parentGalaxy')==host['id'] and math.hypot((r[4]-member['raDeg'])*math.cos(math.radians(member['decDeg'])),r[5]-member['decDeg'])<1.5/3600]
+    if duplicates:
+        duplicates[0][8]=list(dict.fromkeys(duplicates[0][8]+member['aliases']+[member['name']]))
+        disk_audit.append({'id':member['id'],'action':'alias-of-existing-member','target':duplicates[0][0]});continue
+    if not position:disk_audit.append({'id':member['id'],'action':'invalid-intersection'});continue
+    local=position['localEnvelopeLy'];mode=position['mode'];valid=position['accepted']
+    note=('Пересечение измеренного луча зрения с моделью наклонного диска '+host['name']+'. ' if mode=='host-disk' else 'Членство в '+host['name']+' по каталогу PHAT; принята общая дальность, индивидуальная глубина не измерена. Это не модель тонкого диска для старых/неизвестных скоплений. ')+model['note']
+    estimate={'method':mode,'anchor':host['id'],'localEnvelopeLy':local,'referenceScaleLy':position['referenceScaleLy'],'localEnvelopeFraction':local/position['referenceScaleLy'],'sharedDistanceErrorLy':None,'sharedDistanceNote':'Неопределённость общей дальности галактики не задана; коррелирована для всех её членов.','envelopeMeaning':'Модельный диапазон по толщине, чувствительности к углам ±3° и неоднозначности наклона; не измеренная индивидуальная sigma.','inclinationDeg':model['inclinationDeg'],'positionAngleDeg':model['positionAngleDeg'],'nearSideKnown':model['nearSideKnown']}
+    extra={'galaxyMember':True,'bulkGalaxyMember':True,'parentGalaxy':host['id'],'referenceURL':member['source'],'membershipSource':member['source'],'memberType':member['type'],'hostDiameterLy':host.get('galaxy',{}).get('diameterLy',30000),'positionEstimate':estimate,'placementNote':note,'membershipNote':member['membership'],'geometrySource':model['reference']}
+    if member['kind']=='nebula':extra['catalogType']='SNR' if member['id'].startswith('m33-snr-') else 'HII'
+    if member.get('diameterPc'):extra['diameterLy']=member['diameterPc']*PC
+    if member.get('halfLightRadiusArcsec') and member['halfLightRadiusArcsec']>0:extra['halfLightRadiusLy']=member['halfLightRadiusArcsec']*math.pi/648000*position['distance']
+    if member.get('crowding'):extra['crowding']=member['crowding']
+    if not valid:extra.update(atlasOnly=True,positionReason='Модель выходит за принятый радиус галактики либо локальный диапазон превышает половину модельного диаметра. Только атлас.')
+    row=add(member['id'],member['name'],member['kind'],position['distance'],member['raDeg'],member['decDeg'],'approximate',note,member['aliases']+[host['name']],member.get('magV'),'GalaxyDisks',extra)
+    # Rotate the host-local inferred disk coordinates into its existing schematic optical outline.
+    g=host.get('galaxy',{});angle=g.get('rotation',0);u,v=position['major'],position['minor']*g.get('axisRatio',math.cos(math.radians(model['inclinationDeg'])))
+    row[12]=host['display']['x']+u*math.cos(angle)-v*math.sin(angle);row[13]=host['display']['y']+u*math.sin(angle)+v*math.cos(angle)
+    disk_audit.append({'id':member['id'],'host':host['id'],'action':'map' if valid else 'atlas-only','method':mode,'radiusLy':position['radius'],'localEnvelopeLy':local,'localEnvelopeFraction':local/position['referenceScaleLy']})
+coverage['GalaxyDisks']={'rows':len(disk_rows),'represented':len(disk_rows),'added':sum(q['action'] in ('map','atlas-only') for q in disk_audit),'mapped':sum(q['action']=='map' for q in disk_audit),'merged':sum(q['action']=='alias-of-existing-member' for q in disk_audit)}
+dump(ROOT/'data-tools/galaxy-disk-audit.json',{'policy':COORDINATE_POLICY,'rows':disk_audit})
+
 
 # Apply the same uncertainty ceiling to non-HYG named stars using SIMBAD.
 for o in core:
@@ -371,11 +409,25 @@ for r in records:
     key=re.sub(r'(ngc|ic)0+(?=\d)',r'\1','|'+'|'.join(norm(v) for v in [r[0],r[1],*r[8],r[11].get('ngc','')])+'|')
     index.append([r[0],r[1],r[2],r[3],r[6],locations[r[0]],key,bool(r[11].get('atlasOnly'))])
 dump(OUT/'search.json',index)
-revision=hashlib.sha256(Path(__file__).read_bytes()+b''.join(hashlib.sha256(p.read_bytes()).digest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path,ROOT/'data-tools/hipparcos-errors.json',ROOT/'data-tools/nearby-galaxy-stars.json',ROOT/'data-tools/confirmed-systems.json'])+json.dumps(core,ensure_ascii=False).encode()).hexdigest()[:12]
+revision=hashlib.sha256(Path(__file__).read_bytes()+b''.join(hashlib.sha256(p.read_bytes()).digest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path,ROOT/'data-tools/hipparcos-errors.json',ROOT/'data-tools/nearby-galaxy-stars.json',ROOT/'data-tools/confirmed-systems.json',ROOT/'data-tools/coordinate-policy.json',ROOT/'data-tools/galaxy-disk-models.json',ROOT/'data-tools/galaxy-disk-objects.json',ROOT/'data-tools/disk_geometry.py'])+json.dumps(core,ensure_ascii=False).encode()).hexdigest()[:12]
 summary={'version':1,'revision':revision,'total':len(core)+len(member_rows)+len(records),'core':len(core)+len(member_rows),'extra':len(records),'sourceCoverage':coverage,'mapRows':len(records)-len(atlas_only),'atlasOnlyRows':len(atlas_only),'unknownExtra':sum(r[6]=='unknown' for r in records),'approximateExtra':sum(r[6]=='approximate' for r in records),'nodes':nodes,'roots':roots,'search':'search.json','systems':len(systems),'foregroundWithin50':len(foreground)}
 dump(OUT/'manifest.json',summary)
 boot={'revision':revision,'members':member_rows,'policies':policies,'hiddenIds':[r[0] for r in atlas_only],'total':summary['total'],'patches':patches,'foreground':foreground,'systems':systems,'renames':renames,'sourceCoverage':coverage,'pulsarCorrections':[r for r in records if r[10]=='ATNF' and (r[11].get('distanceHost') or 'параллакс' in r[7]) and not r[11].get('atlasOnly')],'systemTiles':{i:locations[i] for s in systems for i in s['members'] if i in locations},'rawMap':{k:v for k,v in rawmap.items() if k.startswith('atnf:') and v in byid}}
 (ROOT/'dist/catalog-extended.js').write_text('// Generated from complete local source snapshots.\nconst EXTENDED_BOOT='+json.dumps(boot,ensure_ascii=False,separators=(',',':'),allow_nan=False)+';\n')
 dump(ROOT/'data-tools/full-catalog-audit.json',{'total':summary['total'],'core':len(core)+len(member_rows),'extra':len(records),'sourceCoverage':coverage,'mappedRows':summary['mapRows'],'atlasOnlyRows':summary['atlasOnlyRows'],'leafRecords':len(locations),'foreground':foreground,'systems':len(systems),'unknownExtra':summary['unknownExtra'],'approximateExtra':summary['approximateExtra'],'sourceSHA256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path]}})
 html=ROOT/'dist/index.html';html.write_text(re.sub(r'(catalog-extended\.js\?v=)[^\"]+',lambda m:m[1]+revision,html.read_text()))
+# Keep the public provenance index in sync with the actual generated catalog.
+source_path=ROOT/'dist/catalog-sources.json';source_info=json.loads(source_path.read_text());full=source_info.setdefault('fullCatalog',{})
+full.update(records=summary['total'],coordinatePolicy='data-tools/coordinate-policy.json',diskModels='data-tools/galaxy-disk-models.json',diskSelection='data-tools/galaxy-disk-objects.json',diskAudit='data-tools/galaxy-disk-audit.json',pulsarAudit='data-tools/pulsar-distance-audit.json')
+full['coverage'].update({key:value['represented'] for key,value in coverage.items()})
+full['search']='Lazy '+str(round((OUT/'search.json').stat().st_size/1e6,1))+' MB compact worker index; 100 results initially'
+full['map']='One spatial binary tree (no radial bands); max256 leaf rows, 48 cached tiles, 32 view nodes, 4 concurrent loads, 8000 streamed points'
+full['uncertainty']='Formal policy v2: bounded point estimates only; no sentinels or model bounds. Field reported relative error <=0.5, ATNF PX significance >3 and DM-model ratio <=2. Host-local model envelope <=0.5 of its reference diameter; common host-distance error is correlated, not independent scatter. Full definitions in docs/catalog.md.'
+full['nearbyGalaxyStars']['distance']='M31 V1/AF: inclined-disk ray intersection. R136a1/HD5980: common host distance, unresolved depth.'
+full['galaxyMembers']={'inputRows':len(disk_rows),'added':coverage['GalaxyDisks']['added'],'selection':'LGGS Mm=1; PHAT main table2 only; M33 SNR Conf=yes','model':'Measured directions; disk-ray intersections for massive stars/gas; host-depth envelope for unaged PHAT clusters; M33 mirror ambiguity included.'}
+for name,catalog,changes in [('LGGS, Massey et al. 2016','J/AJ/152/62','Spectroscopic membership Mm=1; original measured directions, spectral types and Rgc preserved.'),('PHAT/AP, Johnson et al. 2015','J/ApJ/802/127','Main cluster table2 only (2753 observed clusters), no synthetic/ancillary/background tables.'),('M33 SNRs, Long et al. 2018','J/ApJ/855/140','Conf=yes in table1; observed directions and diameters, no random positions.')]:
+    url='https://cdsarc.cds.unistra.fr/viz-bin/cat/'+catalog
+    source_info['provenance']=[q for q in source_info['provenance'] if q.get('url')!=url]
+    source_info['provenance'].append({'name':name,'url':url,'changes':changes,'access':'CDS/VizieR; originating author/publisher rights apply; see THIRD_PARTY_NOTICES.md'})
+source_path.write_text(json.dumps(source_info,ensure_ascii=False,indent=2)+'\n')
 print(json.dumps({k:v for k,v in summary.items() if k not in ('nodes','roots')},ensure_ascii=False,indent=2))

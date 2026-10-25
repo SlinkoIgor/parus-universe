@@ -31,3 +31,9 @@ Four extragalactic stellar members (`data-tools/nearby-galaxy-stars.json`): NASA
 Cygnus X-1/HDE226868 shared distance: Miller-Jones et al. (2021), Science, https://doi.org/10.1126/science.abb3363. Relative separation scale derived from 5.6-day period and summed mass; orbital phase/orientation illustrative. HYG component distance estimates retain original values and an explicit derivation log in `data-tools/system-position-audit.json`. Incompatible catalog associations do not imply physical binding.
 
 Confirmed system associations and adopted shared distances: per-entry NASA/ESA observations and Muterspaugh et al. (2015) alpha Com binary orbit, sources retained in `data-tools/confirmed-systems.json`. Dust mass fraction estimate: ESA CESAR, The Interstellar Medium, https://cesar.esa.int/upload/201705/Booklet_ISM.pdf.
+
+## Nearby-galaxy observed objects
+
+LGGS revised catalogs: Massey, Neugent & Smart (2016), AJ 152,62, CDS J/AJ/152/62; only spectroscopic members Mm=1. PHAT/AP: Johnson et al. (2015), ApJ 802,127, CDS J/ApJ/802/127 main cluster table2 (no synthetic tablec2, ancillary candidates or background galaxies). M33 SNRs: Long et al. (2018), ApJ 855,140, CDS J/ApJ/855/140 table1 Conf=yes. Original observations/catalogs remain credited to the authors and publishers; data access by CDS/VizieR (DOI 10.26093/cds/vizier). Rights follow the originating catalog/publisher policies, not an implied grant under this repository's code license. Source URLs and SHA-256 values are in data-tools/galaxy-disk-objects.json.
+
+Disk-depth estimates, display transforms and conservative uncertainty gates are this game's derived model; they are not individual published parallax measurements.

@@ -194,3 +194,18 @@ html[data-theme="dark"]{--tone-2225:#000b;--tone-0002:#000a;}
 .expansion-control{top:calc(146px + var(--zoom-rail) + 148px);bottom:auto}
 .scale-strip{left:210px}
 @media(max-width:700px){:root{--zoom-rail:clamp(136px,calc(100dvh - 565px),175px)}.zoom-panel{height:calc(var(--zoom-rail) + 25px)}.zoom-panel input,.zoom-levels{height:var(--zoom-rail)}.map-tools{top:calc(146px + var(--zoom-rail) + 40px)}.expansion-control{left:12px;top:calc(146px + var(--zoom-rail) + 148px);bottom:auto}.scale-strip{left:170px}}
+
+/* Three clocks: cosmic age, Solar-system reference clock and ship proper time. */
+.telemetry .clocks>.clock-readings{display:grid;gap:6px}
+.clocks .clock-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-width:0}
+.telemetry .clocks strong{font:14px var(--mono);letter-spacing:-.4px;margin:0;white-space:nowrap}
+.clocks .clock-row .eyebrow{font-size:6px;letter-spacing:.3px;white-space:nowrap}
+.clocks .age-formula{display:block;text-align:right;font:7px var(--mono);color:var(--muted);margin-top:4px;white-space:nowrap}
+.telemetry .clocks{gap:8px}.clocks .time-dilation{font-size:6px}.clocks .time-dilation>b{font-size:8px}
+@media(min-width:701px){:root{--hud:155px;--zoom-rail:clamp(140px,calc(100dvh - 540px),225px)}.telemetry{grid-template-columns:minmax(120px,1fr) minmax(90px,.8fr) minmax(260px,2.1fr) minmax(265px,1.8fr) auto;gap:16px;padding-left:24px;padding-right:24px}.telemetry-cell+.telemetry-cell,.telemetry .clocks{padding-left:16px}}
+@media(min-width:701px) and (max-width:1050px){.telemetry{grid-template-columns:minmax(95px,.8fr) minmax(78px,.65fr) minmax(220px,1.8fr) minmax(235px,1.7fr) auto;gap:10px;padding-left:12px;padding-right:12px}.telemetry-cell+.telemetry-cell,.telemetry .clocks{padding-left:10px}.telemetry .clocks strong{font-size:12px}.clocks .clock-row{gap:6px}.clocks .clock-row .eyebrow{font-size:5px}}
+@media(max-width:700px){:root{--hud:295px}.telemetry{grid-template-rows:62px 71px 105px;gap:9px 12px}.telemetry .clocks{grid-row:3}.telemetry .clocks>.clock-readings{gap:5px}.telemetry .clocks strong{font-size:12px}.clocks .age-formula{font-size:6px}.telemetry .clocks .eyebrow{font-size:5px}.clocks .clock-row{display:flex;gap:6px}.telemetry .time-controls{align-self:end}}
+@media(max-width:700px) and (max-height:780px){.zoom-panel{top:112px}.map-tools{top:calc(112px + var(--zoom-rail) + 40px)}.expansion-control{top:calc(112px + var(--zoom-rail) + 148px)}}
+
+/* Collector options share one sail; keep aperture and speed on separate rows. */
+.sail-options button{min-width:0;flex-direction:column;align-items:center;gap:6px;padding:9px 3px}.sail-options b{font-size:10px}.sail-options span{font-size:6px}.sail-readout{gap:8px;flex-wrap:wrap}

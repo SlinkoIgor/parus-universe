@@ -5,7 +5,7 @@ const ExtendedCatalog={
  sources:{HYG:['https://github.com/astronexus/HYG-Database','HYG 4.1'],OpenNGC:['https://github.com/mattiaverga/OpenNGC','OpenNGC'],ATNF:['https://www.atnf.csiro.au/research/pulsar/psrcat/','ATNF 2.9.0']},
  get total(){return EXTENDED_BOOT.total+OBJECTS.filter(o=>o.nuclearStar).length+[...this.pinned.values()].filter(o=>o.synthetic).length;},
  get(id){return this.coreIndex?.get(id)||this.pinned.get(id)||this.visibleMap.get(id);},
- background(o){return MapDetails.mass(o)===null&&!o.synthetic&&!o.messier&&!o.galaxyMember&&(o.streamed||o.kind==='star'&&o.d>0&&o.d<=50&&!this.foreground.has(o.id));},
+ background(o){return MapDetails.mass(o)===null&&!o.synthetic&&!o.messier&&(!o.galaxyMember||o.bulkGalaxyMember)&&(o.streamed||o.kind==='star'&&o.d>0&&o.d<=50&&!this.foreground.has(o.id));},
  readJSON(path){if(globalThis.PARUS_CATALOG_FILES?.[path])return Promise.resolve().then(()=>{const v=globalThis.PARUS_CATALOG_FILES[path];return typeof v==='string'?JSON.parse(v):v;});return fetch(path+'?v='+EXTENDED_BOOT.revision).then(r=>{if(!r.ok)throw Error('Не удалось загрузить '+path);return r.json();});},
  decode(r){
   const [id,name,kind,d,raDeg,decDeg,positionQuality,distanceMethod,aliases,apparentV,source,extra,x,y]=r,located=d>0&&Number.isFinite(raDeg)&&Number.isFinite(decDeg),ref=extra.referenceURL?[extra.referenceURL,source]:this.sources[source]||this.sources.HYG;
@@ -13,6 +13,7 @@ const ExtendedCatalog={
   o.desc=distanceMethod+(extra.identificationNote?' '+extra.identificationNote:'');
   o.coordinateNote=positionQuality==='unknown'?'Недостаточно данных для положения на карте. Объект доступен только в атласе.':positionQuality==='approximate'?'Приблизительная позиция; полёт разрешён по указанной оценке. '+distanceMethod:'Каталожная позиция J2000; собственное движение не моделируется.';
   o.facts={class:o.type,mass:'Нет индивидуальной оценки в этом каталоге.',lumUnknown:'Болометрическая светимость не указана.',note:distanceMethod+(extra.sizeEstimated?' Контур галактики имеет условный игровой размер: угловой диаметр в каталоге отсутствует.':''),refs:[ref]};
+  if(extra.placementNote)o.coordinateNote=extra.placementNote;if(extra.geometrySource)o.facts.refs.push([extra.geometrySource,'Геометрия диска']);
   if(extra.membershipSource)o.facts.refs.push([extra.membershipSource,'Принадлежность к галактике']);if(extra.memberType)o.type=o.facts.class=extra.memberType;if(extra.positionReason)o.coordinateNote=extra.positionReason;
   if(extra.periodSeconds)o.facts.extra=['Период вращения',String(extra.periodSeconds)+' с'];return o;
  },
@@ -86,7 +87,7 @@ const ExtendedCatalog={
   const file=entry.tile||EXTENDED_BOOT.systemTiles?.[entry.id];if(!file)throw Error('Нет адреса записи каталога');
   const rows=await this.tile(file),o=rows.find(o=>o.id===entry.id);if(!o)throw Error('Запись не найдена в каталоге');return this.pin(o);
  },
- focus(o){if(o.nuclearStar){NuclearStars.focus(o.orbit);return;}if(o.atlasOnly){toast(o.positionReason||'Для этого объекта недостаточно точное положение. Он доступен только в атласе.');return;}const p=MapLayout.project(o),span=o.kind==='galaxy'?(o.galaxy?.diameterLy||30000)*2.8:o.positionQuality==='unknown'?Math.max(400,Math.hypot(p.x,p.y)*.04):o.synthetic?2:o.kind==='star'?24:Math.max(24,Math.min(20000,(o.d||100)*.03));const system=this.systemByMember.get(o.id);goCamera(p.x,p.y,system?.separationLy?Math.max(.00006,system.separationLy*6):span);this.ensureGalaxy(o);},
+ focus(o){if(o.nuclearStar){NuclearStars.focus(o.orbit);return;}if(o.atlasOnly){toast(o.positionReason||'Для этого объекта недостаточно точное положение. Он доступен только в атласе.');return;}const p=MapLayout.project(o),span=o.positionEstimate?Math.max(24,4*o.positionEstimate.localEnvelopeLy,4*(o.diameterLy||0)):o.kind==='galaxy'?(o.galaxy?.diameterLy||30000)*2.8:o.positionQuality==='unknown'?Math.max(400,Math.hypot(p.x,p.y)*.04):o.synthetic?2:o.kind==='star'?24:Math.max(24,Math.min(20000,(o.d||100)*.03));const system=this.systemByMember.get(o.id);goCamera(p.x,p.y,system?.separationLy?Math.max(.00006,system.separationLy*6):span);this.ensureGalaxy(o);},
  capture(saved){
   const ids=new Set([saved.current,saved.selected,saved.flight?.target,saved.flight?.fromId,...(saved.visited||[]),...(saved.destroyed||[]),...(saved.itinerary||[]).map(n=>n.id),...(saved.flight?.route||[]).map(n=>n.id)]);
   // Include the parent galaxy so a generated star can still be identified on reload.

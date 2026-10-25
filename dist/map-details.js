@@ -47,7 +47,7 @@ const MapDetails={
 for(const o of OBJECTS){const name=MapDetails.cleanName(o);if(name!==o.name){o.aliases=[...new Set([...(o.aliases||[]),o.name])];o.name=name;}if(o.galaxy)o.galaxy.name=o.name;}
 const MapLabels={
  queue:[],boxes:[],placed:[],slots:new Map(),viewKey:null,
- dynamic(key){return key==='ship'||key.startsWith('flight-mark-');},
+ dynamic(key){return key==='ship'||key==='ship-reach'||key.startsWith('flight-mark-');},
  overlaps(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;},
  begin(){const key=[cam.x,cam.y,cam.span,width,height,state.selected,state.flight?.fromId||state.current].join(':');if(this.viewKey!==key){this.slots.clear();this.viewKey=key;}this.queue=[];this.placed=[];this.boxes=[{x:0,y:0,w:Math.min(width-30,430),h:112},{x:width-300,y:0,w:300,h:80},{x:0,y:height-45,w:width,h:45},{x:0,y:height-200,w:80,h:200},{x:0,y:132,w:185,h:395}];
   // Reserve the card's column independently of its changing telemetry height.

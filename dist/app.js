@@ -26,8 +26,8 @@ function renderVelocity(){
 }
 function renderClockRatio(){
  const ratio=1/Math.max(Number.EPSILON,clockRate());
- $('timeDilation').textContent=ratio===1?'1 год на Земле':fmt(ratio,ratio<100?2:0)+' лет на Земле';
- $('timeDilationRow').title='Мгновенное соотношение при сохранении текущей скорости'+(state.phase==='flyby'?' и гравитационного потенциала':'')+'. Земля неподвижна в принятой системе отсчёта; направление полёта не меняет соотношение. Это не задержка радиосигнала.';
+ $('timeDilation').textContent=ratio===1?'1 год в Солнечной системе':fmt(ratio,ratio<100?2:0)+' лет в Солнечной системе';
+ $('timeDilationRow').title='Мгновенное соотношение при сохранении текущей скорости'+(state.phase==='flyby'?' и гравитационного потенциала':'')+'. Солнечная система неподвижна в принятой системе отсчёта; направление полёта не меняет соотношение. Это не задержка радиосигнала.';
 }
 const STORE='parus-expedition-v1';
 const G0=9.80665;
@@ -41,7 +41,7 @@ function applyTheme(value){theme=value;document.documentElement.dataset.theme=va
 // Map the existing engineering ink palette to a neutral dark drawing palette.
 function paint(color){if(theme==='light')return color;if(color==='#f8f8f8')return '#000000';if(color.startsWith('rgba'))return color.replace('37,38,32','218,218,218');const h=color.slice(1);if(!/^[0-9a-f]{3,6}$/i.test(h))return color;const hex=h.length===3?[...h].map(c=>c+c).join(''):h;return '#'+[0,2,4].map(i=>(255-parseInt(hex.slice(i,i+2),16)).toString(16).padStart(2,'0')).join('');}
 let state,paused=false,speed=1,filter='all',toastTimer,hover=null,hitObjects=[],lastUI=0,saveTick=0;
-const initial=()=>({version:9,controlG:100,current:'sol',selected:'proxima',sail:1,departureMode:'burst',expansion:true,cosmicTime:0,beta:0,acceleration:0,matter:Rocket.initialFuel,captured:0,spentEnergy:0,heatRadiated:0,earth:0,proper:0,totalDistance:0,ship:Space.point([0,0,0]),itinerary:[],visited:['sol'],destroyed:[],phase:'idle',flight:null,auto:true,journal:[{t:0,text:'Ковчег — 01. Корпус: 1 мг. Топливо: 1 / 1 мг. Фотонный двигатель готов.'}]});
+const initial=()=>({version:9,controlG:100,current:'sol',selected:'proxima',sail:1,departureMode:'burst',expansion:true,cosmicTime:0,universeElapsed:0,beta:0,acceleration:0,matter:Rocket.initialFuel,captured:0,spentEnergy:0,heatRadiated:0,earth:0,proper:0,totalDistance:0,ship:Space.point([0,0,0]),itinerary:[],visited:['sol'],destroyed:[],phase:'idle',flight:null,auto:true,journal:[{t:0,text:'Ковчег — 01. Корпус: 1 мг. Топливо: 1 / 1 мг. Фотонный двигатель готов.'}]});
 function restore(saved){
  ExtendedCatalog.restore(saved);
  if(![1,2,3,4,5,6,7,8,9].includes(saved?.version)||!saved.ship||!Array.isArray(saved.visited))return initial();
@@ -93,6 +93,7 @@ function restore(saved){
   if(upgraded.phase==='brake'){f.magnetic=Magnetic.plan((Rocket.dryMass+upgraded.matter)*1000,upgraded.beta,Magnetic.rho(f.medium.n)*f.medium.area);f.replayRate=f.magnetic.proper/3;}
   if(upgraded.phase==='dock'){f.engine=Rocket.retroPlan(upgraded.matter,upgraded.beta,Magnetic.maxG);f.replayRate=f.engine.burnProper/2;}
  }
+ upgraded.universeElapsed=Number.isFinite(saved.universeElapsed)?saved.universeElapsed:Math.max(0,upgraded.earth);
  upgraded.controlG=100;upgraded.auto=true;if(upgraded.flight)delete upgraded.flight.manualCoast;
  if(!upgraded.flight)upgraded.beta=0;if(upgraded.flight&&!('cosmic' in upgraded.flight)){upgraded.flight.cosmic=Cosmology.isCosmic(object(upgraded.flight.fromId)||upgraded.flight.from,object(upgraded.flight.target));}
  return Route.sanitize(upgraded);
@@ -200,7 +201,7 @@ function renderUI(){
  $('arrivalLabel').textContent=Route.isFlyby()?'ДО КОНЦА ПРОЛЁТА ≈':'ДО ПРИБЫТИЯ ≈';
  $('arrivalProper').textContent=eta?durationText(eta.proper):'—';$('arrivalEarth').textContent=eta?durationText(eta.earth):'—';
  renderFlightProfile(eta);
- renderVelocity();renderAcceleration();renderClockRatio();
+ renderVelocity();renderAcceleration();renderClockRatio();renderReachability();
  $('matter').innerHTML=fmt(state.matter*1e9,3)+' / 1<small>мг</small>';$('dryMass').innerHTML='1<small>мг</small>';
  const dryWidth=Rocket.dryMass/(Rocket.dryMass+Rocket.fuelCapacity)*100,fuelWidth=state.matter/(Rocket.dryMass+Rocket.fuelCapacity)*100;
  $('massDry').style.width=dryWidth+'%';$('massFuel').style.width=fuelWidth+'%';$('massTotal').textContent=massText(Rocket.dryMass+state.matter);
@@ -208,6 +209,7 @@ function renderUI(){
  $('massBar').title='Корпус 1 мг | Топливо '+massText(state.matter)+' | Свободно '+massText(Rocket.fuelCapacity-state.matter);
  const rate=Simulation.replayRate();$('timeRate').textContent=rate<speed?'СЛОУМО ×'+compact(speed/rate):'1 с = '+fmt(speed,0)+(speed===1?' год':' лет')+' на борту';$('timeRate').classList.toggle('replaying',rate<speed);
 
+ const cosmicYears=Math.floor(state.universeElapsed??state.earth);$('universeClock').textContent=fmt(13800000000+cosmicYears,0);$('universeElapsed').textContent=fmt(cosmicYears,0);
  $('earthClock').innerHTML=fmt(Math.floor(state.earth),0)+'<small>лет</small>';$('shipClock').innerHTML=fmt(Math.floor(state.proper),0)+'<small>лет</small>';
  const pct=f?Math.min(100,f.covered/f.distance*100):0;$('progressBar').style.width=pct+'%';$('progressValue').textContent=fmt(pct,1)+'%';$('progressLabel').textContent=f?.route?.length?'УЧАСТОК '+(f.legIndex+1)+' / '+f.route.length:f?.missed?'ПРОЛЁТ ЦЕЛИ':'ПРОЙДЕНО';$('pauseBtn').textContent=paused?'▷':'Ⅱ';$('pauseBtn').setAttribute('aria-label',paused?'Продолжить':'Пауза');$('speedBtn').textContent=speed+'×';
 }
@@ -263,14 +265,15 @@ function catalogRows(items,total,loading=false,error=''){
  if(error&&items.length){const e=document.createElement('p');e.className='empty-state';e.textContent=error+' · показана основная выборка';$('catalogList').append(e);}
  if(total>items.length&&!loading&&!error){const more=document.createElement('button');more.className='map-size-action';more.textContent='Ещё 100 объектов';more.onclick=()=>{ExtendedCatalog.searchLimit+=100;renderCatalog();};$('catalogList').append(more);}
 }
+function catalogMatchRank(o,term,exact){if(!term)return 0;const name=MapDetails.searchKey(o.name||''),id=MapDetails.searchKey(o.id||'');return name===term||id===term?5:o.kind==='galaxy'&&exact(o)?4:name.startsWith(term)?3:o.searchExact||exact(o)?2:name.includes(term)?1:0;}
 function renderCatalog(){
  if($('catalog').hidden)return;
  const revision=++catalogRevision,term=MapDetails.searchKey($('search').value.trim()),limit=ExtendedCatalog.searchLimit;
  const exact=o=>!!term&&[o.name,o.id,...(o.aliases||[]),o.ngc||'','HIP '+(o.hip||''),'HD '+(o.hd||'')].some(v=>MapDetails.searchKey(v)===term);
- const core=[...OBJECTS,...ExtendedCatalog.pinned.values()].filter(o=>!o.streamed&&ExtendedCatalog.matches(o.kind,filter,o)&&MapDetails.searchKey(`${o.name} ${(o.aliases||[]).join(' ')} ${o.type} ${o.id} ${o.ngc||''} ${o.hip||''} ${o.hd||''} ${o.gliese||''}`).includes(term)).sort((a,b)=>Number(exact(b))-Number(exact(a))||(a.d??Infinity)-(b.d??Infinity));
+ const core=[...OBJECTS,...ExtendedCatalog.pinned.values()].filter(o=>!o.streamed&&ExtendedCatalog.matches(o.kind,filter,o)&&MapDetails.searchKey(`${o.name} ${(o.aliases||[]).join(' ')} ${o.type} ${o.id} ${o.ngc||''} ${o.hip||''} ${o.hd||''} ${o.gliese||''}`).includes(term)).sort((a,b)=>catalogMatchRank(b,term,exact)-catalogMatchRank(a,term,exact)||(a.d??Infinity)-(b.d??Infinity));
  catalogRows(core.slice(0,limit),core.length,true);
  if(typeof fetch!=='function'&&!globalThis.PARUS_CATALOG_FILES){catalogRows(core.slice(0,limit),core.length);return;}
- ExtendedCatalog.search(term,filter,limit).then(result=>{if(revision!==catalogRevision||$('catalog').hidden)return;const ids=new Set(core.map(o=>o.id));const items=[...core,...result.items.filter(o=>!ids.has(o.id))].sort((a,b)=>Number(b.searchExact||exact(b))-Number(a.searchExact||exact(a))||(a.d??Infinity)-(b.d??Infinity)||a.id.localeCompare(b.id)).slice(0,limit);catalogRows(items,core.length+result.total);}).catch(e=>{if(revision===catalogRevision)catalogRows(core.slice(0,limit),core.length,false,e.message);});
+ ExtendedCatalog.search(term,filter,limit).then(result=>{if(revision!==catalogRevision||$('catalog').hidden)return;const ids=new Set(core.map(o=>o.id));const items=[...core,...result.items.filter(o=>!ids.has(o.id))].sort((a,b)=>catalogMatchRank(b,term,exact)-catalogMatchRank(a,term,exact)||(a.d??Infinity)-(b.d??Infinity)||a.id.localeCompare(b.id)).slice(0,limit);catalogRows(items,core.length+result.total);}).catch(e=>{if(revision===catalogRevision)catalogRows(core.slice(0,limit),core.length,false,e.message);});
 }
 function closeMenu(){$('menu').hidden=true;$('menuBtn').setAttribute('aria-expanded','false');}
 function openCatalog(){closeMenu();$('catalog').hidden=false;renderCatalog();$('search').focus();}
@@ -301,6 +304,8 @@ function showObject(id=state.selected){
  if(o.catalogDistanceLy!=null)html+=row('Исходная каталожная дальность',distanceText(o.catalogDistanceLy)+'<small>До оценки по принадлежности к системе; не используется в текущем маршруте</small>');
  if(o.gravity)html+=row('Модель пролёта',o.gravity.note);
  if(o.coordinateNote)html+=row('Координаты',o.coordinateNote);
+ if(o.positionEstimate){const e=o.positionEstimate;html+=row('Локальный диапазон позиции','≈ '+distanceText(e.localEnvelopeLy)+'<small>'+e.envelopeMeaning+' Общая ошибка расстояния до галактики не задана и не является независимым разбросом её членов.</small>')+row('Опорная галактика',object(e.anchor)?.name||e.anchor);}
+ if(o.membershipNote)html+=row('Членство',o.membershipNote);
  const system=ExtendedCatalog.systemByMember.get(o.id);if(system)html+=row('Связанная система',system.name+'<small>'+system.note+'</small>');
  html+=row('От Солнца',o.atlasOnly?'Надёжная дальность неизвестна':distanceText(o.d))+'</dl>';
  if(ExtendedCatalog.systemByMember.has(o.id))html+='<button class="map-size-action" id="viewSystem">Показать связанную систему ↗</button>';
@@ -352,6 +357,19 @@ function drawGalaxyBackground(){
   if(r>18&&r<Math.max(width,height)*3){const yy=center.y+Math.min(r*g.axisRatio+22,height*.42);MapLabels.add({key:'galaxy-'+g.id,name:g.name.toUpperCase(),detail:'ОПТИЧЕСКИЙ ДИАМЕТР · '+distanceText(g.diameterLy),mass:MapDetails.mass(body),priority:selected?100:55,size:9,opacity:MapDetails.opacity(body,cam.span),color:selected?'#454545':'#747474',candidates:[{x:center.x,y:yy,align:'center'},{x:center.x,y:center.y-r*g.axisRatio-24,align:'center'},{x:center.x-r-18,y:center.y,align:'right'}]});}
 
  }
+}
+function shipReachability(){
+ if(state.expansion===false)return null;
+ const f=state.flight,accelerating=!!f&&['launch','thrust'].includes(state.phase);let beta=state.beta,mode='БЕЗ НОВОГО РАЗГОНА';
+ if(accelerating){beta=f.maxBeta;mode='ПОСЛЕ ТЕКУЩЕГО РАЗГОНА';}
+ else if(!f){beta=wantsBoost()?windPlan().beta:state.matter>1e-24?Rocket.plan(state.matter).beta:0;mode='ПОСЛЕ ДОСТУПНОГО РАЗГОНА';}
+ beta=clamp(beta||0,0,1-Number.EPSILON);const comoving=Cosmology.reach(beta),radius=comoving*Cosmology.scale();return{beta,comoving,radius,mode};
+}
+function renderReachability(){const q=shipReachability();$('reachReadout').hidden=!q;$('reachReadout').textContent=q?'Свободная дальность: '+distanceText(q.radius):'';$('reachReadout').title=q?q.mode+'. Радиус свободного полёта с таким импульсом, без нового разгона и без резерва на торможение. Контур на схеме условный; радиус рассчитан в 3D.':'';}
+function drawReachability(){
+ const q=shipReachability();if(!q||!(q.radius>0))return;const p=screen(state.ship),r=q.radius*width/cam.span;if(r<5||r>20000)return;
+ ctx.save();ctx.globalAlpha=.75;circle(p.x,p.y,r,'#454545',1.2,[10,5,2,5]);ctx.restore();
+ MapLabels.point({key:'ship-reach',name:'ДОСТИЖИМОСТЬ · '+distanceText(q.radius),detail:q.mode+' · КОНТУР УСЛОВНЫЙ',p:{x:p.x,y:p.y-r},priority:25,size:9});
 }
 function drawHorizonBoundary(){if(cam.span>4e10){const a=screen({x:0,y:0}),r=465e8*Cosmology.scale()*width/cam.span;circle(a.x,a.y,r,'#a7a7a7',.8,[7,5]);}}
 function drawSymbol(o,p,selected=false){const destroyed=state.destroyed.includes(o.id)&&o.kind==='star';const ink=selected?'#171717':'#424242';ctx.save();ctx.translate(p.x,p.y);ctx.strokeStyle=paint(ink);ctx.lineWidth=1.25;
@@ -414,7 +432,7 @@ function drawHover(){if(!hover||hover.region||['structure','wall','void','ring',
 let lastFrame=performance.now();function frame(now){Cosmology.sync(state);const realDt=Math.max(0,(now-lastFrame)/1000);lastFrame=now;Simulation.advance(realDt);
  if(!document.hidden){if(cameraGoal){const a=1-Math.exp(-Math.min(realDt,.1)*8);cam.x+=(cameraGoal.x-cam.x)*a;cam.y+=(cameraGoal.y-cam.y)*a;cam.span=Math.exp(Math.log(cam.span)+(Math.log(cameraGoal.span)-Math.log(cam.span))*a);if(Math.abs(Math.log(cam.span/cameraGoal.span))<.0005&&Math.hypot(cam.x-cameraGoal.x,cam.y-cameraGoal.y)<cam.span*.0001){cam={...cameraGoal};cameraGoal=null;}}
  if(followShip){const c=shipCamera(cam.span);cam.x=c.x;cam.y=c.y;}updateZoomControl();
- ExtendedCatalog.update(now);drawGrid();MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawHorizonBoundary();Route.draw();drawRoute();drawEffects(Math.min(realDt,.1));ExtendedCatalog.drawSystems();NuclearStars.draw();drawObjects();ExtendedCatalog.draw();drawShip(now);MapLabels.draw();Route.drawEncounter();drawHover();if(now-lastUI>100){renderUI();lastUI=now;}}
+ ExtendedCatalog.update(now);drawGrid();MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawHorizonBoundary();drawReachability();Route.draw();drawRoute();drawEffects(Math.min(realDt,.1));ExtendedCatalog.drawSystems();NuclearStars.draw();drawObjects();ExtendedCatalog.draw();drawShip(now);MapLabels.draw();Route.drawEncounter();drawHover();if(now-lastUI>100){renderUI();lastUI=now;}}
  if(now-saveTick>1500){persist();saveTick=now;}requestAnimationFrame(frame);
 }
 

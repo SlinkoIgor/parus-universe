@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "maxReportedRelativeError": 0.5,
+  "maxDMModelRatio": 2,
+  "forbiddenDMModelKpc": {
+    "YMW16": 25,
+    "NE2001": 49.9
+  },
+  "hostMaxLocalEnvelopeFraction": 0.5,
+  "angularSensitivityDeg": 3,
+  "meaning": "A bounded nominal estimate is required. Censored/model-boundary values never define positions. Field uncertainty uses heliocentric distance; host-relative uncertainty uses full model diameter. Shared host-distance error is retained separately and is not independent scatter of every member."
+}

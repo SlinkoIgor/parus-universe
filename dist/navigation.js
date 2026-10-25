@@ -64,7 +64,7 @@ const Route={
  tick(dt){
   const f=state.flight,e=f.encounter,p=e.plan,body=object(f.target),old=p.elapsedProper||0,used=Math.min(dt,Math.max(0,p.proper-old));
   p.elapsedProper=old+used;const s=Gravity.atProper(p,p.elapsedProper);
-  state.earth+=s.earth-e.lastEarth;state.proper+=s.proper-e.lastProper;state.totalDistance+=s.path-e.lastPath;e.lastEarth=s.earth;e.lastProper=s.proper;e.lastPath=s.path;
+  const cosmicStep=s.earth-e.lastEarth;state.earth+=cosmicStep;Cosmology.elapse(state,cosmicStep);state.proper+=s.proper-e.lastProper;state.totalDistance+=s.path-e.lastPath;e.lastEarth=s.earth;e.lastProper=s.proper;e.lastPath=s.path;
   state.ship=Space.point(V3.add(body.p3,s.offset));state.acceleration=0;state.beta=p.beta;
   if(p.elapsedProper>=p.proper){if(!state.visited.includes(body.id))state.visited.push(body.id);this.next(f,state.ship,p.beta);}return used;
  },
