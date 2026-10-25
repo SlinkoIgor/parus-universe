@@ -191,7 +191,7 @@ const FlightEstimate={
   if(q.distance+stop.distance>remaining){let lo=0,hi=1;for(let i=0;i<60;i++){const m=(lo+hi)/2,s=sample(m);if(s.distance+stopping(s).distance>remaining)hi=m;else lo=m;}q=sample((lo+hi)/2);stop=stopping(q);}
   if(!(q.beta>0))return null;
   const coast=Math.max(0,remaining-q.distance-stop.distance),earth=coast/q.beta,proper=earth*Math.sqrt((1-q.beta)*(1+q.beta));
-  return{proper:q.proper+proper+stop.proper,earth:q.earth+earth+stop.earth};
+  return{proper:q.proper+proper+stop.proper,earth:q.earth+earth+stop.earth,acceleration:{distance:q.distance,proper:q.proper},braking:flyby?null:{distance:stop.distance,proper:stop.proper},terminalBeta:q.beta,stop};
  },
  remaining(){
   const f=state.flight;
@@ -202,11 +202,56 @@ const FlightEstimate={
  },
  get(){
   const f=state.flight;
-  if(f?.cosmic&&state.phase==='cruise'){const key='cosmic:'+state.expansion;let cache=this.active.get(f);if(!cache||cache.key!==key){const q=Cosmology.eta(Math.max(0,f.distance-f.covered),state.beta,state.cosmicTime||0);cache={key,value:q?{proper:state.proper+q.proper,earth:state.earth+q.earth}:null};this.active.set(f,cache);}return cache.value?{proper:Math.max(0,cache.value.proper-state.proper),earth:Math.max(0,cache.value.earth-state.earth)}:null;}
-  if(f){const key=[state.phase,f.distance,f.target,Route.isFlyby(),f.encounter?.beta].join(':');let cache=this.active.get(f);if(!cache||cache.key!==key){const q=this.remaining();cache={key,value:q?{proper:state.proper+q.proper,earth:state.earth+q.earth}:null};this.active.set(f,cache);}return cache.value?{proper:Math.max(0,cache.value.proper-state.proper),earth:Math.max(0,cache.value.earth-state.earth)}:null;}
+  if(f?.cosmic&&state.phase==='cruise'){const key='cosmic:'+state.expansion;let cache=this.active.get(f);if(!cache||cache.key!==key){const q=Cosmology.eta(Math.max(0,f.distance-f.covered),state.beta,state.cosmicTime||0);cache={key,value:q?{proper:state.proper+q.proper,earth:state.earth+q.earth,terminalBeta:q.beta??q.terminalBeta}:null};this.active.set(f,cache);}return cache.value?{proper:Math.max(0,cache.value.proper-state.proper),earth:Math.max(0,cache.value.earth-state.earth),terminalBeta:cache.value.terminalBeta}:null;}
+  if(f){const key=[state.phase,f.distance,f.target,Route.isFlyby(),f.encounter?.beta].join(':');let cache=this.active.get(f);if(!cache||cache.key!==key){const q=this.remaining();cache={key,value:q?{proper:state.proper+q.proper,earth:state.earth+q.earth,terminalBeta:q.beta??q.terminalBeta}:null};this.active.set(f,cache);}return cache.value?{proper:Math.max(0,cache.value.proper-state.proper),earth:Math.max(0,cache.value.earth-state.earth),terminalBeta:cache.value.terminalBeta}:null;}
   const target=object(state.selected);if(!target?.navigable||state.current===target.id)return null;
   const d=distance(state.ship,target),boost=wantsBoost(),key=[state.current,state.selected,d,state.matter,boost,state.sail,state.expansion,Math.floor((state.cosmicTime||0)/1e5)].join(':');
   if(this.idleKey!==key){this.idleKey=key;this.idleValue=this.leg(d,boost?0:state.matter,0,boost?null:Rocket.plan(state.matter,d),boost?windPlan():null);if(Cosmology.isCosmic(object(state.current)||state.ship,target)){const beta=boost?windPlan().beta:Rocket.plan(state.matter,d).beta;this.idleValue=Cosmology.eta(d,beta,state.cosmicTime||0);}}
   return this.idleValue;
+ }
+};
+
+// Card-only summary: full physical stages, with measured totals once acceleration ends.
+const FlightProfile={
+ idleKey:null,idleValue:null,
+ peakWind(w,proper){let peak=0;for(let n=0;n<=24;n++){const q=Stellar.sampleProper(w,proper*n/24);peak=Math.max(peak,q.force/w.massKg/9.80665);}return peak;},
+ brake(stop){if(!stop?.magnetic)return null;const m=stop.magnetic,e=stop.engine;return{distance:stop.distance,proper:stop.proper,maxG:Math.max(Math.abs(Magnetic.sample(m,0).properAcceleration)/9.80665,e.burnProper>0?Rocket.acceleration(e.mf,e.maxG)/9.80665:0)};},
+ predict(d,fuel,engine,wind,flyby=false,eta=null,cosmic=false){
+  const q=FlightEstimate.leg(d,fuel,0,engine,wind,0,flyby);if(!q)return null;
+  const acceleration={...q.acceleration,maxG:wind?this.peakWind(wind,q.acceleration.proper):q.acceleration.proper>0?Rocket.acceleration(engine.m0*Math.exp(-q.acceleration.proper*engine.maxG*9.80665*Rocket.year/Rocket.c),engine.maxG)/9.80665:0};
+  let stop=q.stop;if(!flyby&&stop?.magnetic&&cosmic&&Number.isFinite(eta?.proper)&&Number.isFinite(eta?.terminalBeta??eta?.beta))stop=Magnetic.stopping(q.stop?.magnetic?.massKg/1000-Rocket.dryMass,eta.terminalBeta??eta.beta);
+  return{acceleration,braking:flyby||eta?.proper===Infinity?null:this.brake(stop),flyby,unreachable:eta?.proper===Infinity};
+ },
+ record(f,ds,proper,g){if(!f.profile)return;const key=['launch','thrust'].includes(state.phase)?'acceleration':['brake','dock'].includes(state.phase)?'braking':null;if(!key)return;const a=f.profile.actual[key]??={distance:0,proper:0,maxG:0};a.distance+=ds;a.proper+=proper;a.maxG=Math.max(a.maxG,g);},
+ get(eta){
+  const f=state.flight;
+  if(!f){const target=object(state.selected);if(!target?.navigable||target.id===state.current)return null;const d=distance(state.ship,target),boost=wantsBoost(),key=[state.current,state.selected,d,state.matter,boost,state.sail,state.expansion,Math.floor((state.cosmicTime||0)/1e5)].join(':');if(this.idleKey!==key){this.idleKey=key;this.idleValue=this.predict(d,boost?0:state.matter,boost?null:Rocket.plan(state.matter,d),boost?windPlan():null,false,eta,Cosmology.isCosmic(object(state.current)||state.ship,target));}return this.idleValue;}
+  if(!f.profile){
+   const wind=f.wind,engine=f.engine?.direction>0?f.engine:null,fuel=wind?0:engine?(engine.initialFuel??engine.m0-Rocket.dryMass):state.matter;
+   let predicted=wind||engine?this.predict(f.distance*Cosmology.factor(f),fuel,engine,wind,Route.isFlyby(),eta,f.cosmic):null;
+   const actual={acceleration:null,braking:null};
+   if(wind){const q=wind.lastSample||Stellar.sampleProper(wind,wind.elapsedProper||0);actual.acceleration={distance:q.distance,proper:q.proper,maxG:this.peakWind(wind,q.proper)};}
+   else if(engine){const q=Rocket.segment(engine.m0,engine.m0,engine.m0-engine.burned,engine.eta0||0,engine.maxG);actual.acceleration={distance:q.distance,proper:q.proper,maxG:q.proper>0?Rocket.acceleration(engine.m0-engine.burned,engine.maxG)/9.80665:0};}
+   f.profile={...(predicted||{acceleration:state.phase==='dock'?null:{distance:0,proper:0,maxG:0,actual:true},braking:null,flyby:Route.isFlyby()}),actual,phase:null};
+  }
+  const p=f.profile;
+  if(!['launch','thrust'].includes(state.phase)&&p.actual.acceleration){p.acceleration={...p.actual.acceleration,actual:true};}
+  if(p.phase!==state.phase){
+   if(state.phase==='cruise'&&!Route.isFlyby()){
+    const beta=f.cosmic?(eta?.terminalBeta??state.beta):state.beta;
+    p.braking=eta?.proper===Infinity?null:this.brake(Magnetic.stopping(state.matter,beta));p.unreachable=eta?.proper===Infinity;
+   }
+   if(state.phase==='brake'){
+    const m=f.magnetic,q=m.lastSample||ProperTime.at(m,Magnetic,m.elapsedProper||0),engine=Rocket.retroPlan(m.finalMass/1000-Rocket.dryMass,m.finalBeta,m.maxG);
+    p.actual.braking??={distance:q.distance,proper:q.proper,maxG:Math.abs(q.properAcceleration)/9.80665};
+    p.braking={distance:p.actual.braking.distance+Math.max(0,m.distance-q.distance)+engine.burnDistance,proper:p.actual.braking.proper+Math.max(0,m.proper-q.proper)+engine.burnProper,maxG:Math.max(p.actual.braking.maxG,Math.abs(q.properAcceleration)/9.80665,engine.burnProper>0?Rocket.acceleration(engine.mf,engine.maxG)/9.80665:0)};
+   }
+   if(state.phase==='dock'){
+    const e=f.engine,q=Rocket.retroSegment(e.m0,e.eta0,Rocket.dryMass+state.matter,e.mf,e.maxG),a=p.actual.braking;
+    p.braking=a?{distance:a.distance+q.distance,proper:a.proper+q.proper,maxG:Math.max(a.maxG,Rocket.acceleration(e.mf,e.maxG)/9.80665)}:{distance:q.distance,proper:q.proper,maxG:Rocket.acceleration(e.mf,e.maxG)/9.80665,remainingOnly:true};
+   }
+   p.phase=state.phase;
+  }
+  return p;
  }
 };

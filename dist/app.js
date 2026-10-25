@@ -163,6 +163,11 @@ function renderAcceleration(){
  $('accelerationFill').style.left=(visible<0?50+visible/2:50)+'%';$('accelerationFill').style.width=(Math.abs(visible)/2)+'%';
  $('accelerationBar').setAttribute('aria-valuenow',String(visible));$('accelerationBar').setAttribute('aria-valuetext',label);$('accelerationBar').title='Текущее собственное ускорение: '+label;
 }
+function profileDistance(d){return d<.01?fmt(d*63241.077,d*63241.077<10?2:0)+' а.е.':distanceText(d);}
+function renderFlightProfile(eta){
+ const p=FlightProfile.get(eta);$('flightProfile').hidden=!p;if(!p)return;
+ for(const [key,label] of [['acceleration','Разгон'],['braking','Торможение']]){const q=p[key],prefix=key==='acceleration'?'boost':'stop';$(''+prefix+'Stage').textContent=label+(q?.actual?' · факт':q?.remainingOnly?' · осталось':' · ≈');$(''+prefix+'Distance').textContent=q?profileDistance(q.distance):'—';$(''+prefix+'Proper').textContent=q?durationText(q.proper):p.flyby?'пролёт':p.unreachable?'нет прибытия':'—';$(''+prefix+'Peak').textContent=q?fmt(q.maxG,2)+' g':'—';}
+}
 function renderUI(){
  Cosmology.sync(state);$('expansionToggle').checked=state.expansion!==false;$('expansionFactor').textContent='a = '+fmt(Cosmology.scale(),Cosmology.scale()<10?6:2);
  const f=state.flight,target=object(f?f.target:state.selected),current=object(state.current),active=!!f,boost=wantsBoost(),arrived=!active&&state.current===target.id;
@@ -194,6 +199,7 @@ function renderUI(){
  const eta=FlightEstimate.get();$('arrivalEstimate').hidden=arrived||!target.navigable;
  $('arrivalLabel').textContent=Route.isFlyby()?'ДО КОНЦА ПРОЛЁТА ≈':'ДО ПРИБЫТИЯ ≈';
  $('arrivalProper').textContent=eta?durationText(eta.proper):'—';$('arrivalEarth').textContent=eta?durationText(eta.earth):'—';
+ renderFlightProfile(eta);
  renderVelocity();renderAcceleration();renderClockRatio();
  $('matter').innerHTML=fmt(state.matter*1e9,3)+' / 1<small>мг</small>';$('dryMass').innerHTML='1<small>мг</small>';
  const dryWidth=Rocket.dryMass/(Rocket.dryMass+Rocket.fuelCapacity)*100,fuelWidth=state.matter/(Rocket.dryMass+Rocket.fuelCapacity)*100;
@@ -230,7 +236,7 @@ function beginBrake(auto=false){
  if(f.magnetic.distance===0)beginDock();else{state.phase='brake';state.acceleration=Magnetic.sample(f.magnetic,0).properAcceleration;}
 }
 function advance(ds,earth,proper,comoving=false,path){
- const f=state.flight,metric=Cosmology.factor(f,(state.cosmicTime||0)+(state.expansion!==false?earth/2:0));f.covered+=comoving?ds:ds/metric;state.totalDistance+=comoving?(path??ds*metric):ds;state.earth+=earth;state.proper+=proper;Cosmology.elapse(state,earth);const p=f.covered/f.distance,target=f.aim||object(f.target);state.ship=Space.mix(f.from,target,p);
+ const f=state.flight,metric=Cosmology.factor(f,(state.cosmicTime||0)+(state.expansion!==false?earth/2:0));FlightProfile.record(f,comoving?(path??ds*metric):ds,proper,Math.abs(state.acceleration||0)/G0);f.covered+=comoving?ds:ds/metric;state.totalDistance+=comoving?(path??ds*metric):ds;state.earth+=earth;state.proper+=proper;Cosmology.elapse(state,earth);const p=f.covered/f.distance,target=f.aim||object(f.target);state.ship=Space.mix(f.from,target,p);
  if(f.covered>f.distance+Math.max(1e-10,f.distance*1e-10)&&!f.missed&&state.beta>1e-8){f.missed=true;toast('Цель пройдена. Физический тормозной путь ещё не исчерпан.');}
 }
 function finishFlight(arrived){const f=state.flight,target=object(f.target);
