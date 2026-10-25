@@ -201,7 +201,8 @@ const FlightEstimate={
   return this.leg(f.distance-f.covered,state.matter,state.beta,state.phase==='thrust'?f.engine:null,state.phase==='launch'?f.wind:null,f.wind?.elapsedProper||0,Route.isFlyby(),f.aim?0:(f.encounter?.plan?.R||0)/LY,f.encounter?.plan);
  },
  get(){
-  const f=state.flight;
+  const f=state.flight,goal=object(f?.target||state.selected),remaining=f?Math.max(0,f.distance-f.covered):goal?.p3?distance(state.ship,goal):0;
+  if((f?f.cosmic:Cosmology.isCosmic(object(state.current)||state.ship,goal))&&Cosmology.beyondHorizon(remaining,state.cosmicTime||0))return{proper:Infinity,earth:Infinity,unreachable:true};
   if(f?.cosmic&&state.phase==='cruise'){const key='cosmic:'+state.expansion;let cache=this.active.get(f);if(!cache||cache.key!==key){const q=Cosmology.eta(Math.max(0,f.distance-f.covered),state.beta,state.cosmicTime||0);cache={key,value:q?{proper:state.proper+q.proper,earth:state.earth+q.earth,terminalBeta:q.beta??q.terminalBeta}:null};this.active.set(f,cache);}return cache.value?{proper:Math.max(0,cache.value.proper-state.proper),earth:Math.max(0,cache.value.earth-state.earth),terminalBeta:cache.value.terminalBeta}:null;}
   if(f){const key=[state.phase,f.distance,f.target,Route.isFlyby(),f.encounter?.beta].join(':');let cache=this.active.get(f);if(!cache||cache.key!==key){const q=this.remaining();cache={key,value:q?{proper:state.proper+q.proper,earth:state.earth+q.earth,terminalBeta:q.beta??q.terminalBeta}:null};this.active.set(f,cache);}return cache.value?{proper:Math.max(0,cache.value.proper-state.proper),earth:Math.max(0,cache.value.earth-state.earth),terminalBeta:cache.value.terminalBeta}:null;}
   const target=object(state.selected);if(!target?.navigable||state.current===target.id)return null;

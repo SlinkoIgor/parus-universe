@@ -94,7 +94,7 @@ const ExtendedCatalog={
   saved.catalogObjects=[...ids].map(id=>this.pinned.get(id)).filter(Boolean);
   for(const id of this.pinned.keys())if(!ids.has(id))this.pinned.delete(id);
  },
- restore(saved){for(const o of saved?.catalogObjects||[]){if(!o||typeof o.id!=='string')continue;if(this.hiddenIds.has(o.id)||o.positionQuality==='unknown'){o.atlasOnly=true;o.navigable=false;}if((o.p3==null||o.p3.every(Number.isFinite))&&(o.atlasOnly||Number.isFinite(o.mapPosition?.x)&&Number.isFinite(o.mapPosition?.y)))this.pin(o);}},
+ restore(saved){for(const o of saved?.catalogObjects||[]){if(!o||typeof o.id!=='string')continue;const correction=EXTENDED_BOOT.pulsarCorrections?.find(r=>r[0]===o.id);if(correction)Object.assign(o,this.decode(correction));if(this.hiddenIds.has(o.id)||o.positionQuality==='unknown'){o.atlasOnly=true;o.navigable=false;}if((o.p3==null||o.p3.every(Number.isFinite))&&(o.atlasOnly||Number.isFinite(o.mapPosition?.x)&&Number.isFinite(o.mapPosition?.y)))this.pin(o);}},
  ensureGalaxy(g){
   if(!g||!g.p3||g.atlasOnly&&g.id!==state.current)return null;
   // An unspent star is already a sail source; don't point its arrival button at itself.

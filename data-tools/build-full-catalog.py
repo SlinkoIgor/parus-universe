@@ -147,34 +147,60 @@ for row in records:
 
 psr_path=RAW/'psrcat.db'
 if not psr_path.exists():psr_path=ROOT.parent/'research-data/psrcat.db'
-pulsars=[];current={}
+pulsars=[];current={};pulsar_audit=[];parameter_errors={}
 for line in psr_path.read_text().splitlines():
     if line.startswith('@'):
         if current:pulsars.append(current);current={}
     elif line and not line.startswith('#'):
         parts=line.split()
-        if len(parts)>1:current[parts[0]]=parts[1]
+        if len(parts)>1:
+            current[parts[0]]=parts[1]
+            if parts[0]=='PX' and len(parts)>2 and number(parts[2]) is not None:
+                parameter_errors[current.get('PSRJ','')]=number(parts[2])*10**(int(parts[1].lower().split('e')[1]) if 'e' in parts[1].lower() else 0)/10**(len(parts[1].lower().split('e')[0].split('.')[1]) if '.' in parts[1].lower().split('e')[0] else 0)
 if current:pulsars.append(current)
 knownpsr={'J0835-4510':'vela','J0534+2200':'crab','J0633+1746':'iau-geminga','J1300+1240':'iau-lich','J1412+7922':'iau-calvera'}
 for q in pulsars:
     name=q['PSRJ'];ident=knownpsr.get(name,'atnf-'+name.lower());rawmap['atnf:'+name]=ident
     ra,dec=sex(q.get('RAJ'),True),sex(q.get('DECJ'));d=None;quality='unknown';method='Расстояние неизвестно; положение на карте условное.'
-    for field in ('DIST_A','DIST_DM','DIST_DM1'):
-        v=number(q.get(field))
-        if v and v>0:d=v*1000*PC;quality='approximate';method='ATNF 2.9.0: '+field+', кпк × 3261,563777. '+('Независимая оценка.' if field=='DIST_A' else 'Модельное расстояние по дисперсии; существенная неопределённость.');break
-    if d is None:
-        px=number(q.get('PX'))
-        if px and px>0:d=1000/px*PC;quality='approximate';method='ATNF: приблизительная инверсия положительного параллакса.'
+    ext={'periodSeconds':number(q.get('P0')),'binaryModel':q.get('BINARY'),'association':q.get('ASSOC')}
+    independent=number(q.get('DIST_A'));px=number(q.get('PX'));pxerr=parameter_errors.get(name)
+    dm=number(q.get('DIST_DM'));dm1=number(q.get('DIST_DM1'))
+    # 25 kpc in YMW16 and ~50 kpc in NE2001 are model boundaries, not distances.
+    saturated=(dm is not None and dm>=25) or (dm1 is not None and dm1>=49.9)
+    conflict=bool(dm and dm1 and max(dm,dm1)/min(dm,dm1)>2)
+    host=None
+    association=re.search(r'(?:^|,)GC:([^,\[]+)',q.get('ASSOC',''))
+    if association:
+        key=norm(association[1])
+        host=next((o for o in core if o['kind']=='cluster' and o.get('p3') and key in [norm(v) for v in [o['name'],*o.get('aliases',[]),'M'+str(o.get('messier',''))]]),None)
+    if independent and independent>0:
+        d=independent*1000*PC;quality='approximate';method='ATNF 2.9.0 DIST_A: независимая оценка расстояния.'
+    elif px and pxerr is not None and px>3*pxerr and pxerr>0:
+        d=1000/px*PC;quality='approximate';method='ATNF: параллакс с отношением сигнал/ошибка >3; расстояние ≈1/PX.';ext['distanceRelativeError']=pxerr/px
+    elif host:
+        d=host['d'];quality='approximate';method='Оценка по принадлежности к '+host['name']+' (ASSOC ATNF); индивидуальная глубина в скоплении неизвестна.';ext.update(distanceHost=host['id'],referenceURL=host.get('source') or 'https://www.atnf.csiro.au/research/pulsar/psrcat/')
+    elif saturated or conflict:
+        d=(dm or dm1)*1000*PC if dm or dm1 else None;quality='approximate';method='ATNF: '+('предел электронной модели вместо расстояния.' if saturated else 'оценки двух электронных моделей расходятся более чем вдвое.')+' Только атлас; пригодного расстояния нет.';ext.update(atlasOnly=True,positionReason=method)
+    elif dm and dm>0 or dm1 and dm1>0:
+        d=(dm or dm1)*1000*PC;quality='approximate';method='ATNF: модельное расстояние по дисперсии '+('YMW16' if dm else 'NE2001')+'; индивидуальная погрешность не измерена.'
+    else:
+        ext.update(atlasOnly=True,positionReason='Нет независимой или пригодной модельной оценки расстояния. Только атлас.')
+    ext.update(distanceModelKpc=dm,distanceModel1Kpc=dm1)
+    pulsar_audit.append({'id':ident,'distanceLy':d,'atlasOnly':bool(ext.get('atlasOnly')),'host':host['id'] if host else None,'modelBoundary':saturated,'modelConflict':conflict,'method':method})
     if (ra is None or dec is None) and number(q.get('ELONG')) is not None and number(q.get('ELAT')) is not None:
         l,b=math.radians(float(q['ELONG'])),math.radians(float(q['ELAT']));e=math.radians(23.4392911)
         x=math.cos(b)*math.cos(l);y=math.cos(b)*math.sin(l)*math.cos(e)-math.sin(b)*math.sin(e);z=math.cos(b)*math.sin(l)*math.sin(e)+math.sin(b)*math.cos(e)
         ra=math.degrees(math.atan2(y,x))%360;dec=math.degrees(math.asin(z))
     if ident in byid:
-        if not byid[ident].get('p3'):patches[ident]={'d':d,'raDeg':ra,'decDeg':dec,'positionQuality':quality,'distanceMethod':method,'display':projection(ra,dec,d,'pulsar',ident)}
+        # Named landmark distances have independent sources; preserve them.
+        if name not in knownpsr:
+            policies[ident]={**ext,'atlasOnly':bool(ext.get('atlasOnly'))}
+            patches[ident]={'d':d,'raDeg':ra,'decDeg':dec,'positionQuality':quality,'distanceMethod':method,'display':projection(ra,dec,d,'pulsar',ident)}
+        elif not byid[ident].get('p3'):patches[ident]={'d':d,'raDeg':ra,'decDeg':dec,'positionQuality':quality,'distanceMethod':method,'display':projection(ra,dec,d,'pulsar',ident)}
         continue
-    ext={'periodSeconds':number(q.get('P0')),'binaryModel':q.get('BINARY'),'association':q.get('ASSOC')}
     add(ident,'PSR '+name,'pulsar',d,ra,dec,quality,method,['PSR '+name,name,q.get('PSRB','')],None,'ATNF',ext)
-coverage['ATNF']={'rows':len(pulsars),'represented':len(pulsars)}
+coverage['ATNF']={'rows':len(pulsars),'represented':len(pulsars),'unreliableAtlasOnly':sum(q['atlasOnly'] for q in pulsar_audit),'modelBoundary':sum(q['modelBoundary'] for q in pulsar_audit),'hostDistance':sum(q['host'] is not None and not q['atlasOnly'] for q in pulsar_audit)}
+dump(ROOT/'data-tools/pulsar-distance-audit.json',{'policy':'DIST_A > PX signal/error >3 > identified cluster host > nonsaturated DM; model disagreement >2 is atlas-only','sources':['https://www.atnf.csiro.au/research/pulsar/psrcat/psrcat_help.html','https://doi.org/10.3847/1538-4357/835/1/29'],'rows':pulsar_audit})
 
 # Measured directions of individually known members of nearby galaxies.
 # Their depth is unresolved: use the host distance, explicitly labelled.
@@ -348,7 +374,7 @@ dump(OUT/'search.json',index)
 revision=hashlib.sha256(Path(__file__).read_bytes()+b''.join(hashlib.sha256(p.read_bytes()).digest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path,ROOT/'data-tools/hipparcos-errors.json',ROOT/'data-tools/nearby-galaxy-stars.json',ROOT/'data-tools/confirmed-systems.json'])+json.dumps(core,ensure_ascii=False).encode()).hexdigest()[:12]
 summary={'version':1,'revision':revision,'total':len(core)+len(member_rows)+len(records),'core':len(core)+len(member_rows),'extra':len(records),'sourceCoverage':coverage,'mapRows':len(records)-len(atlas_only),'atlasOnlyRows':len(atlas_only),'unknownExtra':sum(r[6]=='unknown' for r in records),'approximateExtra':sum(r[6]=='approximate' for r in records),'nodes':nodes,'roots':roots,'search':'search.json','systems':len(systems),'foregroundWithin50':len(foreground)}
 dump(OUT/'manifest.json',summary)
-boot={'revision':revision,'members':member_rows,'policies':policies,'hiddenIds':[r[0] for r in atlas_only],'total':summary['total'],'patches':patches,'foreground':foreground,'systems':systems,'renames':renames,'sourceCoverage':coverage,'systemTiles':{i:locations[i] for s in systems for i in s['members'] if i in locations},'rawMap':{k:v for k,v in rawmap.items() if k.startswith('atnf:') and v in byid}}
+boot={'revision':revision,'members':member_rows,'policies':policies,'hiddenIds':[r[0] for r in atlas_only],'total':summary['total'],'patches':patches,'foreground':foreground,'systems':systems,'renames':renames,'sourceCoverage':coverage,'pulsarCorrections':[r for r in records if r[10]=='ATNF' and (r[11].get('distanceHost') or 'параллакс' in r[7]) and not r[11].get('atlasOnly')],'systemTiles':{i:locations[i] for s in systems for i in s['members'] if i in locations},'rawMap':{k:v for k,v in rawmap.items() if k.startswith('atnf:') and v in byid}}
 (ROOT/'dist/catalog-extended.js').write_text('// Generated from complete local source snapshots.\nconst EXTENDED_BOOT='+json.dumps(boot,ensure_ascii=False,separators=(',',':'),allow_nan=False)+';\n')
 dump(ROOT/'data-tools/full-catalog-audit.json',{'total':summary['total'],'core':len(core)+len(member_rows),'extra':len(records),'sourceCoverage':coverage,'mappedRows':summary['mapRows'],'atlasOnlyRows':summary['atlasOnlyRows'],'leafRecords':len(locations),'foreground':foreground,'systems':len(systems),'unknownExtra':summary['unknownExtra'],'approximateExtra':summary['approximateExtra'],'sourceSHA256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path]}})
 html=ROOT/'dist/index.html';html.write_text(re.sub(r'(catalog-extended\.js\?v=)[^\"]+',lambda m:m[1]+revision,html.read_text()))

@@ -38,7 +38,11 @@ const Cosmology={
   const integrate=earth=>{const N=128,zmax=Math.log1p(this.H0*earth),h=zmax/N;let tau=0,chi=0,path=0;for(let i=0;i<=N;i++){const z=h*i,t=Math.expm1(z)/this.H0,jac=Math.exp(z)/this.H0,r=rates(t),w=i===0||i===N?1:i%2?4:2;tau+=r.tau*w*jac;chi+=r.chi*w*jac;path+=r.path*w*jac;}return{proper:tau*h/3,distance:chi*h/3,path:path*h/3};};
   let lo=proper,hi=proper*g0;for(let n=0;n<42;n++){const mid=(lo+hi)/2;if(integrate(mid).proper<proper)lo=mid;else hi=mid;}const earth=(lo+hi)/2;return{...integrate(earth),earth,proper,beta:rates(earth).beta};
  },
+ // Remaining photon reach in reference-epoch comoving light years: integral dt/a.
+ horizon(time=this.time){const u=1/this.scale(time),N=256,h=u/N;let sum=0;for(let i=0;i<=N;i++){const x=i*h;sum+=(i===0||i===N?1:i%2?4:2)/Math.sqrt(this.omegaM*x*x*x+this.omegaL);}return sum*h/(3*this.H0);},
+ beyondHorizon(d,time=this.time){return this.enabled&&d>=this.horizon(time);},
  eta(d,beta,time=this.time){
+  if(this.beyondHorizon(d,time))return{proper:Infinity,earth:Infinity,unreachable:true};
   if(!(beta>0))return null;let lo=0,hi=Math.max(1,d*Math.sqrt((1-beta)*(1+beta))/beta*1.1),q;
   // Future travel has a finite comoving reach in a Lambda-dominated universe.
   for(let n=0;n<48;n++){q=this.coast(beta,hi,time);if(q.distance>=d)break;hi*=2;if(hi>2e12)return{proper:Infinity,earth:Infinity,unreachable:true};}
