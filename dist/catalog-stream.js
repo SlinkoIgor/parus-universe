@@ -5,16 +5,19 @@ const ExtendedCatalog={
  sources:{HYG:['https://github.com/astronexus/HYG-Database','HYG 4.1'],OpenNGC:['https://github.com/mattiaverga/OpenNGC','OpenNGC'],ATNF:['https://www.atnf.csiro.au/research/pulsar/psrcat/','ATNF 2.9.0']},
  get total(){return EXTENDED_BOOT.total+OBJECTS.filter(o=>o.nuclearStar).length+[...this.pinned.values()].filter(o=>o.synthetic).length;},
  get(id){return this.coreIndex?.get(id)||this.pinned.get(id)||this.visibleMap.get(id);},
- background(o){return MapDetails.mass(o)===null&&!o.synthetic&&!o.messier&&!o.galaxyMember&&(o.streamed||o.kind==='star'&&o.d>0&&o.d<=50&&!this.foreground.has(o.id));},
+ background(o){return MapDetails.mass(o)===null&&!o.synthetic&&!o.messier&&(!o.galaxyMember||o.bulkGalaxyMember)&&(o.bulkGalaxyMember||o.streamed||o.kind==='star'&&o.d>0&&o.d<=50&&!this.foreground.has(o.id));},
  readJSON(path){if(globalThis.PARUS_CATALOG_FILES?.[path])return Promise.resolve().then(()=>{const v=globalThis.PARUS_CATALOG_FILES[path];return typeof v==='string'?JSON.parse(v):v;});return fetch(path+'?v='+EXTENDED_BOOT.revision).then(r=>{if(!r.ok)throw Error('Не удалось загрузить '+path);return r.json();});},
+ astrometryNote(o){if(!o.astrometrySource)return;const note=o.uncertaintyMatched&&o.distanceRelativeError!=null?'Решение '+o.astrometrySource+'; σπ/π ≈ '+(100*o.distanceRelativeError).toFixed(1).replace('.',',')+'%.':'Для принятого расстояния формальная погрешность не задана; погрешность другого решения не подставляется.';o.coordinateNote=(o.coordinateNote||'')+' '+note;},
+ adopt(o,fresh,saved){const p=o.p3,active=p&&[saved?.current,saved?.flight?.target,saved?.flight?.fromId].includes(o.id);Object.assign(o,fresh);if(active&&fresh.atlasOnly){o.p3=p;o.historicalNavigation=true;o.coordinateNote+=' Текущее положение корабля или старый маршрут сохраняет прежнюю приблизительную навигационную оценку. Каталожный объект остаётся только в атласе.';}return o;},
  decode(r){
   const [id,name,kind,d,raDeg,decDeg,positionQuality,distanceMethod,aliases,apparentV,source,extra,x,y]=r,located=d>0&&Number.isFinite(raDeg)&&Number.isFinite(decDeg),ref=extra.referenceURL?[extra.referenceURL,source]:this.sources[source]||this.sources.HYG;
-  const o={id,name,kind,d,raDeg,decDeg,positionQuality,distanceMethod,aliases,apparentV,...extra,source:ref[0],catalog:ref[1],streamed:true,mapPosition:{x,y},...(located?Space.point(Space.fromSky(raDeg,decDeg,d)):{p3:null,x,y}),navigable:located&&!extra.invalidIdentification&&!extra.atlasOnly,type:({star:'ЗВЕЗДА',pulsar:'ПУЛЬСАР',galaxy:'ГАЛАКТИКА',cluster:'СКОПЛЕНИЕ',nebula:'ТУМАННОСТЬ'})[kind]+' · '+source};
+  const o={id,name,kind,d,raDeg,decDeg,positionQuality,distanceMethod,aliases,apparentV,...extra,catalogRevision:EXTENDED_BOOT.revision,mapGeometry:MapLayout.version,source:ref[0],catalog:ref[1],streamed:true,mapPosition:{x,y},...(located?Space.point(Space.fromSky(raDeg,decDeg,d)):{p3:null,x,y}),navigable:located&&!extra.invalidIdentification&&!extra.atlasOnly,type:({star:'ЗВЕЗДА',pulsar:'ПУЛЬСАР',galaxy:'ГАЛАКТИКА',cluster:'СКОПЛЕНИЕ',nebula:'ТУМАННОСТЬ'})[kind]+' · '+source};
   o.desc=distanceMethod+(extra.identificationNote?' '+extra.identificationNote:'');
   o.coordinateNote=positionQuality==='unknown'?'Недостаточно данных для положения на карте. Объект доступен только в атласе.':positionQuality==='approximate'?'Приблизительная позиция; полёт разрешён по указанной оценке. '+distanceMethod:'Каталожная позиция J2000; собственное движение не моделируется.';
   o.facts={class:o.type,mass:'Нет индивидуальной оценки в этом каталоге.',lumUnknown:'Болометрическая светимость не указана.',note:distanceMethod+(extra.sizeEstimated?' Контур галактики имеет условный игровой размер: угловой диаметр в каталоге отсутствует.':''),refs:[ref]};
+  if(extra.placementNote)o.coordinateNote=extra.placementNote;if(extra.geometrySource)o.facts.refs.push([extra.geometrySource,'Геометрия диска']);
   if(extra.membershipSource)o.facts.refs.push([extra.membershipSource,'Принадлежность к галактике']);if(extra.memberType)o.type=o.facts.class=extra.memberType;if(extra.positionReason)o.coordinateNote=extra.positionReason;
-  if(extra.periodSeconds)o.facts.extra=['Период вращения',String(extra.periodSeconds)+' с'];return o;
+  this.astrometryNote(o);if(extra.periodSeconds)o.facts.extra=['Период вращения',String(extra.periodSeconds)+' с'];return o;
  },
  init(){
   this.coreIndex=new Map(OBJECTS.map(o=>[o.id,o]));
@@ -23,7 +26,7 @@ const ExtendedCatalog={
    const located=p.d>0&&Number.isFinite(p.raDeg)&&Number.isFinite(p.decDeg);
    Object.assign(o,located?Space.point(p.p3||Space.fromSky(p.raDeg,p.decDeg,p.d)):{p3:null,x:p.display[0],y:p.display[1]});
    // Generated positions are compact [x,y], while original map coordinates stay unchanged.
-   o.mapPosition={x:p.display[0],y:p.display[1]};o.navigable=located;
+   o.mapPosition={x:p.display[0],y:p.display[1]};o.navigable=located;this.prepareGalaxy(o);
    o.coordinateNote=located?'Приблизительная позиция. Полёт разрешён по оценке расстояния. '+p.distanceMethod:p.distanceMethod;
    if(o.facts){o.facts.note=p.distanceMethod;if(p.distanceSource)o.facts.refs.push([p.distanceSource,'Расстояние и принадлежность к системе']);if(o.facts.visual&&o.apparentV!=null){const absoluteV=o.apparentV-5*Math.log10(p.d/3.2615637771674336)+5;o.absoluteV=absoluteV;o.visualLuminositySolar=10**((4.83-absoluteV)/2.5);o.facts.visual={absoluteV,solarV:o.visualLuminositySolar};}}MapLayout.cache.delete(id);
   }
@@ -41,12 +44,17 @@ const ExtendedCatalog={
    if(!area&&(o.positionQuality==='unknown'||!o.p3?.every(Number.isFinite)))o.atlasOnly=true;
    if(o.atlasOnly&&!area){o.navigable=false;o.coordinateNote=o.positionReason||'Недостаточно данных для положения на карте. Только атлас.';}
    else if(o.p3?.every(Number.isFinite)){o.navigable=true;if(area&&!o.arrivalAnchor)o.coordinateNote=(o.coordinateNote||'')+' Полёт разрешён к оценочной точке прибытия в область; это не компактное тело.';}
+   if(!o.streamed)this.astrometryNote(o);
   }
   for(const s of EXTENDED_BOOT.systems)for(const id of s.members){this.systemByMember.set(id,s);const o=this.coreIndex.get(id);if(s.id==='system-cygnus-x1'&&o?.facts)o.facts.refs=[...(o.facts.refs||[]).filter(r=>r[0]!==s.source),[s.source,'Расстояние и параметры двойной системы']];}
  },
  start(){
   if(typeof fetch!=='function'&&!globalThis.PARUS_CATALOG_FILES)return;
-  this.readJSON('catalog-data/manifest.json').then(m=>{this.manifest=m;this.lastUpdate=-Infinity;if(!$('catalog').hidden)renderCatalog();}).catch(e=>{this.manifestError=e.message;});
+  this.readJSON('catalog-data/manifest.json').then(m=>{this.manifest=m;this.lastUpdate=-Infinity;this.refreshSaved();if(!$('catalog').hidden)renderCatalog();}).catch(e=>{this.manifestError=e.message;});
+ },
+ async refreshSaved(){
+  const ids=new Set([...this.pinned.values()].filter(o=>!o.synthetic&&o.catalogRevision!==EXTENDED_BOOT.revision).map(o=>o.id));if(!ids.size)return;
+  try{const index=await this.readJSON('catalog-data/search.json'),entries=index.filter(r=>ids.has(r[0]));for(const entry of entries){const rows=await this.tile(entry[5]),fresh=rows.find(o=>o.id===entry[0]);if(fresh&&this.pinned.has(fresh.id)){const o=this.pinned.get(fresh.id);this.adopt(o,fresh,state);this.prepareGalaxy(o);}}this.lastUpdate=-Infinity;renderUI();}catch(e){this.migrationError=e.message;}
  },
  tile(file){
   if(this.cache.has(file)){const r=this.cache.get(file);this.cache.delete(file);this.cache.set(file,r);return Promise.resolve(r);}
@@ -74,10 +82,21 @@ const ExtendedCatalog={
  },
  pin(o){
   if(!o)return o;const core=OBJECTS.find(q=>q.id===o.id);if(core)return core;
-  this.pinned.set(o.id,o);this.prepareGalaxy(o);return o;
+  this.pinned.set(o.id,o);this.prepareGalaxy(o);this.repairLocalStar(o);return o;
+ },
+ repairLocalStar(o,seen=new Set()){
+  if(!o?.synthetic||!o.parentObject||seen.has(o.id))return;seen.add(o.id);
+  const host=this.coreIndex?.get(o.parentObject)||this.pinned.get(o.parentObject);if(!host?.p3||!o.p3)return;
+  this.repairLocalStar(host,seen);
+  // Store a reference-epoch position. MapLayout.project already applies the
+  // common host translation; storing its expanded position applied that twice.
+  const base=MapLayout.baseProject(host),offset=o.p3.map((v,i)=>v-host.p3[i]);
+  o.mapPosition={x:base.x+offset[0],y:base.y-offset[1]};
+  MapLayout.cache.delete(o.id);Cosmology.cache.delete(o.id);
  },
  prepareGalaxy(o){
-  if(o.kind!=='galaxy'||!o.p3||o.galaxy)return;
+  if(o.kind!=='galaxy'||!o.p3)return;
+  if(o.galaxy){Object.assign(o.galaxy,{x:o.x,y:o.y,p3:o.p3,mapPosition:o.mapPosition,diameterLy:o.diameterLy||o.galaxy.diameterLy});if(!GALAXIES.some(g=>g.id===o.id))GALAXIES.push(o.galaxy);return;}
   const g={id:o.id,name:o.name,x:o.x,y:o.y,p3:o.p3,mapPosition:o.mapPosition,diameterLy:o.diameterLy||30000,axisRatio:(o.angularMinorArcmin||o.angularMajorArcmin||1)/(o.angularMajorArcmin||1),shape:/^E|^S0/.test(o.hubbleType||'')?'elliptical':/^I/.test(o.hubbleType||'')?'irregular':'spiral',rotation:0};
   o.galaxy=g;if(!GALAXIES.some(q=>q.id===g.id))GALAXIES.push(g);
  },
@@ -86,27 +105,48 @@ const ExtendedCatalog={
   const file=entry.tile||EXTENDED_BOOT.systemTiles?.[entry.id];if(!file)throw Error('Нет адреса записи каталога');
   const rows=await this.tile(file),o=rows.find(o=>o.id===entry.id);if(!o)throw Error('Запись не найдена в каталоге');return this.pin(o);
  },
- focus(o){if(o.nuclearStar){NuclearStars.focus(o.orbit);return;}if(o.atlasOnly){toast(o.positionReason||'Для этого объекта недостаточно точное положение. Он доступен только в атласе.');return;}const p=MapLayout.project(o),span=o.kind==='galaxy'?(o.galaxy?.diameterLy||30000)*2.8:o.positionQuality==='unknown'?Math.max(400,Math.hypot(p.x,p.y)*.04):o.synthetic?2:o.kind==='star'?24:Math.max(24,Math.min(20000,(o.d||100)*.03));const system=this.systemByMember.get(o.id);goCamera(p.x,p.y,system?.separationLy?Math.max(.00006,system.separationLy*6):span);this.ensureGalaxy(o);},
+ focus(o){if(o.nuclearStar){NuclearStars.focus(o.orbit);return;}if(o.atlasOnly){toast(o.positionReason||'Для этого объекта недостаточно точное положение. Он доступен только в атласе.');return;}const p=MapLayout.project(o),span=o.positionEstimate?Math.max(24,4*o.positionEstimate.localEnvelopeLy,4*(o.diameterLy||0)):o.kind==='galaxy'?(o.galaxy?.diameterLy||30000)*2.8:o.positionQuality==='unknown'?Math.max(400,Math.hypot(p.x,p.y)*.04):o.synthetic?2:o.kind==='star'?24:Math.max(24,Math.min(20000,(o.d||100)*.03));const system=this.systemByMember.get(o.id);goCamera(p.x,p.y,system?.separationLy?Math.max(.00006,system.separationLy*6):span);this.ensureGalaxy(o);},
  capture(saved){
+  saved.catalogGeometry=MapLayout.version;
+  saved.catalogRevision=EXTENDED_BOOT.revision;
   const ids=new Set([saved.current,saved.selected,saved.flight?.target,saved.flight?.fromId,...(saved.visited||[]),...(saved.destroyed||[]),...(saved.itinerary||[]).map(n=>n.id),...(saved.flight?.route||[]).map(n=>n.id)]);
   // Include the parent galaxy so a generated star can still be identified on reload.
   for(const id of [...ids]){const o=this.get(id);if(o?.parentGalaxy)ids.add(o.parentGalaxy);if(o?.parentObject)ids.add(o.parentObject);if(o?.departureStar)ids.add(o.departureStar);}
   saved.catalogObjects=[...ids].map(id=>this.pinned.get(id)).filter(Boolean);
   for(const id of this.pinned.keys())if(!ids.has(id))this.pinned.delete(id);
  },
- restore(saved){for(const o of saved?.catalogObjects||[]){if(!o||typeof o.id!=='string')continue;const correction=EXTENDED_BOOT.pulsarCorrections?.find(r=>r[0]===o.id);if(correction)Object.assign(o,this.decode(correction));if(this.hiddenIds.has(o.id)||o.positionQuality==='unknown'){o.atlasOnly=true;o.navigable=false;}if((o.p3==null||o.p3.every(Number.isFinite))&&(o.atlasOnly||Number.isFinite(o.mapPosition?.x)&&Number.isFinite(o.mapPosition?.y)))this.pin(o);}},
+ restore(saved){const oldGeometry=saved&&(saved.catalogGeometry!==MapLayout.version||saved.catalogRevision!==EXTENDED_BOOT.revision);for(const o of saved?.catalogObjects||[]){if(!o||typeof o.id!=='string')continue;const correction=(EXTENDED_BOOT.coordinateCorrections||EXTENDED_BOOT.pulsarCorrections||[]).find(r=>r[0]===o.id);if(correction)this.adopt(o,this.decode(correction),saved);
+  if(o.mapGeometry!==MapLayout.version&&o.p3?.every(Number.isFinite)){
+   const host=o.galaxyMember&&this.coreIndex.get(o.parentGalaxy);
+   if(host&&o.mapPosition){const before=MapLayout.legacy(host.p3,host.id),after=MapLayout.baseProject(host);o.mapPosition={x:o.mapPosition.x+after.x-before.x,y:o.mapPosition.y+after.y-before.y};}
+   else o.mapPosition=MapLayout.base(o.p3);
+   o.mapGeometry=MapLayout.version;
+   if(!o.synthetic){o.atlasOnly=this.hiddenIds.has(o.id)||o.positionQuality==='unknown';o.navigable=!o.atlasOnly&&!!o.p3;delete o.distanceRelativeError;o.uncertaintyMatched=false;}
+  }
+  if(this.hiddenIds.has(o.id)||o.positionQuality==='unknown'){o.atlasOnly=true;o.navigable=false;o.coordinateNote=o.positionReason||'Индивидуальная глубина или пригодное расстояние не определены. Только атлас.';if(o.historicalNavigation)o.coordinateNote+=' Прежняя приблизительная навигационная оценка сохранена только для текущего положения корабля или старого маршрута.';}if((o.p3==null||o.p3.every(Number.isFinite))&&(o.atlasOnly||Number.isFinite(o.mapPosition?.x)&&Number.isFinite(o.mapPosition?.y)))this.pin(o);
+ }
+  for(const o of this.pinned.values())this.repairLocalStar(o);
+  if(saved?.flight&&(this.get(saved.flight.fromId)?.synthetic||this.get(saved.flight.target)?.synthetic))delete saved.flight.view;
+  if(oldGeometry){
+   const f=saved.flight,target=f&&this.get(f.target);
+   if(f&&target?.p3&&f.from?.p3){if(saved.phase!=='flyby'){const aim=f.aim?.p3?f.aim:target;f.distance=Space.distance(f.from,aim);f.cosmic=Cosmology.isCosmic(this.get(f.fromId)||f.from,target);if(f.distance>0&&saved.ship)Object.assign(saved.ship,Space.mix(f.from,aim,f.covered/f.distance));}delete f.view;}
+   else if(!f&&saved.ship){const current=this.get(saved.current);if(current?.p3)Object.assign(saved.ship,Space.point(current.p3));}
+   saved.catalogGeometry=MapLayout.version;
+   saved.catalogRevision=EXTENDED_BOOT.revision;
+  }
+ },
  ensureGalaxy(g){
   if(!g||!g.p3||g.atlasOnly&&g.id!==state.current)return null;
   // An unspent star is already a sail source; don't point its arrival button at itself.
   if(g.kind==='star'&&!state.destroyed.includes(g.id))return null;
   this.prepareGalaxy(g);
-  const candidates=[...OBJECTS,...this.pinned.values()].filter(o=>o.id!==g.id&&o.kind==='star'&&!o.synthetic&&!o.atlasOnly&&o.p3&&!state.destroyed.includes(o.id));
+  const candidates=[...OBJECTS,...this.pinned.values(),...this.visible].filter(o=>o.id!==g.id&&o.kind==='star'&&!o.synthetic&&!o.atlasOnly&&o.p3&&!state.destroyed.includes(o.id));
   const radius=g.kind==='home'?10:g.kind==='galaxy'?Math.max(1,(g.galaxy?.diameterLy||30000)*.6):g.region?Math.max(1,Math.min(10000,g.region.major*.5)):Math.max(1,g.diameterLy||0);
   const real=candidates.filter(o=>o.parentGalaxy===g.id||Space.distance(o,g)<radius).sort((a,b)=>Space.distance(a,g)-Space.distance(b,g))[0];
   if(real){g.departureStar=real.id;return real;}
   let n=1;while(state.destroyed.includes('game-star:'+g.id+':'+n))n++;
   const id='game-star:'+g.id+':'+n;if(this.pinned.has(id)){g.departureStar=id;return this.pinned.get(id);}
-  const a=n*2.399963,offset=[.12*Math.cos(a),.12*Math.sin(a),.025],p=MapLayout.project(g);
+  const a=n*2.399963,offset=[.12*Math.cos(a),.12*Math.sin(a),.025],p=MapLayout.baseProject(g);
   const o={id,name:'Неизвестная звезда · '+g.name+(n>1?' · '+n:''),aliases:[g.name,'Игровая звезда'],kind:'star',type:'УСЛОВНАЯ ИГРОВАЯ ЗВЕЗДА',synthetic:true,parentObject:g.id,...(g.kind==='galaxy'?{parentGalaxy:g.id}:{}),p3:g.p3.map((v,i)=>v+offset[i]),mapPosition:{x:p.x+offset[0],y:p.y-offset[1]},navigable:true,positionQuality:'fictional',desc:'Игровая звезда рядом с точкой прибытия: '+g.name+'. Индивидуальная реальная звезда в этой позиции не известна; положение создано для продолжения игры.',coordinateNote:'Условная игровая позиция рядом с точкой прибытия; не астрономическое измерение.',facts:{class:'Условная игровая звезда',mass:'Не задана.',lumUnknown:'Использует игровую модель звёздного импульса.',note:'Доступна для парусного разгона; отдельная звезда в этой позиции не измерена.',refs:[]}};
   Object.assign(o,Space.point(o.p3));o.d=Math.hypot(...o.p3);this.pin(o);g.departureStar=id;return o;
  },

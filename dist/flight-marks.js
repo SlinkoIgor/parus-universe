@@ -6,7 +6,9 @@ const FlightMarks={
  },
  at(f,ds){return Space.mix(f.from,f.aim||object(f.target),ds/f.distance).p3;},
  plan(f=state.flight){
-  if(!f)return;const accelerating=!!(f.wind||f.engine?.direction>0),end=f.wind?(f.wind.baseCovered||0)+f.wind.distance/Cosmology.factor(f):(f.engine?.baseCovered||0)+(f.engine?.burnDistance||0)/Cosmology.factor(f);
+  if(!f)return;
+  if(f.mission){const p=f.mission;this.set(f,'acceleration',this.at(f,p.accelerationEnd.comoving));if(!p.passage)this.set(f,'brake',this.at(f,p.accelerationEnd.comoving+p.coast.distance));return;}
+  const accelerating=!!(f.wind||f.engine?.direction>0),end=f.wind?(f.wind.baseCovered||0)+f.wind.distance/Cosmology.factor(f):(f.engine?.baseCovered||0)+(f.engine?.burnDistance||0)/Cosmology.factor(f);
   if(accelerating)this.set(f,'acceleration',this.at(f,Math.min(f.distance,end)));
   if(Route.isFlyby(f)){f.markers=(f.markers||[]).filter(m=>m.kind==='acceleration');return;}
   const fuel=f.engine?.direction>0?state.matter-f.engine.budget:state.matter,stop=Magnetic.stopping(Math.max(0,fuel),f.maxBeta||state.beta,Math.max(1,Math.abs(state.controlG)||100));
@@ -14,7 +16,7 @@ const FlightMarks={
  },
  actual(kind){const f=state.flight;if(f)this.set(f,kind,state.ship.p3,true);},
  draw(f=state.flight){
-  const labels={acceleration:'КОНЕЦ РАЗГОНА',brake:'ТОРМОЖЕНИЕ ПАРУСОМ',fine:'ТОЧНОЕ ТОРМОЖЕНИЕ'};
+  const labels={acceleration:'КОНЕЦ РАЗГОНА',brake:f?.mission?'ТОРМОЖЕНИЕ':'ТОРМОЖЕНИЕ ПАРУСОМ',fine:'ТОЧНОЕ ТОРМОЖЕНИЕ'};
   for(const m of f?.markers||[]){const p=screen(FlightView.at(f,FlightView.fraction(f,m.p3)));circle(p.x,p.y,4,'#666666',.9,m.actual?[]:[2,2]);MapLabels.point({key:'flight-mark-'+m.kind,name:labels[m.kind]+(m.actual?'':' · ПРОГНОЗ'),p,priority:115,size:8});}
 
  }

@@ -1,6 +1,8 @@
 import fs from 'node:fs';import assert from 'node:assert/strict';
 const h=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {run};';const {run}=await import('data:text/javascript,'+encodeURIComponent(h));
 run(`
+// Exercise the pre-orbital/save-compatible branch; verify-orbits covers new captures.
+OrbitalArrival.enabled=false;
 function resetCosmic(){state=initial();paused=false;Simulation.debt=0;Simulation.wallDebt=0;delete Simulation.smoothedFactor;Cosmology.sync(state);}
 assert.equal(initial().expansion,true);assert.equal(Cosmology.scale(0),1);assert.ok(Math.abs((Cosmology.scale(1)-1)/Cosmology.H0-1)<1e-5);
 assert.ok(Cosmology.scale(1e9)>1.07&&Cosmology.scale(1e9)<1.071);
@@ -10,7 +12,7 @@ resetCosmic();state.cosmicTime=1e10;Cosmology.sync(state);const p=object('androm
 const host={...b,id:'test-host',kind:'galaxy'},member={id:'test-member',kind:'star',p3:b.p3.map((x,i)=>x+(i===0?100:0)),parentGalaxy:'m87',mapPosition:{x:MapLayout.baseProject(b).x+100,y:MapLayout.baseProject(b).y}};assert.ok(Math.abs(Cosmology.physicalDistance(member,b)-100)<1e-5);
 const before=Cosmology.scale();state.expansion=false;Cosmology.elapse(state,1e9);assert.equal(Cosmology.scale(),before);state.expansion=true;Cosmology.elapse(state,1e9);assert.ok(Cosmology.scale()>before);
 resetCosmic();state.current='proxima';state.ship=Space.point(object('proxima').p3);state.selected='m87';state.sail=0;launch();assert.equal(state.flight.cosmic,true);let n=0;while(state.flight&&n++<20)Simulation.step(1e12);assert.equal(state.current,'m87');assert.ok(state.cosmicTime>55e6&&state.earth>55e6);assert.ok(state.earth>state.proper);
-resetCosmic();state.beta=.99;assert.equal(clockRate(),1);renderClockRatio();assert.equal($('timeDilation').textContent,'1 год на Земле');state.selected='alpha';launch(true);tickPhysics(state.flight.engine.burnProper);speed=1000;assert.equal(state.phase,'cruise');assert.equal(Simulation.slowMotionFactor(),1);
+resetCosmic();state.beta=.99;assert.equal(clockRate(),1);renderClockRatio();assert.equal($('timeDilation').textContent,'1 год у неподвижного наблюдателя');state.selected='sgr';launch(true);tickPhysics(state.flight.engine.burnProper);speed=1000;assert.equal(state.phase,'cruise');assert.equal(Simulation.slowMotionFactor(),1);
 for(const q of NuclearStars.rows.filter(q=>q.e<1)){const o=object(q.id),a=q.a*(q.distancePc||NuclearStars.distancePc)/63241.077;for(const E of [0,Math.PI]){const r=Math.hypot(...NuclearStars.offset(q,E));assert.ok(Math.abs(r/(a*(1+(E===0?-1:1)*q.e))-1)<1e-10);}assert.ok(o.navigable&&!o.synthetic);assert.ok(Space.distance(o,gc)<10);assert.equal(MapDetails.visible(o,.5),true);}
 state=initial();resize();cam={x:200,y:-500,span:50};focusShip();assert.equal(followShip,false);const ship=screen(state.ship);assert.ok(Math.abs(ship.x-width/2)<1e-8&&Math.abs(ship.y-height/2)<1e-8);focusShip();assert.equal(followShip,true);releaseShipCamera();assert.equal(followShip,false);
 for(const kind of ['galaxy','nebula','cluster'])assert.ok(MapDetails.visible({kind,d:1000},1e6));

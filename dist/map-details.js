@@ -17,13 +17,23 @@ const MapDetails={
   return name||o.name;
  },
  searchKey(s){return s.normalize('NFKD').toLocaleLowerCase('ru').replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]/gu,'').replace(/(ngc|ic)0+(?=\d)/g,'$1');},
- mass(o){
-  if(!o)return null;if(Number.isFinite(o.massSolar)&&o.massSolar>0)return o.massSolar;
-  const txt=o.facts?.mass||'',sup={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁻':'-'};
-  const m=txt.match(/([\d.,]+(?:\s*·\s*10[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+)?(?:\s*\+\s*[\d.,]+)?)(?:\s*(тыс|млн|млрд))?\s*M☉/);
-  if(m){const parts=m[1].split('+').map(v=>{const a=v.replace(/,/g,'.').replace(/\s/g,'').split('·10');return Number(a[0])*(a[1]?10**Number([...a[1]].map(c=>sup[c]??c).join('')):1);}),n=parts.reduce((a,b)=>a+b,0)*({тыс:1e3,млн:1e6,млрд:1e9}[m[2]]||1);if(n>0&&Number.isFinite(n))return n;}
-  return Number.isFinite(o.gravity?.massSolar)&&o.gravity.massSolar>0?o.gravity.massSolar:null;
+ massInfo(o){
+  if(!o)return null;
+  if(Number.isFinite(o.massSolar)&&o.massSolar>0)return{solar:o.massSolar,source:o.massSource||o.facts?.ref||o.source||'',basis:'Численная масса объекта',system:!!o.massIsSystem};
+  const txt=String(o.facts?.mass||'');
+  // A typical neutron-star mass is not an individual measurement. In particular,
+  // never take the uncertainty after ± as the central value of a catalogue mass.
+  if(!/не измерена|типичн|ориентир|неизвест|не установлена|нет индивидуальн/i.test(txt)){
+   const compact=txt.replace(/(?<=\d)[\s\u00a0]+(?=\d)/g,''),sup={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁻':'-'},power='[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+',num='(?:[0-9]+(?:[.,][0-9]+)?(?:\\s*[·×]\\s*10'+power+')?|10'+power+')';
+   const m=compact.match(new RegExp('('+num+')(?:\\s*(±|[–−-]|\\+)\\s*('+num+'))?(?:\\s*(тыс|млн|млрд))?\\s*M☉'));
+   if(m){const parse=s=>{const a=s.replace(',','.').replace(/\s/g,'').split(/[·×]10/);return a.length>1?Number(a[0])*10**Number([...a[1]].map(c=>sup[c]??c).join('')):/^10[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+$/.test(s)?10**Number([...s.slice(2)].map(c=>sup[c]??c).join('')):Number(a[0]);},factor={тыс:1e3,млн:1e6,млрд:1e9}[m[4]]||1,a=parse(m[1])*factor,b=m[3]?parse(m[3])*factor:null,range=m[2]&&m[2]!=='±'&&m[2]!=='+';
+    const solar=m[2]==='+'?a+b:range?(a+b)/2:a;
+    if(solar>0&&Number.isFinite(solar))return{solar,uncertainty:m[2]==='±'?b:null,min:range?Math.min(a,b):null,max:range?Math.max(a,b):null,system:m[2]==='+',source:o.facts?.ref||o.source||'',basis:txt};
+   }
+  }
+  return Number.isFinite(o.gravity?.massSolar)&&o.gravity.massSolar>0?{solar:o.gravity.massSolar,source:o.gravity.source||o.source||'',basis:'Гравитационная модель объекта',system:false}:null;
  },
+ mass(o){return this.massInfo(o)?.solar??null;},
  massOrder(a,b){const ma=this.mass(a),mb=this.mass(b);return ma!==null&&mb!==null?mb-ma:ma!==null?-1:mb!==null?1:0;},
  maxSpan(o){
   if(o.nuclearStar)return 60000;
@@ -47,11 +57,11 @@ const MapDetails={
 for(const o of OBJECTS){const name=MapDetails.cleanName(o);if(name!==o.name){o.aliases=[...new Set([...(o.aliases||[]),o.name])];o.name=name;}if(o.galaxy)o.galaxy.name=o.name;}
 const MapLabels={
  queue:[],boxes:[],placed:[],slots:new Map(),viewKey:null,
- dynamic(key){return key==='ship'||key.startsWith('flight-mark-');},
+ dynamic(key){return key==='ship'||key==='ship-reach'||key.startsWith('flight-mark-');},
  overlaps(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;},
- begin(){const key=[cam.x,cam.y,cam.span,width,height,state.selected,state.flight?.fromId||state.current].join(':');if(this.viewKey!==key){this.slots.clear();this.viewKey=key;}this.queue=[];this.placed=[];this.boxes=[{x:0,y:0,w:Math.min(width-30,430),h:112},{x:width-300,y:0,w:300,h:80},{x:0,y:height-45,w:width,h:45},{x:0,y:height-200,w:80,h:200},{x:0,y:132,w:185,h:395}];
+ begin(){const key=[cam.x,cam.y,cam.span,width,height,state.selected,state.flight?.fromId||state.current].join(':');if(this.viewKey!==key){this.slots.clear();this.viewKey=key;}this.queue=[];this.placed=[];this.boxes=[{x:0,y:0,w:Math.min(width-30,430),h:150},{x:width-300,y:0,w:300,h:80},{x:0,y:height-45,w:width,h:45},{x:0,y:height-200,w:80,h:200},{x:0,y:132,w:185,h:480}];
   // Reserve the card's column independently of its changing telemetry height.
-  if(width>=700)this.boxes.push({x:width-340,y:90,w:340,h:height-90});
+  if(width>=700){const column=(width<=1050?300:310)+40;this.boxes.push({x:width-column,y:68,w:column,h:height-68});}
   else{const r=$('flightCard').getBoundingClientRect();this.boxes.push({x:r.left-12,y:Math.min(r.top-8,height*.45),w:r.width+24,h:height});}
  },
  add(label){this.queue.push(label);},

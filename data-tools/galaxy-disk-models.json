@@ -1,0 +1,31 @@
+{
+  "andromeda": {
+    "inclinationDeg": 77,
+    "positionAngleDeg": 38,
+    "nearSideKnown": true,
+    "maxRadiusPc": 35000,
+    "halfThicknessPc": 350,
+    "reference": "https://doi.org/10.1051/0004-6361/201730597",
+    "note": "M31: i=77°, PA=38°, северо-западная сторона ближе. Толщина 350 пк — консервативная модельная шкала, не ошибка отдельного объекта.",
+    "thicknessReference": "https://doi.org/10.1111/j.1365-2966.2011.18238.x"
+  },
+  "triangulum": {
+    "inclinationDeg": 56,
+    "positionAngleDeg": 23,
+    "nearSideKnown": false,
+    "maxRadiusPc": 18000,
+    "halfThicknessPc": 350,
+    "reference": "https://academic.oup.com/mnrasl/article/390/1/L24/976810",
+    "note": "M33: i=56°, PA=23°. Выбрана модель с ближней северо-западной стороной; знак наклона неоднозначен, зеркальное решение включено в локальный диапазон. Толщина 350 пк — принятая модельная шкала.",
+    "ambiguityReference": "https://academic.oup.com/mnras/article/418/3/2014/1066169"
+  },
+  "lmc": {
+    "inclinationDeg": 24.2,
+    "positionAngleDeg": 151.4,
+    "nearSideKnown": true,
+    "maxRadiusPc": 10000,
+    "halfThicknessPc": 1000,
+    "reference": "https://ogle.astrouw.edu.pl/cont/4_main/str/3_dim_str/",
+    "note": "LMC: геометрия молодой популяции OGLE 2016, i=24,2°, PA=151,4°, восточная сторона ближе. Полутолщина 1 кпк — принятый запас модели, учитывающий отклонение северного рукава примерно на 0,5 кпк; не индивидуальная ошибка R136a1."
+  }
+}

@@ -2,6 +2,8 @@ import fs from 'node:fs';import assert from 'node:assert/strict';
 const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {run};';
 const {run}=await import('data:text/javascript,'+encodeURIComponent(harness));
 run(`
+// Exercise the pre-orbital/save-compatible branch; verify-orbits covers new captures.
+OrbitalArrival.enabled=false;
 resize();state=initial();Cosmology.sync(state);cam={x:0,y:0,span:24};followShip=false;shipFocusArmed=false;
 focusShip();const centreIcon=$('shipBtn').innerHTML;focusShip();assert.equal(followShip,true);assert.notEqual($('shipBtn').innerHTML,centreIcon);
 zoomAtPointer({preventDefault(){},deltaY:100,clientX:120,clientY:150});assert.equal(followShip,true);assert.ok(cam.span>24);

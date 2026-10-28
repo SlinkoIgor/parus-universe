@@ -79,6 +79,48 @@
       "url": "https://vizier.cds.unistra.fr/viz-bin/VizieR?-source=I/239/hip_main",
       "snapshot": "data-tools/hipparcos-errors.json",
       "changes": "HIP, parallax and standard error used to exclude >50% relative errors from individual map points."
+    },
+    {
+      "name": "OGLE, Jacyszyn-Dobrzeniecka et al. 2016, Acta Astronomica 66,149, Table 3",
+      "url": "https://ogle.astrouw.edu.pl/cont/4_main/str/3_dim_str/table3.dat",
+      "paper": "https://arxiv.org/abs/1602.09141",
+      "changes": "All 8885 published individual distances, reported errors and measured RA/Dec. Original magnitudes, periods and pulsation modes retained.",
+      "access": "Public author table; credited to OGLE and authors. Original data rights are not relicensed under the game code license."
+    },
+    {
+      "name": "LGGS, Massey et al. 2016",
+      "url": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/152/62",
+      "changes": "Spectroscopic membership Mm=1; original measured directions, spectral types and Rgc preserved.",
+      "access": "CDS/VizieR; originating author/publisher rights apply; see THIRD_PARTY_NOTICES.md"
+    },
+    {
+      "name": "PHAT/AP, Johnson et al. 2015",
+      "url": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJ/802/127",
+      "changes": "Main cluster table2 only (2753 observed clusters), no synthetic/ancillary/background tables.",
+      "access": "CDS/VizieR; originating author/publisher rights apply; see THIRD_PARTY_NOTICES.md"
+    },
+    {
+      "name": "M33 SNRs, Long et al. 2018",
+      "url": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJ/855/140",
+      "changes": "Conf=yes in table1; observed directions and diameters, no random positions.",
+      "access": "CDS/VizieR; originating author/publisher rights apply; see THIRD_PARTY_NOTICES.md"
+    },
+    {
+      "name": "Low-z independent galaxy distances",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-tap/sync",
+      "changes": "All unresolved OpenNGC galaxy entries with 0<z<0.002. Explicit EB/Cepheid/TRGB/SBF/SN/PNLF/T-F only; method tier then latest bibcode; published relative errors <=0.5 when available. No galaxy parallax, flow, redshift, unknown method or unverified T-RDB abbreviation.",
+      "snapshot": "data-tools/low-z-galaxy-distances.json",
+      "license": "ODbL"
+    },
+    {
+      "name": "Hipparcos new reduction, van Leeuwen 2007",
+      "url": "https://cdsarc.cds.unistra.fr/viz-bin/cat/I/311",
+      "changes": "HIP, parallax and formal error. Error attached only when the same solution reproduces the adopted HYG distance; explicit 1997/manual exceptions preserved."
+    },
+    {
+      "name": "Baumgardt Galactic globular-cluster compilation",
+      "url": "https://people.smp.uq.edu.au/HolgerBaumgardt/globular/parameter.html",
+      "changes": "Only ATNF-associated hosts; measured sky coordinates, cluster distance/error and model tidal-radius bound. Individual depths remain unknown."
     }
   ],
   "selection": {
@@ -102,26 +144,52 @@
   "fullCatalog": {
     "builder": "data-tools/build-full-catalog.py",
     "manifest": "catalog-data/manifest.json",
-    "records": 138198,
+    "records": 152010,
     "coverage": {
       "HYG": 119626,
       "OpenNGC": 13970,
       "ATNF": 4503,
       "IAUnames": 652,
       "Messier": 110,
-      "NearbyGalaxyStars": 4
+      "NearbyGalaxyStars": 4,
+      "GalaxyDisks": 4925,
+      "OGLE": 8885,
+      "GlobularModels": 44,
+      "LowZIndependent": 152
     },
-    "search": "Lazy 17 MB compact index in a Web Worker; at most 100 results initially",
-    "map": "Spatial binary tree by radial bands; max256 leaf rows, max48 cached tiles, max32 requested view nodes, max4 concurrent loads, max8000 streamed points per view",
-    "uncertainty": "Unknown distances and historical NonEx/Dup are atlas-only. Hipparcos relative parallax error >50% or unusable parallax is atlas-only, unless a separate original distance is preserved. No invented radial shells. Model and redshift distances labelled approximate. Megastructure contours retained; arrival anchors explicitly game-defined for extended regions.",
+    "search": "Lazy 21.0 MB compact worker index; 100 results initially",
+    "map": "Orthographic Galactic XY plus explicit host-local views; one spatial binary tree (no radial bands); max256 leaf rows, 48 cached tiles, 32 view nodes, 4 concurrent loads, 8000 streamed points",
+    "uncertainty": "Formal policy v4: HYG sigma is attached only to the matching HIP2007/HIP1997 solution; unmatched adopted distances retain unknown sigma. Bounded compact GC hosts use published distance/error and tidal radius; galaxy membership alone never supplies depth.  bounded point estimates only; no sentinels or model bounds. Field reported relative error <=0.5, ATNF PX significance >3 and DM-model ratio <=2. Host-local model envelope <=0.5 of its reference diameter; common host-distance error is correlated, not independent scatter. Full definitions in docs/catalog.md.",
     "systems": "461 catalog groups; shared-distance estimates explicitly labelled. Distance conflicts suppress orbital diagrams; Cygnus X-1/HDE226868 use the published system distance. Local shared display transform prevents t-SNE separation of close components.",
     "fictionalStars": "Known nearby stars preferred; otherwise explicitly fictional departure stars at every mapped destination, persisted with expedition.",
     "nearbyGalaxyStars": {
       "snapshot": "data-tools/nearby-galaxy-stars.json",
       "count": 4,
-      "distance": "Measured direction and host-galaxy distance, unresolved individual depth"
+      "distance": "M31 V1/AF and LMC R136a1: justified inclined-disk model. HD5980: atlas-only, unresolved depth. OGLE Clouds: individual period-Wesenheit distances."
     },
     "systemPositionAudit": "data-tools/system-position-audit.json",
-    "confirmedSystems": "data-tools/confirmed-systems.json: published physical relationships override conflicting individual distance estimates; common distances remain explicitly approximate."
+    "confirmedSystems": "data-tools/confirmed-systems.json: published physical relationships override conflicting individual distance estimates; common distances remain explicitly approximate.",
+    "coordinatePolicy": "data-tools/coordinate-policy.json",
+    "diskModels": "data-tools/galaxy-disk-models.json",
+    "diskSelection": "data-tools/galaxy-disk-objects.json",
+    "diskAudit": "data-tools/galaxy-disk-audit.json",
+    "pulsarAudit": "data-tools/pulsar-distance-audit.json",
+    "galaxyMembers": {
+      "inputRows": 4925,
+      "added": 4924,
+      "selection": "LGGS Mm=1; PHAT main table2 only; M33 SNR Conf=yes",
+      "model": "Measured directions; disk-ray intersections for massive stars/gas; unaged PHAT clusters atlas-only, no individual depth; M33 mirror ambiguity included."
+    },
+    "magellanicCepheids": {
+      "inputRows": 8885,
+      "mapped": 8885,
+      "counts": {
+        "LMC": 4222,
+        "MBR": 9,
+        "SMC": 4654
+      },
+      "method": "Individual published period-Wesenheit distances and errors; no common host shell or disk approximation. Host-local display uses an orthographic sky view of true 3D coordinates, rotated to align the observed population with its schematic outline; physical depth remains in p3."
+    },
+    "galaxyPopulationCoverage": "data-tools/galaxy-population-coverage.json"
   }
 }
