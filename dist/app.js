@@ -18,7 +18,7 @@ function speedScale(beta){
  return 1;
 }
 function clockRate(){
- if(!state.flight)return 1;
+ if(!state.flight&&!state.orbit)return 1;
  const beta=clamp(state.beta,0,1-Number.EPSILON);
  if(state.phase==='flyby'&&state.flight?.encounter?.plan){const p=state.flight.encounter.plan,q=Gravity.atProper(p,p.elapsedProper||0),lapse=1-p.rp/(p.q*q.r);return clamp(lapse*Math.sqrt((1-p.beta)*(1+p.beta)),0,1);}
  return Math.sqrt((1-beta)*(1+beta));
@@ -29,9 +29,14 @@ function renderVelocity(){
  $('velocityFill').style.width=(speedScale(state.beta)*100)+'%';
  $('velocityBar').setAttribute('aria-valuenow',String(state.beta*100));$('velocityBar').setAttribute('aria-valuetext',percentC(state.beta));
 }
+const DILATION_MAX=1e8;
+function dilationScale(ratio){return Math.log10(clamp(ratio,1,DILATION_MAX))/Math.log10(DILATION_MAX);}
 function renderClockRatio(){
- const ratio=1/Math.max(Number.EPSILON,clockRate());
- $('timeDilation').textContent=ratio===1?'1 год у неподвижного наблюдателя':fmt(ratio,ratio<100?2:0)+' лет у неподвижного наблюдателя';
+ const ratio=1/Math.max(Number.EPSILON,clockRate()),value=ratio===1?'1':compact(ratio);
+ $('timeDilation').textContent=value;$('dilationUnit').textContent=ratio===1?'год наблюдателя':'лет наблюдателя';
+ const position=dilationScale(ratio)*100;$('dilationFill').style.width=position+'%';$('dilationMarker').style.left=position+'%';
+ $('dilationBar').setAttribute('aria-valuenow',String(Math.min(DILATION_MAX,ratio)));
+ $('dilationBar').setAttribute('aria-valuetext',fmt(ratio,ratio<100?2:0)+' лет неподвижного наблюдателя за 1 год на корабле');
  $('timeDilationRow').title='Мгновенное соотношение при сохранении текущей скорости'+(state.phase==='flyby'?' и гравитационного потенциала':'')+'. Наблюдатель неподвижен в принятой системе отсчёта; направление полёта не меняет соотношение. Это не задержка радиосигнала.';
 }
 const STORE='parus-expedition-v1';
@@ -42,11 +47,11 @@ const percentC=beta=>speedNumber(beta)+' % c';
 const durationText=years=>!Number.isFinite(years)?'недостижимо':years>=1?compact(years)+' лет':years>=1/365.25?fmt(years*365.25,1)+' сут.':years>=1/(365.25*24)?fmt(years*365.25*24,1)+' ч':fmt(years*Rocket.year,0)+' с';
 const massText=tonnes=>{const kg=tonnes*1000;return kg>=1?fmt(kg,3)+' кг':kg>=.001?fmt(kg*1e3,3)+' г':fmt(kg*1e6,3)+' мг';};
 let theme=document.documentElement.dataset.theme||'dark';
-function applyTheme(value){theme=value;document.documentElement.dataset.theme=value;const label=value==='dark'?'Включить светлую тему':'Включить тёмную тему';$('themeBtn').setAttribute('aria-label',label);$('themeBtn').title=label;$('themeBtn').textContent=value==='dark'?'☼':'◐';const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=value==='dark'?'#000000':'#f6f6f6';try{localStorage.setItem('parus-theme',value);}catch{}}
+function applyTheme(value){theme=value;document.documentElement.dataset.theme=value;const label=value==='dark'?'Включить светлую тему':'Включить тёмную тему';$('themeBtn').setAttribute('aria-label',label);$('themeBtn').title=label;$('themeBtn').innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#theme-'+(value==='dark'?'light':'dark')+'-icon"/></svg>';const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=value==='dark'?'#000000':'#f6f6f6';try{localStorage.setItem('parus-theme',value);}catch{}}
 // Map the existing engineering ink palette to a neutral dark drawing palette.
 function paint(color){if(theme==='light')return color;if(color==='#f8f8f8')return '#000000';if(color.startsWith('rgba'))return color.replace('37,38,32','218,218,218');const h=color.slice(1);if(!/^[0-9a-f]{3,6}$/i.test(h))return color;const hex=h.length===3?[...h].map(c=>c+c).join(''):h;return '#'+[0,2,4].map(i=>(255-parseInt(hex.slice(i,i+2),16)).toString(16).padStart(2,'0')).join('');}
 let state,paused=false,speed=1,filter='all',toastTimer,hover=null,hitObjects=[],lastUI=0,saveTick=0;
-const initial=()=>({version:13,flightDefaultsVersion:1,orbit:null,tankCapacityKg:1,flightSetup:null,jettisoned:0,controlG:100,current:'sol',selected:'proxima',sail:0,lightModel:5,departureMode:OrbitalArrival.enabled?'beam':'engine',expansion:true,cosmicTime:0,universeElapsed:0,beta:0,acceleration:0,matter:Rocket.initialFuel,captured:0,spentEnergy:0,heatRadiated:0,earth:0,proper:0,totalDistance:0,ship:Space.point([0,0,0]),itinerary:[],visited:['sol'],destroyed:[],phase:'idle',flight:null,auto:true,journal:[{t:0,text:'Ковчег — 01. Сухая масса: 1 кг, включая парус Si₃N₄ 0,785 кг. Топливо: 1 / 1 кг. Фотонный двигатель готов.'}]});
+const initial=()=>({version:13,flightDefaultsVersion:1,orbit:null,tankCapacityKg:1,flightSetup:null,jettisoned:0,controlG:100,current:'sol',selected:'alpha',sail:0,lightModel:5,departureMode:OrbitalArrival.enabled?'beam':'engine',expansion:true,cosmicTime:0,universeElapsed:0,beta:0,acceleration:0,matter:Rocket.initialFuel,captured:0,spentEnergy:0,heatRadiated:0,earth:0,proper:0,totalDistance:0,ship:Space.point([0,0,0]),itinerary:[],visited:['sol'],destroyed:[],phase:'idle',flight:null,auto:true,journal:[{t:0,text:'Ковчег — 01. Сухая масса: 1 кг, включая парус Si₃N₄ 0,785 кг. Топливо: 1 / 1 кг. Фотонный двигатель готов.'}]});
 function restore(saved){
  if(!saved||![1,2,3,4,5,6,7,8,9,10,11,12,13].includes(saved.version)||!saved.ship||!Array.isArray(saved.visited))return initial();
  saved=JSON.parse(JSON.stringify(saved));ExtendedCatalog.restore(saved);
@@ -139,13 +144,17 @@ function zoomInterpolate(input,from,to){
  const fraction=from==='span'?Math.log(n/a.span)/Math.log(b.span/a.span):(n-a.value)/(b.value-a.value);
  return to==='span'?a.span*(b.span/a.span)**fraction:a.value+(b.value-a.value)*fraction;
 }
-function gridUnit(){return nice(cam.span/7);}
+function gridMetrics(view=cam,viewportWidth=width){
+ const unit=nice(view.span*128/Math.max(1,viewportWidth)),majorPixels=unit*viewportWidth/view.span;
+ return{unit,majorPixels,minorUnit:unit/5,minorPixels:majorPixels/5};
+}
+function gridUnit(){return gridMetrics().unit;}
 function updateZoomControl(){
  const span=cam.span;
  $('zoomSlider').value=String(zoomInterpolate(span,'span','value'));
  $('zoomSlider').setAttribute('aria-valuetext','Ширина карты: '+distanceText(span));
 
- const scale=nice(cam.span*110/Math.max(1,width));$('zoomDivision').textContent=scaleDistanceText(scale);$('mapScaleLine').style.width=(scale*width/cam.span)+'px';
+ const measure=gridMetrics();$('zoomDivision').textContent=scaleDistanceText(measure.unit);$('mapScaleLine').style.width=measure.majorPixels+'px';$('mapScale').setAttribute('aria-label','Один крупный шаг сетки: '+scaleDistanceText(measure.unit));
  document.querySelectorAll('[data-zoom]').forEach(b=>{const active=Math.abs(Math.log(span/Number(b.dataset.zoom)))<.04;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
 }
 function updateTimeControl(){
@@ -186,7 +195,6 @@ function mapContext(view){
 }
 function updateMapHeading(){const view=cameraGoal||cam,[title,sub,sheet]=mapContext(view);
  $('mapTitle').textContent=title;$('mapSubtitle').textContent=sub;$('mapSubtitle').hidden=!sub;$('mapSheet').textContent='/ '+sheet;
- document.querySelectorAll('[data-scale]').forEach(b=>b.classList.toggle('active',Math.abs(Math.log10(view.span/Number(b.dataset.scale)))<.32));
 }
 function canBoost(mode=state.departureMode){const current=object(state.current);return !!current&&['star','home'].includes(current.kind)&&!state.destroyed.includes(current.id)&&!(mode==='burst'&&current.id==='sol');}
 function wantsBoost(){return canBoost()&&state.departureMode!=='engine';}
@@ -238,19 +246,19 @@ function renderUI(){
  $('shipLocationType').textContent=objectTypeText(current)+(state.orbit&&current?' · орбита '+fmt(state.orbit.radius/Stellar.r0,2)+' а.е.':'');$('shipLocationType').hidden=!current;$('findDepartureStar').hidden=active||!current||canBoost('beam');$('findDepartureStarCard').hidden=$('findDepartureStar').hidden;$('shipLocation').title=current?current.name+' · '+objectTypeText(current):$('shipLocation').textContent;
  const d=target.navigable?Cosmology.physicalDistance(state.ship,target):NaN;$('targetDistance').innerHTML=Number.isFinite(d)?compact(d)+' <small>св. лет</small>':'<small>Расстояние неизвестно</small>';
  $('departureSection').hidden=active||arrived||!target.navigable;document.querySelectorAll('[data-departure]').forEach(b=>{const on=(state.departureMode||'burst')===b.dataset.departure;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));b.hidden=b.dataset.departure==='burst'&&current?.id==='sol';b.disabled=b.dataset.departure!=='engine'&&!canBoost(b.dataset.departure);});
- const planningBoost=!state.flightSetup&&!active&&boost&&!arrived&&target.navigable;$('sailSection').hidden=!planningBoost;
+ const planningBoost=!MissionPlanner.enabledIdle()&&!state.flightSetup&&!active&&boost&&!arrived&&target.navigable;$('sailSection').hidden=!planningBoost;
  const sail=SAILS[0];
  if(planningBoost){const predicted=windPlan(),light=Stellar.stellarLight(current);$('sourceStarName').textContent='Источник: '+current.name;$('sailArea').textContent='Парус Ø 100 м · коллектор Ø 1 км';$('sailArea').title='Si₃N₄ · 0,1 г/м² · масса плёнки 0,785 кг';
   const sourceRow=(label,value)=>'<div><dt>'+label+'</dt><dd>'+value+'</dd></div>';
   $('sourceReadout').innerHTML='<p class="source-basis">'+(predicted.continuous?(light.estimated?'Оценка по типу звезды':'Каталожная болометрическая светимость'):'Модельная вспышка · 30 суток у источника')+'</p><dl class="source-specs">'+sourceRow('Светимость',quantity(predicted.luminosityW)+' Вт')+sourceRow('В единицах Солнца',quantity(predicted.luminosityW/3.828e26)+' L☉')+sourceRow('Звезда → коллектор',fmt(predicted.collectorR/Stellar.r0,2)+' а.е.')+sourceRow('Пучок к парусу',quantity(predicted.beamPower)+' Вт')+'</dl>';
  }
- const departurePreview=!state.flightSetup&&!active&&!arrived&&target.navigable;
+ const departurePreview=!MissionPlanner.enabledIdle()&&!state.flightSetup&&!active&&!arrived&&target.navigable;
  $('departureDiagram').hidden=!departurePreview;
  if(departurePreview)renderDepartureDiagram(FlightEstimate.get(),planningBoost?windPlan():null);
 
 
  const photon=(state.phase==='thrust'||state.phase==='dock')&&f?.engine,wind=state.phase==='launch'&&f?.wind,mag=state.phase==='brake'&&f?.magnetic;
- const planningEngine=!state.flightSetup&&!active&&!boost&&!arrived&&target.navigable;$('engineSection').hidden=!(planningEngine||photon||wind||mag||state.phase==='flyby');$('burnTrack').hidden=!photon;
+ const planningEngine=!MissionPlanner.enabledIdle()&&!state.flightSetup&&!active&&!boost&&!arrived&&target.navigable;$('engineSection').hidden=!(planningEngine||photon||wind||mag||state.phase==='flyby');$('burnTrack').hidden=!photon;
  if(planningEngine){const e=Rocket.plan(state.matter,d);$('engineLabel').textContent='ФОТОННАЯ ТЯГА · ДО 100 g';$('engineReadout').innerHTML='Масса <b>'+massText(Rocket.dryMass)+' + '+massText(state.matter)+'</b><br>Разгон <b>до '+massText(e.budget)+' → '+percentC(e.beta)+'</b>';}
  if(photon){const e=f.engine;$('engineLabel').textContent=e.direction<0?'ОБРАТНАЯ ФОТОННАЯ ТЯГА':'АННИГИЛЯЦИЯ ВЕЩЕСТВА';$('engineReadout').innerHTML='Расход <b>'+massText(e.burned)+' / '+massText(e.budget)+'</b><br>Энергия <b>'+quantity(e.energy/1e15)+' ПДж</b>';$('burnBar').style.width=(e.budget?100*e.burned/e.budget:0)+'%';}
  if(wind){const sample=f.wind.lastSample||Stellar.sampleProper(f.wind,f.wind.elapsedProper||0),r=sample.r,force=sample.force;$('engineLabel').textContent=(f.wind.continuous?'СВЕТ ЗВЕЗДЫ':'СВЕТ ВСПЫШКИ')+' · РАСКРЫТИЕ '+fmt(sample.opening*100,2)+'%';$('engineReadout').innerHTML='До звезды <b>'+compact(r/Stellar.r0)+' а.е.</b><br>Сила <b>'+quantity(force)+' Н</b><br>Свет испущен на <b>'+fmt(((f.wind.sourceOffset||0)+sample.source)*365.25,2)+(f.wind.continuous?' сут.</b> непрерывного излучения':' / 30 сут.</b> вспышки');}
@@ -283,13 +291,14 @@ function renderUI(){
  $('massBar').title='Сухая масса 1 кг | Топливо '+massText(state.matter)+' | Свободно '+massText(Rocket.fuelCapacity-state.matter);
  const rate=Simulation.replayRate();$('timeRate').textContent=paused?'Пауза':rate<speed?'СЛОУМО ×'+compact(speed/rate):'1 с = '+fmt(speed,0)+(speed===1?' год':' лет')+' на борту';$('timeRate').classList.toggle('replaying',rate<speed);
 
- const cosmicYears=Math.floor(state.universeElapsed??state.earth);$('universeClock').textContent=fmt(13800000000+cosmicYears,0);$('universeElapsed').textContent=fmt(cosmicYears,0);
+ const cosmicYears=Math.floor(state.universeElapsed??state.earth);$('universeClock').textContent=fmt(13800000000+cosmicYears,0);
  $('earthClock').innerHTML=fmt(Math.floor(state.earth),0)+'<small>лет</small>';$('shipClock').innerHTML=fmt(Math.floor(state.proper),0)+'<small>лет</small>';
  const pct=f?Math.min(100,f.covered/f.distance*100):0;$('progressBar').style.width=pct+'%';$('progressValue').textContent=fmt(pct,1)+'%';$('progressLabel').textContent=f?.route?.length?'УЧАСТОК '+(f.legIndex+1)+' / '+f.route.length:f?.missed?'ПРОЛЁТ ЦЕЛИ':'ПРОЙДЕНО';updateTimeControl();
  FlightBuilder.renderCard(target,arrived,eta);
 }
 
 const FlightBuilder={
+ routeSamplesCache:new WeakMap(),
  draft:null,readOnly:false,
  sanitizeDraft(){if(this.readOnly)return;if(OrbitalArrival.enabled)this.draft=FlightSetup.resolve(this.draft,this.source);else if(!this.starAvailable)Object.assign(this.draft,{sail:false,collector:false,burst:false});},
  open(){
@@ -312,6 +321,7 @@ const FlightBuilder={
    this.draft[key]=e.checked;
    if(key==='sail'&&!e.checked){this.draft.collector=false;this.draft.burst=false;}
 
+  }else if(key==='burstSpectrum'){this.draft[key]=e.value;
   }else if(key==='arrivalFuelPercent'){
    this.draft.arrivalFuelPercent=Math.max(0,Math.min(this.fuelBounds?.maxPercent||0,Number(e.value)||0));this.draft.fill=this.draft.arrivalFuelPercent>0;
   }else{
@@ -322,17 +332,19 @@ const FlightBuilder={
  },
  render(){
   this.sanitizeDraft();
+  $('setupBurstSpectrum').value=this.draft.burstSpectrum;$('setupBurstSpectrum').disabled=this.readOnly||!this.draft.burst;$('burstSpectrumOption').hidden=!this.draft.burst||this.readOnly&&(state.flight?.mission?.model||0)<3;
   const c=this.draft,legacy=this.readOnly&&!state.flight.mission;
   document.querySelectorAll('#flightBuilder input[type="checkbox"][data-setup]').forEach(e=>{e.checked=!!c[e.dataset.setup];e.disabled=this.readOnly;});
   $('setupEngine').disabled=this.readOnly||c.dump||OrbitalArrival.enabled&&!this.starAvailable;$('setupEngine').checked=c.engine&&!c.dump;$('engineOption').classList.toggle('unavailable',c.dump);
   $('setupSail').disabled=this.readOnly||!this.starAvailable;
   $('setupSail').title=this.starAvailable?'':'Для светового разгона нужна звезда в точке старта';
+  $('collectorOption').classList.toggle('unavailable',!c.sail);$('burstOption').classList.toggle('unavailable',!c.sail);
   $('setupCollector').disabled=this.readOnly||!this.starAvailable||!c.sail;$('setupBurst').disabled=this.readOnly||!c.sail||!this.starAvailable||this.source.id==='sol';
-  $('burstHelp').textContent=this.source?.id==='sol'?'Для Солнца недоступно':'30 суток излучения у источника';
+  $('burstHelp').textContent=this.source?.id==='sol'?'Для Солнца недоступно':(c.burst&&(!this.readOnly||(state.flight?.mission?.model||0)>=3)?(BeamSpectra.profiles[c.burstSpectrum]||BeamSpectra.profiles.iip).label+' · ':'')+'30 суток излучения у источника';
   $('setupCollectGas').disabled=this.readOnly||!c.brakeSail;
   for(const key of ['Density','Capacity'])$('setup'+key).disabled=this.readOnly;
   $('setupStarMass').disabled=this.readOnly||c.burst||!this.starAvailable;$('setupLuminosity').disabled=this.readOnly||c.burst||!this.starAvailable;$('resetLuminosity').disabled=this.readOnly||c.burst||!this.starAvailable;
-  $('builderMassBasis').textContent=c.burst?'В модели вспышки поле отключено':c.massSolar!==null?'Ваш сценарий':MapDetails.mass(this.source)?'По данным каталога':'Масса неизвестна';
+  $('builderMassBasis').textContent=c.burst?'В модели вспышки поле отключено':c.massSolar!==null?'Ваш сценарий':MapDetails.mass(this.source)?(this.source?.massSource?'Литературная оценка':'По данным каталога'):'Масса неизвестна';
   $('builderLightBasis').textContent=c.burst?'Модель сверхновой':c.luminositySolar?'Ваш сценарий':this.light.estimated?'Оценка по классу звезды':'По данным каталога';
   const invalid=[...document.querySelectorAll('#flightBuilder input[type="number"]')].some(e=>!e.disabled&&(!e.checkValidity()||e.value===''&&!['massSolar','luminositySolar'].includes(e.dataset.setup)));
   if(!this.readOnly&&!invalid){
@@ -351,39 +363,41 @@ const FlightBuilder={
   $('builderReserveLimit').textContent=this.readOnly?'Наполнение в текущем плане':invalid?'Проверьте параметры':this.fuelBounds?.valid?'Максимум '+percentText(limit):'Нет допустимого полёта';
   $('builderProper').textContent=valid?durationText(eta.proper):'—';$('builderEarth').textContent=valid?durationText(eta.earth):'—';
   const startFuel=p?.initialFuelKg??(c.dump?0:Math.min(state.matter*1000,c.capacityKg)),fuel=eta?.arrivalFuelKg;
-  const fuelText=kg=>fmt(kg,3)+' кг · '+percentText(kg/c.capacityKg*100);
+  const fuelText=kg=>fmt(Math.max(0,Math.min(100,kg/c.capacityKg*100)),0)+'%';
   $('builderStartFuel').textContent=fuelText(startFuel);$('builderFuel').textContent=valid&&Number.isFinite(fuel)?fuelText(fuel):'—';
-  $('builderProperMobile').textContent=valid?durationText(eta.proper):'—';$('builderFuelMobile').textContent=valid&&Number.isFinite(fuel)?fmt(fuel,3)+' кг':'—';
+  $('builderProperMobile').textContent=valid?durationText(eta.proper):'—';$('builderFuelMobile').textContent=valid&&Number.isFinite(fuel)?fuelText(fuel):'—';
   this.drawRoute(p,valid,eta,profile);
   let warning=invalid?'Проверьте числовые параметры.':valid?'':p?.reason||'Нет прогноза';
-  if(valid&&c.burst)warning='При старте звезда будет уничтожена.';
-  else if(valid&&c.dump)warning='Перед стартом топливный бак будет опустошён.';
+  if(valid&&c.dump)warning='Перед стартом топливный бак будет опустошён.';
   if(valid&&p?.jettisonKg>0&&!c.dump)warning='Топливный бак меньше текущего запаса: избыток '+fmt(p.jettisonKg,3)+' кг будет сброшен.';
-  $('builderWarning').textContent=warning||(p?.arrival?'Выход на круговую орбиту рассчитан.':'Остановка у цели рассчитана.');$('builderWarning').classList.toggle('attention',!!warning);
+  $('builderWarning').textContent=warning;$('builderStatus').hidden=!warning;$('builderWarning').classList.toggle('attention',!!warning);
   $('builderPeak').textContent=Number.isFinite(p?.peakBeta)?percentC(p.peakBeta):'—';
   $('builderDiagnostic').textContent=p?.diagnostic?'Одним парусом до 1 м/с: '+durationText(p.diagnostic)+'. Для полной остановки нужен двигатель.':'';
   this.explain(c,p);$('launchConfigured').disabled=!valid;$('applyFlightSetup').disabled=invalid;
  },
  explain(c,p){
   const light=this.light,solar=c.luminositySolar??light.solar,mass=c.massSolar??MapDetails.mass(this.source),fuel=p?.initialFuelKg??(c.dump?0:Math.min(state.matter*1000,c.capacityKg)),total=1+fuel;
-  const luminosity=c.burst?Stellar.luminosity:solar*3.828e26,r=light.collectorR;
-  const power=c.collector?luminosity*Stellar.collectorDiameterM**2/(16*r*r):luminosity*SHIP.sailAreaM2/(4*Math.PI*r*r);
+  const luminosity=c.burst?Stellar.luminosity:solar*3.828e26,r=p?.departureOrbit?.radius||light.collectorR;
+  const power=c.collector?luminosity*Stellar.collectorDiameterM**2/(16*light.collectorR**2):luminosity*SHIP.sailAreaM2/(4*Math.PI*r*r);
   const lightG=c.sail&&this.starAvailable?2*power/Rocket.c/total/G0:0,engineG=c.engine&&!c.dump&&fuel>0?Rocket.power/Rocket.c/total/G0:0;
   const gravity=this.starAvailable&&!c.burst&&mass!==null?6.67430e-11*1.98847e30*mass/(r*r)/G0:null,thrust=Math.min(100,lightG+engineG);
-  const gText=n=>n===0?'0 g':n>=.01?fmt(n,2)+' g':quantity(n)+' g';
+  const gText=n=>n===0?'0 g':n>=.01?fmt(n,Math.abs(n-Math.round(n))<1e-6?0:2)+' g':quantity(n)+' g';
   $('builderGravity').textContent=c.burst?'Поле отключено':gravity===null?'Нет данных':gText(gravity);
-  $('builderThrust').textContent=gText(thrust);
-  $('builderGravityNote').textContent=c.burst?'Единая модель сверхновой: тип I/II не задаётся, поле звезды отключено.':gravity===null?'Масса источника неизвестна; его поле не рассчитано.':thrust<=gravity?'Для старта нужно больше '+gText(gravity)+'. Добавьте двигатель или оптический коллектор.':'Тяга преодолевает притяжение. Учтено радиальное поле звезды у точки старта '+fmt(r/Stellar.r0,2)+' а.е.; предел тяги — 100 g.';
+  const maxG=p?.valid?Math.max(p.accelerationEnd?.a||0,...(p.acceleration?.rows||[]).filter(q=>q.proper<=p.accelerationEnd.proper).map(q=>q.a||0))/G0:null;
+  $('builderThrust').textContent=Number.isFinite(maxG)?gText(maxG):'—';
+  $('builderAccelerationNote').hidden=!(maxG>=100-1e-6);$('builderAccelerationNote').textContent=maxG>=100-1e-6?'Достигнут предел 100 g.':'';
+  $('builderGravityNote').textContent=c.burst?(this.readOnly&&(state.flight?.mission?.model||0)<3?'Прежняя общая модель вспышки; поле звезды отключено.':'Спектральный сценарий '+(BeamSpectra.profiles[c.burstSpectrum]||BeamSpectra.profiles.iip).label+'. Светимость и длительность вспышки заданы игровой моделью; поле звезды отключено.'):gravity===null?(this.starAvailable?'Масса звезды неизвестна; её притяжение при разгоне не учитывается.':'В точке старта нет звезды.'):thrust<=gravity?'Для старта нужно больше '+gText(gravity)+'. Добавьте двигатель или оптический коллектор.':'Тяга преодолевает притяжение. Учтено радиальное поле звезды у точки старта '+fmt(r/Stellar.r0,2)+' а.е.';
   const spectral=this.source?.spectral||this.source?.facts?.class||this.source?.type||'Звезда';
   $('builderStarValue').textContent=!this.starAvailable?'Без звезды':c.burst?'30 суток у звезды':(light.estimated&&!c.luminositySolar?'≈ ':'')+fmt(solar,solar<.01?6:2)+' L☉';
-  $('builderStarReason').textContent=!c.sail?'Разгоняет двигатель: расходуется топливо. Светимость звезды на этот план не влияет.':!this.starAvailable?'Для светового разгона нужна звезда у точки старта.':c.burst?'Свет вспышки разгоняет корабль через парус.':spectral+'. '+(c.collector?'Коллектор направляет свет в пучок; разгон ослабевает с ростом скорости.':'Прямой свет слабеет с удалением от звезды.');
+  $('builderStarReason').textContent=!c.sail?'Разгоняет двигатель: расходуется топливо. Светимость звезды на этот план не влияет.':!this.starAvailable?'Для светового разгона нужна звезда у точки старта.':c.burst?'Свет вспышки разгоняет корабль через парус.':spectral+'. '+(c.collector?'Коллектор направляет свет на парус; пучок расширяется из-за дифракции, а разгон ослабевает с расстоянием и скоростью.':'Прямой свет слабеет с удалением от звезды.');
   $('builderFlashNote').hidden=!(c.sail&&c.burst);
   const reception=MissionPlanner.lightReception(p);
-  $('builderFlashNote').textContent=reception?'Вспышка у звезды длится 30 суток. За этот разгон корабль принимает свет, испущенный в первые '+fmt(reception.source*365.25,2)+' суток; приём на борту занимает '+durationText(reception.proper)+'. Фотоны догоняют удаляющийся корабль с растянутыми интервалами. После вспышки звезда не продолжает светить.'+(c.collector?' Здесь коллектор идеальный: расходимость пучка на больших расстояниях не учитывается.':''):'Фотоны догоняют удаляющийся корабль: 30 суток излучения у звезды могут растянуться на годы приёма по бортовым часам. Постоянный свет после вспышки не добавляется.';
+  $('builderFlashNote').textContent=reception?'Вспышка у звезды длится 30 суток. За этот разгон корабль принимает свет, испущенный в первые '+fmt(reception.source*365.25,2)+' суток; приём на борту занимает '+durationText(reception.proper)+'; фотоны догоняют удаляющийся корабль с растянутыми интервалами. После вспышки звезда не продолжает светить.':'Фотоны догоняют удаляющийся корабль: 30 суток излучения у звезды могут растянуться на годы приёма по бортовым часам. Постоянный свет после вспышки не добавляется.';
   if(c.sail&&!c.burst&&gravity!==null&&thrust<=gravity)$('builderStarReason').textContent+=' Тяги не хватает для старта.';
   $('builderGasValue').textContent=c.brakeSail?fmt(c.densityCm3,c.densityCm3<.01?4:1)+' атом/см³':'Парус сложен';
   $('builderGasReason').textContent=!c.brakeSail?'Останавливает двигатель, используя только запас топлива.':!c.collectGas?'Газ замедляет корабль и выпускается наружу. Для остановки двигатель использует запас топлива.':c.fill?'Парус тормозит и собирает топливо. Более раннее торможение оставляет больше газа в топливном баке.':'Парус тормозит и собирает газ; двигатель расходует часть потока для более быстрой остановки.';
-  $('builderPhysicsNote').textContent=(c.collector&&c.sail?'Идеальный коллектор создаёт параллельный пучок. ':c.sail?'Прямой поток убывает как 1/r². ':'')+'Разгон ограничен 100 g. '+(c.sail?'Доплеровское ослабление и задержка света учтены. ':'')+'Плотность газа при торможении — однородная модель, а не измерение у цели.'+(p?.arrival?' Гравитация цели — изолированная точечная масса в слабом поле.':'')+(p?.departureOrbit?' При следующем старте учитывается орбитальная энергия; ориентация плоскости орбиты не рассчитывается.':'');
+  const diffraction=p?.acceleration?.diffraction,spectrum=diffraction?.spectrum||BeamOptics.spectrum(c,light),oldOptics=this.readOnly&&c.collector&&c.sail&&!diffraction;
+  $('builderPhysicsNote').textContent=(c.collector&&c.sail?(oldOptics?'Сохранённый полёт рассчитан по прежней модели без дифракции. ':'Дифракция учтена: идеальная круглая апертура 1 км, парус 100 м. '+BeamOptics.label(spectrum)+'. '+(c.burst?'Шаблоны Nugent: 100–2500 нм, спектр меняется по времени у источника. ':'Тепловое приближение спектра звезды. ')+'Идеальное наведение и фокусировка; угловой размер источника не учтён. '):c.sail?'Прямой поток убывает как 1/r². ':'')+(c.sail?'Доплеровское ослабление и задержка света учтены. ':'')+'Плотность газа при торможении — однородная модель, а не измерение у цели.'+(p?.arrival?' Гравитация цели — изолированная точечная масса в слабом поле.':'')+(p?.departureOrbit?' При следующем старте учитывается орбитальная энергия; ориентация плоскости орбиты не рассчитывается.':'');
   const arrival=p?.arrival||(!this.readOnly?OrbitalArrival.target(object(state.selected)):null);
   $('builderArrivalTitle').textContent=arrival?'Торможение и выход на орбиту':'Полная остановка';
   $('builderOrbitSpeed').textContent=arrival?fmt(arrival.speed/1000,2)+' км/с':'0 км/с';
@@ -408,27 +422,61 @@ const FlightBuilder={
   if(Math.abs(d)<1e-5)return quantity(d)+' св. лет';
   return(d<.01?fmt(d,Math.max(2,2-Math.floor(Math.log10(d)))):compact(d))+' св. лет';
  },
+ visibleRouteStage(s,totalDistance,totalProper,valid){
+  // Hide a coast below 0.1% in both measures, without redistributing its path.
+  return s.index!==1||!valid||s.proper>Math.max(1e-12,totalProper*.001)||Math.abs(s.distance||0)>Math.max(1e-12,totalDistance*.001);
+ },
+ routeSamples(p,stages){
+  if(!p?.acceleration?.rows?.length||!p.accelerationEnd||!stages.every(s=>Number.isFinite(s.distance)))return null;
+  if(this.routeSamplesCache.has(p))return this.routeSamplesCache.get(p);
+  const total=stages.reduce((sum,s)=>sum+s.distance,0),scaleX=total>0?392/total:0,scaleY=65/Math.max(p.peakBeta||0,1e-12),result=[];
+  for(let index=0;index<3;index++){
+   const duration=stages[index].proper,length=stages[index].distance;
+   if(index===0){
+    const points=p.acceleration.rows.filter(q=>q.proper<p.accelerationEnd.proper).map(q=>({proper:q.proper,distance:q.distance,beta:q.beta}));
+    points.push({proper:p.accelerationEnd.proper,distance:p.accelerationEnd.distance,beta:p.accelerationEnd.beta});result.push(points);continue;
+   }
+   if(p.passage||!(duration>0)||!(length>0)){result.push([]);continue;}
+   const sample=t=>{const q=MissionPlanner.stageSample(p,index,t);return{proper:t,distance:Math.max(0,Math.min(length,q.distance)),beta:q.beta};};
+   // Sampling is in proper time but the drawing uses physical distance. Log
+   // endpoint seeds retain short final burns; refinement measures screen error.
+   const times=new Set([0,duration]);for(let n=1;n<16;n++)times.add(duration*n/16);
+   for(let n=1;n<=8;n++){times.add(duration*10**(-n));times.add(duration*(1-10**(-n)));}
+   if(index===2){const b=p.brake.plan;for(const t of [b?.fill?.proper,(b?.fill?.proper||0)+(b?.feed?.proper||0)])if(t>0&&t<duration)times.add(t);}
+   const points=[],refine=(a,b,depth)=>{
+    const mid=sample((a.proper+b.proper)/2),dx=(b.distance-a.distance)*scaleX,dy=(b.beta-a.beta)*scaleY,mx=(mid.distance-a.distance)*scaleX,my=(mid.beta-a.beta)*scaleY,den=dx*dx+dy*dy,f=den>0?Math.max(0,Math.min(1,(mx*dx+my*dy)/den)):0,error=Math.hypot(mx-f*dx,my-f*dy);
+    if(depth<12&&error>.15){refine(a,mid,depth+1);refine(mid,b,depth+1);}else points.push(b);
+   };
+   const seeds=[...times].sort((a,b)=>a-b).map(sample);points.push(seeds[0]);for(let i=1;i<seeds.length;i++)refine(seeds[i-1],seeds[i],0);result.push(points);
+  }
+  this.routeSamplesCache.set(p,result);return result;
+ },
  drawRoute(p,valid,eta,profile){
   const stages=this.routeStages(valid?p:null,valid?eta:null,valid?profile:null),known=stages.every(s=>Number.isFinite(s.distance)),total=known?stages.reduce((sum,s)=>sum+s.distance,0):0,left=24,span=392;
   let traveled=0;
   const segments=stages.map((s,i)=>{const start=left+(total?traveled/total:0)*span;traveled+=Number.isFinite(s.distance)?s.distance:0;const end=left+(total?traveled/total:0)*span;return{...s,start,end,center:(start+end)/2,index:i};});
-  const [,coast]=segments,x1=segments[0].end,x2=coast.end,baseline=214,peak=149;
-  const visible=segments.filter(s=>s.index!==1||!valid||s.proper>1e-12||Math.abs(s.distance||0)>1e-12);
+  const x1=segments[0].end,baseline=214,peak=149;
+  const totalProper=stages.reduce((sum,s)=>sum+s.proper,0),visible=segments.filter(s=>this.visibleRouteStage(s,total,totalProper,valid));
   const rows=visible.map((s,i)=>{
    const x=8+i*(440/visible.length),labelCenter=x+(visible.length===2?90:64),turn=106+i*7,time=valid?durationText(s.proper):'—',dist=valid?this.routeDistanceText(s.distance):'—';
    return '<g class="route-stage" data-stage="'+s.index+'" data-proper="'+s.proper+'" data-distance="'+s.distance+'" data-start="'+s.start+'" data-end="'+s.end+'"><title>'+s.name+': время на борту — '+time+'; расстояние в системе внешнего наблюдателя — '+dist+'</title><path class="stage-leader" d="M'+labelCenter+' 98V'+turn+'H'+s.center+'V228"/><text class="stage-name" x="'+x+'" y="15">'+(s.name==='Торможение и выход на орбиту'?'<tspan x="'+x+'" y="10">Торможение</tspan><tspan x="'+x+'" y="23">и выход на орбиту</tspan>':s.name)+'</text><text class="stage-metric-label" x="'+x+'" y="35">Время на борту</text><text class="stage-duration" x="'+x+'" y="51">'+time+'</text><text class="stage-metric-label" x="'+x+'" y="72">Расстояние</text><text class="stage-distance" x="'+x+'" y="88">'+dist+'</text><rect class="stage-span stage-span-'+s.index+'" x="'+s.start+'" y="224" width="'+(s.end-s.start)+'" height="6"/><circle class="stage-pin" cx="'+s.center+'" cy="227" r="1.8"/></g>';
   }).join('');
-  const arrivalY=p?.arrival&&p.peakBeta>0?baseline-(baseline-peak)*Math.min(1,p.arrival.beta/p.peakBeta):baseline;
-  const curve='<path class="diagram-guide" d="M24 '+baseline+'H416"/><path class="diagram-accel" d="M24 '+baseline+'C'+(left+(x1-left)*.45)+' '+baseline+' '+(left+(x1-left)*.55)+' '+peak+' '+x1+' '+peak+'"/><path class="diagram-coast" d="M'+x1+' '+peak+'H'+x2+'"/><path class="diagram-brake" d="M'+x2+' '+peak+'C'+(x2+(416-x2)*.4)+' '+peak+' '+(x2+(416-x2)*.6)+' '+arrivalY+' 416 '+arrivalY+'"/>';
-  const beta=p?.peakBeta??eta?.peakBeta??state.flight?.maxBeta,peakText=valid&&Number.isFinite(beta)?'Макс. '+percentC(beta):'',labelWidth=Math.min(360,Math.max(150,peakText.length*8+16)),labelX=clamp(x1,24+labelWidth/2,416-labelWidth/2);
-  const peakLabel=peakText?'<g class="route-peak" data-beta="'+beta+'"><path class="peak-guide" d="M'+x1+' '+peak+'V136H'+labelX+'"/><rect x="'+(labelX-labelWidth/2)+'" y="123" width="'+labelWidth+'" height="20"/><text x="'+labelX+'" y="137" text-anchor="middle">'+peakText+'</text><circle cx="'+x1+'" cy="'+peak+'" r="2.5"/></g>':'';
-  $('builderRouteDiagram').innerHTML='<defs><pattern id="routeBrakeHatch" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M-1 1l2-2M0 4l4-4M3 5l2-2"/></pattern></defs>'+rows+curve+peakLabel+'<circle cx="24" cy="'+baseline+'" r="2.5"/><circle cx="416" cy="'+arrivalY+'" r="2.5"/><text class="route-endpoint" x="24" y="251">СТАРТ</text><text class="route-endpoint" x="416" y="251" text-anchor="end">'+(p?.passage?'ПРОЛЁТ':p?.arrival?'ОРБИТА':'ОСТАНОВКА')+'</text><text class="route-axis-note" x="220" y="274" text-anchor="middle">Расстояние в системе внешнего наблюдателя →</text>';
-  $('builderRouteDiagram').classList.toggle('uncomputed',!valid||!known);
+  const samples=valid&&known?this.routeSamples(p,stages):null;
+  let offset=0,maximum={beta:p?.peakBeta??eta?.peakBeta??state.flight?.maxBeta,x:x1};
+  const series=samples?.map((points,index)=>{const values=points.map(q=>({...q,x:left+(total?(offset+q.distance)/total:0)*span}));offset+=stages[index].distance;return values;});
+  if(series){maximum={beta:-1,x:left};for(const points of series)for(const q of points)if(q.beta>maximum.beta)maximum={beta:q.beta,x:q.x};}
+  const beta=maximum.beta,height=baseline-peak,y=b=>baseline-height*Math.max(0,b)/Math.max(beta||0,1e-20),startY=series?.[0]?.length?y(series[0][0].beta):baseline,lastSeries=series?.filter(q=>q.length).at(-1),arrivalY=lastSeries?.length?y(lastSeries.at(-1).beta):baseline;
+  const paths=series?.map((points,index)=>points.length&&(index!==1||visible.some(s=>s.index===1))?'<path class="'+['diagram-accel','diagram-coast','diagram-brake'][index]+'" data-sampled="true" data-samples="'+points.length+'" d="'+points.map((q,i)=>(i?'L':'M')+q.x.toFixed(3)+' '+y(q.beta).toFixed(3)).join('')+'"/>':'').join('')||'';
+  const curve='<path class="diagram-guide" d="M24 '+baseline+'H416"/>'+paths;
+  const peakText=valid&&Number.isFinite(beta)?'Макс. '+percentC(beta):'',labelWidth=Math.min(360,Math.max(150,peakText.length*8+16)),labelX=clamp(maximum.x,24+labelWidth/2,416-labelWidth/2);
+  const peakLabel=peakText?'<g class="route-peak" data-beta="'+beta+'"><path class="peak-guide" d="M'+maximum.x+' '+peak+'V136H'+labelX+'"/><rect x="'+(labelX-labelWidth/2)+'" y="123" width="'+labelWidth+'" height="20"/><text x="'+labelX+'" y="137" text-anchor="middle">'+peakText+'</text><circle cx="'+maximum.x+'" cy="'+peak+'" r="2.5"/></g>':'';
+  $('builderRouteDiagram').innerHTML='<defs><pattern id="routeBrakeHatch" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M-1 1l2-2M0 4l4-4M3 5l2-2"/></pattern></defs>'+'<title>Скорость по расчётной траектории в зависимости от пройденного расстояния</title>'+rows+curve+peakLabel+'<circle cx="24" cy="'+startY+'" r="2.5"/><circle cx="416" cy="'+arrivalY+'" r="2.5"/><text class="route-endpoint" x="24" y="251">СТАРТ</text><text class="route-endpoint" x="416" y="251" text-anchor="end">'+(p?.passage?'ПРОЛЁТ':p?.arrival?'ОРБИТА':'ОСТАНОВКА')+'</text><text class="route-axis-note" x="220" y="274" text-anchor="middle">Расстояние в системе внешнего наблюдателя →</text>';
+  $('builderRouteDiagram').classList.toggle('uncomputed',!valid||!known||!samples);
  },
  drawOptics(c){
   const svg=$('builderOpticsDiagram'),start='<circle cx="30" cy="40" r="10"/>'+(c.burst?'<circle cx="30" cy="40" r="20" stroke-dasharray="2 3"/>':'')+'<text x="30" y="81" text-anchor="middle">'+(c.burst?'вспышка':'звезда')+'</text>';
   const sail='<path d="M355 21q17 19 0 38M355 21l-14 19 14 19"/><text x="355" y="81" text-anchor="middle">парус</text>';
-  const collector='<path d="M145 21q15 19 0 38M55 33l86-10M55 47l86 10"/><text x="147" y="81" text-anchor="middle">коллектор</text><path d="M160 33h173M160 47h173" stroke-dasharray="4 4"/>';
+  const collector='<path d="M145 21q15 19 0 38M55 33l86-10M55 47l86 10"/><text x="147" y="81" text-anchor="middle">коллектор</text><path d="M160 35l173-22M160 45l173 22" stroke-dasharray="4 4"/><text x="250" y="99" text-anchor="middle">дифракция пучка</text>';
   const ship='<path d="m320 34 17 6-17 6 4-6Z"/>';
   svg.innerHTML=c.sail?start+(c.collector?collector:'<path d="M55 35l275-14M55 45l275 14" stroke-dasharray="4 4"/>')+sail+ship:'<path d="M45 40h240" stroke-dasharray="2 5"/><circle cx="45" cy="40" r="3"/><path d="m295 28-29 12 29 12" stroke-dasharray="3 3"/>'+ship+'<text x="180" y="81" text-anchor="middle">топливо → фотоны → тяга</text>';
  },
@@ -553,14 +601,14 @@ function showObject(id=state.selected){
  let luminosity=f.lum!==undefined?'≈ '+quantity(f.lum)+' L☉<small>Болометрическая мощность: ≈ '+quantity(f.lum*Astro.solarLuminosity)+' Вт</small>':f.visual?'≈ '+quantity(f.visual.solarV)+' L☉,'+(f.band||'V')+'<small>Собственная светимость в полосе '+(f.band||'V')+'; абсолютная величина M'+(f.band||'V')+' ≈ '+fmt(f.visual.absoluteV,1)+' mag</small>':f.lumUnknown;
  const sizeButton=o.region?'<button class="map-size-action" id="viewRegion">Показать область ↗</button>':(g||o.id==='sgr')?'<button class="map-size-action" id="viewGalaxy">Показать галактику в масштабе <span>↗</span></button>':'';
  let html='<div class="modal-eyebrow">АТЛАС / ОБ ОБЪЕКТЕ</div><h2>'+o.name+'</h2><div class="object-type">'+MapDetails.typeName(o)+'</div><p>'+MapDetails.description(o)+'</p>'+(MapDetails.componentNote(o)?'<p>'+MapDetails.componentNote(o)+'</p>':'')+sizeButton+'<dl class="object-facts">'+row('Класс',f.class)+row('Масса',f.mass)+row('Светимость',luminosity);
- if(o.region)html+=row('Область',o.region.note+'<small>Форма и ориентация приблизительны; проекция на плоскость не сохраняет все расстояния в объёме.</small>');
+ if(o.region)html+=row('Область',o.region.note+'<small>'+(o.region.shape==='polyline'?'Проекция опубликованной оси; не все расстояния в объёме сохраняются.':'Форма и ориентация приблизительны; проекция на плоскость не сохраняет все расстояния в объёме.')+'</small>');
  if(o.ngc)html+=row('Каталог NGC / IC',o.ngc.replace(/^(NGC|IC)0*(\d+)/,'$1 $2'));
  if(o.cosmology)html+=row('Красное смещение',fmt(o.redshift,4)+'<small>Расстояние на карте — современное сопутствующее, ≈ '+distanceText(o.d)+'. Свет шёл ≈ '+compact(o.cosmology.lookbackYears)+' лет; это разные величины.</small>');
  if(o.apparentV!=null)html+=row('Видимая величина V',fmt(o.apparentV,2)+' mag<small>Яркость с Земли: чем меньше число, тем ярче. Не абсолютная светимость.</small>');if(o.iauNames?.length)html+=row('Имена IAU',o.iauNames.join(', '));if(o.aliases?.length)html+=row('Другие обозначения',o.aliases.join(' · '));
  if(g)html+=row('Оптический размер',distanceText(g.diameterLy)+' × '+distanceText(g.diameterLy*g.axisRatio)+'<small>Большая × малая ось проекции; размеры контура в масштабе карты</small>');
  else if(f.radius)html+=row('Размер',f.radius);
  if(f.extra)html+=row(...f.extra);
- if(o.p3){html+=row(o.arrivalAnchor?'Игровая точка XYZ':'Galactic XYZ',o.p3.map(v=>compact(v)).join(' / ')+' св. лет<small>'+(o.arrivalAnchor?'Игровой ориентир для полёта; положение центра структуры не измерено':'Физические координаты относительно Солнца; не координаты схемы')+'</small>')+row('Глубина Zg',distanceText(o.p3[2])+'<small>Координата вне плоскости карты, относительно Солнца</small>');if(o.raDeg!==undefined)html+=row('Направление J2000',fmt(o.raDeg,4)+'° / '+fmt(o.decDeg,4)+'°<small>Прямое восхождение / склонение</small>');}
+ if(o.p3){html+=row(o.arrivalAnchor?(o.cosmicCatalog?'Каталожный ориентир XYZ':'Игровая точка XYZ'):'Galactic XYZ',o.p3.map(v=>compact(v)).join(' / ')+' св. лет<small>'+(o.arrivalAnchor?(o.cosmicCatalog?'Ориентир по наблюдаемому каталогу; протяжённая область не является компактным телом':'Игровой ориентир для полёта; положение центра структуры не измерено'):'Физические координаты относительно Солнца; не координаты схемы')+'</small>')+row('Глубина Zg',distanceText(o.p3[2])+'<small>Координата вне плоскости карты, относительно Солнца</small>');if(o.raDeg!==undefined)html+=row('Направление J2000',fmt(o.raDeg,4)+'° / '+fmt(o.decDeg,4)+'°<small>Прямое восхождение / склонение</small>');}
  if(!o.p3&&Number.isFinite(o.raDeg))html+=row('Направление J2000',fmt(o.raDeg,4)+'° / '+fmt(o.decDeg,4)+'°');
  if(o.catalogDistanceLy!=null)html+=row('Исходная каталожная дальность',distanceText(o.catalogDistanceLy)+'<small>До оценки по принадлежности к системе; не используется в текущем маршруте</small>');
  if(o.gravity)html+=row('Модель пролёта',o.gravity.note);
@@ -587,7 +635,7 @@ function line(x1,y1,x2,y2,color='#cecece',lw=1,dash=[]){ctx.beginPath();ctx.setL
 function circle(x,y,r,color='#cccccc',lw=1,dash=[]){if(r<0||r>1e6)return;ctx.beginPath();ctx.setLineDash(dash);ctx.strokeStyle=paint(color);ctx.lineWidth=lw;ctx.arc(x,y,r,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
 function text(s,x,y,size=9,color='#808080',align='left',font='mono'){ctx.fillStyle=paint(color);ctx.font=`${size}px ${font==='mono'?'"IBM Plex Mono",monospace':'"Golos Text",Arial,sans-serif'}`;ctx.textAlign=align;ctx.fillText(s,x,y);}
 function nice(n){const pow=10**Math.floor(Math.log10(n)),a=n/pow;return(a<1.5?1:a<3.5?2:a<7.5?5:10)*pow;}
-function drawGrid(){const unit=gridUnit(),pixels=unit*width/cam.span;const origin=screen({x:0,y:0}),minor=pixels/5;
+function drawGrid(){const {unit,majorPixels:pixels,minorPixels:minor}=gridMetrics();const origin=screen({x:0,y:0});
  ctx.fillStyle=paint('#f8f8f8');ctx.fillRect(0,0,width,height);
  ctx.beginPath();ctx.strokeStyle=paint('#e8e8e8');ctx.lineWidth=.5;
  for(let x=((origin.x%minor)+minor)%minor;x<width;x+=minor){ctx.moveTo(x,0);ctx.lineTo(x,height);}
@@ -602,6 +650,7 @@ function drawGrid(){const unit=gridUnit(),pixels=unit*width/cam.span;const origi
 }
 function galaxyProjection(g){const center=screen(g);return{center,r:g.diameterLy*.5*width/cam.span};}
 function drawGalaxyBackground(){
+ if(!ExtendedCatalog.matchesMap({kind:'galaxy'}))return;
  for(const g of GALAXIES){const {center,r}=galaxyProjection(g);if(r<1.2||r>12000||center.x+r<0||center.x-r>width||center.y+r<0||center.y-r>height)continue;
   const body=object(g.id)||{...g,kind:'galaxy',d:0,galaxy:g};if(!MapDetails.visible(body,cam.span))continue;
   const selected=g.id===state.selected||(g.id==='milkyway'&&state.selected==='sgr');
@@ -621,18 +670,33 @@ function drawGalaxyBackground(){
 }
 function shipReachability(){
  if(state.expansion===false)return null;
- if(state.flight){const beta=clamp(state.beta||0,0,1-Number.EPSILON),comoving=Cosmology.reach(beta);return{beta,comoving,radius:comoving*Cosmology.scale(),mode:'СВОБОДНЫЙ ПОЛЁТ С ТЕКУЩЕЙ СКОРОСТЬЮ',active:true};}
- const q=MissionReach.idle();return{...q,radius:q.comoving*Cosmology.scale(),mode:'С РАЗГОНОМ И ТОРМОЖЕНИЕМ',active:false};
+ const active=!!state.flight,q=active?MissionReach.active():MissionReach.idle();
+ return{...q,radius:q.comoving*Cosmology.scale(),mode:active?'ОСТАВШИЙСЯ ПОЛЁТ С ТОРМОЖЕНИЕМ':'С РАЗГОНОМ И ТОРМОЖЕНИЕМ',active};
 }
-function renderReachability(){const q=shipReachability();$('reachReadout').hidden=true;$('reachReadout').textContent=q?'Предел полёта: '+distanceText(q.radius):'';$('reachReadout').title=q?(q.active?'Свободный полёт с текущей скоростью, без дальнейшей тяги.':'Доступный разгон и полная остановка у цели. На пределе запас топлива может быть ниже выбранного.')+' Проекция трёхмерной сферы: положение цели внутри круга не гарантирует достижимость; учитывается и глубина.':'';}
+function lightReachability(){if(state.expansion===false)return null;const comoving=Cosmology.horizon();return{comoving,radius:comoving*Cosmology.scale()};}
+function renderReachability(){
+ const c=state.flight?.mission?.setup||FlightSetup.read(),out=$('reachReadout');out.hidden=!(width<700&&cam.span>=1e9&&state.expansion!==false);
+ if(!out.hidden){const ship=shipReachability(),light=lightReachability();out.textContent='Полёт · '+(ship.radius>0?distanceText(ship.radius):'0 св. лет')+'\nСвет · '+distanceText(light.radius);}
+ out.title=state.expansion!==false?'Текущие настройки и запас топлива на финише '+Math.round(c.arrivalFuelPercent||0)+'%. Разгон и полная остановка у протяжённой цели; для орбиты расчёт индивидуален. Проекция трёхмерной сферы: положение цели внутри круга не гарантирует достижимость; учитывается и глубина.':'';
+}
+
 function circleLabel(key,name,detail,p,r,priority=25){
  const candidates=[];for(let i=0;i<48;i++){const a=-Math.PI/2+i*Math.PI/24,x=p.x+Math.cos(a)*r,y=p.y+Math.sin(a)*r;if(x>20&&x<width-20&&y>30&&y<height-40)candidates.push({x,y:y-10,align:'center'});}
+ // A small flight radius can sit entirely inside the dense local group. Keep
+ // its numeric scale readable in a free map slot without enlarging the circle.
+ if(key==='ship-reach'&&cam.span>=1e9)for(let y=height-65;y>160;y-=38)candidates.push({x:width*.48,y,align:'center'});
  if(candidates.length)MapLabels.add({key,name,detail,priority,size:9,candidates});
 }
 function drawReachability(){
- const q=shipReachability();if(!q||!(q.radius>0))return;const p=screen(state.ship),r=q.radius*width/cam.span;if(r<5||r>20000)return;
- ctx.save();ctx.globalAlpha=.75;circle(p.x,p.y,r,'#454545',1.2,[10,5,2,5]);ctx.restore();
- circleLabel('ship-reach',(q.active?'СВОБОДНАЯ ДАЛЬНОСТЬ':'ПРЕДЕЛ ПОЛЁТА')+' · '+distanceText(q.radius),q.mode+' · ПРОЕКЦИЯ СФЕРЫ В 3D',p,r);
+ // Cosmological envelopes are a large-scale overlay. Do not run a range solve
+ // on every braking frame while the player is looking at nearby stars.
+ if(cam.span<1e6)return;
+ const light=lightReachability(),p=screen(state.ship);
+ if(light&&cam.span>=1e9){const r=light.radius*width/cam.span;if(r>0&&r<20000){ctx.save();ctx.globalAlpha=.7;circle(p.x,p.y,r,'#888888',1,[3,7]);ctx.restore();circleLabel('light-reach','ПРЕДЕЛ СВЕТА · '+distanceText(light.radius),'СВЕТ, ИСПУЩЕННЫЙ СЕЙЧАС · ПРОЕКЦИЯ СФЕРЫ В 3D',p,r,35);}}
+ const q=shipReachability();if(!q||!(q.radius>0))return;const r=q.radius*width/cam.span;if(r>20000)return;
+ ctx.save();ctx.globalAlpha=.85;circle(p.x,p.y,r,'#454545',1.2,[10,5,2,5]);ctx.restore();
+ const name='ПРЕДЕЛ ПОЛЁТА · '+distanceText(q.radius),detail='ТОПЛИВНЫЙ БАК НА ФИНИШЕ ≥ '+Math.round(q.setup.arrivalFuelPercent||0)+'% · ПРОЕКЦИЯ СФЕРЫ В 3D';
+ if(r>=5||cam.span>=1e9)circleLabel('ship-reach',name,detail,p,r,40);
 }
 function drawHorizonBoundary(){if(cam.span>4e10){const p=screen({x:0,y:0}),r=465e8*Cosmology.scale()*width/cam.span;circle(p.x,p.y,r,'#a7a7a7',.8,[7,5]);circleLabel('observable-boundary','НАБЛЮДАЕМАЯ ВСЕЛЕННАЯ','ГРАНИЦА В ИСХОДНУЮ ЭПОХУ · НЕ ДАЛЬНОСТЬ ПОЛЁТА',p,r,15);}}
 function drawSymbol(o,p,selected=false){const destroyed=state.destroyed.includes(o.id)&&o.kind==='star';const ink=selected?'#171717':'#424242';ctx.save();ctx.translate(p.x,p.y);ctx.strokeStyle=paint(ink);ctx.lineWidth=1.25;
@@ -650,13 +714,13 @@ function drawSymbol(o,p,selected=false){const destroyed=state.destroyed.includes
  ctx.restore();}
 function drawObjects(){hitObjects=[];const departure=state.flight?.fromId||state.current,occupied=[];
  const priority=o=>o.id==='sgr'&&cam.span<2?90:ExtendedCatalog.background(o)?10:o.id===state.selected?100:o.id===departure?85:o.cosmicLandmark?70:o.galaxy?50:o.id==='sol'?40:20;
- const visible=[...new Map([...OBJECTS,...ExtendedCatalog.pinned.values(),...ExtendedCatalog.visible.filter(o=>!ExtendedCatalog.background(o))].map(o=>[o.id,o])).values()].filter(o=>(!o.region||o.region.major*Cosmology.regionScale(o)*.5*width/cam.span<4)&&(!ExtendedCatalog.background(o)||o.id===state.selected||o.id===state.current)&&MapDetails.visible(o,cam.span)&&(o.kind!=='horizon'||cam.span>3e10)).map(o=>({o,p:screen(o)})).filter(({p})=>p.x>-40&&p.x<width+40&&p.y>-40&&p.y<height+40).sort((a,b)=>MapDetails.massOrder(a.o,b.o)||priority(b.o)-priority(a.o)||(a.o.apparentV??20)-(b.o.apparentV??20)||a.o.id.localeCompare(b.o.id));
- for(const {o,p} of visible){const bg=ExtendedCatalog.background(o);if(!bg&&occupied.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<24))continue;if(!bg)occupied.push(p);const selected=o.id===state.selected,opacity=MapDetails.opacity(o,cam.span);ctx.save();ctx.globalAlpha=opacity;if(bg){circle(p.x,p.y,3,'#969696',1);if(selected)circle(p.x,p.y,7,'#646464',.8,[2,3]);}else drawSymbol(o,p,selected);ctx.restore();hitObjects.push({o,p,r:bg?7:23,background:bg});
+ const visible=[...new Map([...OBJECTS,...ExtendedCatalog.pinned.values(),...ExtendedCatalog.visible.filter(o=>!ExtendedCatalog.background(o))].map(o=>[o.id,o])).values()].filter(o=>ExtendedCatalog.matchesMap(o)&&ExtendedCatalog.opacity(o)>.015&&(!o.region||RegionMap.pixelRadius(o)<4)&&(!ExtendedCatalog.background(o)||o.id===state.selected||o.id===state.current)&&MapDetails.visible(o,cam.span)&&(o.kind!=='horizon'||cam.span>3e10)).map(o=>({o,p:screen(o)})).filter(({p})=>p.x>-40&&p.x<width+40&&p.y>-40&&p.y<height+40).sort((a,b)=>MapDetails.massOrder(a.o,b.o)||priority(b.o)-priority(a.o)||(a.o.apparentV??20)-(b.o.apparentV??20)||a.o.id.localeCompare(b.o.id));
+ for(const {o,p} of visible){const bg=ExtendedCatalog.background(o);if(!bg&&occupied.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<24))continue;if(!bg)occupied.push(p);const selected=o.id===state.selected,opacity=ExtendedCatalog.opacity(o);ctx.save();ctx.globalAlpha=opacity;if(bg){circle(p.x,p.y,3,'#969696',1);if(selected)circle(p.x,p.y,7,'#646464',.8,[2,3]);}else drawSymbol(o,p,selected);ctx.restore();hitObjects.push({o,p,r:bg?7:23,background:bg});
   // Large galaxy contours already queued their own label.
   if(!o.galaxy||galaxyProjection(o.galaxy).r<=18)MapLabels.point({key:'object-'+o.id,name:o.id==='sol'?'СОЛНЦЕ / ЗЕМЛЯ':o.name,detail:(o.id===(state.flight?.target||state.selected)?'ЦЕЛЬ · ':'')+(o.id==='sol'?'НАЧАЛО КООРДИНАТ':distanceText(o.d)),p,mass:MapDetails.mass(o),priority:priority(o),selected,opacity});
  }
  /* At planetary zoom, Earth is separated from Sol at one astronomical unit. */
- if(cam.span<.001){const earth=screen({x:.00001581,y:0});circle(earth.x,earth.y,4,'#252525');text('ЗЕМЛЯ / 1 а.е.',earth.x+12,earth.y-8,9,'#434343');const sun=screen({x:0,y:0});circle(sun.x,sun.y,.00001581*width/cam.span,'#c3c3c3',.7,[3,5]);}
+ if(cam.span<.001&&ExtendedCatalog.matchesMap({kind:'star'})){const earth=screen({x:.00001581,y:0});circle(earth.x,earth.y,4,'#252525');text('ЗЕМЛЯ / 1 а.е.',earth.x+12,earth.y-8,9,'#434343');const sun=screen({x:0,y:0});circle(sun.x,sun.y,.00001581*width/cam.span,'#c3c3c3',.7,[3,5]);}
 }
 // Clip around a nearby point before handing coordinates to Canvas. Extremely distant
 // endpoints otherwise exceed the renderer's precision at stellar zoom while following.
@@ -691,7 +755,7 @@ function drawShip(time){const p=screen(state.ship),f=state.flight,target=f?objec
  ctx.restore();if(cam.span<60000&&(!f||Math.hypot(p.x-screen(target).x,p.y-screen(target).y)>65))MapLabels.point({key:'ship',name:'КОРАБЛЬ',p,priority:35});
 }
 function drawEffects(dt){effects=effects.filter(e=>e.age<8);for(const e of effects){e.age+=paused?0:dt*speed;const p=screen(e);for(let k=0;k<3;k++){const r=(e.age*48+k*24)%370;circle(p.x,p.y,r,`rgba(37,38,32,${Math.max(0,.38-r/980)})`,.7,k===1?[2,6]:[]);}for(let i=0;i<40;i++){const a=i*2.399,r=e.age*25+(i%5)*9;ctx.fillStyle=paint('#8b8b8b');ctx.fillRect(p.x+Math.cos(a)*r,p.y+Math.sin(a)*r,1,1);}}}
-function drawHover(){if(!hover||hover.region||['structure','wall','void','ring','arc','horizon'].includes(hover.kind))return;const p=screen(hover);circle(p.x,p.y,27,'#969696',.6,[2,4]);}
+function drawHover(){if(!hover||!ExtendedCatalog.matchesMap(hover)||hover.region||['structure','wall','void','ring','arc','horizon'].includes(hover.kind))return;const p=screen(hover);circle(p.x,p.y,27,'#969696',.6,[2,4]);}
 
 let lastFrame=performance.now();function frame(now){Cosmology.sync(state);const realDt=Math.max(0,(now-lastFrame)/1000);lastFrame=now;Simulation.advance(realDt);
  if(!document.hidden){if(cameraGoal){const a=1-Math.exp(-Math.min(realDt,.1)*8);cam.x+=(cameraGoal.x-cam.x)*a;cam.y+=(cameraGoal.y-cam.y)*a;cam.span=Math.exp(Math.log(cam.span)+(Math.log(cameraGoal.span)-Math.log(cam.span))*a);if(Math.abs(Math.log(cam.span/cameraGoal.span))<.0005&&Math.hypot(cam.x-cameraGoal.x,cam.y-cameraGoal.y)<cam.span*.0001){cam={...cameraGoal};cameraGoal=null;}}
@@ -718,7 +782,7 @@ $('catalogBtn').onclick=()=>{if($('catalog').hidden)openCatalog();else closeCata
 $('themeBtn').onclick=()=>applyTheme(theme==='dark'?'light':'dark');
 $('menuBtn').onclick=()=>{const open=$('menu').hidden;$('menu').hidden=!open;$('menuBtn').setAttribute('aria-expanded',String(open));};
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('.menu-popover,.menu-button'))closeMenu();});
-$('catalogFilter').addEventListener('change',e=>{filter=e.target.value;ExtendedCatalog.searchLimit=100;renderCatalog();});
+$('catalogFilter').addEventListener('change',e=>{filter=e.target.value;hover=null;hitObjects=[];RegionMap.hits=[];ExtendedCatalog.searchLimit=100;const name=e.target.selectedOptions?.[0]?.textContent||filter;$('catalogBtn').title=filter==='all'?'Атлас':'На карте: '+name;$('catalogBtn').setAttribute('aria-label',filter==='all'?'Атлас':'Атлас. На карте: '+name);renderCatalog();});
 $('flightDetails').addEventListener('toggle',()=>{
  const reading=$('flightCard').querySelector('.card-scroll'),details=$('flightDetails');
  reading.scrollTop=details.open?reading.scrollTop+details.getBoundingClientRect().top-reading.getBoundingClientRect().top:0;
@@ -728,7 +792,6 @@ document.querySelectorAll('[data-sail]').forEach(b=>b.onclick=()=>{if(state.flig
 
 $('timeSlider').addEventListener('input',event=>setTimeRate(TIME_RATES[Number(event.target.value)]));
 document.querySelectorAll('[data-time]').forEach(button=>button.onclick=()=>setTimeRate(button.dataset.time));
-document.querySelectorAll('[data-scale]').forEach(b=>b.onclick=()=>{closeCatalog();goCamera(0,0,+b.dataset.scale);});
 $('findDepartureStar').onclick=$('findDepartureStarCard').onclick=()=>{syncClock();findDepartureStar();};
 $('launchBtn').onclick=()=>{syncClock();if(state.current===state.selected){const here=object(state.current),star=ExtendedCatalog.ensureGalaxy(here);if(star)findDepartureStar();else openCatalog();}else launch();};$('helpBtn').onclick=showHelp;$('modelBtn').onclick=showModel;$('journalBtn').onclick=showJournal;$('objectInfo').onclick=()=>showObject(state.flight?.target||state.selected);$('closeDialog').onclick=()=>$('infoDialog').close();
 $('infoDialog').addEventListener('click',e=>{if(e.target===$('infoDialog')){const r=$('infoDialog').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('infoDialog').close();}});

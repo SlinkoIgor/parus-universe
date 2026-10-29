@@ -1,14 +1,15 @@
+import {catalogPath} from './catalog-path.mjs';
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';
 const {context,run}=await import('data:text/javascript,'+encodeURIComponent(harness));
 const input=JSON.parse(fs.readFileSync('data-tools/magellanic-cepheids.json','utf8'));
-const index=JSON.parse(fs.readFileSync('dist/catalog-data/search.json','utf8'));
+const index=JSON.parse(fs.readFileSync(catalogPath('search.json'),'utf8'));
 const entries=new Map(index.map(r=>[r[0],r]));
 const files=new Map();
 const read=id=>{
  const e=entries.get(id);if(!e)return run('EXTENDED_BOOT.members').find(r=>r[0]===id);
- if(!files.has(e[5]))files.set(e[5],JSON.parse(fs.readFileSync('dist/catalog-data/'+e[5],'utf8')));
+ if(!files.has(e[5]))files.set(e[5],JSON.parse(fs.readFileSync(catalogPath(e[5]),'utf8')));
  return files.get(e[5]).find(r=>r[0]===id);
 };
 assert.deepEqual(input.counts,{LMC:4222,MBR:9,SMC:4654});

@@ -18,21 +18,22 @@ for(const o of OBJECTS){
 }
 const RegionMap={
  hits:[],
+ pixelRadius(o){return Math.max(o.region.major,o.region.minor)*Cosmology.regionScale(o)*.5*width/cam.span;},
  center(o){return o.id==='laniakea'?{x:0,y:0}:MapLayout.project(o);},
  focus(o){const r=o.region,p=this.center(o);goCamera(p.x,p.y,Math.max(r.major,r.minor)*Cosmology.regionScale(o)*Math.max(1.7,width/Math.max(height*.6,1)));toast(r.note);},
- outline(r){const p=[];for(let i=0;i<=96;i++){const t=i/96,a=t*Math.PI*2;let x,y;
+ outline(r){if(r.shape==='polyline')return r.points.map(([x,y])=>({x,y}));const p=[];for(let i=0;i<=96;i++){const t=i/96,a=t*Math.PI*2;let x,y;
   if(r.shape==='ribbon'){const u=t<=.5?t*2:2-t*2;x=(u-.5)*r.major;y=Math.sin(u*Math.PI*3)*r.minor*.18+(t<=.5?-1:1)*r.minor*.28;}
   else if(r.shape==='arc'){x=(t-.5)*r.major;y=(4*(t-.5)**2-.5)*r.minor;}
   else{const f=r.shape==='basin'?1+.09*Math.sin(3*a)+.045*Math.cos(5*a):1;x=Math.cos(a)*r.major*.5*f;y=Math.sin(a)*r.minor*.5*f;}p.push({x,y});}return p;},
  labelAnchor(r){return this.outline(r).reduce((a,p)=>p.y>a.y+1e-9||Math.abs(p.y-a.y)<1e-9&&Math.abs(p.x)<Math.abs(a.x)?p:a);},
- draw(){this.hits=[];for(const o of OBJECTS.filter(o=>o.region&&!o.atlasOnly).sort((a,b)=>b.region.major-a.region.major)){const r=o.region,c=screen(this.center(o)),scale=width/cam.span*Cosmology.regionScale(o),rx=r.major*.5*scale,ry=r.minor*.5*scale;
-  if(rx<4||rx>20000||c.x+rx*1.2<0||c.x-rx*1.2>width||c.y+ry*1.2<0||c.y-ry*1.2>height)continue;
+ draw(){this.hits=[];for(const o of [...new Map([...ExtendedCatalog.visible,...ExtendedCatalog.pinned.values(),...OBJECTS].map(o=>[o.id,o])).values()].filter(o=>o.region&&!o.atlasOnly&&ExtendedCatalog.matchesMap(o)&&MapDetails.visible(o,cam.span)&&ExtendedCatalog.opacity(o)>.015).sort((a,b)=>b.region.major-a.region.major)){const r=o.region,c=screen(this.center(o)),scale=width/cam.span*Cosmology.regionScale(o),rx=r.major*.5*scale,ry=r.minor*.5*scale;
+  if(Math.max(rx,ry)<4||Math.max(rx,ry)>20000||c.x+rx*1.2<0||c.x-rx*1.2>width||c.y+ry*1.2<0||c.y-ry*1.2>height)continue;
   const points=this.outline(r).map(p=>({x:c.x+p.x*scale,y:c.y+p.y*scale})),selected=o.id===state.selected,highlighted=selected||hover?.id===o.id;
-  ctx.save();ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));if(r.shape!=='arc')ctx.closePath();ctx.strokeStyle=paint(highlighted?'#454545':'#777777');ctx.lineWidth=highlighted?1.25:.7;ctx.setLineDash(r.shape==='ring'?[7,5]:[3,6]);ctx.stroke();ctx.restore();
+  const opacity=ExtendedCatalog.opacity(o);ctx.save();ctx.globalAlpha=opacity;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));if(!['arc','polyline'].includes(r.shape))ctx.closePath();ctx.strokeStyle=paint(highlighted?'#454545':'#777777');ctx.lineWidth=highlighted?1.25:.7;ctx.setLineDash(r.shape==='polyline'?[]:r.shape==='ring'?[7,5]:[3,6]);ctx.stroke();ctx.restore();
   // One permanent contour anchor in world coordinates; panning never selects a new vertex.
   const anchor=this.labelAnchor(r),label={x:c.x+anchor.x*scale,y:c.y+anchor.y*scale-9,align:'center'};
-  const hit={o,points,label:null,closed:r.shape!=='arc'};this.hits.push(hit);
-  if(rx>=18)MapLabels.add({key:'region-'+o.id,name:o.name.toUpperCase(),detail:r.illustrative?'ГРАНИЦА УСЛОВНАЯ':'ПРИБЛИЖЁННАЯ ОБЛАСТЬ',mass:MapDetails.mass(o),priority:selected?100:30,size:9,color:selected?'#454545':'#757575',candidates:[label],onPlace:box=>{hit.label=box;}});
+  const hit={o,points,label:null,closed:!['arc','polyline'].includes(r.shape)};this.hits.push(hit);
+  if(rx>=18)MapLabels.add({key:'region-'+o.id,name:o.name.toUpperCase(),detail:r.shape==='polyline'?'ОСЬ ПО КАТАЛОГУ SDSS':r.illustrative?'ГРАНИЦА УСЛОВНАЯ':'ПРИБЛИЖЁННАЯ ОБЛАСТЬ',mass:MapDetails.mass(o),priority:selected?100:30,size:9,opacity,color:selected?'#454545':'#757575',candidates:[label],onPlace:box=>{hit.label=box;}});
  }},
  hit(x,y){for(const h of [...this.hits].reverse()){if(h.label&&x>=h.label.x&&x<=h.label.x+h.label.w&&y>=h.label.y&&y<=h.label.y+h.label.h)return h.o;const p=h.points;for(let i=1;i<p.length;i++){const a=p[i-1],b=p[i],dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1)));if(Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<9)return h.o;}}return null;}
 };

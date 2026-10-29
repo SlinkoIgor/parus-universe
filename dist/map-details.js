@@ -2,6 +2,9 @@
 // Display hierarchy and one collision budget for every atlas label.
 const MapDetails={
  typeName(o){
+  if(o.catalogClass==='galaxy-cluster')return 'Скопление галактик';
+  if(o.cosmicSubtype==='filament')return 'Галактический филамент';
+  if(o.cosmicSubtype==='supercluster')return 'Сверхскопление галактик';
   if(o.synthetic)return 'Искусственный игровой объект · звезда';
   const code=o.catalogType||String(o.type||'').split(' · ')[1];
   const subtype={OCl:'Рассеянное звёздное скопление',GCl:'Шаровое звёздное скопление','*Ass':'Звёздная ассоциация','Cl+N':'Звёздное скопление с туманностью',PN:'Планетарная туманность',EmN:'Эмиссионная туманность',RfN:'Отражательная туманность',SNR:'Остаток сверхновой',HII:'Область ионизированного водорода · туманность',GGroup:'Группа галактик',GPair:'Пара галактик',GTrpl:'Тройка галактик',Dup:'Дублирующая каталожная запись',NonEx:'Историческая неподтверждённая запись'}[code];
@@ -19,7 +22,7 @@ const MapDetails={
  searchKey(s){return s.normalize('NFKD').toLocaleLowerCase('ru').replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]/gu,'').replace(/(ngc|ic)0+(?=\d)/g,'$1');},
  massInfo(o){
   if(!o)return null;
-  if(Number.isFinite(o.massSolar)&&o.massSolar>0)return{solar:o.massSolar,source:o.massSource||o.facts?.ref||o.source||'',basis:'Численная масса объекта',system:!!o.massIsSystem};
+  if(Number.isFinite(o.massSolar)&&o.massSolar>0)return{solar:o.massSolar,...(Number.isFinite(o.massUncertaintySolar)?{uncertainty:o.massUncertaintySolar}:{}),source:o.massSource||o.facts?.ref||o.source||'',basis:'Численная масса объекта',system:!!o.massIsSystem};
   const txt=String(o.facts?.mass||'');
   // A typical neutron-star mass is not an individual measurement. In particular,
   // never take the uncertainty after ± as the central value of a catalogue mass.
@@ -42,6 +45,7 @@ const MapDetails={
   if(o.synthetic)return 2500;
   if(o.cosmicLandmark)return Infinity;
   if(o.galaxy)return Math.max(1e8,o.d*30,o.galaxy.diameterLy*300);
+  if(o.kind==='cluster'&&!/галактик/i.test([o.type,o.name,o.facts?.class].join(' ')))return Math.max(3e6,(o.d||0)*80,(o.diameterLy||o.region?.major||0)*1000);
   if(o.kind==='home')return 600;
   if(o.kind==='star')return 60000;
   if(o.kind==='blackhole')return o.id==='sgr'?4e6:Math.max(100000,(o.d||0)*15);
@@ -57,7 +61,7 @@ const MapDetails={
 for(const o of OBJECTS){const name=MapDetails.cleanName(o);if(name!==o.name){o.aliases=[...new Set([...(o.aliases||[]),o.name])];o.name=name;}if(o.galaxy)o.galaxy.name=o.name;}
 const MapLabels={
  queue:[],boxes:[],placed:[],slots:new Map(),viewKey:null,
- dynamic(key){return key==='ship'||key==='ship-reach'||key.startsWith('flight-mark-');},
+ dynamic(key){return key==='ship'||key==='ship-reach'||key==='light-reach'||key.startsWith('flight-mark-');},
  overlaps(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;},
  begin(){const key=[cam.x,cam.y,cam.span,width,height,state.selected,state.flight?.fromId||state.current].join(':');if(this.viewKey!==key){this.slots.clear();this.viewKey=key;}this.queue=[];this.placed=[];this.boxes=[{x:0,y:0,w:Math.min(width-30,430),h:150},{x:width-300,y:0,w:300,h:80},{x:0,y:height-45,w:width,h:45},{x:0,y:height-200,w:80,h:200},{x:0,y:132,w:185,h:480}];
   // Reserve the card's column independently of its changing telemetry height.

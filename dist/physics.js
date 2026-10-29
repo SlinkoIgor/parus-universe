@@ -44,8 +44,10 @@ const Stellar=Object.freeze({
   if(estimated){const base={O:1e5,B:1e3,A:20,F:3,G:1,K:.3,M:.01};solar=base[letter];const luminosityClass=spectral.match(/[OBAFGKM]\s*\d(?:\.\d)?\s*(Iab|Ia|Ib|III|II|IV|VI|V|I)(?=\b|e|n|p|$)/i)?.[1]?.toUpperCase();if(luminosityClass==='III'||/гигант/i.test(spectral))solar=100;if(luminosityClass==='II')solar=1000;if(luminosityClass==='IV')solar*=5;if(['I','IA','IB','IAB'].includes(luminosityClass)||/сверхгигант|\bW[NCOR]\d|\bWR\b|\bLBV\b|\bRSG\b|\bBSG\b/i.test(spectral))solar=1e5;if(/белый карлик|^D[A-Z0-9]/i.test(spectral))solar=.001;if(/коричнев/i.test(spectral))solar=.0001;basis='Оценка по классу '+spectral+'; не индивидуальное измерение';}
   const radiusText=String(facts.radius||'').replace(/\s/g,''),match=radiusText.match(/([\d.,]+)(?:[–−-]([\d.,]+))?R☉/),temperature={O:35000,B:18000,A:8500,F:6500,G:5600,K:4500,M:3200}[letter];
   const radiusSolar=star?.radiusSolar>0?star.radiusSolar:match?Number((match[2]||match[1]).replace(',','.')):Math.sqrt(solar)*(5772/temperature)**2;
-  return{watts:solar*3.828e26,solar,estimated,basis,collectorR:Math.max(this.r0,1.2*radiusSolar*6.957e8)};
+  const temperatureK=star?.temperatureK>0?star.temperatureK:5772*(solar/(radiusSolar*radiusSolar))**.25;
+  return{watts:solar*3.828e26,solar,estimated,basis,temperatureK,collectorR:Math.max(this.r0,1.2*radiusSolar*6.957e8)};
  },
+ // Frozen ideal-beam API for legacy flights; new plans use BeamOptics below.
  sourcePlan(star,mode,massKg,distanceLy,startBeta=0,startR=this.r0,maxG=100,pulseYears=null,epoch=0,cosmic=false,expansion=true){
   if(mode==='burst'&&star?.id==='sol')throw new RangeError('Solar bursts are forbidden');
   const light=this.stellarLight(star),luminosity=mode==='burst'?this.luminosity:light.watts,collectorR=light.collectorR,power=luminosity*Math.min(1,this.collectorDiameterM**2/(16*collectorR**2)),a=maxG*9.80665,eta0=Math.atanh(startBeta),switchEta=Math.max(eta0,.5*Math.log(2*power/(massKg*Rocket.c*a))),scale=Rocket.c/(a*Rocket.year);
@@ -638,7 +640,7 @@ Object.assign(OrbitalArrival,{
 });
 
 const FlightSetup={
- normalize(c={}){return{engine:!!c.engine,dump:!!c.dump,sail:!!c.sail,collector:!!c.collector,burst:!!c.burst,brakeEngine:c.brakeEngine!==false,brakeSail:c.brakeSail!==false,collectGas:c.collectGas!==false,fill:c.arrivalFuelPercent!==null&&c.arrivalFuelPercent!==undefined?Number(c.arrivalFuelPercent)>0:!!c.fill,arrivalFuelPercent:c.arrivalFuelPercent!==null&&c.arrivalFuelPercent!==undefined&&Number.isFinite(+c.arrivalFuelPercent)?Math.max(0,Math.min(100,+c.arrivalFuelPercent)):null,reservePercent:Number.isFinite(+c.reservePercent)?Math.max(1,Math.min(99,+c.reservePercent)):99,densityCm3:Number.isFinite(+c.densityCm3)?Math.max(0,Math.min(1e6,+c.densityCm3)):1,capacityKg:Number.isFinite(+c.capacityKg)?Math.max(.01,Math.min(100,+c.capacityKg)):1,massSolar:c.massSolar!==null&&c.massSolar!==undefined&&Number.isFinite(+c.massSolar)&&+c.massSolar>=0?Math.min(1e6,+c.massSolar):null,luminositySolar:c.luminositySolar>0?Math.min(1e12,+c.luminositySolar):null};},
+ normalize(c={}){return{engine:!!c.engine,dump:!!c.dump,sail:!!c.sail,collector:!!c.collector,burst:!!c.burst,burstSpectrum:['iip','ia','ibc'].includes(c.burstSpectrum)?c.burstSpectrum:'iip',brakeEngine:c.brakeEngine!==false,brakeSail:c.brakeSail!==false,collectGas:c.collectGas!==false,fill:c.arrivalFuelPercent!==null&&c.arrivalFuelPercent!==undefined?Number(c.arrivalFuelPercent)>0:!!c.fill,arrivalFuelPercent:c.arrivalFuelPercent!==null&&c.arrivalFuelPercent!==undefined&&Number.isFinite(+c.arrivalFuelPercent)?Math.max(0,Math.min(100,+c.arrivalFuelPercent)):null,reservePercent:Number.isFinite(+c.reservePercent)?Math.max(1,Math.min(99,+c.reservePercent)):99,densityCm3:Number.isFinite(+c.densityCm3)?Math.max(0,Math.min(1e6,+c.densityCm3)):1,capacityKg:Number.isFinite(+c.capacityKg)?Math.max(.01,Math.min(100,+c.capacityKg)):1,massSolar:c.massSolar!==null&&c.massSolar!==undefined&&Number.isFinite(+c.massSolar)&&+c.massSolar>=0?Math.min(1e6,+c.massSolar):null,luminositySolar:c.luminositySolar>0?Math.min(1e12,+c.luminositySolar):null};},
  defaults(s=state){return this.normalize({sail:true,collector:true,burst:false,engine:false,brakeEngine:true,brakeSail:true,collectGas:true,arrivalFuelPercent:50,capacityKg:s.tankCapacityKg||1});},
  legacy(s){const mode=s.flight?.departureMode||s.departureMode;return this.normalize(s.flight?.mission?.setup||(!s.flight?s.flightSetup:null)||{engine:mode==='engine',sail:mode!=='engine',collector:mode!=='engine',burst:mode==='burst',brakeEngine:true,brakeSail:true,densityCm3:1,capacityKg:s.tankCapacityKg||1});},
  preferred(s=state){
@@ -672,19 +674,19 @@ const FlightSetup={
 
 const MissionPlanner={
  cache:new Map(),accelerationCache:new Map(),fuelLimitCache:new Map(),
- dry:1,capG:100,model:2,
+ dry:1,capG:100,model:3,
  enabledIdle(){return OrbitalArrival.enabled||!!state.flightSetup||!!state.orbit;},
  invalid(reason,extra={}){return{valid:false,reason,proper:Infinity,earth:Infinity,...extra};},
  // Independent variable is rapidity. Integrate both clocks, distance, retarded
  // source time, fuel mass and comoving distance together with adaptive RK4.
  acceleration(setup,source,fuelKg,d,epoch,cosmic,expansion,startBeta=0,departureOrbit=null){
   const startMass=this.dry+fuelKg,light=Stellar.stellarLight(source),available=!!source&&['star','home'].includes(source.kind)&&!state.destroyed.includes(source.id),L=setup.burst?Stellar.luminosity:(setup.luminositySolar?setup.luminositySolar*3.828e26:light.watts),collectorR=light.collectorR,r0=departureOrbit?.radius||collectorR,sourceMass=setup.massSolar??MapDetails.mass(source)??0;
-  const optics=setup.sail&&available,beam=optics&&setup.collector,power=beam?L*Math.min(1,Stellar.collectorDiameterM**2/(16*collectorR*collectorR)):0,pulse=setup.burst?Stellar.pulseYears:Infinity;
-  const key=JSON.stringify([setup.engine,setup.sail,setup.collector,setup.burst,L,r0,sourceMass,available,fuelKg,d,cosmic,expansion,cosmic?epoch:0,startBeta,departureOrbit?.radius,collectorR]);
+  const optics=setup.sail&&available,beam=optics&&setup.collector,power=beam?L*Math.min(1,Stellar.collectorDiameterM**2/(16*collectorR*collectorR)):0,pulse=setup.burst?Stellar.pulseYears:Infinity,spectrum=BeamOptics.spectrum(setup,light);
+  const key=JSON.stringify([setup.engine,setup.sail,setup.collector,setup.burst,L,r0,sourceMass,available,fuelKg,d,cosmic,expansion,cosmic?epoch:0,startBeta,departureOrbit?.radius,collectorR,BeamOptics.model,spectrum]);
   if(this.accelerationCache.has(key))return this.accelerationCache.get(key);
-  let motor=setup.engine&&fuelKg>0,photons=optics,lightEndProper=null,lightEndSource=null,eta=Math.atanh(startBeta),h=.02,y=[0,0,0,0,startMass,0],rows=[];
+  let lightEndReason=null,motor=setup.engine&&fuelKg>0,photons=optics,lightEndProper=null,lightEndSource=null,eta=Math.atanh(startBeta),h=.02,y=[0,0,0,0,startMass,0],rows=[];
   const rate=(e,v)=>{
-   const mass=Math.max(this.dry*.9,v[4]),x=Math.max(0,v[2])*LY,r=departureOrbit?Math.hypot(r0,x):r0+x,P=beam?power:L*SHIP.sailAreaM2/(4*Math.PI*r*r),full=photons?2*P/Rocket.c*Math.exp(-2*e):0,limit=mass*this.capG*9.80665;
+   const mass=Math.max(this.dry*.9,v[4]),x=Math.max(0,v[2])*LY,r=departureOrbit?Math.hypot(r0,x):r0+x,P=beam?power*BeamOptics.fraction(x,v[3],spectrum,Stellar.collectorDiameterM,SHIP.sailDiameterM/2):L*SHIP.sailAreaM2/(4*Math.PI*r*r),full=photons?2*P/Rocket.c*Math.exp(-2*e):0,limit=mass*this.capG*9.80665;
    const lightForce=Math.min(limit,full),engineForce=motor?Math.min(Rocket.power/Rocket.c,Math.max(0,limit-lightForce)):0,total=lightForce+engineForce,gravity=available&&!setup.burst?6.67430e-11*1.98847e30*sourceMass/(r*r)*(departureOrbit?x/r:1):0,net=total-mass*gravity;
    if(!(net>0))return null;
    const tau=mass*Rocket.c/(net*Rocket.year),dx=Math.sinh(e)*tau,scale=cosmic?Cosmology.scale(epoch+(expansion?v[1]:0)):1;
@@ -707,12 +709,16 @@ const MissionPlanner={
    if(error>1&&h>1e-17){h*=Math.max(.1,.85*error**(-.2));continue;}
    if(eta+h===eta)break;eta+=h;y=next;
    if(motor&&y[4]-this.dry<1e-11){y[4]=this.dry;motor=false;}
-   if(photons&&Number.isFinite(pulse)&&pulse-y[3]<1e-12){y[3]=pulse;lightEndProper=y[0];lightEndSource=pulse;photons=false;}
+   if(photons&&Number.isFinite(pulse)&&pulse-y[3]<1e-12){y[3]=pulse;lightEndProper=y[0];lightEndSource=pulse;lightEndReason='pulse';photons=false;}
+   // Fold continuous illumination only after a rigorous upper bound on its
+   // remaining work is <0.01% of the current kinetic energy. A finite flash
+   // instead runs to the last arriving photons (retarded source time).
+   if(beam&&photons&&!Number.isFinite(pulse)&&BeamOptics.remainingWork(power,y[2]*LY,spectrum)<BeamOptics.workTolerance*y[4]*Rocket.c**2*2*Math.sinh(eta/2)**2){lightEndProper=y[0];lightEndSource=y[3];lightEndReason='negligible';photons=false;}
    rows.push(row());
    if(y[5]>=d*1.002||y[0]>2e12||!beam&&photons&&r0+y[2]*LY>=r0*1e5){if(!motor)break;if(photons){lightEndProper=y[0];lightEndSource=y[3];}photons=false;}
    h=Math.min(.03,h*Math.min(2,Math.max(.5,error>0?.85*error**(-.2):2)));
   }
-  const result={rows,proper:rows.at(-1).proper,lightEndProper:optics?(lightEndProper??rows.at(-1).proper):0,lightEndSource:optics?(lightEndSource??rows.at(-1).source):0,initialMass:startMass,luminosityW:L,luminosityEstimated:!setup.luminositySolar&&light.estimated,beamPower:power,collectorR,hasLight:optics,source:source?.id,gravityBlocked:rows.length===1&&sourceMass>0&&available&&!setup.burst&&(setup.engine&&fuelKg>0||optics)};
+  const result={rows,proper:rows.at(-1).proper,lightEndProper:optics?(lightEndProper??rows.at(-1).proper):0,lightEndSource:optics?(lightEndSource??rows.at(-1).source):0,initialMass:startMass,luminosityW:L,luminosityEstimated:!setup.luminositySolar&&light.estimated,beamPower:power,diffraction:beam?{model:BeamOptics.model,spectrum,diameterM:Stellar.collectorDiameterM,sailRadiusM:SHIP.sailDiameterM/2,workTolerance:BeamOptics.workTolerance}:null,lightEndReason,collectorR,hasLight:optics,source:source?.id,gravityBlocked:rows.length===1&&sourceMass>0&&available&&!setup.burst&&(setup.engine&&fuelKg>0||optics)};
   if(this.accelerationCache.size>10)this.accelerationCache.clear();this.accelerationCache.set(key,result);return result;
  },
  sampleAcceleration(a,proper){
@@ -753,10 +759,10 @@ const MissionPlanner={
   if(c.brakeEngine){const e=Rocket.retroPlan(fuel/1000,beta),valid=e.canStop&&(beta===0||fuel>0)&&e.mf*1000>=this.dry+reserveKg-1e-11;return{valid,kind:'engine',plan:e,proper:e.burnProper,earth:e.burnEarth,distance:e.burnDistance,comoving:valid?this.enginePath(e,e.burnProper,epoch,cosmic,expansion):Infinity,finalMass:e.mf*1000,captured:0,burned:e.budget*1000,epoch};}
   return{valid:false,comoving:Infinity};
  },
- plan(input,source,target,fuelKg=state.matter*1000,origin=state.ship,epoch=state.cosmicTime||0,expansion=state.expansion!==false,startBeta=0,startOrbit=null){
+ plan(input,source,target,fuelKg=state.matter*1000,origin=state.ship,epoch=state.cosmicTime||0,expansion=state.expansion!==false,startBeta=0,startOrbit=null,coastOnly=false){
   const departure=startOrbit||(!startBeta&&source?.id===state.orbit?.targetId?state.orbit:null);
   if(departure)startBeta=departure.beta;
-  const c=FlightSetup.resolve(input,source),d=target?.p3&&origin?.p3?Space.distance(origin,target):0,cosmic=target?.rangeProbe===true||Cosmology.isCosmic(source||origin,target),prepared=c.dump?0:Math.min(fuelKg,c.capacityKg);
+  const c=coastOnly?FlightSetup.normalize({...input,engine:false,sail:false,collector:false,burst:false,dump:false}):FlightSetup.resolve(input,source),d=target?.p3&&origin?.p3?Space.distance(origin,target):0,cosmic=target?.rangeProbe===true||Cosmology.isCosmic(source||origin,target),prepared=c.dump?0:Math.min(fuelKg,c.capacityKg);
   const arrival=OrbitalArrival.target(target),shared={setup:c,distance:d,cosmic,epoch,expansion,sourceId:source?.id,targetId:target?.id,initialFuelKg:prepared,jettisonKg:Math.max(0,fuelKg-prepared),arrival,departureOrbit:departure?{radius:departure.radius,beta:departure.beta}:null};
   if(c.arrivalFuelPercent!==null&&c.arrivalFuelPercent>99)return this.invalid('С таким наполнением топливного бака точная остановка в этой модели недостижима.',shared);
   if(!target?.navigable||!(d>1e-14))return this.invalid('Выберите другую цель с известным расстоянием.',shared);
@@ -907,24 +913,39 @@ const MissionPlanner={
 // each displayed radius has a feasible witness using the real braking solver.
 const MissionReach={
  cache:new Map(),
- idle(){
-  const source=object(state.current),c=FlightSetup.read(),epoch=Math.floor((state.cosmicTime||0)/1000)*1000,orbit=state.orbit;
-  const origin=Space.point(source?.p3||state.ship.p3),fuel=state.matter*1000;
-  const key=JSON.stringify([source?.id,origin.p3,c,fuel,epoch,orbit?.radius,orbit?.beta,state.destroyed]);
+ solve(c,source,origin,fuel,epoch,startBeta=0,orbit=null,coastOnly=false){
+  const key=JSON.stringify([source?.id,origin.p3,c,fuel,epoch,orbit?.radius,startBeta,state.destroyed,coastOnly]);
   if(this.cache.has(key))return this.cache.get(key);
-  const prepared=c.dump?0:Math.min(fuel,c.capacityKg),a=MissionPlanner.acceleration(c,source,prepared,1e20,epoch,true,true,orbit?.beta||0,orbit),last=a.rows.at(-1);
+  const prepared=c.dump?0:Math.min(fuel,c.capacityKg),a=MissionPlanner.acceleration(coastOnly?{...c,engine:false,sail:false}:c,source,prepared,1e20,epoch,true,true,startBeta,orbit),last=a.rows.at(-1);
   let upper=Math.min(Cosmology.horizon(epoch),last.comoving+Cosmology.reach(last.beta,epoch+last.earth));
   if(!(last.beta>1e-15)||!c.brakeEngine)upper=0;
-  const setup={...c,arrivalFuelPercent:0,fill:false};
-  const probe=d=>MissionPlanner.plan(setup,source,{id:'range-probe',kind:'structure',navigable:true,rangeProbe:true,p3:V3.add(origin.p3,[d,0,0])},fuel,origin,epoch,true,orbit?.beta||0,orbit);
+  // Keep the complete chosen setup, including the requested fuel on arrival.
+  // planPreferred may lower that reserve for an individual route; the envelope
+  // must certify the stated reserve and must never use that fallback.
+  const probe=d=>MissionPlanner.plan(c,source,{id:'range-probe',kind:'structure',navigable:true,rangeProbe:true,p3:V3.add(origin.p3,[d,0,0])},fuel,origin,epoch,true,startBeta,orbit,coastOnly);
   let lo=0,hi=upper,witness=null;
   if(upper>0){
    const d=upper*(1-1e-4),p=probe(d);
    if(p.valid){lo=d;witness=p;}
-   else for(let n=0;n<17;n++){const mid=(lo+hi)/2,q=probe(mid);if(q.valid){lo=mid;witness=q;}else hi=mid;}
+   else for(let n=0;n<28&&(hi-lo)>Math.max(1e-12,hi*1e-4);n++){const mid=(lo+hi)/2,q=probe(mid);if(q.valid){lo=mid;witness=q;}else hi=mid;}
   }
-  const result={comoving:lo,upper:hi,beta:witness?.peakBeta||0,epoch,witness:witness?{proper:witness.proper,earth:witness.earth,arrivalFuelKg:witness.arrivalFuelKg}:null};
-  if(this.cache.size>16)this.cache.clear();this.cache.set(key,result);return result;
+  const result={comoving:lo,upper:hi,beta:witness?.peakBeta||0,epoch,setup:c,witness:witness?{proper:witness.proper,earth:witness.earth,arrivalFuelKg:witness.arrivalFuelKg}:null};
+  if(this.cache.size>24)this.cache.clear();this.cache.set(key,result);return result;
+ },
+ idle(){
+  const source=object(state.current),c=FlightSetup.read(),epoch=Math.ceil((state.cosmicTime||0)/1000)*1000,orbit=state.orbit;
+  return this.solve(c,source,Space.point(source?.p3||state.ship.p3),state.matter*1000,epoch,orbit?.beta||0,orbit);
+ },
+ active(){
+  const f=state.flight,p=f?.mission,c=FlightSetup.normalize(p?.setup||FlightSetup.read());
+  let beta=state.beta||0,fuel=state.matter*1000,epoch=state.cosmicTime||0,remaining=0;
+  if(p&&(f.missionStage||0)===0){const end=p.accelerationEnd,sample=f.missionSample||MissionPlanner.stageSample(p,0,f.stageElapsed||0);beta=end.beta;fuel=Math.max(0,end.mass-MissionPlanner.dry);epoch=p.epoch+end.earth;remaining=Math.max(0,end.comoving-sample.comoving);}
+  // Round down momentum/fuel and forward in time: caching must not invent extra
+  // range. This affects only the displayed envelope, never the executing plan.
+  const eta=Math.atanh(Math.min(1-Number.EPSILON,Math.max(0,beta))),unit=eta>0?10**(Math.floor(Math.log10(eta))-5):1;
+  beta=Math.tanh(Math.floor(eta/unit)*unit);fuel=Math.floor((fuel+1e-12)*1e5)/1e5;epoch=Math.ceil(epoch/10000)*10000;
+  const setup=FlightSetup.normalize({...c,engine:false,sail:false,collector:false,burst:false,dump:false}),q=this.solve(setup,null,Space.point([0,0,0]),fuel,epoch,beta,null,true);
+  return{...q,comoving:q.witness?remaining+q.comoving:0,upper:remaining+q.upper,remainingAcceleration:remaining};
  }
 };
 
@@ -994,7 +1015,7 @@ MissionPlanner.sailOpening=function(f){
  if(state.phase==='brake')return c.brakeSail&&c.densityCm3>0?(f.missionSample?.opening??1):0;
  if(state.phase!=='launch'||!c.sail||!p.acceleration.hasLight)return 0;
  const q=f.missionSample||this.sampleAcceleration(p.acceleration,f.stageElapsed||0);
- if(c.burst&&q.source>=Stellar.pulseYears*(1-1e-10))return 0;
- const a=p.acceleration,r=a.collectorR+q.distance*LY,power=c.collector?a.beamPower:a.luminosityW*SHIP.sailAreaM2/(4*Math.PI*r*r),full=2*power/Rocket.c*Math.exp(-2*q.eta);
+ if(c.burst&&q.source>=Stellar.pulseYears*(1-1e-10)||q.proper>=(p.acceleration.lightEndProper??Infinity)&&p.acceleration.lightEndReason==='negligible')return 0;
+ const a=p.acceleration,r=a.collectorR+q.distance*LY,power=c.collector?a.beamPower*(a.diffraction?BeamOptics.fraction(q.distance*LY,q.source,a.diffraction.spectrum,a.diffraction.diameterM,a.diffraction.sailRadiusM):1):a.luminosityW*SHIP.sailAreaM2/(4*Math.PI*r*r),full=2*power/Rocket.c*Math.exp(-2*q.eta);
  return full>0?Math.min(1,q.mass*100*9.80665/full):0;
 };

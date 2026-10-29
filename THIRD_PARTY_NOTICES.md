@@ -51,3 +51,25 @@ Galactic GC models: https://people.smp.uq.edu.au/HolgerBaumgardt/globular/parame
 SIMBAD low-z mesDistance subset: ODbL; Wenger et al. 2000, A&AS 143,9, CDS Strasbourg. Explicit accepted independent distance methods only; original bibcodes, units, errors, ADQL query and snapshot hash in data-tools/low-z-galaxy-distances.json. Acknowledgment: this research has made use of the SIMBAD database, operated at CDS, Strasbourg, France.
 
 NGC4676 membership and approximate common distance: ESA/Hubble, https://esahubble.org/images/heic0206h/. Factual values and source link retained; no source imagery redistributed.
+
+
+## Supernova spectral templates
+
+`dist/beam-spectra.js` contains normalized, rebinned numerical energy fractions derived from Peter E. Nugent's [LBNL time-evolving supernova templates](https://c3.lbl.gov/nugent/nugent_templates.html): normal Ia v1.2 (Nugent, Kim & Perlmutter, PASP114,803,2002), Ib/c v1.1 (Levan et al., ApJ,2005; SN1999ex photometry from Hamuy et al., AJ124,417,2002), II-P v1.2 (Baron et al., ApJ616,91,2004; Gilliland, Phillips & Nugent, ApJ521,30,1999). Original download URLs and SHA-256 hashes are embedded per profile. Changes: truncate to the first30 source days with a bracketing II-P day36 spectrum, integrate fλdλ into64 logarithmic100–2500nm bands, normalize each phase to unit energy, extend the first nonzero spectrum back to day0 instead of normalizing the Ia/Ib-c numerical flux floor, linearly interpolate energy fractions. Raw spectra and template photometric light curves are not bundled. The game retains its fictional constant luminosity and30-day emission duration; it does not reproduce the original bolometric light curves. Reproduction: `data-tools/build-beam-spectra.py --raw-dir DIR`.
+
+
+Individual stellar-parameter supplement: **GJ887 / Lacaille9352 / HIP114046** — Mann et al.(2015), values tabulated in Hartogh et al.(2026), *RedDots: Multiplanet system around M dwarf GJ887 in the solar neighborhood*, A&A707,A93, Table1, <https://doi.org/10.1051/0004-6361/202554984> (CC BY4.0). Mass and uncertainty, bolometric luminosity, radius and effective temperature are stored in the foreground/streamed object; HYG identity and astrometry are retained. No planet data or article prose is reproduced.
+
+
+## Observed multi-scale catalogues · snapshot 2026-10-29
+
+Access via CDS/VizieR IDIA mirror. Acknowledgment: This research has made use of the VizieR catalogue access tool, CDS, Strasbourg, France (DOI 10.26093/cds/vizier). Original authors/publishers retain rights to source tables; the game code license does not relicense them. No article prose or imagery redistributed. Numerical selections, unit/cosmology conversion, cross-identification, projection, spatial sampling and compressed derived records are documented in docs/catalog.md. Raw query URLs, SHA-256, versions and selection limits are preserved in dist/catalog-sources.json and data-tools/cosmic-catalog-audit.json.
+
+- **MCXC-II**, Sadibekova et al. (2024), A&A688,A187: <https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/688/A187>; 2,221 rows, aperture mass/radius and X-ray luminosity retained as such.
+- **SDSS DR7 superclusters**, Liivamägi, Tempel & Saar (2012), A&A539,A80: <https://doi.org/10.1051/0004-6361/201016288>; mainadap only (1,313).
+- **Bisous filaments**, Tempel et al. (2014), MNRAS438,3465: <https://doi.org/10.1093/mnras/stt2454>; 15,421 axes, all 275,599 spine points, and 120 galaxy rows for independent frame validation. Catalogue <https://cdsarc.cds.unistra.fr/viz-bin/cat/J/MNRAS/438/3465>.
+- **SDSS DR7 voids**, Nadathur & Hotchkiss (2014), MNRAS440,1248: <https://cdsarc.cds.unistra.fr/viz-bin/cat/J/MNRAS/440/1248>; Type1 comoving subsets, 635 selected out of 808. This is not the BOSS DR11 catalogue.
+- **Cosmicflows-4**, Tully et al. (2023), ApJ944,94: <https://doi.org/10.3847/1538-4357/ac94d8>; corrected individual table2 (55,877), not flawed August2022 tables. <https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJ/944/94>.
+- **Updated Nearby Galaxy Catalog**, Karachentsev, Makarov & Kaisina (2013), AJ145,101: <https://doi.org/10.1088/0004-6256/145/4/101>; 869 catalogue rows and 783 distance/method rows, quality gates retained.
+- **GLADE+**, Dálya et al. (2022), MNRAS514,1403: <https://doi.org/10.1093/mnras/stac1443>; CDS VII/291. Only Type G, B≤15.5, spectroscopic f_dL=3, zhelio>0.002 subset (45,727); no claim to reproduce the full ≈23-million-object source. Stellar masses remain metadata, not total point masses.
+- **Gaia DR3 cluster catalogue update**, Hunt & Reffert (2024), A&A686,A42: <https://doi.org/10.1051/0004-6361/202348662>; high-quality o/m/g/d subset (4,100 of7,167), rejected r excluded. Group masses are aggregate. <https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/686/A42>.

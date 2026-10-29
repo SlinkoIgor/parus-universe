@@ -15,7 +15,8 @@ html=re.sub(r'<link[^>]+href="([^" ]+\.css(?:\?[^" ]*)?)"[^>]*>',css,html)
 html=re.sub(r'<script src="([^" ]+)"></script>',lambda m:'<script>'+ (root/m[1].split('?')[0]).read_text().replace('</script','<\\/script')+'</script>',html)
 # file:// cannot fetch local tiles. Embed their JSON as strings; parse only the
 # requested tile. HTTP preview remains the efficient, bounded-memory default.
-catalog=root/'catalog-data'
+pointer=root/'catalog-data/current.json'
+catalog=root/(json.loads(pointer.read_text())['dataRoot'] if pointer.exists() else 'catalog-data')
 if catalog.exists():
  manifest=json.loads((catalog/'manifest.json').read_text())
  search=json.loads((catalog/'search.json').read_text())

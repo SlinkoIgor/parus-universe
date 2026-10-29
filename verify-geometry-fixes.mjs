@@ -1,8 +1,9 @@
+import {catalogPath} from './catalog-path.mjs';
 import fs from 'node:fs';import assert from 'node:assert/strict';
 const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';
 const {context,run}=await import('data:text/javascript,'+encodeURIComponent(harness));
-const index=JSON.parse(fs.readFileSync('dist/catalog-data/search.json','utf8')),entries=new Map(index.map(r=>[r[0],r])),files=new Map();
-function row(id){const e=entries.get(id);if(!e)return run('EXTENDED_BOOT.members').find(r=>r[0]===id);if(!files.has(e[5]))files.set(e[5],JSON.parse(fs.readFileSync('dist/catalog-data/'+e[5],'utf8')));return files.get(e[5]).find(r=>r[0]===id);}
+const index=JSON.parse(fs.readFileSync(catalogPath('search.json'),'utf8')),entries=new Map(index.map(r=>[r[0],r])),files=new Map();
+function row(id){const e=entries.get(id);if(!e)return run('EXTENDED_BOOT.members').find(r=>r[0]===id);if(!files.has(e[5]))files.set(e[5],JSON.parse(fs.readFileSync(catalogPath(e[5]),'utf8')));return files.get(e[5]).find(r=>r[0]===id);}
 const audit=JSON.parse(fs.readFileSync('data-tools/map-geometry-audit.json','utf8'));
 assert.equal(audit.activeAstrometry.status,'fixed');assert.equal(audit.activeAstrometry.invalidMatchedIds.length,0);
 assert.ok(audit.shells.filter(s=>s.source==='HYG').every(s=>s.radiusPreservedCount<8),'no HYG shell with eight radius-preserved points');
@@ -28,7 +29,7 @@ const lowz=JSON.parse(fs.readFileSync('data-tools/low-z-galaxy-distances.json','
 for(const [name,measurement] of Object.entries(lowz.objects)){
  const entry=entries.get('opengc-'+name.toLowerCase());
  if(!entry){context.ngcName=name;run(`{const o=OBJECTS.find(o=>o.ngc===ngcName);assert.ok(o);}`);continue;}
- if(measurement.status==='unresolved'){if(!entry[7]){const r=row(entry[0]);assert.ok(r[11].boundSystemPrimary&&r[11].catalogDistanceLy!=null,name+' needs an explicit documented system estimate');assert.ok(!r[11].positionReason);}}
+ if(measurement.status==='unresolved'){if(!entry[7]){const r=row(entry[0]);assert.ok(r[11].boundSystemPrimary&&r[11].catalogDistanceLy!=null||r[11].catalogPositionUpdated&&r[11].catalogMeasurements?.some(m=>['Cosmicflows-4','Nearby-Galaxies'].includes(m.catalog)&&r[11].redshiftIndependent||m.catalog==='GLADE+'&&(m.data.zcmb??m.data.zhelio)>=.002),name+' needs documented system geometry or a newly sourced usable distance');assert.ok(!r[11].positionReason);}}
  else{const r=row(entry[0]);assert.ok(r[11].redshiftIndependent);assert.ok(Math.abs(r[3]/(measurement.distanceMpc*1e6*3.2615637771674336)-1)<1e-10);assert.equal(r[11].distanceReference,measurement.reference);}
 }
 assert.equal(audit.nearbyRedshiftOnly.count,0);

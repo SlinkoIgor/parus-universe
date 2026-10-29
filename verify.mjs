@@ -16,3 +16,13 @@ import './verify-flash-reception.mjs';
 
 import './verify-flight-policy.mjs';
 import './verify-max-range.mjs';
+
+import './verify-telemetry-scale.mjs';
+
+import './verify-diffraction.mjs';
+
+import './verify-flight-menu.mjs';
+
+import './verify-atlas-transitions.mjs';
+
+import './verify-current-reach.mjs';
