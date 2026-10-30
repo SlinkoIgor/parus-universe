@@ -44,3 +44,5 @@ import './verify-map-slice.mjs';
 import './verify-current-reach.mjs';
 
 import './verify-new-tasks.mjs';
+
+import './verify-flight-tracks.mjs';

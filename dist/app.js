@@ -114,7 +114,7 @@ function restore(saved){
 const FlightHistory={
  pending:null,
  snapshot(){ExtendedCatalog.capture(state);const saved=JSON.parse(JSON.stringify(state));saved.paused=paused;saved.timeScale=speed;return saved;},
- complete(f){if(!f||f.historyRecorded)return;FlightView.at(f,0);const fraction=Math.max(0,Math.min(1,f.covered/f.distance));if(fraction>0){state.flightHistory??=[];state.flightHistory.push({fromId:f.fromId,target:f.target,from:JSON.parse(JSON.stringify(f.from)),end:Space.point(state.ship.p3),view:JSON.parse(JSON.stringify(f.view)),fraction});}f.historyRecorded=true;},
+ complete(f){if(!f||f.historyRecorded)return;FlightView.at(f,0);const fraction=Math.max(0,Math.min(1,f.covered/f.distance));if(fraction>0){state.flightHistory??=[];state.flightHistory.push({fromId:f.fromId,target:f.target,from:JSON.parse(JSON.stringify(f.from)),end:Space.point(state.ship.p3),view:JSON.parse(JSON.stringify(f.view)),fraction,...(f.detachedSource?{detachedSource:true}:{})});}f.historyRecorded=true;},
  draw(){for(const h of state.flightHistory||[]){const a=FlightView.at(h,0),b=FlightView.at(h,h.fraction),segment=routeScreenSegment({x:a.x,y:a.y},{x:b.x,y:b.y});if(segment)line(segment.a.x,segment.a.y,segment.b.x,segment.b.y,'#858585',1,[]);}},
  cancel(){const saved=state.flight?.rollback;if(!saved)return;state=restore(saved);paused=!!saved.paused;speed=saved.timeScale||1;Simulation.debt=Simulation.wallDebt=0;delete Simulation.smoothedFactor;effects=[];Route.picking=false;Cosmology.sync(state);FlightEstimate.idleKey=null;FlightProfile.idleKey=null;FlightSetup.sync();lastFrame=performance.now();persist();renderUI();renderCatalog();const p=FlightView.ship();goCamera(p.x,p.y,cam.span,true);toast('Полёт отменён. Состояние до старта восстановлено.');}
 };

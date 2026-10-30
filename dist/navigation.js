@@ -5,7 +5,7 @@ const Route={
   const normalize=nodes=>{for(const n of nodes||[])if(n.mode==='flyby'&&!Gravity.canFlyby(object(n.id)))n.mode='stop';};
   normalize(saved.itinerary);const f=saved.flight;
   if(f?.route?.length){const current=f.route[f.legIndex],changed=current?.mode==='flyby'&&!Gravity.canFlyby(object(current.id));normalize(f.route);
-   if(changed){const covered=f.covered||0;f.from=Space.point(saved.ship.p3);f.distance=distance(f.from,object(f.target));f.covered=0;f.aim=null;f.encounter=null;f.coastRate=0;if(f.wind)f.wind.baseCovered-=covered;if(saved.phase==='flyby')saved.phase='cruise';}
+   if(changed){const covered=f.covered||0;f.from=Space.point(saved.ship.p3);f.detachedSource=true;delete f.view;f.distance=distance(f.from,object(f.target));f.covered=0;f.aim=null;f.encounter=null;f.coastRate=0;if(f.wind)f.wind.baseCovered-=covered;if(saved.phase==='flyby')saved.phase='cruise';}
   }
   return saved;
  },
@@ -58,9 +58,9 @@ const Route={
    const c={...f.mission.setup,engine:false,dump:false,sail:false,collector:false,burst:false},target=object(f.target),p=MissionPlanner.plan(c,null,target,state.matter*1000,state.ship,state.cosmicTime||0,state.expansion!==false,state.beta);
    if(!p.valid){toast('Маршрут сохранён: '+p.reason);return false;}
    const anchor=FlightView.ship(),offset=Cosmology.project(object(f.fromId)||f.from,{x:0,y:0});
-   Object.assign(f,{mission:p,missionElapsed:{proper:0,earth:0},from:Space.point(state.ship.p3),distance:p.distance,covered:0,maxBeta:p.peakBeta,aim:null,encounter:null,coastRate:0,boost:false,markers:[],view:{a:{x:anchor.x-offset.x,y:anchor.y-offset.y},b:MapLayout.baseProject(target),referenceEpoch:true,geometryVersion:MapLayout.version}});
+   Object.assign(f,{mission:p,missionElapsed:{proper:0,earth:0},from:Space.point(state.ship.p3),detachedSource:true,distance:p.distance,covered:0,maxBeta:p.peakBeta,aim:null,encounter:null,coastRate:0,boost:false,markers:[],view:{a:{x:anchor.x-offset.x,y:anchor.y-offset.y},b:MapLayout.baseProject(target),referenceEpoch:true,geometryVersion:MapLayout.version}});
    delete f.profile;MissionPlanner.activateStage(f,0);state.acceleration=0;FlightMarks.plan(f);
-  }else if(f.aim){const anchor=FlightView.ship();f.from={...state.ship,p3:[...state.ship.p3]};f.distance=distance(state.ship,object(f.target));f.covered=0;f.aim=null;f.encounter=null;f.view={a:anchor,b:MapLayout.project(object(f.target))};coastSetup();}
+  }else if(f.aim){const anchor=FlightView.ship(),offset=Cosmology.project(object(f.fromId)||f.from,{x:0,y:0});f.from={...state.ship,p3:[...state.ship.p3]};f.detachedSource=true;f.distance=distance(state.ship,object(f.target));f.covered=0;f.aim=null;f.encounter=null;f.view={a:{x:anchor.x-offset.x,y:anchor.y-offset.y},b:MapLayout.baseProject(object(f.target)),referenceEpoch:true,geometryVersion:MapLayout.version};coastSetup();}
   f.route=null;state.auto=true;return true;
  },
  start(){if(MissionPlanner.enabledIdle()){MissionPlanner.startRoute();return;}syncClock();const check=this.analyze();if(!check.valid||state.flight)return;const nodes=state.itinerary.map(n=>({...n}));$('infoDialog').close();state.selected=nodes[0].id;launch();if(state.flight){state.flight.route=nodes;state.flight.legIndex=0;state.flight.encounter=null;this.configure();state.itinerary=[];log('Маршрут: '+nodes.map(n=>object(n.id).name+(n.mode==='flyby'?' [пролёт]':' [остановка]')).join(' → '));renderUI();persist();}},
@@ -69,7 +69,7 @@ const Route={
   if(!this.isFlyby(f))return null;
   if(f.encounter&&Math.abs(f.encounter.beta-state.beta)<1e-12)return f.encounter;
   const body=object(f.target),next=object(f.route[f.legIndex+1].id),e=Gravity.encounter(f.from,body,next,state.beta);
-  if(!e.ok){f.route[f.legIndex].mode='stop';f.encounter=null;f.aim=null;f.from=Space.point(state.ship.p3);f.distance=distance(f.from,body);f.covered=0;f.maxBeta=state.beta;delete f.view;FlightMarks.plan(f);toast('Пролёт недоступен на фактической скорости. Автопилот выполняет остановку.');log('Пролёт заменён остановкой: '+body.name+'. '+e.reason);return null;}
+  if(!e.ok){f.route[f.legIndex].mode='stop';f.encounter=null;f.aim=null;f.from=Space.point(state.ship.p3);f.detachedSource=true;f.distance=distance(f.from,body);f.covered=0;f.maxBeta=state.beta;delete f.view;FlightMarks.plan(f);toast('Пролёт недоступен на фактической скорости. Автопилот выполняет остановку.');log('Пролёт заменён остановкой: '+body.name+'. '+e.reason);return null;}
   f.encounter={...e,beta:state.beta};return f.encounter;
  },
  gate(f=state.flight){if(f.aim)return 0;const e=this.prepare(f);return e?.plan?Math.min(f.distance,e.plan.R/LY):0;},
