@@ -9,12 +9,12 @@ const ExtendedCatalog={
   // Keep bulk survey envelopes out of the overview, including pinned/saved
   // targets. Atlas search and explicit class filters retain the full catalog.
   if(selected==='all'&&o.cosmicCatalog&&!o.cosmicLandmark&&(o.kind==='void'||o.cosmicSubtype==='supercluster'))return false;
-  return this.matches(o.kind,selected,o)&&(categoryOnly||!globalThis.MapLayers||MapLayers.admits(o));
+  return this.matches(o.kind,selected,o)&&(categoryOnly||!o.id||!globalThis.MapSlice||MapSlice.includes(o))&&(categoryOnly||!globalThis.MapLayers||MapLayers.admits(o));
  },
  opacity(o,detail=true){return (detail?MapDetails.opacity(o,cam.span):1)*(this.coreIndex?.has(o.id)||this.pinned.has(o.id)||globalThis.MapLayers?.visibleMap.has(o.id)?1:this.transitions.get(o.id)?.alpha??1);},
  stagger(id){let h=2166136261;for(const c of id)h=Math.imul(h^c.charCodeAt(0),16777619);return(h>>>0)%181;},
  adoptCut(rows,now){
-  const target=new Map(rows.filter(o=>!o.atlasOnly).slice(0,8000).map(o=>[o.id,o]));
+  const target=new Map(rows.filter(o=>!o.atlasOnly&&(!globalThis.MapSlice||MapSlice.includes(o))).slice(0,8000).map(o=>[o.id,o]));
   for(const [id,q] of this.transitions)if(!target.has(id)&&q.to!==0)Object.assign(q,{from:q.alpha,to:0,start:now,delay:this.stagger(id),duration:650});
   for(const [id,o] of target){const q=this.transitions.get(id);if(q){q.o=o;if(q.to!==1)Object.assign(q,{from:q.alpha,to:1,start:now,delay:0,duration:400});}else this.transitions.set(id,{o,alpha:0,from:0,to:1,start:now,delay:this.stagger(id),duration:450});}
   // A rapid tour can visit many cuts before their fades finish. Bound the union,
@@ -113,26 +113,27 @@ const ExtendedCatalog={
  tile(file){
   if(this.cache.has(file)){const r=this.cache.get(file);this.cache.delete(file);this.cache.set(file,r);return Promise.resolve(r);}
   if(this.inflight.has(file))return this.inflight.get(file);
-  const promise=this.readJSON('catalog-data/'+file).then(rows=>{const objects=rows.map(r=>this.decode(r));this.cache.set(file,objects);while(this.cache.size>48){const key=[...this.cache.keys()].find(k=>!this.wanted.includes(k));if(!key)break;this.cache.delete(key);}this.errors.delete(file);return objects;}).catch(e=>{this.errors.set(file,performance.now());throw e;}).finally(()=>this.inflight.delete(file));
+  const promise=this.readJSON(file.startsWith('map-slices/')?file:'catalog-data/'+file).then(rows=>{const objects=rows.map(r=>this.decode(r));this.cache.set(file,objects);while(this.cache.size>48){const key=[...this.cache.keys()].find(k=>!this.wanted.includes(k));if(!key)break;this.cache.delete(key);}this.errors.delete(file);return objects;}).catch(e=>{this.errors.set(file,performance.now());throw e;}).finally(()=>this.inflight.delete(file));
   this.inflight.set(file,promise);return promise;
  },
  nodesForView(view,w,h){
-  if(!this.manifest)return [];
+  const manifest=globalThis.MapSlice?.mode==='slice'?MapSlice.manifest:this.manifest;
+  if(!manifest)return [];
   view=Cosmology.referenceView(view);
   const pixel=view.span/Math.max(1,w),box=[view.x-w*.55*pixel,view.y-h*.60*pixel,view.x+w*.7*pixel,view.y+h*.6*pixel];
   const intersects=b=>b[0]<=box[2]&&b[2]>=box[0]&&b[1]<=box[3]&&b[3]>=box[1];
   const cachedBounds=new Map(),bounds=n=>{if(cachedBounds.has(n))return cachedBounds.get(n);const b=n.box.slice();for(const [minimumSize,x0,y0,x1,y1] of n.geometryBoxes||[])if(minimumSize/pixel<40000){b[0]=Math.min(b[0],x0);b[1]=Math.min(b[1],y0);b[2]=Math.max(b[2],x1);b[3]=Math.max(b[3],y1);}cachedBounds.set(n,b);return b;};
   // Complete coverage of points and drawable envelopes. Huge offscreen areas
   // cannot consume the stellar-view budget: their outlines cannot be drawn there.
-  let cut=this.manifest.roots.map(id=>({id,node:this.manifest.nodes[id]})).filter(q=>intersects(bounds(q.node)));
-  while(cut.length<32){let best=-1,score=-1,children=[];for(let i=0;i<cut.length;i++){const n=cut[i].node,nb=bounds(n),cs=n.children.map(id=>({id,node:this.manifest.nodes[id]})).filter(q=>intersects(bounds(q.node)));if(!cs.length||cut.length-1+cs.length>32)continue;const rows=cut.reduce((sum,q)=>sum+(q.node.children.length?48:q.node.count),0)-(n.children.length?48:n.count)+cs.reduce((sum,q)=>sum+(q.node.children.length?48:q.node.count),0);if(rows>8000)continue;const size=Math.max(nb[2]-nb[0],nb[3]-nb[1])/pixel;if(size<=340)continue;const overlap=Math.max(0,Math.min(nb[2],box[2])-Math.max(nb[0],box[0]))*Math.max(0,Math.min(nb[3],box[3])-Math.max(nb[1],box[1]));const area=Math.max(pixel*pixel,(nb[2]-nb[0])*(nb[3]-nb[1])),density=n.count*Math.min(1,overlap/area),value=size*Math.sqrt(1+density);if(value>score){best=i;score=value;children=cs;}}if(best<0)break;cut.splice(best,1,...children);}
+  let cut=manifest.roots.map(id=>({id,node:manifest.nodes[id]})).filter(q=>intersects(bounds(q.node)));
+  while(cut.length<32){let best=-1,score=-1,children=[];for(let i=0;i<cut.length;i++){const n=cut[i].node,nb=bounds(n),cs=n.children.map(id=>({id,node:manifest.nodes[id]})).filter(q=>intersects(bounds(q.node)));if(!cs.length||cut.length-1+cs.length>32)continue;const rows=cut.reduce((sum,q)=>sum+(q.node.children.length?48:q.node.count),0)-(n.children.length?48:n.count)+cs.reduce((sum,q)=>sum+(q.node.children.length?48:q.node.count),0);if(rows>8000)continue;const size=Math.max(nb[2]-nb[0],nb[3]-nb[1])/pixel;if(size<=340)continue;const overlap=Math.max(0,Math.min(nb[2],box[2])-Math.max(nb[0],box[0]))*Math.max(0,Math.min(nb[3],box[3])-Math.max(nb[1],box[1]));const area=Math.max(pixel*pixel,(nb[2]-nb[0])*(nb[3]-nb[1])),density=n.count*Math.min(1,overlap/area),value=size*Math.sqrt(1+density);if(value>score){best=i;score=value;children=cs;}}if(best<0)break;cut.splice(best,1,...children);}
   return cut.map(q=>q.node.file);
 
  },
  update(now){
   this.advanceVisibility(now);
   if(now-this.lastUpdate<180)return;this.lastUpdate=now;
-  if(this.manifest){this.wanted=this.nodesForView(cam,width,height);for(const file of this.wanted)if(!this.cache.has(file)&&this.inflight.size+(globalThis.MapLayers?.inflight.size||0)<4&&now-(this.errors.get(file)||-Infinity)>3000)this.tile(file).then(()=>{this.lastUpdate=-Infinity;}).catch(()=>{});
+  if(this.manifest&&(globalThis.MapSlice?.mode!=='slice'||MapSlice.manifest)){this.wanted=this.nodesForView(cam,width,height);for(const file of this.wanted)if(!this.cache.has(file)&&this.inflight.size+(globalThis.MapLayers?.inflight.size||0)<4&&now-(this.errors.get(file)||-Infinity)>3000)this.tile(file).then(()=>{this.lastUpdate=-Infinity;}).catch(()=>{});
    if(this.wanted.every(file=>this.cache.has(file))){const key=this.wanted.join('|');if(key!==this.cutKey){this.cutKey=key;this.adoptCut(this.wanted.flatMap(file=>this.cache.get(file)),now);}}
   }
   if(cam.span<200000)for(const g of GALAXIES){if(g.id==='milkyway')continue;const p=MapLayout.project(g);if(Math.hypot(cam.x-p.x,cam.y-p.y)<cam.span)this.ensureGalaxy(OBJECTS.find(o=>o.id===g.id)||this.get(g.id));}

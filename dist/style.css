@@ -811,5 +811,14 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
 .mission-builder .parameter-subheading{font:500 11px/1.5 var(--mono);margin:18px 0 8px}
 .mission-builder .parameter-subheading+.builder-note{margin:0 0 12px}
 @media(max-width:700px){.map-controls[open]{width:145px}.map-controls .expansion-control{line-height:1.1}}
-.map-layers-readout{display:block;max-width:145px;margin:5px 0 8px;color:var(--muted);font:9px/1.5 var(--mono)}
-@media(max-width:700px){.map-controls:not([open])>.map-layers-readout{display:none}}
+
+/* Map selection is independent of the class filter and expedition state. */
+.map-mode-switch{display:flex;width:100%;gap:0;margin:0 0 10px;border:1px solid var(--line)}
+.map-mode-switch button{flex:1;min-width:0;padding:8px 2px;font:9px var(--mono);white-space:nowrap}
+.map-mode-switch button:first-child{flex:0 0 40%}
+.map-mode-switch button+button{border-left:1px solid var(--line)}
+.map-mode-switch button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.map-mode-switch button:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.map-slice-status{font:8px/1.6 var(--mono);color:var(--muted);margin:0 0 12px;overflow-wrap:anywhere}
+.map-mode-notice{font:10px/1.6 var(--mono);color:var(--muted);padding:10px 0;margin:0;border-bottom:1px solid var(--line)}
+.map-slice-target-notice{border-left:1px solid var(--muted);padding-left:9px}

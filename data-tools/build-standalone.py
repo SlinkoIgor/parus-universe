@@ -28,6 +28,12 @@ if catalog.exists():
   layer_manifest=json.loads((root/layer_root/'manifest.json').read_text())
   for node in layer_manifest['nodes']:
    if 'file' in node:files[layer_root+'/'+node['file']]=(root/layer_root/node['file']).read_text()
+ slice_pointer=root/'map-slices/current.json'
+ if slice_pointer.exists():
+  slice_info=json.loads(slice_pointer.read_text());slice_root=slice_info['dataRoot']
+  slice_manifest=json.loads((root/slice_root/'manifest.json').read_text())
+  for name in ['map-slices/current.json',slice_root+'/manifest.json']+[n['file'] for n in slice_manifest['nodes'] if n['file'].startswith('map-slices/')]:
+   files[name]=(root/name).read_text()
  payload=json.dumps(files,ensure_ascii=False,separators=(',',':')).replace('</script','<\\/script')
  html=html.replace('</head>','<script>globalThis.PARUS_CATALOG_FILES='+payload+';</script></head>')
 output=Path(sys.argv[1]);output.parent.mkdir(parents=True,exist_ok=True);output.write_text(html)

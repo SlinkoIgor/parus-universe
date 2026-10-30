@@ -110,7 +110,7 @@ const RegionMap={
  },
  clip(a,b){let lo=0,hi=1;const dx=b.x-a.x,dy=b.y-a.y;for(const [p,q] of [[-dx,a.x+10],[dx,width+10-a.x],[-dy,a.y+10],[dy,height+10-a.y]]){if(p===0){if(q<0)return null;}else{const t=q/p;if(p<0)lo=Math.max(lo,t);else hi=Math.min(hi,t);if(lo>hi)return null;}}return[{x:a.x+lo*dx,y:a.y+lo*dy},{x:a.x+hi*dx,y:a.y+hi*dy}];},
  draw(){
-  const layers=globalThis.MapLayers,fade=[...ExtendedCatalog.transitions.values()].some(q=>q.o.region&&(!layers?.active||!layers.manages(q.o))&&q.alpha!==q.to),key=[cam.x,cam.y,cam.span,width,height,dpr,theme,state.selected,hover?.id,filter,ExtendedCatalog.pinned.size,OBJECTS.length,fade?performance.now():0].join(':'),cache=this.renderCache,scale=Cosmology.scale();
+  const layers=globalThis.MapLayers,fade=[...ExtendedCatalog.transitions.values()].some(q=>q.o.region&&(!layers?.active||!layers.manages(q.o))&&q.alpha!==q.to),key=[cam.x,cam.y,cam.span,width,height,dpr,theme,state.selected,hover?.id,filter,globalThis.MapSlice?.mode,ExtendedCatalog.pinned.size,OBJECTS.length,fade?performance.now():0].join(':'),cache=this.renderCache,scale=Cosmology.scale();
   const cosmicShift=cache?Math.abs(scale/cache.scale-1)*(2+Math.hypot(cam.x,cam.y)/cam.span)*Math.max(width,height):Infinity;
   if(cache&&cache.key===key&&cache.points===ExtendedCatalog.visible&&cache.layers===layers?.visible&&cosmicShift<.15){this.hits=cache.hits;for(const h of this.hits)h.label=null;MapLabels.queue.push(...cache.labels);ctx.drawImage(cache.canvas,0,0,width,height);return;}
   const surface=cache?.canvas||document.createElement('canvas');surface.width=Math.round(width*dpr);surface.height=Math.round(height*dpr);const target=surface.getContext('2d');target.setTransform(dpr,0,0,dpr,0,0);target.clearRect(0,0,width,height);

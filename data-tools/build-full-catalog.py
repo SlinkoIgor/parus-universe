@@ -584,6 +584,7 @@ boot={'dataRoot':DATA_ROOT,'cosmicPatches':cosmic_patches,'geometryVersion':geom
 (ROOT/'dist/catalog-extended.js').write_text('// Generated from complete local source snapshots.\nconst EXTENDED_BOOT='+json.dumps(boot,ensure_ascii=False,separators=(',',':'),allow_nan=False)+';\n')
 dump(ROOT/'data-tools/full-catalog-audit.json',{'total':summary['total'],'core':len(core)+len(member_rows),'extra':len(records),'sourceCoverage':coverage,'mappedRows':summary['mapRows'],'atlasOnlyRows':summary['atlasOnlyRows'],'leafRecords':len(locations),'foreground':foreground,'systems':len(systems),'unknownExtra':summary['unknownExtra'],'approximateExtra':summary['approximateExtra'],'sourceSHA256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path]}})
 subprocess.run([sys.executable,str(ROOT/'data-tools/build-map-layers.py')],check=True)
+subprocess.run([sys.executable,str(ROOT/'data-tools/build-map-slice.py')],check=True)
 layer_revision=json.loads((ROOT/'dist/map-layers/current.json').read_text())['revision']
 html=ROOT/'dist/index.html';html.write_text(re.sub(r'(catalog-extended\.js\?v=)[^\"]+',lambda m:m[1]+revision,html.read_text()))
 html.write_text(re.sub(r'(map-layer-data\.js\?v=)[^"]+',lambda m:m[1]+layer_revision,html.read_text()))

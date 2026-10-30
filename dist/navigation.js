@@ -85,7 +85,7 @@ const Route={
  afterStop(old){if(old.mission){MissionPlanner.continueRoute(old);return;}if(!old.route?.length||old.legIndex>=old.route.length-1)return;const index=old.legIndex+1;state.selected=old.route[index].id;launch();if(state.flight){state.flight.route=old.route;state.flight.legIndex=index;state.flight.encounter=null;this.configure();persist();}},
  draw(){
   const f=state.flight,nodes=f?.route||state.itinerary;if(!nodes.length)return;let a=f?screen(f.from):screen(state.ship);const start=f?f.legIndex:0;
-  for(let i=start;i<nodes.length;i++){const o=object(nodes[i].id),b=screen(o);if(!f||i!==start)drawPhysicalSegment(i===start?state.ship:object(nodes[i-1].id),o,'#919191',.9,[3,5]);circle(b.x,b.y,18,'#999999',.7);text(String(i+1),b.x,b.y+3,8,'#555555','center');a=b;}
+  for(let i=start;i<nodes.length;i++){const o=object(nodes[i].id);if(globalThis.MapSlice&&!MapSlice.includes(o))continue;const b=screen(o);if(!f||i!==start)drawPhysicalSegment(i===start?state.ship:object(nodes[i-1].id),o,'#919191',.9,[3,5]);circle(b.x,b.y,18,'#999999',.7);text(String(i+1),b.x,b.y+3,8,'#555555','center');a=b;}
  },
  drawEncounter(){
   if(state.phase!=='flyby')return;const p=state.flight.encounter.plan,s=Gravity.atProper(p,p.elapsedProper||0),cx=width<700?width*.72:width*.48,cy=height*.30,scale=62/p.rp;

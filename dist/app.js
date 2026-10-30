@@ -163,7 +163,6 @@ function updateZoomControl(){
  $('zoomSlider').value=String(zoomInterpolate(span,'span','value'));
  $('zoomSlider').setAttribute('aria-valuetext','Ширина карты: '+distanceText(span));
 
- $('mapLayersReadout').textContent=MapLayers.readout();
  const measure=gridMetrics();$('zoomDivision').textContent=scaleDistanceText(measure.unit);$('mapScaleLine').style.width=measure.majorPixels+'px';$('mapScale').setAttribute('aria-label','Один крупный шаг сетки: '+scaleDistanceText(measure.unit));
  document.querySelectorAll('[data-zoom]').forEach(b=>{const active=Math.abs(Math.log(span/Number(b.dataset.zoom)))<.04;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
 }
@@ -191,7 +190,7 @@ new ResizeObserver(resize).observe(canvas);
 function mapContext(view){
  const span=view.span;
  // Match the same projected optical ellipse that the map draws. Zoom never enlarges its boundary.
- const localGalaxy=GALAXIES.filter(g=>{const p=MapLayout.project(g),dx=view.x-p.x,dy=view.y-p.y,c=Math.cos(g.rotation),s=Math.sin(g.rotation),a=g.diameterLy/2;return span<g.diameterLy*4&&((dx*c+dy*s)/a)**2+((-dx*s+dy*c)/(a*g.axisRatio))**2<=1;}).sort((a,b)=>a.diameterLy-b.diameterLy)[0];
+ const localGalaxy=GALAXIES.filter(g=>{if(globalThis.MapSlice&&!MapSlice.includes(object(g.id)||g))return false;const p=MapLayout.project(g),dx=view.x-p.x,dy=view.y-p.y,c=Math.cos(g.rotation),s=Math.sin(g.rotation),a=g.diameterLy/2;return span<g.diameterLy*4&&((dx*c+dy*s)/a)**2+((-dx*s+dy*c)/(a*g.axisRatio))**2<=1;}).sort((a,b)=>a.diameterLy-b.diameterLy)[0];
  const nearSun=Math.hypot(view.x,view.y);
  if(span<.01&&nearSun<.1)return ['Солнечная система','Земля и Солнце. Нулевая точка экспедиции.','00'];
  if(span<180&&nearSun<100)return ['Солнечная окрестность','В галактике «Млечный Путь».','01'];
@@ -252,6 +251,7 @@ function renderDepartureDiagram(forecast,wind){
  $('sailDiagram').setAttribute('aria-label',mode==='engine'?'Фотонный двигатель выбрасывает свет назад и разгоняет корабль; парус сложен':(mode==='burst'?'Вспышка':'Свет звезды')+' → зеркало-коллектор → направленный пучок → парус корабля. Расстояние от звезды до коллектора '+fmt(wind.collectorR/Stellar.r0,2)+' а.е.');
 }
 function renderUI(){
+ globalThis.MapSlice?.renderSelection();
  FlightSetup.sync();Cosmology.sync(state);$('expansionToggle').checked=state.expansion!==false;$('expansionFactor').textContent=(state.expansion!==false?'ВКЛ':'ВЫКЛ')+' · a = '+fmt(Cosmology.scale(),Cosmology.scale()<10?6:2);
  const f=state.flight,target=object(f?f.target:state.selected),current=object(state.current),active=!!f,boost=wantsBoost(),arrived=!active&&state.current===target.id;
  if(f&&!f.summary){const estimate=f.mission||FlightEstimate.get();f.summary={distance:f.distance,proper:estimate?.proper,earth:estimate?.earth};}
@@ -693,7 +693,7 @@ function galaxyProjection(g){const center=screen(g);return{center,r:g.diameterLy
 function drawGalaxyBackground(){
  if(!ExtendedCatalog.matchesMap({kind:'galaxy'}))return;
  for(const g of GALAXIES){const {center,r}=galaxyProjection(g);if(r<1.2||r>12000||center.x+r<0||center.x-r>width||center.y+r<0||center.y-r>height)continue;
-  const body=object(g.id)||{...g,kind:'galaxy',d:0,galaxy:g};if(!MapDetails.visible(body,cam.span))continue;
+  const body=object(g.id)||{...g,kind:'galaxy',d:0,galaxy:g};if(globalThis.MapSlice&&!MapSlice.includes(body)||!MapDetails.visible(body,cam.span))continue;
   const selected=g.id===state.selected||(g.id==='milkyway'&&state.selected==='sgr');
   ctx.save();ctx.globalAlpha=MapDetails.opacity(body,cam.span);ctx.translate(center.x,center.y);ctx.rotate(g.rotation);ctx.scale(1,g.axisRatio);
   circle(0,0,r,selected?'#555555':'#777777',1.1,[3,5]);
@@ -847,4 +847,5 @@ function syncClock(){const now=performance.now();Simulation.advance(Math.max(0,(
 document.addEventListener('visibilitychange',()=>{syncClock();persist();});window.addEventListener('pagehide',persist);
 resize();
 if(state.flight)fitRoute(object(state.flight.target));else if(state.current&&state.current!=='sol')goCamera(FlightView.ship().x,FlightView.ship().y,Math.max(object(state.current).d*2,24),true);
+globalThis.MapSlice?.setup();
 FlightBuilder.setup();Route.setup();applyTheme(theme);updateShipButton();resize();renderUI();updateMapHeading();renderCatalog();MapLayers.start();ExtendedCatalog.start();requestAnimationFrame(frame);
