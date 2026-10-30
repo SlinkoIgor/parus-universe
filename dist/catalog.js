@@ -44,4 +44,6 @@ const OBJECTS=[
  ['arc','Гигантская дуга',9200000000,-8,'arc','КАНДИДАТ В СВЕРХСТРУКТУРЫ','Сообщаемая дуга протяжённостью около 3,3 миллиарда световых лет. Наблюдается в той же далёкой области, что и Большое кольцо.','ring'],
  ['horizon','Обозримый горизонт',46500000000,180,'horizon','ГРАНИЦА НАБЛЮДАЕМОЙ ОБЛАСТИ','Радиус наблюдаемой Вселенной сегодня — примерно 46 миллиардов световых лет. Горизонт является ориентиром атласа, а не достижимой точкой.','universe']
 ].map((a,i)=>({id:a[0],name:a[1],d:a[2],angle:a[3],kind:a[4],type:a[5],desc:a[6],source:SOURCES[a[7]]||(a[0]==='proxima'?SOURCES.near:null),index:i,x:a[2]*Math.cos(a[3]*Math.PI/180),y:a[2]*Math.sin(a[3]*Math.PI/180)}));
-const SAILS=[{name:'S',areaM2:100e6,referenceMassKg:1e-6,targetBeta:.99},{name:'M',areaM2:1e12,referenceMassKg:1e-6,targetBeta:.9999999},{name:'L',areaM2:1e15,referenceMassKg:1e-6,targetBeta:.999999999}];
+// All modes share the same 100 m sail. Collector diameters are effective
+// projected collecting apertures at 1 AU, not the diameter of a Dyson shell.
+const SAILS=[{name:'Парус',diameterM:100,areaM2:Math.PI*50**2,referenceMassKg:1,targetBeta:.99999,collectorDiameterM:1000,collectorR:149597870700,material:'Si₃N₄',arealDensityKgM2:.0001}];

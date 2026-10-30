@@ -1,0 +1,39 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const ctx=vm.createContext({assert,console});vm.runInContext(['dist/beam-spectra.js','dist/beam-optics.js'].map(p=>fs.readFileSync(p,'utf8')).join('\n'),ctx);
+// Independent 250-digit Decimal power-series references for J0/J1, including
+// the NASA first-dark-ring energy 0.837784869... and both approximation joins.
+ctx.reference=[[1e-08, 2.5e-17], [0.01, 2.499968750217013e-05], [0.0999, 0.0024918921374714764], [0.1, 0.002496877169189738], [1.0, 0.2208279824718769], [3.8317059702075125, 0.8377848691733144], [8.0, 0.9154817851440757], [15.99, 0.9612282416422228], [16.0, 0.9612386645521284], [16.01, 0.9612486730614496], [32.0, 0.980227210632118], [64.0, 0.9899988884352263], [128.0, 0.9950255591275202]];
+vm.runInContext(`{
+for(const [x,expected] of reference){const actual=BeamOptics.encircled(x);assert.ok(Math.abs(actual-expected)<Math.max(2e-10,Math.abs(expected)*1e-9),x+': '+actual+' != '+expected);}
+for(let i=-16;i<20;i+=.125){const x=10**i,E=BeamOptics.encircled(x);assert.ok(E>=0&&E<=1);assert.ok(E<=x*x/4*(1+1e-10),'remaining work requires an actual upper bound');}
+for(const T of [2500,5772,10000,35000]){const b=BeamOptics.thermal(T);assert.ok(Math.abs(b.weights.reduce((a,w)=>a+w,0)-1)<1e-14);assert.ok(b.wavelengths.every(w=>w>0));}
+for(const key of Object.keys(BeamSpectra.profiles))for(const w of BeamSpectra.profiles[key].weights)assert.ok(Math.abs(w.reduce((a,b)=>a+b,0)-1)<1e-8);
+const blue={kind:'thermal',temperatureK:10000},red={kind:'thermal',temperatureK:3000},z=1e17;
+const q=BeamOptics.fraction(z,0,blue);assert.ok(Math.abs(BeamOptics.fraction(2*z,0,blue)/q-.25)<1e-10);assert.ok(Math.abs(BeamOptics.fraction(z,0,blue,2000)/q-4)<1e-9);assert.ok(BeamOptics.fraction(z,0,blue)>BeamOptics.fraction(z,0,red)*10);
+for(const spec of [blue,red,{kind:'supernova',profile:'iip'},{kind:'supernova',profile:'ia'},{kind:'supernova',profile:'ibc'}]){
+ assert.equal(BeamOptics.fraction(0,0,spec),1);
+ for(const d of [1,1e9,1e11,1e13,1e18,1e25])for(const day of [0,1,15,30]){const f=BeamOptics.fraction(d,day/365.25,spec);assert.ok(Number.isFinite(f)&&f>=0&&f<=1);}
+ assert.ok(BeamOptics.fraction(1e18,0,spec)<1e-12,'no distance-independent beam remains');
+}
+console.log('PASS diffraction: independent high-precision Airy references, energy normalization, physical power bounds, wavelength/aperture and inverse-square far field');
+for(const spec of [blue,red,{kind:'supernova',profile:'iip'},{kind:'supernova',profile:'ia'}]){
+ for(const distance of [0,1,1e12,1e25])assert.equal(BeamOptics.fraction(distance,0,spec,100000,50,0,false),1);
+ assert.equal(BeamOptics.remainingWork(1e10,1e25,spec,100000,50,0,false),Infinity);
+}
+const angle=.02,slope=Math.tan(angle*Math.PI/360),radius=50,transition=radius/slope,power=1e10;
+for(const distance of [transition/10,transition,transition*10,transition*1e8]){
+ const expected=Math.min(1,Math.PI*radius**2/(Math.PI*(distance*slope)**2)),actual=BeamOptics.fraction(distance,0,blue,100000,radius,angle,false);
+ assert.ok(Math.abs(actual-expected)<1e-14);
+ const exactWork=2*power/299792458*(distance<transition?2*transition-distance:transition**2/distance),bound=BeamOptics.remainingWork(power,distance,blue,100000,radius,angle,false);
+ assert.ok(bound>=exactWork*(1-1e-14),'geometric tail cutoff must be conservative');
+}
+console.log('PASS disabled diffraction keeps an ideal zero-angle beam and independent geometric cone; finite-work bound never cuts a parallel beam');
+}`,ctx);
+
+const spectralReferences=[["iip",1,10000000000,0.99042808501272],["iip",1,100000000000,0.9023409046974639],["iip",1,1000000000000,0.18536496520777734],["iip",1,10000000000000,0.002175591052408536],["iip",1,10000000000000000,2.179222900935172e-9],["iip",6,10000000000,0.9750138039104145],["iip",6,100000000000,0.7276080245284794],["iip",6,1000000000000,0.03098369559259111],["iip",6,10000000000000,0.00031871421179707624],["iip",6,10000000000000000,3.18806263925304e-10],["iip",16,10000000000,0.9702073283236035],["iip",16,100000000000,0.6684801574080765],["iip",16,1000000000000,0.02106480079617971],["iip",16,10000000000000,0.00021451934806390965],["iip",16,10000000000000000,2.1455907139628943e-10],["iip",30,10000000000,0.9674177929685631],["iip",30,100000000000,0.6322516319509092],["iip",30,1000000000000,0.016891848470559974],["iip",30,10000000000000,0.00017129825625493536],["iip",30,10000000000000000,1.7132257205315674e-10],["ia",1,10000000000,0.9794246503520716],["ia",1,100000000000,0.7899093688745061],["ia",1,1000000000000,0.03037879878305381],["ia",1,10000000000000,0.0003095818348862683],["ia",1,10000000000000000,3.09641104914368e-10],["ia",6,10000000000,0.9792674291532496],["ia",6,100000000000,0.7866331428586022],["ia",6,1000000000000,0.033926833776700215],["ia",6,10000000000000,0.0003481952364524044],["ia",6,10000000000000000,3.4828774278757996e-10],["ia",16,10000000000,0.9794788943327967],["ia",16,100000000000,0.7856791596982331],["ia",16,1000000000000,0.03793614693912423],["ia",16,10000000000000,0.00039267058605599623],["ia",16,10000000000000000,3.9281024100124753e-10],["ia",30,10000000000,0.976653022759424],["ia",30,100000000000,0.7584069372135711],["ia",30,1000000000000,0.027622474223409337],["ia",30,10000000000000,0.0002822771829036598],["ia",30,10000000000000000,2.823397371413493e-10],["ibc",1,10000000000,0.9869302476884989],["ibc",1,100000000000,0.8612693966480213],["ibc",1,1000000000000,0.13419846698572893],["ibc",1,10000000000000,0.001529734752710078],["ibc",1,10000000000000000,1.5318249314538516e-9],["ibc",6,10000000000,0.9762022652920271],["ibc",6,100000000000,0.7524762071580161],["ibc",6,1000000000000,0.022576214983515825],["ibc",6,10000000000000,0.00022918622284808377],["ibc",6,10000000000000000,2.2922118873987813e-10],["ibc",16,10000000000,0.976104126456926],["ibc",16,100000000000,0.7448728450817304],["ibc",16,1000000000000,0.025445704205209155],["ibc",16,10000000000000,0.000259485211652901],["ibc",16,10000000000000000,2.595368491812454e-10],["ibc",30,10000000000,0.9701059147813049],["ibc",30,100000000000,0.660196405551423],["ibc",30,1000000000000,0.01670423606684441],["ibc",30,10000000000000,0.00016924546716112705],["ibc",30,10000000000000000,1.6926797919239107e-10]];
+ctx.spectralReferences=spectralReferences;
+vm.runInContext(`{
+for(const [profile,day,distance,reference] of spectralReferences){const q=BeamOptics.fraction(distance,day/365.25,{kind:'supernova',profile});assert.ok(Math.abs(q/reference-1)<.0013,profile+' rebinned spectrum differs from full 1 nm source');}
+const T=5772,z=1e18,exact=Math.PI**2*1000**2*50**2/(4*z*z)*(40*Math.PI**2/21)*(T/.014387768775039337)**2,actual=BeamOptics.fraction(z,0,{kind:'thermal',temperatureK:T});assert.ok(Math.abs(actual/exact-1)<1e-8,'independent exact Planck wavelength moment');
+console.log('PASS 64-band spectra agree with original 1 nm template integration within 0.13%; thermal far-field agrees with analytic Planck moment');
+}`,ctx);

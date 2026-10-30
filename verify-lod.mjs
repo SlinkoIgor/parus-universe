@@ -1,8 +1,9 @@
+import {catalogPath} from './catalog-path.mjs';
 import fs from 'node:fs';import assert from 'node:assert/strict';
 const h=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';const {context,run}=await import('data:text/javascript,'+encodeURIComponent(h));
-const manifest=JSON.parse(fs.readFileSync('dist/catalog-data/manifest.json','utf8'));assert.equal(manifest.roots.length,1,'no radial-band roots');context.lodManifest=manifest;run('ExtendedCatalog.manifest=lodManifest;state=initial();Cosmology.sync(state);');
+const manifest=JSON.parse(fs.readFileSync(catalogPath('manifest.json'),'utf8'));assert.equal(manifest.roots.length,1,'no radial-band roots');context.lodManifest=manifest;run('ExtendedCatalog.manifest=lodManifest;state=initial();Cosmology.sync(state);');
 const parent=new Map();for(const n of manifest.nodes)for(const id of n.children)parent.set(id,manifest.nodes.indexOf(n));
-const ids=n=>JSON.parse(fs.readFileSync('dist/catalog-data/'+n.file,'utf8')).map(r=>r[0]);
+const ids=n=>JSON.parse(fs.readFileSync(catalogPath(n.file),'utf8')).map(r=>r[0]);
 for(const n of manifest.nodes)if(n.children.length){const childIds=new Set(n.children.flatMap(i=>ids(manifest.nodes[i])));assert.ok(ids(n).every(id=>childIds.has(id)),n.file+' refinement preserves representatives');}
 for(const span of [24,500,5000,10000,20000,40000,1e7,1e10]){context.lodSpan=span;const files=run('ExtendedCatalog.nodesForView({x:0,y:0,span:lodSpan},1858,1254)');assert.ok(files.length<=32);const selected=new Set(files.map(f=>manifest.nodes.findIndex(n=>n.file===f)));const box=[-span*.55,-1254*span/1858*.60,span*.7,1254*span/1858*.6];for(let i=0;i<manifest.nodes.length;i++){const n=manifest.nodes[i];if(n.children.length||n.box[0]>box[2]||n.box[2]<box[0]||n.box[1]>box[3]||n.box[3]<box[1])continue;let j=i,covered=false;while(j!==undefined){if(selected.has(j)){covered=true;break;}j=parent.get(j);}assert.ok(covered,'visible leaf is covered at span '+span+': '+i);}}
 run(`

@@ -1,7 +1,10 @@
+import {catalogPath} from './catalog-path.mjs';
 import fs from 'node:fs';import assert from 'node:assert/strict';
 const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {run};';
 const {run}=await import('data:text/javascript,'+encodeURIComponent(harness));
 run(`
+// Exercise the pre-orbital/save-compatible branch; verify-orbits covers new captures.
+OrbitalArrival.enabled=false;
 resize();state=initial();Cosmology.sync(state);cam={x:0,y:0,span:24};followShip=false;shipFocusArmed=false;
 focusShip();const centreIcon=$('shipBtn').innerHTML;focusShip();assert.equal(followShip,true);assert.notEqual($('shipBtn').innerHTML,centreIcon);
 zoomAtPointer({preventDefault(){},deltaY:100,clientX:120,clientY:150});assert.equal(followShip,true);assert.ok(cam.span>24);
@@ -23,12 +26,12 @@ reset();state.selected='mom-z14';state.expansion=false;Cosmology.sync(state);ass
 reset();state.selected='3c273';assert.ok(Number.isFinite(FlightEstimate.get().proper),'3C273 is inside the travel horizon');
 `);
 const audit=JSON.parse(fs.readFileSync('data-tools/pulsar-distance-audit.json','utf8'));
-const manifest=JSON.parse(fs.readFileSync('dist/catalog-data/manifest.json','utf8'));
-const search=JSON.parse(fs.readFileSync('dist/catalog-data/search.json','utf8'));
+const manifest=JSON.parse(fs.readFileSync(catalogPath('manifest.json'),'utf8'));
+const search=JSON.parse(fs.readFileSync(catalogPath('search.json'),'utf8'));
 const byId=new Map(search.map(r=>[r[0],r]));
 assert.equal(audit.rows.length,4503);assert.ok(audit.rows.filter(r=>r.atlasOnly).length>500);
 for(const row of audit.rows.filter(r=>r.atlasOnly)){const r=byId.get(row.id);if(r)assert.ok(r[7],row.id+' atlas flag');}
 const m13=byId.get('atnf-j1641+3627g');assert.ok(!m13[7]);assert.ok(m13[3]<30000&&m13[3]>20000);
 run(`const old=ExtendedCatalog.decode(EXTENDED_BOOT.pulsarCorrections.find(r=>r[0]==='atnf-j1641+3627g'));old.d=81539;old.mapPosition={x:81539,y:0};ExtendedCatalog.restore({catalogObjects:[old]});assert.ok(ExtendedCatalog.get(old.id).d<30000,'saved model-boundary coordinates are refreshed');`);
-for(const node of manifest.nodes){const rows=JSON.parse(fs.readFileSync('dist/catalog-data/'+node.file,'utf8'));for(const r of rows){assert.ok(!r[11].atlasOnly);if(r[10]==='ATNF'&&r[11].distanceModelKpc>=25)assert.ok(r[7].includes('DIST_A')||r[7].includes('параллакс')||r[11].distanceHost,'no capped model on map: '+r[0]);}}
+for(const node of manifest.nodes){const rows=JSON.parse(fs.readFileSync(catalogPath(node.file),'utf8'));for(const r of rows){assert.ok(!r[11].atlasOnly);if(r[10]==='ATNF'&&r[11].distanceModelKpc>=25)assert.ok(r[7].includes('DIST_A')||r[7].includes('параллакс')||r[11].distanceHost,'no capped model on map: '+r[0]);}}
 console.log('PASS follow survives wheel zoom, distinct icons, clipped stellar-scale trajectories, full expanding/static flights, model boundaries and cluster pulsars');

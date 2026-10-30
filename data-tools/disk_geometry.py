@@ -34,5 +34,5 @@ def locate(member,host,model,policy):
   if not model['nearSideKnown']:
    alt=intersection(ra,dec,ra0,dec0,d,i,pa,-1)
    if alt:envelope=max(envelope,abs(alt['distance']-nominal['distance']))
- result.update(localEnvelopeLy=envelope,referenceScaleLy=2*limit,accepted=result['radius']<=limit and envelope/(2*limit)<=policy['hostMaxLocalEnvelopeFraction'])
+ result.update(localEnvelopeLy=envelope,referenceScaleLy=2*limit,accepted=(member['placement']!='host-envelope' or policy.get('allowUnresolvedHostDepthOnMap',False)) and result['radius']<=limit and envelope/(2*limit)<=policy['hostMaxLocalEnvelopeFraction'])
  return result

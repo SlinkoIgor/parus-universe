@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 4,
   "maxReportedRelativeError": 0.5,
   "maxDMModelRatio": 2,
   "forbiddenDMModelKpc": {
@@ -8,5 +8,12 @@
   },
   "hostMaxLocalEnvelopeFraction": 0.5,
   "angularSensitivityDeg": 3,
-  "meaning": "A bounded nominal estimate is required. Censored/model-boundary values never define positions. Field uncertainty uses heliocentric distance; host-relative uncertainty uses full model diameter. Shared host-distance error is retained separately and is not independent scatter of every member."
+  "meaning": "Finite measured/model point estimates only. Galaxy membership alone never supplies individual depth. A member needs its own distance or a justified disk intersection; host-envelope records remain atlas-only. Individual OGLE errors are compared with host-population extent, not only observer distance.",
+  "allowUnresolvedHostDepthOnMap": false,
+  "hygDistanceMatchTolerancePc": 6e-05,
+  "compactHostMaxRadiusPc": 500,
+  "compactHostMaxRelativeDistanceError": 0.2,
+  "compactHostNominalDepth": "Tangent plane through host centre; unknown depth bounded by published model tidal radius. Local sky display and uncertainty-aware focus.",
+  "redshiftOnlyMinZ": 0.002,
+  "lowZMeaning": "Below z=0.002 (cz approximately 600 km/s), a nominal peculiar speed of order 300 km/s is comparable to the radial velocity. Require an explicit independent distance; this is a technical review gate, not an individual measured sigma."
 }

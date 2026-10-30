@@ -15,9 +15,16 @@ for(const o of OBJECTS){
  Object.assign(o,Space.point(Space.fromSky(k.raDeg,k.decDeg,o.d)),{raDeg:k.raDeg,decDeg:k.decDeg,coordinateSource:k.source,navigable:true,coordinateNote:k.coordinateNote||'Каталожное направление J2000; движение за время экспедиции не моделируется.'});
 }
 const originals=OBJECTS.slice();
+// Merging an existing landmark must retain measured angular extents. Reuse the
+// landmark's adopted distance later; do not import a size derived at another d.
+function mergeNebulaSize(target,entry){
+ if(target.kind!=='nebula'||!(entry.angularMajorArcmin>0)||target.angularMajorArcmin>0)return;
+ for(const field of ['angularMajorArcmin','angularMinorArcmin','positionAngleDeg'])if(entry[field]!=null)target[field]=entry[field];
+ target.angularSizeSource='https://github.com/mattiaverga/OpenNGC';
+}
 for(const entry of IMPORTED_CATALOG.objects){
  const duplicate=entry.legacyId?originals.find(o=>o.id===entry.legacyId):entry.kind==='star'?originals.find(o=>o.kind==='star'&&known[o.id]&&(entry.hygId!=null&&known[o.id].hygId!=null&&String(known[o.id].hygId)===String(entry.hygId)||(known[o.id].hygId==null&&Number.isFinite(entry.d)&&Math.abs(o.raDeg-entry.raDeg)*Math.cos(entry.decDeg*Math.PI/180)<.02&&Math.abs(o.decDeg-entry.decDeg)<.02&&Math.abs(o.d-entry.d)<o.d*.06))):null;
- if(duplicate){for(const k of ['hygId','hip','hd','ngc','messier','apparentV'])if(entry[k]!==undefined)duplicate[k]=entry[k];duplicate.aliases=[...new Set([...(duplicate.aliases||[]),entry.name,...(entry.aliases||[])])];duplicate.iauNames=[...new Set([...(duplicate.iauNames||[]),...(entry.iauNames||[])])];duplicate.selection=[...new Set([...(duplicate.selection||[]),...(entry.selection||[])])];continue;}
+ if(duplicate){for(const k of ['hygId','hip','hd','ngc','messier','apparentV'])if(entry[k]!==undefined)duplicate[k]=entry[k];mergeNebulaSize(duplicate,entry);duplicate.aliases=[...new Set([...(duplicate.aliases||[]),entry.name,...(entry.aliases||[])])];duplicate.iauNames=[...new Set([...(duplicate.iauNames||[]),...(entry.iauNames||[])])];duplicate.selection=[...new Set([...(duplicate.selection||[]),...(entry.selection||[])])];continue;}
  const located=Number.isFinite(entry.d)&&entry.d>0&&Number.isFinite(entry.raDeg)&&Number.isFinite(entry.decDeg);
  const o={...entry,...(located?Space.point(Space.fromSky(entry.raDeg,entry.decDeg,entry.d)):{p3:null,x:NaN,y:NaN}),navigable:located,index:OBJECTS.length,desc:entry.distanceMethod};
  o.facts={class:entry.type,mass:'Нет индивидуальной оценки в выбранном каталоге.',band:'V',visual:entry.absoluteV==null?null:{absoluteV:entry.absoluteV,solarV:entry.visualLuminositySolar},lumUnknown:entry.visualLuminositySolar==null?entry.luminosityNote:null,note:[entry.luminosityNote,entry.distanceMethod,entry.sizeNote].filter(Boolean).join(' '),refs:[[entry.source,entry.catalog],["catalog-sources.json","Происхождение, преобразования и лицензии"]]};

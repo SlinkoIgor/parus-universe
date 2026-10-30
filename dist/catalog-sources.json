@@ -81,6 +81,152 @@
       "changes": "HIP, parallax and standard error used to exclude >50% relative errors from individual map points."
     },
     {
+      "name": "mcxc",
+      "url": "https://vizier.idia.ac.za/viz-bin/asu-tsv?-source=J%2FA%2BA%2F688%2FA187%2Fmcxcii&-out=%2A%2A&-out.max=unlimited",
+      "retrieved": "2026-10-29",
+      "sha256": "ae637c05062bc12ea6ad9e0828bffbfaf12de66a8018fd65ee9e1059c02a93a2",
+      "query": {
+        "-source": "J/A+A/688/A187/mcxcii",
+        "-out": "**"
+      },
+      "cosmicImport": true,
+      "access": "Official CDS/VizieR mirror; credit CDS and the original authors, original data rights apply."
+    },
+    {
+      "name": "superclusters",
+      "url": "https://vizier.idia.ac.za/viz-bin/asu-tsv?-source=J%2FA%2BA%2F539%2FA80%2Fmainadap&-out=%2A%2A&-out.max=unlimited",
+      "retrieved": "2026-10-29",
+      "sha256": "79ac7c0a84adfb8810651a9b33830b616fb104f5a8727277804f76575298df3f",
+      "query": {
+        "-source": "J/A+A/539/A80/mainadap",
+        "-out": "**"
+      },
+      "cosmicImport": true,
+      "access": "Official CDS/VizieR mirror; credit CDS and the original authors, original data rights apply."
+    },
+    {
+      "name": "filaments",
+      "url": "https://vizier.idia.ac.za/viz-bin/asu-tsv?-source=J%2FMNRAS%2F438%2F3465%2Ftable1&-out=%2A%2A&-out.max=unlimited",
+      "retrieved": "2026-10-29",
+      "sha256": "2083530023af9d185548b78098ca8b49ff0265a3747b5d3b2ae3a716e7b1f893",
+      "query": {
+        "-source": "J/MNRAS/438/3465/table1",
+        "-out": "**"
+      },
+      "cosmicImport": true,
+      "access": "Official CDS/VizieR mirror; credit CDS and the original authors, original data rights apply."
+    },
+    {
+      "name": "filament-points",
+      "url": "https://vizier.idia.ac.za/viz-bin/asu-tsv?-source=J%2FMNRAS%2F438%2F3465%2Ftable2&-out=%2A%2A&-out.max=unlimited",
+      "retrieved": "2026-10-29",
+      "sha256": "69b2ea5e0495c57f3828cc903fa336909883a3edf4e9572ad76a14eb2775a92e",
+      "query": {
+        "-source": "J/MNRAS/438/3465/table2",
+        "-out": "**"
+      },
+      "cosmicImport": true,
+      "access": "Official CDS/VizieR mirror; credit CDS and the original authors, original data rights apply."
+    },
+    {
+      "name": "filament-validation",
+      "url": "https://vizier.idia.ac.za/viz-bin/asu-tsv?-source=J%2FMNRAS%2F438%2F3465%2Ftable3&-out=%2A%2A&ID=1%2C500%2C15000&-out.max=unlimited",
+      "retrieved": "2026-10-29",
+      "sha256": "7a9828f36f34a27a283008b85715a4c3d4431921c4c4b040dfc8294dd65580e8",
+      "query": {
+        "-source": "J/MNRAS/438/3465/table3",
+        "-out": "**",
+        "ID": "1,500,15000",
+        "-out.max": "unlimited"
+      },
+      "cosmicImport": true,
+      "access": "Official CDS/VizieR mirror; credit CDS and the original authors, original data rights apply."
+    },
+    {
+      "name": "cf4",
+      "url": "https://vizier.idia.ac.za/viz-bin/asu-tsv?-source=J%2FApJ%2F944%2F94%2Ftable2&-out=%2A%2A&-out.max=unlimited",
+      "retrieved": "2026-10-29",
+      "sha256": "799de8c254567358e10c45887d665edbbe1f2c367cc3c4ab5b456f82c5b4b135",
+      "query": {
+        "-source": "J/ApJ/944/94/table2",
+        "-out": "**"
+      },
+      "cosmicImport": true,
+      "access": "Official CDS/VizieR mirror; credit CDS and the original authors, original data rights apply."
+    },
+    {
+      "name": "ungc",
+      "url": "https://vizier.idia.ac.za/viz-bin/asu-tsv?-source=J%2FAJ%2F145%2F101%2Fcatalog&-out=%2A%2A&-out.max=unlimited",
+      "retrieved": "2026-10-29",
+      "sha256": "360d23202ee7c03183fb4db2d48e9fe8f4c6940247adb04a1e17cb9da54bd9f7",
+      "query": {
+        "-source": "J/AJ/145/101/catalog",
+        "-out": "**"
+      },
+      "cosmicImport": true,
+      "access": "Official CDS/VizieR mirror; credit CDS and the original authors, original data rights apply."
+    },
+    {
+      "name": "ungc-distances",
+      "url": "https://vizier.idia.ac.za/viz-bin/asu-tsv?-source=J%2FAJ%2F145%2F101%2Ftable6&-out=%2A%2A&-out.max=unlimited",
+      "retrieved": "2026-10-29",
+      "sha256": "f634f4cbd54f88e6055dc9d26008ad48a54db58ae35e9cd266bf7bd07b18d03e",
+      "query": {
+        "-source": "J/AJ/145/101/table6",
+        "-out": "**"
+      },
+      "cosmicImport": true,
+      "access": "Official CDS/VizieR mirror; credit CDS and the original authors, original data rights apply."
+    },
+    {
+      "name": "hunt",
+      "url": "https://vizier.idia.ac.za/viz-bin/asu-tsv?-source=J%2FA%2BA%2F686%2FA42%2Fclusters&-out=%2A%2A&-out.max=unlimited",
+      "retrieved": "2026-10-29",
+      "sha256": "3c116218d26ec0d2c5b1f4582a70867cc3bc7666e19ae222fb0dbb03edd58746",
+      "query": {
+        "-source": "J/A+A/686/A42/clusters",
+        "-out": "**"
+      },
+      "cosmicImport": true,
+      "access": "Official CDS/VizieR mirror; credit CDS and the original authors, original data rights apply."
+    },
+    {
+      "name": "glade-bright",
+      "url": "https://vizier.idia.ac.za/viz-bin/asu-tsv?-source=VII%2F291%2Fgladep&-out=%2A%2A&Type=G&Bmag=%3C%3D15.5&f_dL=3&zhelio=%3E0.002&-out.max=unlimited",
+      "retrieved": "2026-10-29",
+      "sha256": "556235bd96ad6444ff09d59b0b13b06fb6ea0765045c61e10914969ed326d493",
+      "query": {
+        "-source": "VII/291/gladep",
+        "-out": "**",
+        "Type": "G",
+        "Bmag": "<=15.5",
+        "f_dL": "3",
+        "zhelio": ">0.002"
+      },
+      "cosmicImport": true,
+      "access": "Official CDS/VizieR mirror; credit CDS and the original authors, original data rights apply."
+    },
+    {
+      "name": "void-dr7",
+      "url": "https://vizier.idia.ac.za/viz-bin/asu-tsv?-source=J%2FMNRAS%2F440%2F1248&-out=%2A%2A&-out.max=unlimited",
+      "retrieved": "2026-10-29",
+      "sha256": "9f46646901c04ce74eb1c1761e7cb9c2529fc694be79462a546b0a323c292b6f",
+      "query": {
+        "-source": "J/MNRAS/440/1248",
+        "-out": "**",
+        "-out.max": "unlimited"
+      },
+      "cosmicImport": true,
+      "access": "Official CDS/VizieR mirror; credit CDS and the original authors, original data rights apply."
+    },
+    {
+      "name": "OGLE, Jacyszyn-Dobrzeniecka et al. 2016, Acta Astronomica 66,149, Table 3",
+      "url": "https://ogle.astrouw.edu.pl/cont/4_main/str/3_dim_str/table3.dat",
+      "paper": "https://arxiv.org/abs/1602.09141",
+      "changes": "All 8885 published individual distances, reported errors and measured RA/Dec. Original magnitudes, periods and pulsation modes retained.",
+      "access": "Public author table; credited to OGLE and authors. Original data rights are not relicensed under the game code license."
+    },
+    {
       "name": "LGGS, Massey et al. 2016",
       "url": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/AJ/152/62",
       "changes": "Spectroscopic membership Mm=1; original measured directions, spectral types and Rgc preserved.",
@@ -97,6 +243,23 @@
       "url": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJ/855/140",
       "changes": "Conf=yes in table1; observed directions and diameters, no random positions.",
       "access": "CDS/VizieR; originating author/publisher rights apply; see THIRD_PARTY_NOTICES.md"
+    },
+    {
+      "name": "Low-z independent galaxy distances",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-tap/sync",
+      "changes": "All unresolved OpenNGC galaxy entries with 0<z<0.002. Explicit EB/Cepheid/TRGB/SBF/SN/PNLF/T-F only; method tier then latest bibcode; published relative errors <=0.5 when available. No galaxy parallax, flow, redshift, unknown method or unverified T-RDB abbreviation.",
+      "snapshot": "data-tools/low-z-galaxy-distances.json",
+      "license": "ODbL"
+    },
+    {
+      "name": "Hipparcos new reduction, van Leeuwen 2007",
+      "url": "https://cdsarc.cds.unistra.fr/viz-bin/cat/I/311",
+      "changes": "HIP, parallax and formal error. Error attached only when the same solution reproduces the adopted HYG distance; explicit 1997/manual exceptions preserved."
+    },
+    {
+      "name": "Baumgardt Galactic globular-cluster compilation",
+      "url": "https://people.smp.uq.edu.au/HolgerBaumgardt/globular/parameter.html",
+      "changes": "Only ATNF-associated hosts; measured sky coordinates, cluster distance/error and model tidal-radius bound. Individual depths remain unknown."
     }
   ],
   "selection": {
@@ -119,8 +282,8 @@
   },
   "fullCatalog": {
     "builder": "data-tools/build-full-catalog.py",
-    "manifest": "catalog-data/manifest.json",
-    "records": 143122,
+    "manifest": "catalog-data/1d38650d67a5/manifest.json",
+    "records": 260898,
     "coverage": {
       "HYG": 119626,
       "OpenNGC": 13970,
@@ -128,17 +291,28 @@
       "IAUnames": 652,
       "Messier": 110,
       "NearbyGalaxyStars": 4,
-      "GalaxyDisks": 4925
+      "GalaxyDisks": 4925,
+      "OGLE": 8885,
+      "GlobularModels": 44,
+      "LowZIndependent": 152,
+      "MCXC-II": 2221,
+      "SDSS-Superclusters": 1313,
+      "SDSS-Filaments": 15421,
+      "SDSS-Voids": 635,
+      "Cosmicflows-4": 55877,
+      "Nearby-Galaxies": 869,
+      "GLADE+": 45727,
+      "Gaia-Clusters": 4100
     },
-    "search": "Lazy 19.2 MB compact worker index; 100 results initially",
-    "map": "One spatial binary tree (no radial bands); max256 leaf rows, 48 cached tiles, 32 view nodes, 4 concurrent loads, 8000 streamed points",
-    "uncertainty": "Formal policy v2: bounded point estimates only; no sentinels or model bounds. Field reported relative error <=0.5, ATNF PX significance >3 and DM-model ratio <=2. Host-local model envelope <=0.5 of its reference diameter; common host-distance error is correlated, not independent scatter. Full definitions in docs/catalog.md.",
+    "search": "Lazy 39.7 MB compact worker index; 100 results initially",
+    "map": "Orthographic Galactic XY plus explicit host-local views; one spatial binary tree (no radial bands); max256 leaf rows, 48 cached tiles, 32 view nodes, 4 concurrent loads, 8000 target streamed objects plus fading union <=16000; weighted stable representatives; observed filament polylines; immutable versioned data root",
+    "uncertainty": "Formal policy v4: HYG sigma is attached only to the matching HIP2007/HIP1997 solution; unmatched adopted distances retain unknown sigma. Bounded compact GC hosts use published distance/error and tidal radius; galaxy membership alone never supplies depth.  bounded point estimates only; no sentinels or model bounds. Field reported relative error <=0.5, ATNF PX significance >3 and DM-model ratio <=2. Host-local model envelope <=0.5 of its reference diameter; common host-distance error is correlated, not independent scatter. Full definitions in docs/catalog.md.",
     "systems": "461 catalog groups; shared-distance estimates explicitly labelled. Distance conflicts suppress orbital diagrams; Cygnus X-1/HDE226868 use the published system distance. Local shared display transform prevents t-SNE separation of close components.",
     "fictionalStars": "Known nearby stars preferred; otherwise explicitly fictional departure stars at every mapped destination, persisted with expedition.",
     "nearbyGalaxyStars": {
       "snapshot": "data-tools/nearby-galaxy-stars.json",
       "count": 4,
-      "distance": "M31 V1/AF: inclined-disk ray intersection. R136a1/HD5980: common host distance, unresolved depth."
+      "distance": "M31 V1/AF and LMC R136a1: justified inclined-disk model. HD5980: atlas-only, unresolved depth. OGLE Clouds: individual period-Wesenheit distances."
     },
     "systemPositionAudit": "data-tools/system-position-audit.json",
     "confirmedSystems": "data-tools/confirmed-systems.json: published physical relationships override conflicting individual distance estimates; common distances remain explicitly approximate.",
@@ -151,7 +325,89 @@
       "inputRows": 4925,
       "added": 4924,
       "selection": "LGGS Mm=1; PHAT main table2 only; M33 SNR Conf=yes",
-      "model": "Measured directions; disk-ray intersections for massive stars/gas; host-depth envelope for unaged PHAT clusters; M33 mirror ambiguity included."
-    }
-  }
+      "model": "Measured directions; disk-ray intersections for massive stars/gas; unaged PHAT clusters atlas-only, no individual depth; M33 mirror ambiguity included."
+    },
+    "magellanicCepheids": {
+      "inputRows": 8885,
+      "mapped": 8885,
+      "counts": {
+        "LMC": 4222,
+        "MBR": 9,
+        "SMC": 4654
+      },
+      "method": "Individual published period-Wesenheit distances and errors; no common host shell or disk approximation. Host-local display uses an orthographic sky view of true 3D coordinates, rotated to align the observed population with its schematic outline; physical depth remains in p3."
+    },
+    "galaxyPopulationCoverage": "data-tools/galaxy-population-coverage.json",
+    "dataRoot": "catalog-data/1d38650d67a5",
+    "current": "catalog-data/current.json",
+    "cosmicCatalogs": {
+      "MCXC-II": {
+        "rows": 2221,
+        "represented": 2221,
+        "selection": "All entries searchable; map only S/SP redshift types and z>=.002. M500 is an extended aperture mass, not a point mass.",
+        "added": 2219,
+        "merged": 2,
+        "promotedFromAtlas": 0
+      },
+      "SDSS-Superclusters": {
+        "rows": 1313,
+        "represented": 1313,
+        "selection": "Main sample adaptive threshold only; centre of mass RA2/DE2/Dist2. Edge/confidence retained.",
+        "added": 1313,
+        "merged": 0,
+        "promotedFromAtlas": 0
+      },
+      "SDSS-Filaments": {
+        "rows": 15421,
+        "represented": 15421,
+        "spinePoints": 275599,
+        "selection": "All observed filaments and all source spine points; no mock galaxies/fictional geometry. Independent sky-coordinate validation stored in audit.",
+        "added": 15421,
+        "merged": 0,
+        "promotedFromAtlas": 0
+      },
+      "SDSS-Voids": {
+        "rows": 808,
+        "represented": 635,
+        "selection": "Observed DR7 Type1 comoving catalogues, one tracer sample per nonoverlapping redshift interval; Type2/basic and other segmentation versions excluded. Edge flags retained. DR11 archive unavailable, not imported.",
+        "added": 635,
+        "merged": 0,
+        "promotedFromAtlas": 0
+      },
+      "Cosmicflows-4": {
+        "rows": 55877,
+        "represented": 55877,
+        "selection": "All individual table2 distance moduli; corrected 2023/CDS release, not flawed August 2022 tables. Relative upper/lower distance error >50% retained atlas-only.",
+        "added": 46815,
+        "merged": 9062,
+        "promotedFromAtlas": 26
+      },
+      "Nearby-Galaxies": {
+        "rows": 869,
+        "represented": 869,
+        "selection": "All objects searchable. Membership-only, Hubble-only and untyped txt distances atlas-only; individual measured/model distances eligible. Holmberg angular sizes retained.",
+        "added": 679,
+        "merged": 190,
+        "promotedFromAtlas": 13
+      },
+      "GLADE+": {
+        "rows": 45727,
+        "represented": 45727,
+        "selection": "Explicit subset of full 23-million-row source: Type G, B<=15.5, f_dL=3 (spectroscopic), zhelio>.002. Other rows not claimed imported; no photometric redshift placement.",
+        "added": 38060,
+        "merged": 7667,
+        "promotedFromAtlas": 10
+      },
+      "Gaia-Clusters": {
+        "rows": 7167,
+        "represented": 4100,
+        "selection": "Updated 2024 J/A+A/686/A42, Type o/m/g/d only, CST>=5 and CMDCl50>=.5. Rejected r types excluded; distant d retained without a bound/unbound claim; reported distance error >50% atlas-only. Not all Gaia stars.",
+        "added": 3746,
+        "merged": 354,
+        "promotedFromAtlas": 330
+      }
+    },
+    "cosmicImportAudit": "data-tools/cosmic-catalog-audit.json"
+  },
+  "updated": "2026-10-29"
 }

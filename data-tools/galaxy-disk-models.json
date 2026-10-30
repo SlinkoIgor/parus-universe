@@ -18,5 +18,14 @@
     "reference": "https://academic.oup.com/mnrasl/article/390/1/L24/976810",
     "note": "M33: i=56°, PA=23°. Выбрана модель с ближней северо-западной стороной; знак наклона неоднозначен, зеркальное решение включено в локальный диапазон. Толщина 350 пк — принятая модельная шкала.",
     "ambiguityReference": "https://academic.oup.com/mnras/article/418/3/2014/1066169"
+  },
+  "lmc": {
+    "inclinationDeg": 24.2,
+    "positionAngleDeg": 151.4,
+    "nearSideKnown": true,
+    "maxRadiusPc": 10000,
+    "halfThicknessPc": 1000,
+    "reference": "https://ogle.astrouw.edu.pl/cont/4_main/str/3_dim_str/",
+    "note": "LMC: геометрия молодой популяции OGLE 2016, i=24,2°, PA=151,4°, восточная сторона ближе. Полутолщина 1 кпк — принятый запас модели, учитывающий отклонение северного рукава примерно на 0,5 кпк; не индивидуальная ошибка R136a1."
   }
 }

@@ -21,6 +21,7 @@ host={'raDeg':10.6847,'decDeg':41.26875,'d':2.5e6};member={'raDeg':10.7,'decDeg'
 p=locate(member,host,models['andromeda'],policy);assert p['accepted'] and p['mode']=='host-disk'
 strict={**policy,'hostMaxLocalEnvelopeFraction':p['localEnvelopeLy']/p['referenceScaleLy']*.99}
 assert not locate(member,host,models['andromeda'],strict)['accepted']
-assert locate({**member,'placement':'host-envelope'},host,models['andromeda'],policy)['localEnvelopeLy']==35000*PC
+unresolved=locate({**member,'placement':'host-envelope'},host,models['andromeda'],policy)
+assert unresolved['localEnvelopeLy']==35000*PC and not unresolved['accepted']
 outside=locate({**member,'raDeg':30},host,models['andromeda'],policy);assert outside is None or not outside['accepted']
 print('PASS observed membership selection, inclined-plane geometry, near side and policy boundaries')

@@ -7,9 +7,18 @@ const Cosmology={
  scale(t=this.time){return Math.exp(Math.min(80,this.logA(t)));},
  sync(s){this.time=Math.max(0,s.cosmicTime||0);this.enabled=s.expansion!==false;},
  elapse(s,years){s.universeElapsed=(s.universeElapsed||0)+years;if(s.expansion!==false)s.cosmicTime=(s.cosmicTime||0)+years;this.sync(s);},
- group(o){
-  if(!o?.p3)return null;if(Math.hypot(...o.p3)<4e6)return{id:'local-group',p3:[0,0,0],map:{x:0,y:0}};
-  if(o.parentGalaxy&&o.parentGalaxy!=='milkyway'){const g=OBJECTS.find(g=>g.id===o.parentGalaxy)||ExtendedCatalog.get(o.parentGalaxy);if(g&&g!==o)return this.group(g);}
+ group(o,depth=0){
+  if(!o?.p3)return null;if(depth>24)return{id:o.id||null,p3:o.p3,map:MapLayout.baseProject(o)};
+  // A nearby game star shares its host's translation, not an independent
+  // cosmological expansion of a 0.12 ly transfer. This is a local reference
+  // frame around the landmark, not a claim that an entire wall is bound.
+  if(o.synthetic&&o.parentObject){const host=OBJECTS.find(q=>q.id===o.parentObject)||ExtendedCatalog.get(o.parentObject);if(host&&host!==o&&host.parentObject!==o.id)return this.group(host,depth+1);}
+  // Ship coordinates are anonymous Space.point records. While parked or on a
+  // local leg, carry the same reference frame as the station/source object.
+  if(typeof state==='object'&&state?.ship===o){const id=state.current||(!state.flight?.cosmic?state.flight?.fromId:null),host=id&&(OBJECTS.find(q=>q.id===id)||ExtendedCatalog.get(id));if(host&&host!==o)return this.group(host,depth+1);}
+  if(Math.hypot(...o.p3)<4e6)return{id:'local-group',p3:[0,0,0],map:{x:0,y:0}};
+  if(o.boundSystemPrimary&&o.systemAnchorP3)return{id:'bound:'+o.boundSystemPrimary,p3:o.systemAnchorP3,map:MapLayout.base(o.systemAnchorP3)};
+  if(o.parentGalaxy&&o.parentGalaxy!=='milkyway'){const g=OBJECTS.find(g=>g.id===o.parentGalaxy)||ExtendedCatalog.get(o.parentGalaxy);if(g&&g!==o)return this.group(g,depth+1);}
   const saved=o.id&&this.cache.get(o.id);if(saved)return saved;
   let anchor=o;
   // Only individually identified virialised clusters are treated as bound, not superclusters/voids.
@@ -25,7 +34,7 @@ const Cosmology={
   for(const g of GALAXIES){if(view.span>g.diameterLy*4)continue;const q=MapLayout.project(g);if(Math.hypot(view.x-q.x,view.y-q.y)<g.diameterLy){const base=MapLayout.baseProject(g);return{...view,x:base.x+view.x-q.x,y:base.y+view.y-q.y};}}
   return{x:view.x/a,y:view.y/a,span:view.span/a};
  },
- physicalDistance(a,b){const pa=this.position(a),pb=this.position(b);return Math.hypot(...pa.map((v,i)=>v-pb[i]));},
+ physicalDistance(a,b){const ga=this.group(a),gb=this.group(b);if(ga?.id&&ga.id===gb?.id)return Space.distance(a,b);const pa=this.position(a),pb=this.position(b);return Math.hypot(...pa.map((v,i)=>v-pb[i]));},
  position(o){const a=this.scale(),g=this.group(o);if(!g||g.id==='local-group')return o.p3;return o.p3.map((v,i)=>v+g.p3[i]*(a-1));},
  regionScale(o){return ['structure','wall','void','ring','arc','horizon'].includes(o.kind)?this.scale():1;},
  // Integrate a freely moving massive particle: a*gamma*beta is conserved.

@@ -7,7 +7,7 @@ const el=id=>els.get(id)||(els.set(id,new Element),els.get(id));
 const context=vm.createContext({console,performance,Math,JSON,Number,Array,String,Set,Map,Date,setTimeout:()=>0,clearTimeout(){},requestAnimationFrame(){},ResizeObserver:class{observe(){}},document:{documentElement:{dataset:{theme:'dark'}},querySelector:()=>null,getElementById:el,querySelectorAll:()=>[],addEventListener(){},createElement:()=>new Element,hidden:false},window:{devicePixelRatio:1,addEventListener(){},open(){}},localStorage:{getItem(){return null},setItem(){}},assert});
 
 
-vm.runInContext(['dist/catalog.js','dist/astronomy.js','dist/catalog-import.js','dist/catalog-retired.js','dist/coordinates.js','dist/cosmic-catalog.js','dist/layout-data.js','dist/map-layout.js','dist/cosmology.js','dist/map-details.js','dist/catalog-extended.js','dist/catalog-stream.js','dist/nuclear-stars-data.js','dist/nuclear-stars.js','dist/regions.js','dist/flight-view.js','dist/flight-marks.js','dist/physics.js','dist/flyby.js','dist/navigation.js','dist/simulation.js','dist/app.js'].map(p=>fs.readFileSync(p,'utf8')).join('\n'),context);
+vm.runInContext(['dist/catalog.js','dist/astronomy.js','dist/catalog-import.js','dist/catalog-retired.js','dist/coordinates.js','dist/cosmic-catalog.js','dist/layout-data.js','dist/map-layout.js','dist/cosmology.js','dist/map-details.js','dist/catalog-extended.js','dist/catalog-stream.js','dist/map-layer-data.js','dist/map-layers.js','dist/nuclear-stars-data.js','dist/nuclear-stars.js','dist/regions.js','dist/flight-view.js','dist/flight-marks.js','dist/beam-spectra.js','dist/beam-optics.js','dist/physics.js','dist/orbital-motion.js','dist/flyby.js','dist/navigation.js','dist/simulation.js','dist/app.js'].map(p=>fs.readFileSync(p,'utf8')).join('\n'),context);
 context.CATALOG_AUDIT=JSON.parse(fs.readFileSync('data-tools/selection-audit.json','utf8'));
 const run=s=>vm.runInContext(s,context);
 run(`
@@ -38,7 +38,7 @@ assert.equal(CATALOG_COUNTS.all,1066+EXTENDED_BOOT.members.length+NuclearStars.r
 // Sample actual animation frames with a fixed camera. Moving ship/flight labels
 // must never move stars, displace an atlas label or introduce a trajectory caption.
 state=initial();state.selected='alpha';launch(true);cam={x:0,y:0,span:24};cameraGoal=null;
-function chartFrame(){MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawRoute();drawObjects();drawShip(0);MapLabels.draw();return{symbols:JSON.stringify(hitObjects.map(h=>[h.o.id,h.p])),labels:JSON.stringify(MapLabels.placed.filter(q=>!MapLabels.dynamic(q.key)))};}
+function chartFrame(){MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawRoute();drawObjects();drawShip(0);MapLabels.draw();return{symbols:JSON.stringify(hitObjects.filter(h=>!['alpha','hyg-71453','proxima'].includes(h.o.id)&&!h.o.nuclearStar).map(h=>[h.o.id,h.p])),labels:JSON.stringify(MapLabels.placed.filter(q=>!MapLabels.dynamic(q.key)&&!['object-alpha','object-hyg-71453','object-proxima'].includes(q.key)))};}
 const fixed=chartFrame();for(let i=0;i<1500&&state.flight;i++){Simulation.advance(1/60);if(!state.flight)break;const current=chartFrame();assert.equal(current.symbols,fixed.symbols,'star symbols remain fixed');assert.equal(current.labels,fixed.labels,'atlas labels remain fixed throughout flight');assert.ok(!MapLabels.queue.some(q=>q.key==='course'));}
 // Changing card height when engines switch off must not reflow the atlas.
 // Restore the same flight view for the independent card-height regression.
