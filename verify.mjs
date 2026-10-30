@@ -31,6 +31,8 @@ import './verify-map-landmarks.mjs';
 
 import './verify-map-discovery.mjs';
 
+import './verify-map-names.mjs';
+
 import './verify-stellar-cluster-map.mjs';
 
 import './verify-milkyway-layout.mjs';

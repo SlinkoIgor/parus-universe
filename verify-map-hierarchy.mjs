@@ -24,7 +24,7 @@ run(`{
  for(const id of ['virgo','coma'])assert.equal(MapDetails.mapLabelName(object(id)),object(id).name);
  for(const name of ['Abell 2744','Скопление галактик 123','SDSS filament 6656','Tempel filament 6656'])assert.equal(MapDetails.mapLabelName({kind:'cluster',catalogClass:'galaxy-cluster',name}),null);
  assert.equal(MapDetails.mapLabelName({kind:'structure',cosmicSubtype:'filament',name:'Нить в Волосах Вероники'}),'Нить в Волосах Вероники');
- assert.equal(MapDetails.mapLabelName({kind:'cluster',catalogClass:'stellar-cluster',name:'HSC 2515'}),'HSC 2515','stellar cluster labels keep their existing policy');
+ assert.equal(MapDetails.mapLabelName({kind:'cluster',catalogClass:'stellar-cluster',name:'HSC 2515'}),null,'numbered stellar clusters follow the same policy');
  assert.equal(JSON.stringify(labelSourceRows),snapshot,'display names never mutate catalogue rows');
 }`);
 

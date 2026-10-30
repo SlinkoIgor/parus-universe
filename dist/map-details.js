@@ -1,7 +1,7 @@
 'use strict';
 // Display hierarchy and one collision budget for every atlas label.
 const MapDetails={
- massCache:new WeakMap(),
+ massCache:new WeakMap(),nameCache:new WeakMap(),
  typeName(o){
   if(o.catalogClass==='galaxy-cluster')return 'Скопление галактик';
   if(o.cosmicSubtype==='filament')return 'Галактический филамент';
@@ -47,10 +47,16 @@ const MapDetails={
  massOrder(a,b){const ma=this.mass(a),mb=this.mass(b);return ma!==null&&mb!==null?mb-ma:ma!==null?-1:mb!==null?1:0;},
  group(o){if(o.cosmicSubtype)return o.cosmicSubtype;if(o.kind==='cluster'){if(o.catalogClass==='stellar-cluster'||o.catalogClass==='galaxy-cluster')return o.catalogClass;return /галактик/i.test([o.type,o.name,o.facts?.class].join(' '))?'galaxy-cluster':'stellar-cluster';}return o.kind;},
  mapLabelName(o){
-  if(!['galaxy-cluster','filament'].includes(this.group(o)))return o.name;
-  // Catalogue identifiers remain in the atlas/card, without crowding the map.
-  const named=value=>/\p{L}/u.test(value||'')&&!/\d/.test(value);
-  return [o.name,...(o.aliases||[])].find(named)||null;
+  const group=this.group(o),key=[o.name,o.aliases,o.synthetic,o.galaxyMember,o.bulkGalaxyMember,group],cached=this.nameCache.get(o);
+  if(cached&&key.every((v,i)=>v===cached.key[i]))return cached.value;
+  // Member aliases also contain the host's name: it is not the star's name.
+  const aliases=o.galaxyMember||o.bulkGalaxyMember?[]:o.aliases||[];
+  const generic=/^(?:звезда|зв[её]зд|галактика|галактик|скопление|сверхскопление|туманность|пульсар|квазар|ч[её]рная|дыра|филамент|нить|стена|войд|неизвестная|star|galaxy|cluster|supercluster|nebula|pulsar|quasar|black|hole|filament|wall|void|unknown|unnamed|HIP|HYG|HD|HR|GJ|GL|NGC|IC|PGC|UGC|MCXC|RXC|SDSS|OGLE|LGGS|PHAT|HSC|ATNF|PSR)$/i;
+  const candidates=[o.name,...aliases].flatMap(value=>String(value||'').split('·').map(s=>s.trim()));
+  // Descriptive structure names may carry a survey qualifier, e.g. CfA2.
+  const descriptive=['wall','structure','ring','arc'].includes(group);
+  const value=o.synthetic?null:candidates.find(name=>/\p{L}/u.test(name)&&(!/[0-9]/.test(name)||descriptive)&&name.split(/\s+/).some(word=>/\p{L}/u.test(word)&&!/[0-9]/.test(word)&&!generic.test(word)))||null;
+  this.nameCache.set(o,{key,value});return value;
  },
  level(o){return({home:0,star:0,pulsar:0,blackhole:0,nebula:1,'stellar-cluster':1,galaxy:2,quasar:2,'galaxy-cluster':3,filament:4,supercluster:4,structure:4,wall:4,ring:4,arc:4,void:4,horizon:4})[this.group(o)]??0;},
  maxSpan(o){
@@ -143,12 +149,13 @@ const MapLabels={
  point({key,name,detail,p,object,mass=null,level=0,priority=20,selected=false,opacity=1,size,sparse=false,onPlace}){
   this.add({key,name,detail,object,mass,level,priority,size:size||(selected?12:10),opacity,sparse,p,onPlace,color:selected?'#171717':'#454545',candidates:[{x:p.x+19,y:p.y-18,align:'left'}]});
  },
- draw(){this.queue.sort((a,b)=>Number(this.dynamic(a.key))-Number(this.dynamic(b.key))||Number(!!a.sparse)-Number(!!b.sparse)||(b.level||0)-(a.level||0)||(a.sparse&&b.sparse?Number(MapDetails.landmark(b.object))-Number(MapDetails.landmark(a.object)):0)||((b.mass??-Infinity)-(a.mass??-Infinity)||0)||b.priority-a.priority||a.key.localeCompare(b.key));for(const q of this.queue){if(q.sparse&&!MapLandmarks.available(q.p,q.object))continue;const mapName=q.object?MapDetails.mapLabelName(q.object):q.name;if(mapName===null){if(q.sparse)q.onPlace?.();continue;}const name=q.object&&mapName!==q.object.name?(q.key.startsWith('region-')?mapName.toUpperCase():mapName):q.name,detail=typeof q.detail==='function'?q.detail():q.detail,size=q.size||9;ctx.font=size+'px "Golos Text",Arial,sans-serif';const mainWidth=ctx.measureText(name).width;ctx.font='7px "IBM Plex Mono",monospace';const detailWidth=detail?ctx.measureText(detail).width:0,w=Math.max(mainWidth,detailWidth)+12,h=detail?33:20;
+ draw(){this.queue.sort((a,b)=>Number(this.dynamic(a.key))-Number(this.dynamic(b.key))||Number(!!a.sparse)-Number(!!b.sparse)||(b.level||0)-(a.level||0)||(a.sparse&&b.sparse?Number(MapDetails.landmark(b.object))-Number(MapDetails.landmark(a.object)):0)||((b.mass??-Infinity)-(a.mass??-Infinity)||0)||b.priority-a.priority||a.key.localeCompare(b.key));for(const q of this.queue){if(q.sparse&&!MapLandmarks.available(q.p,q.object))continue;const mapName=q.object?MapDetails.mapLabelName(q.object):q.name;if(mapName===null){if(q.sparse)q.onPlace?.();continue;}const name=q.object&&mapName!==q.object.name?(/^(region|galaxy)-/.test(q.key)?mapName.toUpperCase():mapName):q.name,detail=typeof q.detail==='function'?q.detail():q.detail,size=q.size||9;ctx.font=size+'px "Golos Text",Arial,sans-serif';const mainWidth=ctx.measureText(name).width;ctx.font='7px "IBM Plex Mono",monospace';const detailWidth=detail?ctx.measureText(detail).width:0;
   const candidates=q.key.startsWith('galaxy-')?q.candidates.slice(0,1):q.candidates;
+  let placed=false;for(const caption of detail?(q.object?[detail,null]:[detail]):[null]){const w=Math.max(mainWidth,caption?detailWidth:0)+12,h=caption?33:20;
   for(const p of candidates){const x=p.align==='right'?p.x-w:p.align==='center'?p.x-w/2:p.x,box={x:x-4,y:p.y-size-5,w:w+8,h};if(box.x<8||box.x+box.w>width-8||box.y<8||box.y+box.h>height-8||this.boxes.some(b=>this.overlaps(box,b))||q.sparse&&!MapLandmarks.labelClear(box,q.object))continue;
    if(!this.dynamic(q.key))this.slots.set(q.key,q.candidates.indexOf(p));
-   this.boxes.push(box);this.placed.push({key:q.key,...box});ctx.save();ctx.globalAlpha=q.opacity??1;text(name,p.x,p.y,size,q.color||'#646464',p.align||'left','sans');if(detail)text(detail,p.x,p.y+14,7,'#999999',p.align||'left');ctx.restore();if(!q.sparse)q.onPlace?.(box);break;
-  }
+   this.boxes.push(box);this.placed.push({key:q.key,...box});ctx.save();ctx.globalAlpha=q.opacity??1;text(name,p.x,p.y,size,q.color||'#646464',p.align||'left','sans');if(caption)text(caption,p.x,p.y+14,7,'#999999',p.align||'left');ctx.restore();if(!q.sparse)q.onPlace?.(box);placed=true;break;
+  }if(placed)break;}
   if(q.sparse)q.onPlace?.();
  }}
 };
