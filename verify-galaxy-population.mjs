@@ -26,6 +26,7 @@ for(const m of input.objects){
 const diskInput=JSON.parse(fs.readFileSync('data-tools/galaxy-disk-objects.json','utf8')).objects;
 const diskAudit=new Map(JSON.parse(fs.readFileSync('data-tools/galaxy-disk-audit.json','utf8')).rows.map(q=>[q.id,q]));
 const diskStars=diskInput.filter(m=>m.kind==='star').map(m=>{const q=diskAudit.get(m.id),r=read(q?.action==='alias-of-existing-member'?q.target:m.id);assert.ok(r,m.id);return r;});
+context.nebulaDisplayRows=diskInput.filter(m=>m.kind==='nebula').map(m=>{const r=read(m.id);assert.ok(r,m.id);return r;});
 context.populationDisplayRows=[...input.objects.map(m=>read(m.id)),...diskStars];
 run(`{
  const snapshot=JSON.stringify(populationDisplayRows),stars=populationDisplayRows.map(r=>ExtendedCatalog.decode(r));
@@ -48,6 +49,20 @@ run(`{
  }
 }`);
 console.log('PASS every OGLE/LGGS star retains host/population-scale visibility, resolved Cloud/M31/M33 rendering in both themes, ordinary/game-star cutoffs and unchanged source rows');
+run(`{
+ assert.equal(nebulaDisplayRows.length,250);
+ const snapshot=JSON.stringify(nebulaDisplayRows),wasActive=MapLayers.active;MapLayers.active=true;
+ MapLayers.visible=[];MapLayers.visibleMap.clear();for(const category of MapLayers.categories)MapLayers.ready.set(category,true);
+ for(const row of nebulaDisplayRows){const o=ExtendedCatalog.decode(row),hostSpan=o.hostDiameterLy*5;
+  assert.ok(o.galaxyMember&&o.bulkGalaxyMember&&!o.atlasOnly);
+  assert.equal(MapDetails.maxSpan(o),Math.max(300000,hostSpan),'all resolved nebulae retain both host and class scale');
+  assert.ok(MapDetails.visible(o,hostSpan*.79),'nebula cannot disappear while its host stars are still primary');
+  if(hostSpan*.79>300000){cam.span=hostSpan*.79;assert.ok(ExtendedCatalog.matchesMap(o),'host-scale nebula is admitted when the generic complete nebula layer is disabled');}
+ }
+ assert.equal(JSON.stringify(nebulaDisplayRows),snapshot,'display policy preserves source sizes and positions');
+ MapLayers.active=wasActive;
+}`);
+console.log('PASS all 250 resolved M31/M33 nebulae retain host and nebula scales; larger objects remain alongside host stars without source changes');
 for(const host of ['lmc','smc']){
  const group=input.objects.filter(m=>m.host===host),rows=group.map(m=>read(m.id));
  assert.ok(new Set(rows.map(r=>r[3])).size>500,'individual distances do not form a shared shell');

@@ -47,7 +47,9 @@ const MapLayers={
  },
  admits(o){
   if(!this.active)return true;
-  if(this.manages(o)&&!ExtendedCatalog.coreIndex?.has(o.id)&&!ExtendedCatalog.pinned.has(o.id)&&!this.visibleMap.has(o.id))return false;
+  // Beyond a complete layer's range, the bounded point catalogue may still
+  // supply host-scale members or isolated representatives of that category.
+  if(this.manages(o)&&this.enabled(this.category(o))&&!MapDetails.sparse(o,cam.span)&&!ExtendedCatalog.coreIndex?.has(o.id)&&!ExtendedCatalog.pinned.has(o.id)&&!this.visibleMap.has(o.id))return false;
   const level=MapDetails.level(o);
   // A small landmark can survive far past its own class. Wait for every
   // enabled coarser layer there, so an unloaded structure is never a gap.

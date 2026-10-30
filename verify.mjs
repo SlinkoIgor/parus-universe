@@ -29,6 +29,8 @@ import './verify-map-hierarchy.mjs';
 
 import './verify-map-landmarks.mjs';
 
+import './verify-map-discovery.mjs';
+
 import './verify-stellar-cluster-map.mjs';
 
 import './verify-milkyway-layout.mjs';
