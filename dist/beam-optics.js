@@ -38,15 +38,22 @@ const BeamOptics={
   const lo=hi-1,t=Math.max(0,Math.min(1,(days-p.days[lo])/(p.days[hi]-p.days[lo])));
   return{wavelengths:BeamSpectra.wavelengths,a:p.weights[lo],b:p.weights[hi],t};
  },
- fraction(distanceM,sourceYears,spectrum,diameterM=1000,sailRadiusM=50){
+ fraction(distanceM,sourceYears,spectrum,diameterM=1000,sailRadiusM=50,divergenceDeg=0,diffraction=true){
   if(!(distanceM>0))return 1;
+  // With diffraction disabled only the configured uniform geometric cone
+  // remains. A zero angle is the explicitly ideal, distance-independent beam.
+  if(!diffraction){const radius=distanceM*Math.tan(divergenceDeg*Math.PI/360);return radius>0?Math.min(1,(sailRadiusM/radius)**2):1;}
+  // Approximate additional geometric cone blur in quadrature with diffraction.
+  // The far-cone limit is sail area / beam area, with no extra divergence at 0°.
+  const blur=Math.PI*diameterM*Math.tan(divergenceDeg*Math.PI/360)/2;
   const bands=this.bands(spectrum,sourceYears),k=Math.PI*diameterM*sailRadiusM/distanceM;let power=0;
-  for(let i=0;i<bands.wavelengths.length;i++)power+=((1-bands.t)*bands.a[i]+bands.t*bands.b[i])*this.encircled(k/bands.wavelengths[i]);
+  for(let i=0;i<bands.wavelengths.length;i++)power+=((1-bands.t)*bands.a[i]+bands.t*bands.b[i])*this.encircled(k/Math.hypot(bands.wavelengths[i],blur));
   return Math.max(0,Math.min(1,power));
  },
  // E(x)<=x²/4 bounds the total future work even before Doppler losses.
- remainingWork(power,distanceM,spectrum,diameterM=1000,sailRadiusM=50){
+ remainingWork(power,distanceM,spectrum,diameterM=1000,sailRadiusM=50,divergenceDeg=0,diffraction=true){
   if(!(distanceM>0))return Infinity;
+  if(!diffraction){const angle=Math.tan(divergenceDeg*Math.PI/360);return angle>0?2*power/299792458*(sailRadiusM/angle)**2/distanceM:Infinity;}
   const b=this.bands(spectrum),k=Math.PI*diameterM*sailRadiusM;let moment=0;
   for(let i=0;i<b.wavelengths.length;i++)moment+=b.a[i]/b.wavelengths[i]**2;
   return 2*power/299792458*k*k*moment/(4*distanceM);

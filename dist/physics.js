@@ -1,19 +1,62 @@
 'use strict';
 // SI for forces; rocket masses in tonnes, trajectories in Julian years/light-years.
-const SHIP=Object.freeze({dryMassKg:1,fuelCapacityKg:1,sailDiameterM:100,sailAreaM2:Math.PI*50**2,sailArealDensityKgM2:.0001,sailMassKg:Math.PI*50**2*.0001});
+// All numeric assumptions belong to a setup. The temporary context is synchronous
+// and restored in finally, so previewing a draft cannot change the active ship.
+const ShipPhysics={
+ fields:{
+  dryMassKg:[1,.001,1e6,'Сухая масса корабля','кг'],
+  sailDiameterM:[100,.01,1e6,'Диаметр паруса','м'],
+  reflectivityPercent:[100,0,100,'Отражение паруса','% · остальная энергия поглощается'],
+  collectorDiameterM:[.1*149597870700,1,Infinity,'Диаметр оптического коллектора','м'],
+  divergenceDeg:[0,0,10,'Расходимость коллектора','градусы · полный угол сверх дифракции'],
+  opticalEfficiencyPercent:[100,.01,100,'Передача света коллектором','%'],
+  engineEfficiencyPercent:[100,.1,100,'Эффективность двигателя','% массы, превращаемой в направленный свет'],
+  enginePowerW:[3e15,1,1e30,'Предельная мощность двигателя','Вт · до потерь'],
+  maxAccelerationG:[10,0,Infinity,'Максимальное ускорение','g · больше нуля'],
+  maxBrakingG:[10,0,Infinity,'Максимальное торможение','g · больше нуля'],
+  burstDays:[30,.001,1e6,'Длительность светимости сверхновой','сутки у источника'],
+  burstLuminosityW:[1.2e35,1,1e50,'Светимость сверхновой','Вт · модельная прямоугольная вспышка'],
+  collectorMinAu:[100,.001,1e6,'Дистанция коллектора от центра звезды','а.е. · не ближе 1,2 радиуса звезды'],
+  dustMassPercent:[1,0,99.9,'Доля пыли в среде','% массы смеси газа и пыли']
+ },
+ context:null,
+ positiveFields:new Set(['maxAccelerationG','maxBrakingG']),
+ number(k,v){const[d,lo,hi]=this.fields[k];return v!==null&&v!==undefined&&Number.isFinite(+v)&&(!this.positiveFields.has(k)||+v>0)?Math.max(lo,Math.min(hi,+v)):d;},
+ normalize(c={}){return Object.fromEntries(Object.keys(this.fields).map(k=>[k,this.number(k,c[k])]));},
+ current(){if(this.context)return this.context;try{return state?.flight?.mission?.setup||state?.flightSetup||{};}catch{return{};}},
+ value(k){return this.number(k,this.current()[k]);},
+ run(c,fn){const previous=this.context;this.context=this.normalize(c);try{return fn();}finally{this.context=previous;}},
+ get efficiency(){return this.value('engineEfficiencyPercent')/100;},
+ get reflection(){return 1+this.value('reflectivityPercent')/100;}
+};
+const SHIP=Object.freeze({get dryMassKg(){return ShipPhysics.value('dryMassKg');},fuelCapacityKg:1,get sailDiameterM(){return ShipPhysics.value('sailDiameterM');},get sailAreaM2(){return Math.PI*(this.sailDiameterM/2)**2;},sailArealDensityKgM2:.0001,get sailMassKg(){return this.sailAreaM2*this.sailArealDensityKgM2;}});
 const Rocket=Object.freeze({
- c:299792458,year:31557600,dryMass:.001,get fuelCapacity(){return (typeof state==='object'&&state?state.tankCapacityKg||1:1)/1000;},initialFuel:.001,power:3e15,
- maxG:100,
+ c:299792458,year:31557600,get dryMass(){return SHIP.dryMassKg/1000;},get fuelCapacity(){return (typeof state==='object'&&state?state.tankCapacityKg||1:1)/1000;},initialFuel:.001,get power(){return ShipPhysics.value('enginePowerW');},
+ get maxG(){return ShipPhysics.value('maxAccelerationG');},
  usableFuel(fuel){return Number.isFinite(fuel)&&fuel>this.dryMass*64*Number.EPSILON?fuel:0;},
  massFlow(){return this.power/(this.c*this.c)*this.year/1000;},
- beta(m0,m){return Math.tanh(Math.log(m0/m));},
- acceleration(m,maxG=this.maxG){return Math.min(maxG*9.80665,this.power/(this.c*m*1000));},
- burnedIn(m,years,maxG=this.maxG){return Math.min(this.massFlow()*years,-m*Math.expm1(-maxG*9.80665*this.year*years/this.c));},
+ beta(m0,m){return Math.tanh(ShipPhysics.efficiency*Math.log(m0/m));},
+ acceleration(m,maxG=this.maxG){return Math.min(maxG*9.80665,this.power*ShipPhysics.efficiency/(this.c*m*1000));},
+ massAfter(m,years,maxG=this.maxG){
+  const eff=ShipPhysics.efficiency,threshold=this.power*eff/(this.c*maxG*9.80665)/1000,flow=this.massFlow(),powerTime=Math.max(0,m-threshold)/flow;
+  if(years<=powerTime)return Math.max(0,m-flow*years);
+  return Math.min(m,threshold)*Math.exp(-maxG*9.80665*this.year*(years-powerTime)/(this.c*eff));
+ },
+ burnedIn(m,years,maxG=this.maxG){return Math.max(0,m-this.massAfter(m,years,maxG));},
  energy(dm){return dm*1000*this.c*this.c;},
+ leg(ma,mb,etaA,direction,maxG){
+  const eff=ShipPhysics.efficiency,threshold=this.power*eff/(this.c*maxG*9.80665)/1000;
+  if(ma>threshold&&mb<threshold){const first=this.leg(ma,threshold,etaA,direction,maxG),second=this.leg(threshold,mb,Math.atanh(first.beta),direction,maxG);return{proper:first.proper+second.proper,earth:first.earth+second.earth,distance:first.distance+second.distance,beta:second.beta,energy:first.energy+second.energy};}
+  const log=Math.log1p((ma-mb)/mb),delta=eff*log,etaB=Math.max(0,etaA+direction*delta),k=this.c/(maxG*9.80665*this.year);
+  if(ma<=threshold*(1+1e-12))return{proper:k*delta,earth:direction*k*(Math.sinh(etaB)-Math.sinh(etaA)),distance:direction*k*2*Math.sinh((etaB+etaA)/2)*Math.sinh((etaB-etaA)/2),beta:Math.tanh(etaB),energy:this.energy(ma-mb)};
+  const integral=z=>Math.abs(z)<1e-12?log:-Math.expm1(-z*log)/z,factor=1000*this.c**2/(this.power*this.year),plus=Math.exp(etaA)*integral(1-direction*eff),minus=Math.exp(-etaA)*integral(1+direction*eff);
+  let path=ma*(plus-minus)/2;
+  if(Math.abs(plus-minus)<1e-7*(plus+minus)){path=0;for(let i=0;i<8;i++){const m=(ma+mb)/2+(ma-mb)*QUAD_X[i]/2;path+=QUAD_W[i]*Math.sinh(etaA+direction*eff*Math.log(ma/m))*(ma-mb)/2;}}
+  return{proper:factor*(ma-mb),earth:factor*ma*(plus+minus)/2,distance:factor*Math.max(0,path),beta:Math.tanh(etaB),energy:this.energy(ma-mb)};
+ },
  segment(m0,ma,mb,eta0=0,maxG=this.maxG){
   if(!(m0>=ma&&ma>=mb&&mb>=this.dryMass*(1-1e-12)))throw new RangeError('Invalid rocket mass');
-  const delta=Math.log1p((ma-mb)/mb),etaA=eta0+Math.log(m0/ma),etaB=etaA+delta,k=this.c/(maxG*9.80665*this.year);
-  return{proper:k*delta,earth:k*(Math.sinh(etaB)-Math.sinh(etaA)),distance:k*2*Math.sinh((etaB+etaA)/2)*Math.sinh((etaB-etaA)/2),beta:Math.tanh(etaB),energy:this.energy(ma-mb)};
+  return this.leg(ma,mb,eta0+ShipPhysics.efficiency*Math.log(m0/ma),1,maxG);
  },
  plan(fuel,distance=Infinity,startBeta=0,maxG=this.maxG){
   // Use all available propellant. Magnetic capture supplies the final reverse burn.
@@ -22,12 +65,9 @@ const Rocket=Object.freeze({
   const mf=this.dryMass,leg=this.segment(m0,m0,mf,eta0,maxG);
   return{fullTank:true,m0,mf,eta0,maxG,budget,burned:0,initialFuel:fuel,beta:leg.beta,burnDistance:leg.distance,burnProper:leg.proper,burnEarth:leg.earth,energy:0,direction:1};
  },
- retroSegment(m0,eta0,ma,mb,maxG=this.maxG){
-  const delta=Math.log1p((ma-mb)/mb),etaA=Math.max(0,eta0-Math.log(m0/ma)),etaB=Math.max(0,etaA-delta),k=this.c/(maxG*9.80665*this.year);
-  return{proper:k*(etaA-etaB),earth:k*(Math.sinh(etaA)-Math.sinh(etaB)),distance:k*2*Math.sinh((etaB+etaA)/2)*Math.sinh((etaA-etaB)/2),beta:Math.tanh(etaB),energy:this.energy(ma-mb)};
- },
+ retroSegment(m0,eta0,ma,mb,maxG=this.maxG){return this.leg(ma,mb,Math.max(0,eta0-ShipPhysics.efficiency*Math.log(m0/ma)),-1,maxG);},
  retroPlan(fuel,beta,maxG=this.maxG){
-  const m0=this.dryMass+Math.max(0,fuel),eta0=Math.atanh(Math.max(0,Math.min(1-Number.EPSILON,beta))),mf=m0*Math.exp(-eta0),budget=m0-mf;
+  const m0=this.dryMass+Math.max(0,fuel),eta0=Math.atanh(Math.max(0,Math.min(1-Number.EPSILON,beta))),mf=m0*Math.exp(-eta0/ShipPhysics.efficiency),budget=m0-mf;
   const canStop=mf>=this.dryMass*(1-1e-10),leg=this.retroSegment(m0,eta0,m0,Math.max(this.dryMass,mf),maxG);
   return{m0,mf:Math.max(this.dryMass,mf),eta0,maxG,budget:Math.min(fuel,budget),burned:0,initialFuel:fuel,beta:0,burnDistance:leg.distance,burnProper:leg.proper,burnEarth:leg.earth,energy:0,direction:-1,canStop};
  }
@@ -36,8 +76,8 @@ const LY=Rocket.c*Rocket.year;
 const QUAD_X=[-.9602898564975363,-.7966664774136267,-.525532409916329,-.1834346424956498,.1834346424956498,.525532409916329,.7966664774136267,.9602898564975363];
 const QUAD_W=[.1012285362903763,.2223810344533745,.3137066458778873,.362683783378362,.362683783378362,.3137066458778873,.2223810344533745,.1012285362903763];
 const Stellar=Object.freeze({
- luminosity:1.2e35,r0:149597870700,foldRatio:1e10,pulseYears:30/365.25,duration:8,
- collectorDiameterM:1000,
+ get luminosity(){return ShipPhysics.value('burstLuminosityW');},r0:149597870700,foldRatio:1e10,get pulseYears(){return ShipPhysics.value('burstDays')/365.25;},duration:8,
+ get collectorDiameterM(){return ShipPhysics.value('collectorDiameterM');},
  stellarLight(star){
   const facts=star?.facts||{},spectral=String(star?.spectral||facts.class||star?.type||'G2V'),letter=(spectral.match(/(?:^|\s|·)([OBAFGKM])\s*\d/i)||spectral.match(/([OBAFGKM])\d/i))?.[1]?.toUpperCase()||(/красн/i.test(spectral)?'M':/оранж/i.test(spectral)?'K':'G');
   let solar=star?.bolometricLuminositySolar??facts.lum??(typeof STAR_FACTS==='object'?STAR_FACTS[star?.id]?.lum:null),estimated=!(solar>0),basis='Каталожная болометрическая светимость';
@@ -45,10 +85,10 @@ const Stellar=Object.freeze({
   const radiusText=String(facts.radius||'').replace(/\s/g,''),match=radiusText.match(/([\d.,]+)(?:[–−-]([\d.,]+))?R☉/),temperature={O:35000,B:18000,A:8500,F:6500,G:5600,K:4500,M:3200}[letter];
   const radiusSolar=star?.radiusSolar>0?star.radiusSolar:match?Number((match[2]||match[1]).replace(',','.')):Math.sqrt(solar)*(5772/temperature)**2;
   const temperatureK=star?.temperatureK>0?star.temperatureK:5772*(solar/(radiusSolar*radiusSolar))**.25;
-  return{watts:solar*3.828e26,solar,estimated,basis,temperatureK,collectorR:Math.max(this.r0,1.2*radiusSolar*6.957e8)};
+  return{watts:solar*3.828e26,solar,estimated,basis,temperatureK,collectorR:Math.max(this.r0*ShipPhysics.value('collectorMinAu'),1.2*radiusSolar*6.957e8)};
  },
  // Frozen ideal-beam API for legacy flights; new plans use BeamOptics below.
- sourcePlan(star,mode,massKg,distanceLy,startBeta=0,startR=this.r0,maxG=100,pulseYears=null,epoch=0,cosmic=false,expansion=true){
+ sourcePlan(star,mode,massKg,distanceLy,startBeta=0,startR=this.r0,maxG=Rocket.maxG,pulseYears=null,epoch=0,cosmic=false,expansion=true){
   if(mode==='burst'&&star?.id==='sol')throw new RangeError('Solar bursts are forbidden');
   const light=this.stellarLight(star),luminosity=mode==='burst'?this.luminosity:light.watts,collectorR=light.collectorR,power=luminosity*Math.min(1,this.collectorDiameterM**2/(16*collectorR**2)),a=maxG*9.80665,eta0=Math.atanh(startBeta),switchEta=Math.max(eta0,.5*Math.log(2*power/(massKg*Rocket.c*a))),scale=Rocket.c/(a*Rocket.year);
   const distanceAt=e=>{const cap=Math.min(e,switchEta),base=scale*(Math.cosh(cap)-Math.cosh(eta0));return base+(e>switchEta?this.beamLeg(power,massKg,switchEta,e).distance:0);};
@@ -62,7 +102,7 @@ const Stellar=Object.freeze({
  // is fixed at the source; no inverse-square dilution along the flight path.
  collectedPower(diameter,collectorR=this.r0){return this.luminosity*Math.min(1,diameter**2/(16*collectorR**2));},
  beamForce(power,beta){return 2*power/Rocket.c*(1-beta)/(1+beta);},
- forSail(sail,massKg=Rocket.dryMass*1000,startBeta=0,startR=this.r0,maxG=100,pulseYears=this.pulseYears){
+ forSail(sail,massKg=Rocket.dryMass*1000,startBeta=0,startR=this.r0,maxG=Rocket.maxG,pulseYears=this.pulseYears){
   return this.plan(massKg,sail.areaM2,startBeta,startR,maxG,pulseYears,sail.targetBeta,sail.collectorDiameterM?this.collectedPower(sail.collectorDiameterM,sail.collectorR):0);
  },
  beamLeg(power,massKg,etaA,etaB){
@@ -109,7 +149,7 @@ const Stellar=Object.freeze({
   for(let i=0;i<8;i++){const s=mid+half*QUAD_X[i],x=plan.startR*s*s,beta=this.betaAt(plan,x),dt=2*plan.startR*s/(Rocket.c*Math.max(beta,1e-100));earth+=QUAD_W[i]*dt;proper+=QUAD_W[i]*dt*Math.sqrt(Math.max(0,1-beta*beta));}
   return{earth:earth*half/Rocket.year,proper:proper*half/Rocket.year};
  },
- plan(massKg,area,startBeta=0,startR=this.r0,maxG=100,pulseYears=this.pulseYears,targetBeta=1,beamPower=0){
+ plan(massKg,area,startBeta=0,startR=this.r0,maxG=Rocket.maxG,pulseYears=this.pulseYears,targetBeta=1,beamPower=0){
   if(beamPower>0)return this.beamPlan(massKg,area,startBeta,startR,maxG,pulseYears,targetBeta,beamPower);
   const a=maxG*9.80665,eta0=Math.atanh(startBeta),ell=Rocket.c**2/a,needed=eta=>{const r=startR+ell*(Math.cosh(eta)-Math.cosh(eta0));return massKg*a*Rocket.c*4*Math.PI*r*r*Math.exp(2*eta)/(2*this.luminosity);};
   let lo=eta0,hi=Math.max(eta0+1,18);for(let i=0;i<70;i++){const mid=(lo+hi)/2;if(needed(mid)<area)lo=mid;else hi=mid;}
@@ -154,7 +194,7 @@ const GasMedium={
  forLeg(from,target,sail=0){return{...this.at(),area:SAILS[0].areaM2,model:this.model};}
 };
 const Magnetic=Object.freeze({
- n:1e6,protonMass:1.67262192369e-27,area:Math.PI*50**2,fineBeta:.01,duration:10,maxG:100,dustToGas:.01/ .99,
+ n:1e6,protonMass:1.67262192369e-27,get area(){return SHIP.sailAreaM2;},fineBeta:.01,duration:10,get maxG(){return ShipPhysics.value('maxBrakingG');},get dustToGas(){const fraction=ShipPhysics.value('dustMassPercent')/100;return fraction/(1-fraction);},
  context(){return typeof state==='object'&&state?(state.flight?.medium||GasMedium.forLeg(state.ship,object(state.selected)||state.ship,state.sail)):{n:this.n,area:this.area};},
  gasDensity(n=this.n){return n*this.protonMass;},dustDensity(n=this.n){return this.gasDensity(n)*this.dustToGas;},rho(n=this.n){return this.gasDensity(n)+this.dustDensity(n);},k(){const m=this.context();return this.rho(m.n)*m.area;},
  half(beta){return beta/(1+Math.sqrt(Math.max(0,1-beta*beta)));},
@@ -173,7 +213,7 @@ const Magnetic=Object.freeze({
   const h0=this.half(beta0),h=this.half(beta),base=massKg/(k*Rocket.c*Rocket.year);
   return{earth:base*(Math.sqrt(1-beta*beta)/beta-Math.sqrt(1-beta0*beta0)/beta0),proper:base*(1/beta-1/beta0),distance:massKg/(k*LY)*Math.log(h0/h),heat:massKg*Rocket.c**2*Math.log1p((h0*h0-h*h)/(1-h0*h0))};
  },
- plan(massKg,beta,k=this.k(),capacityKg=(Rocket.dryMass+Rocket.fuelCapacity)*1000,maxG=100){
+ plan(massKg,beta,k=this.k(),capacityKg=(Rocket.dryMass+Rocket.fuelCapacity)*1000,maxG=Rocket.maxG){
   massKg=Math.min(massKg,capacityKg);maxG=Math.min(this.maxG,maxG);
   const h=this.half(beta),K=massKg*h,dry=Rocket.dryMass*1000,root=(K+dry+Math.sqrt((K+dry)**2+4*dry*K))/2;
   const mFine=beta>this.fineBeta?K/this.half(this.fineBeta):massKg;
@@ -201,7 +241,7 @@ const Magnetic=Object.freeze({
   const raw=this.rates(mass,beta,plan.k,plan.capacityKg),factor=raw.properAcceleration?Math.min(1,plan.maxG*9.80665/-raw.properAcceleration):1;
   for(const key of ["massRate","processedMassRate","particles","properParticles","force","properAcceleration","coordinateAcceleration","heatPower"])raw[key]*=factor;return{mass,beta,...leg,...this.cappedLeg(plan,beta),...raw};
  },
- stopping(fuel,beta,maxG=100,medium=this.context()){
+ stopping(fuel,beta,maxG=Rocket.maxG,medium=this.context()){
   return HybridBrake.stopping(fuel,beta,maxG,medium);
  }
 });
@@ -216,23 +256,23 @@ const HybridBrake={
   const logarithmic=lo>0,z0=logarithmic?Math.log(lo):lo,z1=logarithmic?Math.log(hi):hi,N=12;
   for(let n=0;n<N;n++){const mid=z0+(z1-z0)*(n+.5)/N,half=(z1-z0)/(2*N);for(let i=0;i<8;i++){const z=mid+half*QUAD_X[i],e=logarithmic?Math.exp(z):z;total+=half*QUAD_W[i]*fn(e)*(logarithmic?e:1);}}return total;
  },
- terminalI(e){if(!(e>0))return 0;let sum=0;for(let i=0;i<8;i++){const x=e*(1+QUAD_X[i])/2,s=Math.sinh(x);sum+=QUAD_W[i]*Math.exp(-x)*s*(s+1);}return sum*e/2;},
- terminalMass(p,e){return Math.exp(e-p.etaTerminal)*p.terminalMass+p.B*Math.exp(e)*(this.terminalI(p.etaTerminal)-this.terminalI(e));},
- plan(massKg,beta,k,capacityKg=(Rocket.dryMass+Rocket.fuelCapacity)*1000,maxG=100,reserveFraction=this.reserve){
-  const dry=Rocket.dryMass*1000,reserve=dry+reserveFraction*(capacityKg-dry),m0=Math.max(dry,Math.min(capacityKg,massKg)),eta0=Math.atanh(Math.max(0,Math.min(1-Number.EPSILON,beta))),a=Math.min(100,maxG)*9.80665,q=k*Rocket.c;
-  const p={hybrid:true,massKg:m0,beta:Math.tanh(eta0),k,capacityKg,maxG:Math.min(100,maxG),reserveMass:reserve,eta0,q,a,B:q*Rocket.c/a,K:m0*Math.tanh(eta0/2),elapsedProper:0};
+ terminalI(e){if(!(e>0))return 0;let sum=0;for(let i=0;i<8;i++){const x=e*(1+QUAD_X[i])/2,t=Math.sinh(x);sum+=QUAD_W[i]*Math.exp(-x)*t*(t+1);}return sum*e/2;},
+ terminalMass(p,e){const eff=ShipPhysics.efficiency;if(eff===1)return Math.exp(e-p.etaTerminal)*p.terminalMass+p.B*Math.exp(e)*(this.terminalI(p.etaTerminal)-this.terminalI(e));const z=Math.min(45,(p.etaTerminal-e)/eff);return Math.exp((e-p.etaTerminal)/eff)*p.terminalMass+p.B*this.integral(u=>{const x=e+eff*u,t=Math.sinh(x);return Math.exp(-u)*t*(t+eff);},0,z);},
+ plan(massKg,beta,k,capacityKg=(Rocket.dryMass+Rocket.fuelCapacity)*1000,maxG=Rocket.maxG,reserveFraction=this.reserve){
+  const dry=Rocket.dryMass*1000,reserve=dry+reserveFraction*(capacityKg-dry),m0=Math.max(dry,Math.min(capacityKg,massKg)),eta0=Math.atanh(Math.max(0,Math.min(1-Number.EPSILON,beta))),a=Math.min(ShipPhysics.value('maxBrakingG')*9.80665,maxG*9.80665,Rocket.power*ShipPhysics.efficiency/(Rocket.c*capacityKg)),q=k*Rocket.c;
+  const p={hybrid:true,massKg:m0,beta:Math.tanh(eta0),k,capacityKg,maxG:a/9.80665,reserveMass:reserve,eta0,q,a,B:q*Rocket.c/a,K:m0*Math.tanh(eta0/2),elapsedProper:0};
   if(!(eta0>0)){Object.assign(p,{etaTerminal:0,etaFill:0,terminalMass:m0,finalMass:m0,finalBeta:0,proper:0,earth:0,distance:0,heat:0,captured:0,burned:0,fill:{proper:0,earth:0,distance:0,captured:0,burned:0,heat:0},feed:{proper:0,earth:0,distance:0,captured:0,burned:0,heat:0}});return p;}
   if(!(q>0))throw new RangeError('A positive gas density is required to replenish fuel');
-  const back=e=>Math.exp(e)*(reserve-p.B*this.terminalI(e)),forward=e=>Math.min(capacityKg,p.K/Math.tanh(e/2));
-  if(m0>=back(eta0)&&q*Rocket.c*Math.sinh(eta0)**2/m0<a){p.etaTerminal=eta0;p.terminalMass=m0;p.etaFill=eta0;}
+  const forward=e=>Math.min(capacityKg,p.K/Math.tanh(e/2)),final=(m,e)=>this.terminalMass({...p,terminalMass:m,etaTerminal:e},0);
+  if(final(m0,eta0)>=reserve&&q*Rocket.c*Math.sinh(eta0)**2/m0<a){p.etaTerminal=eta0;p.terminalMass=m0;p.etaFill=eta0;}
   else{
-   let lo=0,hi=Math.min(eta0,Math.log(capacityKg/reserve)+.01);
-   while(hi<eta0&&forward(hi)>=back(hi))hi=Math.min(eta0,hi*1.5+.01);
-   for(let i=0;i<64;i++){const mid=(lo+hi)/2;if(forward(mid)>back(mid))lo=mid;else hi=mid;}
+   let lo=0,hi=Math.min(eta0,ShipPhysics.efficiency*Math.log(capacityKg/reserve)+.01);
+   while(hi<eta0&&final(forward(hi),hi)>=reserve)hi=Math.min(eta0,hi*1.5+.01);
+   for(let i=0;i<64;i++){const mid=(lo+hi)/2;if(final(forward(mid),mid)>reserve)lo=mid;else hi=mid;}
    p.etaTerminal=(lo+hi)/2;p.terminalMass=forward(p.etaTerminal);p.etaFill=Math.max(p.etaTerminal,2*Math.atanh(Math.min(1-Number.EPSILON,p.K/capacityKg)));
   }
   p.legacy={massKg:m0,beta:p.beta,K:p.K,k,capacityKg,maxG:p.maxG,finalMass:capacityKg,capBeta:2*(p.K/capacityKg)/(1+(p.K/capacityKg)**2)};
-  p.etaFeedCap=Math.asinh((Math.sqrt(1+4*capacityKg*a/(q*Rocket.c))-1)/2);
+  p.etaFeedCap=Math.asinh((Math.sqrt(ShipPhysics.efficiency**2+4*capacityKg*a/(q*Rocket.c))-ShipPhysics.efficiency)/2);
   let loCap=p.etaFill,hiCap=eta0;for(let i=0;i<56;i++){const e=(loCap+hiCap)/2,m=Math.min(capacityKg,p.K/Math.tanh(e/2));if(q*Rocket.c*Math.sinh(e)**2/m>a)hiCap=e;else loCap=e;}p.etaGasCap=(loCap+hiCap)/2;
   p.fill=this.fillAt(p,p.etaFill);p.feed=this.feedLeg(p,p.etaTerminal);const end=this.atEta(p,0);
   Object.assign(p,{finalBeta:0,finalMass:end.mass,proper:end.proper,earth:end.earth,distance:end.distance,heat:end.heat,captured:end.captured,burned:end.burned});return p;
@@ -242,7 +282,7 @@ const HybridBrake={
   // Check its interior maximum as well as its endpoints; clipping the UI tank
   // afterwards would silently discard captured matter and break the ledger.
   let lo=0,hi=p.etaTerminal;
-  for(let n=0;n<56;n++){const e=(lo+hi)/2,s=Math.sinh(e);if(this.terminalMass(p,e)-p.B*s*(s+1)>0)lo=e;else hi=e;}
+  for(let n=0;n<56;n++){const e=(lo+hi)/2,s=Math.sinh(e);if(this.terminalMass(p,e)-p.B*s*(s+ShipPhysics.efficiency)>0)lo=e;else hi=e;}
   return Math.max(p.massKg,p.terminalMass,p.finalMass,this.terminalMass(p,(lo+hi)/2),p.etaFill>p.etaTerminal?p.capacityKg:0);
  },
  fillAt(p,e){
@@ -252,7 +292,7 @@ const HybridBrake={
  },
  feedLeg(p,e){
   if(e>=p.etaFill||p.etaFill<=p.etaTerminal&&p.etaFill===p.eta0)return{proper:0,earth:0,distance:0,captured:0,burned:0,heat:0};
-  const m=p.capacityKg,C=x=>m/(Math.sinh(x)+1),cut=Math.max(e,Math.min(p.etaFill,p.etaFeedCap)),raw=x=>m/(p.q*Math.sinh(x)*(Math.sinh(x)+1)),k=Rocket.c/(p.a*Rocket.year),captured=this.integral(C,e,p.etaFill);
+  const m=p.capacityKg,C=x=>m/(Math.sinh(x)+ShipPhysics.efficiency),cut=Math.max(e,Math.min(p.etaFill,p.etaFeedCap)),raw=x=>m/(p.q*Math.sinh(x)*(Math.sinh(x)+ShipPhysics.efficiency)),k=Rocket.c/(p.a*Rocket.year),captured=this.integral(C,e,p.etaFill);
   const capped=key=>{if(cut>=p.etaFill)return 0;if(key==='proper')return k*(p.etaFill-cut);if(key==='earth')return k*(Math.sinh(p.etaFill)-Math.sinh(cut));return k*2*Math.sinh((p.etaFill+cut)/2)*Math.sinh((p.etaFill-cut)/2);};
   return{proper:this.integral(raw,e,cut)/Rocket.year+capped('proper'),earth:this.integral(x=>raw(x)*Math.cosh(x),e,cut)/Rocket.year+capped('earth'),distance:this.integral(x=>raw(x)*Math.sinh(x),e,cut)/Rocket.year+capped('distance'),captured,burned:captured,heat:Rocket.c**2*this.integral(x=>C(x)*(Math.cosh(x)-1),e,p.etaFill)};
  },
@@ -266,7 +306,7 @@ const HybridBrake={
    const q={proper:k*(p.etaTerminal-e),earth:k*(Math.sinh(p.etaTerminal)-Math.sinh(e)),distance:k*ch,captured,burned:p.terminalMass+captured-mass,heat:.5*p.B*Rocket.c**2*((Math.cosh(p.etaTerminal)-1)**2-(Math.cosh(e)-1)**2)};
    out={};for(const key of ['proper','earth','distance','captured','burned','heat'])out[key]=p.fill[key]+p.feed[key]+q[key];
   }
-  return{...out,mass,beta:Math.tanh(e)};
+  return{...out,heat:out.heat+(1-ShipPhysics.efficiency)*out.burned*Rocket.c**2,mass,beta:Math.tanh(e)};
  },
  sampleProper(p,years){
   if(p.noCapture)return ReleasingBrake.sampleProper(p,years);
@@ -276,13 +316,13 @@ const HybridBrake={
   else{let lo=proper<p.fill.proper?p.etaFill:p.etaTerminal,hi=proper<p.fill.proper?p.eta0:p.etaFill;for(let i=0;i<40;i++){const mid=(lo+hi)/2;if(this.atEta(p,mid).proper>proper)lo=mid;else hi=mid;}e=(lo+hi)/2;}
   const out=this.atEta(p,e),s=Math.sinh(e),gamma=Math.cosh(e),fullGas=p.q*Rocket.c*s*s;let opening=1,burnRate=0,acceleration=0;
   if(e>=p.etaFill){opening=fullGas>0?Math.min(1,out.mass*p.a/fullGas):1;acceleration=fullGas*opening/out.mass;}
-  else if(e>=p.etaTerminal){opening=Math.min(1,out.mass*p.a/(p.q*Rocket.c*s*(s+1)));burnRate=p.q*s*opening;acceleration=p.q*Rocket.c*s*(s+1)*opening/out.mass;}
-  else{burnRate=Math.max(0,out.mass*p.a/Rocket.c-p.q*s*s);acceleration=p.a;}
+  else if(e>=p.etaTerminal){opening=Math.min(1,out.mass*p.a/(p.q*Rocket.c*s*(s+ShipPhysics.efficiency)));burnRate=p.q*s*opening;acceleration=p.q*Rocket.c*s*(s+ShipPhysics.efficiency)*opening/out.mass;}
+  else{burnRate=Math.max(0,(out.mass*p.a/Rocket.c-p.q*s*s)/ShipPhysics.efficiency);acceleration=p.a;}
   if(proper===p.proper){out.mass=p.finalMass??out.mass;out.beta=0;acceleration=0;burnRate=0;}
   const incoming=p.q*s*opening;
   return{...out,proper,eta:e,p:p.proper?proper/p.proper:1,opening,force:-out.mass*acceleration,properAcceleration:-acceleration,coordinateAcceleration:-acceleration/gamma**3,massRate:incoming-burnRate,processedMassRate:incoming,particles:incoming/gamma/Magnetic.protonMass,properParticles:incoming/Magnetic.protonMass,burnRate,enginePower:burnRate*Rocket.c**2,heatPower:(gamma-1)*incoming*Rocket.c**2};
  },
- stopping(fuel,beta,maxG=100,medium=Magnetic.context()){
+ stopping(fuel,beta,maxG=Rocket.maxG,medium=Magnetic.context()){
   const magnetic=this.plan((Rocket.dryMass+Math.max(0,fuel))*1000,beta,Magnetic.rho(medium.n)*medium.area,(Rocket.dryMass+Rocket.fuelCapacity)*1000,maxG),engine=Rocket.retroPlan(Math.max(0,magnetic.finalMass/1000-Rocket.dryMass),0,maxG);
   return{magnetic,engine,distance:magnetic.distance,earth:magnetic.earth,proper:magnetic.proper};
  }
@@ -291,20 +331,17 @@ const HybridBrake={
 // Released gas transfers momentum without supplying fuel. The gas sail and
 // engine share the 100 g limit; the last part reaches exact zero speed.
 const ReleasingBrake={
- integral(e){
-  if(e<.02){let sum=0;for(let i=0;i<8;i++){const x=e*(1+QUAD_X[i])/2;sum+=QUAD_W[i]*Math.exp(-x)*Math.sinh(x)**2;}return sum*e/2;}
-  return Math.expm1(e)/4-Math.expm1(-3*e)/12+Math.expm1(-e)/2;
- },
- terminalMass(p,e){return Math.exp(e-p.etaTerminal)*p.massKg+p.B*Math.exp(e)*(this.integral(p.etaTerminal)-this.integral(e));},
+ integral(e){if(e<.02){let sum=0;for(let i=0;i<8;i++){const x=e*(1+QUAD_X[i])/2;sum+=QUAD_W[i]*Math.exp(-x)*Math.sinh(x)**2;}return sum*e/2;}return Math.expm1(e)/4-Math.expm1(-3*e)/12+Math.expm1(-e)/2;},
+ terminalMass(p,e){const eff=ShipPhysics.efficiency;if(eff===1)return Math.exp(e-p.etaTerminal)*p.massKg+p.B*Math.exp(e)*(this.integral(p.etaTerminal)-this.integral(e));const z=Math.min(45,(p.etaTerminal-e)/eff);return Math.exp((e-p.etaTerminal)/eff)*p.massKg+p.B*HybridBrake.integral(u=>Math.exp(-u)*Math.sinh(e+eff*u)**2,0,z);},
  gasLeg(p,e){
   const cut=Math.min(p.eta0,Math.max(e,p.etaGasCap)),base=Rocket.c/(p.a*Rocket.year),out={proper:base*(p.eta0-cut),earth:base*(Math.sinh(p.eta0)-Math.sinh(cut)),distance:base*2*Math.sinh((p.eta0+cut)/2)*Math.sinh((p.eta0-cut)/2)};
   if(e<cut){const tail=Magnetic.fixedIntegrals(p.massKg,Math.tanh(cut),Math.tanh(e),p.k);for(const key of ['proper','earth','distance'])out[key]+=tail[key];}
   return out;
  },
  plan(mass,beta,k,reserve=Rocket.dryMass*1000){
-  const a=100*9.80665,eta0=Math.atanh(Math.min(1-Number.EPSILON,beta)),B=k*Rocket.c**2/a;
+  const a=Math.min(ShipPhysics.value('maxBrakingG')*9.80665,Rocket.power*ShipPhysics.efficiency/(Rocket.c*mass)),eta0=Math.atanh(Math.min(1-Number.EPSILON,beta)),B=k*Rocket.c**2/a;
   if(!(mass>reserve+1e-12)||!(k>0))return null;
-  const p={hybrid:true,noCapture:true,massKg:mass,beta,eta0,k,q:k*Rocket.c,a,B,maxG:100,etaGasCap:Math.asinh(Math.sqrt(mass/B))};
+  const p={hybrid:true,noCapture:true,massKg:mass,beta,eta0,k,q:k*Rocket.c,a,B,maxG:a/9.80665,etaGasCap:Math.asinh(Math.sqrt(mass/B))};
   p.etaTerminal=Math.min(eta0,p.etaGasCap);
   if(this.terminalMass(p,0)<reserve){let lo=0,hi=p.etaTerminal;for(let i=0;i<56;i++){p.etaTerminal=(lo+hi)/2;if(this.terminalMass(p,0)>=reserve)lo=p.etaTerminal;else hi=p.etaTerminal;}p.etaTerminal=(lo+hi)/2;}
   p.gas=this.gasLeg(p,p.etaTerminal);p.terminalMass=mass;p.finalMass=this.terminalMass(p,0);p.captured=0;p.burned=mass-p.finalMass;p.finalBeta=0;
@@ -322,8 +359,8 @@ const ReleasingBrake={
   if(proper===0)eta=p.eta0;else if(proper===p.proper)eta=0;
   else if(proper>=p.gas.proper)eta=p.etaTerminal-(proper-p.gas.proper)*p.a*Rocket.year/Rocket.c;
   else{let lo=p.etaTerminal,hi=p.eta0;for(let i=0;i<48;i++){const mid=(lo+hi)/2;if(this.gasLeg(p,mid).proper>proper)lo=mid;else hi=mid;}eta=(lo+hi)/2;}
-  const out=this.atEta(p,eta),gas=p.q*Rocket.c*Math.sinh(eta)**2,opening=gas>0?Math.min(1,out.mass*p.a/gas):0,acceleration=eta>=p.etaTerminal?gas*opening/out.mass:p.a,burnRate=eta<p.etaTerminal?Math.max(0,(out.mass*p.a-gas)/Rocket.c):0;
-  return{...out,proper,eta,opening,properAcceleration:proper===p.proper?0:-acceleration,enginePower:proper===p.proper?0:burnRate*Rocket.c**2,processedMassRate:p.q*Math.sinh(eta)*opening,massRate:-burnRate};
+  const out=this.atEta(p,eta),gas=p.q*Rocket.c*Math.sinh(eta)**2,opening=gas>0?Math.min(1,out.mass*p.a/gas):0,acceleration=eta>=p.etaTerminal?gas*opening/out.mass:p.a,burnRate=eta<p.etaTerminal?Math.max(0,(out.mass*p.a-gas)/(Rocket.c*ShipPhysics.efficiency)):0;
+  return{...out,heat:out.heat+(1-ShipPhysics.efficiency)*out.burned*Rocket.c**2,proper,eta,opening,properAcceleration:proper===p.proper?0:-acceleration,enginePower:proper===p.proper?0:burnRate*Rocket.c**2,processedMassRate:p.q*Math.sinh(eta)*opening,massRate:-burnRate};
  }
 };
 
@@ -356,7 +393,7 @@ const FlightPath={
     earth=HybridBrake.atEta(plan,e).earth;const s=Math.sinh(e);
     if(plan.noCapture){dt=e>=plan.etaTerminal?Math.max(Rocket.c/plan.a,plan.massKg/(plan.q*s*s)):Rocket.c/plan.a;return Math.sinh(e)*dt/(Rocket.year*Cosmology.scale(epoch+earth));}
     if(e>=plan.etaFill){const mass=Math.min(plan.capacityKg,plan.K/Math.tanh(e/2));dt=Math.max(Rocket.c/plan.a,mass/(plan.q*s*s));}
-    else if(e>=plan.etaTerminal)dt=Math.max(Rocket.c/plan.a,plan.capacityKg/(plan.q*s*(s+1)));
+    else if(e>=plan.etaTerminal)dt=Math.max(Rocket.c/plan.a,plan.capacityKg/(plan.q*s*(s+ShipPhysics.efficiency)));
     else dt=Rocket.c/plan.a;
    }
    return Math.sinh(e)*dt/(Rocket.year*Cosmology.scale(epoch+earth));
@@ -505,22 +542,22 @@ const OrbitalArrival={
   return{targetId:o.id,massSolar:mass.solar,massBasis:mass.basis,massSource:mass.source,mu,rs,surface,radius,speed,beta:speed/Rocket.c,radiusAdjusted:radius>this.AU*(1+1e-10),weakField:true};
  },
  integrate(body,c,initialMass,beta,finalMass,switchEta,keep=false,allowFeed=true){
-  const endEta=Math.atanh(beta),etaFinal=Math.atanh(body.beta),cap=1+c.capacityKg,k=c.brakeSail?Magnetic.rho(c.densityCm3*1e6)*SHIP.sailAreaM2:0,limit=100*9.80665;
+  const endEta=Math.atanh(beta),etaFinal=Math.atanh(body.beta),cap=c.dryMassKg+c.capacityKg,k=c.brakeSail?Magnetic.rho(c.densityCm3*1e6)*SHIP.sailAreaM2:0,limit=c.maxBrakingG*9.80665;
   if(!(endEta>etaFinal))return null;
   let eta=etaFinal,y=[body.radius,0,Math.PI/2,Math.log(finalMass),0,0,0,0,0,0],h=Math.max(1e-9,etaFinal*.02),feed=false,rows=[];
   const rate=(e,v)=>{
    const mass=Math.exp(v[3]),r=Math.hypot(v[0],v[1]),cs=Math.cos(v[2]),sn=Math.sin(v[2]),s=Math.sinh(e),gamma=Math.cosh(e),gx=-body.mu*v[0]/r**3,gy=-body.mu*v[1]/r**3,gpar=gx*cs+gy*sn,gperp=-gx*sn+gy*cs;
-   if(!Number.isFinite(mass)||mass<.5||r<body.surface*1.01)return null;
+   if(!Number.isFinite(mass)||mass<c.dryMassKg*.5||r<body.surface*1.01)return null;
    const fullGas=k*Rocket.c**2*s*s,gasMass=k*Rocket.c*s,motor=c.brakeEngine&&e<=switchEta+1e-14;
    let opening=fullGas>0?Math.min(1,mass*limit/fullGas):0,engine=0;
-   if(motor&&feed&&c.collectGas){opening=Math.min(1,mass*limit/(fullGas+gasMass*Rocket.c));engine=gasMass*Rocket.c*opening/mass;}
-   else if(motor)engine=Math.min(Rocket.power/(Rocket.c*mass),Math.max(0,limit-fullGas*opening/mass));
+   if(motor&&feed&&c.collectGas){opening=Math.min(1,mass*limit/(fullGas+gasMass*Rocket.c*ShipPhysics.efficiency));engine=gasMass*Rocket.c*ShipPhysics.efficiency*opening/mass;}
+   else if(motor)engine=Math.min(Rocket.power*ShipPhysics.efficiency/(Rocket.c*mass),Math.max(0,limit-fullGas*opening/mass));
    const gas=fullGas*opening/mass,a=gas+engine,denom=a-gpar;
    if(!(denom>0))return null;
    // At the dry-mass boundary the permitted collection can be deferred. Gas
    // still exchanges momentum and is released; no matter is created or clipped.
-   const incoming=c.collectGas&&(motor||mass>Math.min(initialMass,1)*(1+1e-9))?gasMass*opening:0,burn=mass*engine/Rocket.c,tau=Rocket.c/denom;
-   return{dy:[-Rocket.c*s*cs*tau,-Rocket.c*s*sn*tau,-gamma*gperp/(Rocket.c*s)*tau,-(incoming-burn)/mass*tau,tau/Rocket.year,gamma*tau/Rocket.year,Rocket.c*s*tau/LY,incoming*tau,burn*tau,(gamma-1)*gasMass*opening*Rocket.c**2*tau],a,engine,opening,gravity:Math.hypot(gx,gy),burnRate:burn};
+   const incoming=c.collectGas&&(motor||mass>Math.min(initialMass,c.dryMassKg)*(1+1e-9))?gasMass*opening:0,burn=mass*engine/(Rocket.c*ShipPhysics.efficiency),tau=Rocket.c/denom;
+   return{dy:[-Rocket.c*s*cs*tau,-Rocket.c*s*sn*tau,-gamma*gperp/(Rocket.c*s)*tau,-(incoming-burn)/mass*tau,tau/Rocket.year,gamma*tau/Rocket.year,Rocket.c*s*tau/LY,incoming*tau,burn*tau,((gamma-1)*gasMass*opening+(1-ShipPhysics.efficiency)*burn)*Rocket.c**2*tau],a,engine,opening,gravity:Math.hypot(gx,gy),burnRate:burn};
   };
   const rk=(e,v,step)=>{const a=rate(e,v)?.dy;if(!a)return null;const add=(q,f)=>v.map((x,i)=>x+q[i]*f),b=rate(e+step/2,add(a,step/2))?.dy,d=b&&rate(e+step/2,add(b,step/2))?.dy,z=d&&rate(e+step,add(d,step))?.dy;return z?v.map((x,i)=>x+step*(a[i]+2*b[i]+2*d[i]+z[i])/6):null;};
   const twice=(e,v,step)=>{const a=rk(e,v,step/2);return a&&rk(e+step/2,a,step/2);};
@@ -546,8 +583,8 @@ const OrbitalArrival={
   return{startMass:start.mass,finalMass,proper:start.proper,earth:start.earth,distance:start.distance,captured:start.captured,burned:start.burned,heat:start.heat,axis,impact,startTheta:start.theta,rows,body,switchEta};
  },
  plan(c,mass,beta,reserve,body){
-  const key=JSON.stringify([c.brakeEngine,c.brakeSail,c.collectGas,c.densityCm3,c.capacityKg,mass,beta,reserve,body]);if(this.cache.has(key))return this.cache.get(key);
-  const minMass=1+reserve,eta0=Math.atanh(beta),etaF=Math.atanh(body.beta),run=(m,e,keep=false,allowFeed=true)=>this.integrate(body,c,mass,beta,m,e,keep,allowFeed);let finalMass=minMass,switchEta=eta0,result;
+  const key=JSON.stringify([c,mass,beta,reserve,body]);if(this.cache.has(key))return this.cache.get(key);
+  const minMass=c.dryMassKg+reserve,eta0=Math.atanh(beta),etaF=Math.atanh(body.beta),run=(m,e,keep=false,allowFeed=true)=>this.integrate(body,c,mass,beta,m,e,keep,allowFeed);let finalMass=minMass,switchEta=eta0,result;
   if(!(beta>body.beta*(1+1e-8)))return null;
   if(c.brakeEngine){
    let fast=run(finalMass,switchEta,false,false);
@@ -556,14 +593,14 @@ const OrbitalArrival={
     // With enough initial propellant, retain the unused part instead of burning
     // it merely to hit the requested minimum reserve.
     for(let n=0;n<14;n++){
-     finalMass=Math.min(1+c.capacityKg-1e-10,finalMass*mass/fast.startMass);fast=run(finalMass,switchEta,false,false);if(!fast)return null;
+     finalMass=Math.min(c.dryMassKg+c.capacityKg-1e-10,finalMass*mass/fast.startMass);fast=run(finalMass,switchEta,false,false);if(!fast)return null;
      if(Math.abs(fast.startMass-mass)<mass*2e-9)break;
     }
     if(Math.abs(fast.startMass-mass)>mass*2e-7)return null;
    }else if(fast.startMass>mass*(1+2e-9)){
     if(!c.brakeSail||!(c.densityCm3>0))return null;
     const k=Magnetic.rho(c.densityCm3*1e6)*SHIP.sailAreaM2;
-    const vacuum=c.collectGas?HybridBrake.plan(mass,beta,k,1+c.capacityKg,100,reserve/c.capacityKg):ReleasingBrake.plan(mass,beta,k,minMass);
+    const vacuum=c.collectGas?HybridBrake.plan(mass,beta,k,c.dryMassKg+c.capacityKg,c.maxBrakingG,reserve/c.capacityKg):ReleasingBrake.plan(mass,beta,k,minMass);
     let lo=etaF,hi=eta0,x=Math.min(hi,Math.max(lo,(vacuum?.etaTerminal||eta0/2)+etaF)),previous=null;
     for(let n=0;n<18;n++){
      const q=run(finalMass,x),f=q?Math.log(q.startMass/mass):-Infinity;
@@ -579,7 +616,7 @@ const OrbitalArrival={
    // A passive, monotone capture is accepted only when the full gravitational
    // trajectory reaches the circular state. Weak-drag spiral branches require
    // another guidance law and are reported as unsupported, never as captured.
-   let lo=minMass,hi=1+c.capacityKg;
+   let lo=minMass,hi=c.dryMassKg+c.capacityKg;
    for(let n=0;n<30;n++){const mid=(lo+hi)/2,q=run(mid,etaF-1);if(!q)return null;if(q.startMass<mass)lo=mid;else hi=mid;}
    finalMass=(lo+hi)/2;switchEta=etaF-1;result=run(finalMass,switchEta,true);
   }
@@ -640,9 +677,9 @@ Object.assign(OrbitalArrival,{
 });
 
 const FlightSetup={
- normalize(c={}){return{engine:!!c.engine,dump:!!c.dump,sail:!!c.sail,collector:!!c.collector,burst:!!c.burst,burstSpectrum:['iip','ia','ibc'].includes(c.burstSpectrum)?c.burstSpectrum:'iip',brakeEngine:c.brakeEngine!==false,brakeSail:c.brakeSail!==false,collectGas:c.collectGas!==false,fill:c.arrivalFuelPercent!==null&&c.arrivalFuelPercent!==undefined?Number(c.arrivalFuelPercent)>0:!!c.fill,arrivalFuelPercent:c.arrivalFuelPercent!==null&&c.arrivalFuelPercent!==undefined&&Number.isFinite(+c.arrivalFuelPercent)?Math.max(0,Math.min(100,+c.arrivalFuelPercent)):null,reservePercent:Number.isFinite(+c.reservePercent)?Math.max(1,Math.min(99,+c.reservePercent)):99,densityCm3:Number.isFinite(+c.densityCm3)?Math.max(0,Math.min(1e6,+c.densityCm3)):1,capacityKg:Number.isFinite(+c.capacityKg)?Math.max(.01,Math.min(100,+c.capacityKg)):1,massSolar:c.massSolar!==null&&c.massSolar!==undefined&&Number.isFinite(+c.massSolar)&&+c.massSolar>=0?Math.min(1e6,+c.massSolar):null,luminositySolar:c.luminositySolar>0?Math.min(1e12,+c.luminositySolar):null};},
- defaults(s=state){return this.normalize({sail:true,collector:true,burst:false,engine:false,brakeEngine:true,brakeSail:true,collectGas:true,arrivalFuelPercent:50,capacityKg:s.tankCapacityKg||1});},
- legacy(s){const mode=s.flight?.departureMode||s.departureMode;return this.normalize(s.flight?.mission?.setup||(!s.flight?s.flightSetup:null)||{engine:mode==='engine',sail:mode!=='engine',collector:mode!=='engine',burst:mode==='burst',brakeEngine:true,brakeSail:true,densityCm3:1,capacityKg:s.tankCapacityKg||1});},
+ normalize(c={}){return{...ShipPhysics.normalize(c),engine:!!c.engine,dump:!!c.dump,sail:!!c.sail,collector:!!c.collector,diffraction:c.diffraction!==false,burst:!!c.burst,burstSpectrum:['iip','ia','ibc'].includes(c.burstSpectrum)?c.burstSpectrum:'iip',brakeEngine:c.brakeEngine!==false,brakeSail:c.brakeSail!==false,collectGas:c.collectGas!==false,fill:c.arrivalFuelPercent!==null&&c.arrivalFuelPercent!==undefined?Number(c.arrivalFuelPercent)>0:!!c.fill,arrivalFuelPercent:c.arrivalFuelPercent!==null&&c.arrivalFuelPercent!==undefined&&Number.isFinite(+c.arrivalFuelPercent)?Math.max(0,Math.min(100,+c.arrivalFuelPercent)):null,reservePercent:Number.isFinite(+c.reservePercent)?Math.max(1,Math.min(99,+c.reservePercent)):99,densityCm3:Number.isFinite(+c.densityCm3)?Math.max(0,Math.min(1e6,+c.densityCm3)):1,capacityKg:Number.isFinite(+c.capacityKg)?Math.max(.01,Math.min(100,+c.capacityKg)):1,massSolar:c.massSolar!==null&&c.massSolar!==undefined&&Number.isFinite(+c.massSolar)&&+c.massSolar>=0?Math.min(1e6,+c.massSolar):null,luminositySolar:c.luminositySolar>0?Math.min(1e12,+c.luminositySolar):null};},
+ defaults(s=state){return this.normalize({sail:true,collector:true,burst:false,engine:true,brakeEngine:true,brakeSail:true,collectGas:true,arrivalFuelPercent:50,capacityKg:s.tankCapacityKg||1});},
+ legacy(s){const mode=s.flight?.departureMode||s.departureMode,p=s.flight?.mission,c=this.normalize(p?.setup||(!s.flight?s.flightSetup:null)||{engine:mode==='engine',sail:mode!=='engine',collector:mode!=='engine',burst:mode==='burst',brakeEngine:true,brakeSail:true,densityCm3:1,capacityKg:s.tankCapacityKg||1});if(p&&c.collector&&c.sail)c.diffraction=!!p.acceleration?.diffraction&&p.acceleration.diffraction.enabled!==false;if(p&&(p.model||1)<4){c.collectorDiameterM=p.acceleration?.diffraction?.diameterM||1000;c.maxAccelerationG=100;c.maxBrakingG=p.brake?.plan?.maxG||100;}return c;},
  preferred(s=state){
   if(!s.flightSetup)return this.defaults(s);
   const c=this.normalize(s.flightSetup);
@@ -674,23 +711,23 @@ const FlightSetup={
 
 const MissionPlanner={
  cache:new Map(),accelerationCache:new Map(),fuelLimitCache:new Map(),
- dry:1,capG:100,model:3,
+ get dry(){return SHIP.dryMassKg;},get capG(){return ShipPhysics.value('maxAccelerationG');},model:4,
  enabledIdle(){return OrbitalArrival.enabled||!!state.flightSetup||!!state.orbit;},
  invalid(reason,extra={}){return{valid:false,reason,proper:Infinity,earth:Infinity,...extra};},
  // Independent variable is rapidity. Integrate both clocks, distance, retarded
  // source time, fuel mass and comoving distance together with adaptive RK4.
  acceleration(setup,source,fuelKg,d,epoch,cosmic,expansion,startBeta=0,departureOrbit=null){
   const startMass=this.dry+fuelKg,light=Stellar.stellarLight(source),available=!!source&&['star','home'].includes(source.kind)&&!state.destroyed.includes(source.id),L=setup.burst?Stellar.luminosity:(setup.luminositySolar?setup.luminositySolar*3.828e26:light.watts),collectorR=light.collectorR,r0=departureOrbit?.radius||collectorR,sourceMass=setup.massSolar??MapDetails.mass(source)??0;
-  const optics=setup.sail&&available,beam=optics&&setup.collector,power=beam?L*Math.min(1,Stellar.collectorDiameterM**2/(16*collectorR*collectorR)):0,pulse=setup.burst?Stellar.pulseYears:Infinity,spectrum=BeamOptics.spectrum(setup,light);
-  const key=JSON.stringify([setup.engine,setup.sail,setup.collector,setup.burst,L,r0,sourceMass,available,fuelKg,d,cosmic,expansion,cosmic?epoch:0,startBeta,departureOrbit?.radius,collectorR,BeamOptics.model,spectrum]);
+  const optics=setup.sail&&available,beam=optics&&setup.collector,power=beam?L*cOptical(setup)*Math.min(1,Stellar.collectorDiameterM**2/(16*collectorR*collectorR)):0,pulse=setup.burst?Stellar.pulseYears:Infinity,spectrum=BeamOptics.spectrum(setup,light);
+  const key=JSON.stringify([setup.engine,setup.sail,setup.collector,setup.burst,L,r0,sourceMass,available,fuelKg,d,cosmic,expansion,cosmic?epoch:0,startBeta,departureOrbit?.radius,collectorR,BeamOptics.model,spectrum,setup]);
   if(this.accelerationCache.has(key))return this.accelerationCache.get(key);
   let lightEndReason=null,motor=setup.engine&&fuelKg>0,photons=optics,lightEndProper=null,lightEndSource=null,eta=Math.atanh(startBeta),h=.02,y=[0,0,0,0,startMass,0],rows=[];
   const rate=(e,v)=>{
-   const mass=Math.max(this.dry*.9,v[4]),x=Math.max(0,v[2])*LY,r=departureOrbit?Math.hypot(r0,x):r0+x,P=beam?power*BeamOptics.fraction(x,v[3],spectrum,Stellar.collectorDiameterM,SHIP.sailDiameterM/2):L*SHIP.sailAreaM2/(4*Math.PI*r*r),full=photons?2*P/Rocket.c*Math.exp(-2*e):0,limit=mass*this.capG*9.80665;
-   const lightForce=Math.min(limit,full),engineForce=motor?Math.min(Rocket.power/Rocket.c,Math.max(0,limit-lightForce)):0,total=lightForce+engineForce,gravity=available&&!setup.burst?6.67430e-11*1.98847e30*sourceMass/(r*r)*(departureOrbit?x/r:1):0,net=total-mass*gravity;
+   const mass=Math.max(this.dry*.9,v[4]),x=Math.max(0,v[2])*LY,r=departureOrbit?Math.hypot(r0,x):r0+x,P=beam?power*BeamOptics.fraction(x,v[3],spectrum,Stellar.collectorDiameterM,SHIP.sailDiameterM/2,setup.divergenceDeg,setup.diffraction):L*SHIP.sailAreaM2/(4*Math.PI*r*r),full=photons?ShipPhysics.reflection*P/Rocket.c*Math.exp(-2*e):0,limit=mass*this.capG*9.80665;
+   const lightForce=Math.min(limit,full),engineForce=motor?Math.min(Rocket.power*ShipPhysics.efficiency/Rocket.c,Math.max(0,limit-lightForce)):0,total=lightForce+engineForce,gravity=available&&!setup.burst?6.67430e-11*1.98847e30*sourceMass/(r*r)*(departureOrbit?x/r:1):0,net=total-mass*gravity;
    if(!(net>0))return null;
    const tau=mass*Rocket.c/(net*Rocket.year),dx=Math.sinh(e)*tau,scale=cosmic?Cosmology.scale(epoch+(expansion?v[1]:0)):1;
-   return{dy:[tau,Math.cosh(e)*tau,dx,Math.exp(-e)*tau,-mass*engineForce/net,dx/scale],a:total/mass,netAcceleration:net/mass,engineForce,lightForce};
+   return{dy:[tau,Math.cosh(e)*tau,dx,Math.exp(-e)*tau,-mass*engineForce/(ShipPhysics.efficiency*net),dx/scale],a:total/mass,netAcceleration:net/mass,engineForce,lightForce};
   };
   const rk=(e,v,step)=>{
    const a=rate(e,v)?.dy;if(!a)return null;
@@ -713,12 +750,12 @@ const MissionPlanner={
    // Fold continuous illumination only after a rigorous upper bound on its
    // remaining work is <0.01% of the current kinetic energy. A finite flash
    // instead runs to the last arriving photons (retarded source time).
-   if(beam&&photons&&!Number.isFinite(pulse)&&BeamOptics.remainingWork(power,y[2]*LY,spectrum)<BeamOptics.workTolerance*y[4]*Rocket.c**2*2*Math.sinh(eta/2)**2){lightEndProper=y[0];lightEndSource=y[3];lightEndReason='negligible';photons=false;}
+   if(beam&&photons&&!Number.isFinite(pulse)&&BeamOptics.remainingWork(power,y[2]*LY,spectrum,Stellar.collectorDiameterM,SHIP.sailDiameterM/2,setup.divergenceDeg,setup.diffraction)<BeamOptics.workTolerance*y[4]*Rocket.c**2*2*Math.sinh(eta/2)**2){lightEndProper=y[0];lightEndSource=y[3];lightEndReason='negligible';photons=false;}
    rows.push(row());
    if(y[5]>=d*1.002||y[0]>2e12||!beam&&photons&&r0+y[2]*LY>=r0*1e5){if(!motor)break;if(photons){lightEndProper=y[0];lightEndSource=y[3];}photons=false;}
    h=Math.min(.03,h*Math.min(2,Math.max(.5,error>0?.85*error**(-.2):2)));
   }
-  const result={rows,proper:rows.at(-1).proper,lightEndProper:optics?(lightEndProper??rows.at(-1).proper):0,lightEndSource:optics?(lightEndSource??rows.at(-1).source):0,initialMass:startMass,luminosityW:L,luminosityEstimated:!setup.luminositySolar&&light.estimated,beamPower:power,diffraction:beam?{model:BeamOptics.model,spectrum,diameterM:Stellar.collectorDiameterM,sailRadiusM:SHIP.sailDiameterM/2,workTolerance:BeamOptics.workTolerance}:null,lightEndReason,collectorR,hasLight:optics,source:source?.id,gravityBlocked:rows.length===1&&sourceMass>0&&available&&!setup.burst&&(setup.engine&&fuelKg>0||optics)};
+  const result={rows,proper:rows.at(-1).proper,lightEndProper:optics?(lightEndProper??rows.at(-1).proper):0,lightEndSource:optics?(lightEndSource??rows.at(-1).source):0,initialMass:startMass,luminosityW:L,luminosityEstimated:!setup.luminositySolar&&light.estimated,beamPower:power,diffraction:beam?{model:BeamOptics.model,enabled:setup.diffraction!==false,spectrum,diameterM:Stellar.collectorDiameterM,sailRadiusM:SHIP.sailDiameterM/2,workTolerance:BeamOptics.workTolerance,divergenceDeg:setup.divergenceDeg}:null,lightEndReason,collectorR,hasLight:optics,source:source?.id,gravityBlocked:rows.length===1&&sourceMass>0&&available&&!setup.burst&&(setup.engine&&fuelKg>0||optics)};
   if(this.accelerationCache.size>10)this.accelerationCache.clear();this.accelerationCache.set(key,result);return result;
  },
  sampleAcceleration(a,proper){
@@ -732,18 +769,19 @@ const MissionPlanner={
  },
  lightReception(p){
   if(!p?.acceleration?.hasLight||!p.accelerationEnd)return null;
-  const a=p.acceleration,limit=p.setup.burst?Stellar.pulseYears:Infinity;let proper=Math.min(p.accelerationEnd.proper,a.lightEndProper??a.proper);
+  const a=p.acceleration,limit=p.setup.burst?(p.setup.burstDays??30)/365.25:Infinity;let proper=Math.min(p.accelerationEnd.proper,a.lightEndProper??a.proper);
   // Older saved plans have no light-end metadata. Stop at their finite source
   // pulse even when an engine continued accelerating after the light ended.
   if(this.sampleAcceleration(a,proper).source>limit){let lo=0,hi=proper;for(let n=0;n<48;n++){const mid=(lo+hi)/2;if(this.sampleAcceleration(a,mid).source<limit)lo=mid;else hi=mid;}proper=(lo+hi)/2;}
   const q=this.sampleAcceleration(a,proper);return{proper,source:Math.min(limit,a.lightEndSource??Infinity,q.source),stretch:Math.exp(q.eta)};
  },
  engineAt(e,proper){
-  const t=Math.min(e.burnProper,Math.max(0,proper)),mass=t===e.burnProper?e.mf:e.m0*Math.exp(-e.maxG*9.80665*Rocket.year*t/Rocket.c),q=Rocket.retroSegment(e.m0,e.eta0,e.m0,mass,e.maxG);
-  return{...q,proper:t,mass:mass*1000,burned:(e.m0-mass)*1000,captured:0,heat:0,a:t===e.burnProper?0:-Rocket.acceleration(mass,e.maxG)};
+  const t=Math.min(e.burnProper,Math.max(0,proper)),mass=t===e.burnProper?e.mf:Math.max(e.mf,Rocket.massAfter(e.m0,t,e.maxG)),q=Rocket.retroSegment(e.m0,e.eta0,e.m0,mass,e.maxG);
+  return{...q,proper:t,mass:mass*1000,burned:(e.m0-mass)*1000,captured:0,heat:(e.m0-mass)*1000*(1-ShipPhysics.efficiency)*Rocket.c**2,a:t===e.burnProper?0:-Rocket.acceleration(mass,e.maxG)};
  },
  enginePath(e,proper,epoch,cosmic,expansion){
   if(!cosmic)return this.engineAt(e,proper).distance;if(!expansion)return this.engineAt(e,proper).distance/Cosmology.scale(epoch);
+  if(e.m0*1000>Rocket.power*ShipPhysics.efficiency/(Rocket.c*e.maxG*9.80665))return HybridBrake.integral(t=>{const q=this.engineAt(e,t);return Math.sinh(Math.atanh(q.beta))/Cosmology.scale(epoch+q.earth);},0,proper);
   const q=this.engineAt(e,proper),eta=Math.atanh(q.beta),scale=Rocket.c/(e.maxG*9.80665*Rocket.year);
   return HybridBrake.integral(x=>Math.sinh(x)*scale/Cosmology.scale(epoch+scale*(Math.sinh(e.eta0)-Math.sinh(x))),eta,e.eta0);
  },
@@ -751,12 +789,12 @@ const MissionPlanner={
   if(body)return OrbitalArrival.stopping(c,mass,beta,reserveKg,body,epoch,cosmic,expansion,d);
   const fuel=Math.max(0,mass-this.dry),capacity=this.dry+c.capacityKg,k=Magnetic.rho(c.densityCm3*1e6)*SHIP.sailAreaM2;
   if(c.brakeSail&&k>0&&c.brakeEngine){
-   const p=c.collectGas===false?ReleasingBrake.plan(mass,beta,k,this.dry+reserveKg):HybridBrake.plan(mass,beta,k,capacity,100,reserveKg/c.capacityKg);
+   const p=c.collectGas===false?ReleasingBrake.plan(mass,beta,k,this.dry+reserveKg):HybridBrake.plan(mass,beta,k,capacity,c.maxBrakingG,reserveKg/c.capacityKg);
    if(!p)return{valid:false,comoving:Infinity};
    const comoving=cosmic?FlightPath.distance(p,Magnetic,p.proper,epoch,expansion):p.distance;
    return{valid:Number.isFinite(p.proper)&&(p.noCapture?p.massKg:HybridBrake.peakMass(p))<=capacity+1e-10&&(c.arrivalFuelPercent===null||p.finalMass>=this.dry+reserveKg-1e-10),kind:'hybrid',plan:p,proper:p.proper,earth:p.earth,distance:p.distance,comoving,finalMass:p.finalMass,captured:p.captured,burned:p.burned,epoch};
   }
-  if(c.brakeEngine){const e=Rocket.retroPlan(fuel/1000,beta),valid=e.canStop&&(beta===0||fuel>0)&&e.mf*1000>=this.dry+reserveKg-1e-11;return{valid,kind:'engine',plan:e,proper:e.burnProper,earth:e.burnEarth,distance:e.burnDistance,comoving:valid?this.enginePath(e,e.burnProper,epoch,cosmic,expansion):Infinity,finalMass:e.mf*1000,captured:0,burned:e.budget*1000,epoch};}
+  if(c.brakeEngine){const e=Rocket.retroPlan(fuel/1000,beta,c.maxBrakingG),valid=e.canStop&&(beta===0||fuel>0)&&e.mf*1000>=this.dry+reserveKg-1e-11;return{valid,kind:'engine',plan:e,proper:e.burnProper,earth:e.burnEarth,distance:e.burnDistance,comoving:valid?this.enginePath(e,e.burnProper,epoch,cosmic,expansion):Infinity,finalMass:e.mf*1000,captured:0,burned:e.budget*1000,epoch};}
   return{valid:false,comoving:Infinity};
  },
  plan(input,source,target,fuelKg=state.matter*1000,origin=state.ship,epoch=state.cosmicTime||0,expansion=state.expansion!==false,startBeta=0,startOrbit=null,coastOnly=false){
@@ -871,10 +909,10 @@ const MissionPlanner={
   }
   return{proper,earth,arrivalFuelKg:p.arrivalFuelKg,peakBeta:p.peakBeta,terminalBeta:p.coast.beta,acceleration:{distance:p.accelerationEnd.distance,proper:p.accelerationEnd.proper},braking:{distance:p.brake.distance,proper:p.brake.proper}};
  },
- profile(){const p=state.flight?.mission||this.preview();if(!p.valid)return null;return{acceleration:{distance:p.accelerationEnd.distance,proper:p.accelerationEnd.proper,maxG:Math.max(...p.acceleration.rows.filter(q=>q.proper<=p.accelerationEnd.proper).map(q=>q.a/9.80665),p.accelerationEnd.a/9.80665)},braking:p.passage?null:{distance:p.brake.distance,proper:p.brake.proper,maxG:100},flyby:!!p.passage};},
+ profile(){const p=state.flight?.mission||this.preview();if(!p.valid)return null;return{acceleration:{distance:p.accelerationEnd.distance,proper:p.accelerationEnd.proper,maxG:Math.max(...p.acceleration.rows.filter(q=>q.proper<=p.accelerationEnd.proper).map(q=>q.a/9.80665),p.accelerationEnd.a/9.80665)},braking:p.passage?null:{distance:p.brake.distance,proper:p.brake.proper,maxG:p.setup.maxBrakingG},flyby:!!p.passage};},
  stages(p){return[{phase:p.setup.sail&&p.acceleration.hasLight?'launch':'thrust',proper:p.accelerationEnd.proper},{phase:'cruise',proper:p.coast.proper},{phase:'brake',proper:p.brake.proper}];},
  stageSample(p,index,proper){
-  if(index===0){const q=this.sampleAcceleration(p.acceleration,Math.min(proper,p.accelerationEnd.proper));return{...q,captured:0,heat:0};}
+  if(index===0){const q=this.sampleAcceleration(p.acceleration,Math.min(proper,p.accelerationEnd.proper));return{...q,captured:0,heat:q.burned*(1-ShipPhysics.efficiency)*Rocket.c**2};}
   if(index===1){const q=p.cosmic?Cosmology.coast(p.accelerationEnd.beta,proper,p.coastEpoch,p.expansion):{proper,earth:proper*Math.cosh(p.accelerationEnd.eta),distance:proper*Math.sinh(p.accelerationEnd.eta),path:proper*Math.sinh(p.accelerationEnd.eta),beta:p.accelerationEnd.beta};return{...q,comoving:q.distance,distance:q.path,mass:p.accelerationEnd.mass,captured:0,burned:0,heat:0,a:0};}
   const b=p.brake;if(b.kind==='orbit')return OrbitalArrival.sample(b.plan,proper);
   const q=b.kind==='hybrid'?HybridBrake.sampleProper(b.plan,proper):this.engineAt(b.plan,proper),comoving=b.kind==='hybrid'?(p.cosmic?FlightPath.distance(b.plan,Magnetic,proper,b.epoch,p.expansion):q.distance):this.enginePath(b.plan,proper,b.epoch,p.cosmic,p.expansion);
@@ -886,9 +924,10 @@ const MissionPlanner={
   // Rebuild with the exact launch epoch; the cached preview may use an idle bucket.
   const plan=planned||this.plan(p.setup,object(state.current),object(state.selected),state.matter*1000,state.ship,state.cosmicTime||0,state.expansion!==false);if(!plan.valid){toast(plan.reason);return;}
   if(state.transferSetup&&state.transferSetup.starId!==plan.targetId)state.transferSetup=null;
+  const rollback=FlightHistory.pending||FlightHistory.snapshot();FlightHistory.pending=null;
   const source=object(plan.sourceId),target=object(plan.targetId),from={...state.ship,p3:[...state.ship.p3]};
   state.tankCapacityKg=plan.setup.capacityKg;state.matter=plan.initialFuelKg/1000;state.jettisoned=(state.jettisoned||0)+plan.jettisonKg/1000;
-  state.flight={mission:plan,missionElapsed:{proper:0,earth:0},cosmic:plan.cosmic,from,fromId:plan.sourceId,target:target.id,distance:plan.distance,covered:0,maxBeta:plan.peakBeta,medium:{n:plan.setup.densityCm3*1e6,area:SHIP.sailAreaM2,model:GasMedium.model,label:'Газ на торможении · '+plan.setup.densityCm3+' атом/см³'},boost:plan.acceleration.hasLight,departureMode:plan.setup.burst?'burst':plan.setup.sail?'beam':'engine',engine:null,wind:null,magnetic:null,autoStopping:true,missed:false};
+  state.flight={rollback,summary:{distance:plan.distance,proper:plan.proper,earth:plan.earth},mission:plan,missionElapsed:{proper:0,earth:0},cosmic:plan.cosmic,from,fromId:plan.sourceId,target:target.id,distance:plan.distance,covered:0,maxBeta:plan.peakBeta,medium:{n:plan.setup.densityCm3*1e6,area:SHIP.sailAreaM2,model:GasMedium.model,label:'Газ на торможении · '+plan.setup.densityCm3+' атом/см³'},boost:plan.acceleration.hasLight,departureMode:plan.setup.burst?'burst':plan.setup.sail?'beam':'engine',engine:null,wind:null,magnetic:null,autoStopping:true,missed:false};
   if(plan.passage){state.flight.aim=plan.aim;state.flight.encounter=plan.encounter;}if(routeInfo){state.flight.route=routeInfo.nodes;state.flight.legIndex=routeInfo.index;}
   if(plan.setup.burst){state.destroyed.push(source.id);effects.push({x:from.x,y:from.y,p3:from.p3,age:0});}
   if(plan.jettisonKg>0)log('Перед стартом сброшено '+fmt(plan.jettisonKg,3)+' кг вещества; бак сохранён.');
@@ -999,23 +1038,34 @@ Object.assign(MissionPlanner,{
   return nodes[index].mode==='flyby'?this.passage(c,source,target,object(nodes[index+1]?.id),state.matter*1000,origin,epoch,state.expansion!==false,beta):(OrbitalArrival.enabled?this.planPreferred(c,source,target,state.matter*1000,origin,epoch,state.expansion!==false,beta):this.plan(c,source,target,state.matter*1000,origin,epoch,state.expansion!==false,beta));
  },
  startRoute(){
-  syncClock();const analysis=this.analyzeRoute();if(!analysis.valid||state.flight)return;const nodes=state.itinerary.map(n=>({...n})),source=object(state.current);state.selected=nodes[0].id;
-  const p=this.routeLeg(nodes,0,source,state.ship);if(!p.valid){toast(p.reason);return;}$('infoDialog').close();this.launch(p,{nodes,index:0});state.itinerary=[];log('Составной маршрут: '+nodes.map(n=>object(n.id).name).join(' → '));persist();
+  syncClock();const analysis=this.analyzeRoute();if(!analysis.valid||state.flight)return;const nodes=state.itinerary.map(n=>({...n})),source=object(state.current);const rollback=FlightHistory.snapshot();state.selected=nodes[0].id;
+  const p=this.routeLeg(nodes,0,source,state.ship);if(!p.valid){toast(p.reason);return;}FlightHistory.pending=rollback;$('infoDialog').close();this.launch(p,{nodes,index:0});state.itinerary=[];log('Составной маршрут: '+nodes.map(n=>object(n.id).name).join(' → '));persist();
  },
  continueRoute(old,from=state.ship,beta=0){
   if(!old.route?.length||old.legIndex>=old.route.length-1)return;
   const index=old.legIndex+1,source=object(old.target),p=this.routeLeg(old.route,index,source,from,beta);if(!p.valid){toast('Следующий участок недоступен: '+p.reason);return;}
-  state.selected=old.route[index].id;state.ship=Space.point(from.p3);state.flight=null;this.launch(p,{nodes:old.route,index});
+  state.selected=old.route[index].id;state.ship=Space.point(from.p3);FlightHistory.complete(old);state.flight=null;FlightHistory.pending=old.rollback;this.launch(p,{nodes:old.route,index});
  }
 });
 
 // Canvas uses the same light/capture limits as the composed trajectory.
 MissionPlanner.sailOpening=function(f){
- const p=f.mission,c=p.setup;
+ const p=f.mission,c=FlightSetup.normalize(p.setup);
  if(state.phase==='brake')return c.brakeSail&&c.densityCm3>0?(f.missionSample?.opening??1):0;
  if(state.phase!=='launch'||!c.sail||!p.acceleration.hasLight)return 0;
  const q=f.missionSample||this.sampleAcceleration(p.acceleration,f.stageElapsed||0);
- if(c.burst&&q.source>=Stellar.pulseYears*(1-1e-10)||q.proper>=(p.acceleration.lightEndProper??Infinity)&&p.acceleration.lightEndReason==='negligible')return 0;
- const a=p.acceleration,r=a.collectorR+q.distance*LY,power=c.collector?a.beamPower*(a.diffraction?BeamOptics.fraction(q.distance*LY,q.source,a.diffraction.spectrum,a.diffraction.diameterM,a.diffraction.sailRadiusM):1):a.luminosityW*SHIP.sailAreaM2/(4*Math.PI*r*r),full=2*power/Rocket.c*Math.exp(-2*q.eta);
- return full>0?Math.min(1,q.mass*100*9.80665/full):0;
+ if(c.burst&&q.source>=c.burstDays/365.25*(1-1e-10)||q.proper>=(p.acceleration.lightEndProper??Infinity)&&p.acceleration.lightEndReason==='negligible')return 0;
+ const a=p.acceleration,r=a.collectorR+q.distance*LY,power=c.collector?a.beamPower*(a.diffraction?BeamOptics.fraction(q.distance*LY,q.source,a.diffraction.spectrum,a.diffraction.diameterM,a.diffraction.sailRadiusM,a.diffraction.divergenceDeg||0,a.diffraction.enabled!==false):1):a.luminosityW*SHIP.sailAreaM2/(4*Math.PI*r*r),full=ShipPhysics.reflection*power/Rocket.c*Math.exp(-2*q.eta);
+ return full>0?Math.min(1,q.mass*c.maxAccelerationG*9.80665/full):0;
 };
+
+function cOptical(c){return c.opticalEfficiencyPercent/100;}
+for(const name of ['plan','planPreferred','acceleration','stopping','passage','fuelLimit']){
+ const calculate=MissionPlanner[name];MissionPlanner[name]=function(c,...args){return ShipPhysics.run(c,()=>calculate.call(this,c,...args));};
+}
+for(const name of ['stageSample','sailOpening']){
+ const calculate=MissionPlanner[name];MissionPlanner[name]=function(p,...args){return ShipPhysics.run(p.setup||p.mission?.setup,()=>calculate.call(this,p,...args));};
+}
+for(const [name,index] of [['plan',0],['integrate',1]]){
+ const calculate=OrbitalArrival[name];OrbitalArrival[name]=function(...args){return ShipPhysics.run(args[index],()=>calculate.apply(this,args));};
+}

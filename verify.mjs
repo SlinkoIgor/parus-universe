@@ -36,3 +36,5 @@ import './verify-milkyway-layout.mjs';
 import './verify-map-class-symbols.mjs';
 
 import './verify-current-reach.mjs';
+
+import './verify-new-tasks.mjs';

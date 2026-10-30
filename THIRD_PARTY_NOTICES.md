@@ -73,3 +73,10 @@ Access via CDS/VizieR IDIA mirror. Acknowledgment: This research has made use of
 - **Updated Nearby Galaxy Catalog**, Karachentsev, Makarov & Kaisina (2013), AJ145,101: <https://doi.org/10.1088/0004-6256/145/4/101>; 869 catalogue rows and 783 distance/method rows, quality gates retained.
 - **GLADE+**, Dálya et al. (2022), MNRAS514,1403: <https://doi.org/10.1093/mnras/stac1443>; CDS VII/291. Only Type G, B≤15.5, spectroscopic f_dL=3, zhelio>0.002 subset (45,727); no claim to reproduce the full ≈23-million-object source. Stellar masses remain metadata, not total point masses.
 - **Gaia DR3 cluster catalogue update**, Hunt & Reffert (2024), A&A686,A42: <https://doi.org/10.1051/0004-6361/202348662>; high-quality o/m/g/d subset (4,100 of7,167), rejected r excluded. Group masses are aggregate. <https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/686/A42>.
+
+
+## Орбитальный экранный слой (29 октября 2026)
+
+Восемь планет: NASA/JPL Solar System Dynamics, *Approximate Positions of the Planets*, Table1, J2000 elements, https://ssd.jpl.nasa.gov/planets/approx_pos.html. Двухтельная экстраполяция элементов, а не воспроизведение точных JPL DE эфемерид. Земля использует EM Bary.
+
+Alpha Centauri AB: Kervella, Mignard, Mérand & Thévenin (2016), A&A594,A107, Table1 K16, https://arxiv.org/abs/1610.06079. Внешняя орбита Proxima: Kervella et al. (2017), A&A598,L7, Table3, https://arxiv.org/abs/1611.03495. Использованы численные орбитальные элементы и опубликованные неопределённости; рисунки и тексты статей не копируются. Атрибуция существующих GRAVITY2021/Gillessen2017 S-звёзд сохранена.

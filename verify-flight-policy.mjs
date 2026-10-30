@@ -2,7 +2,7 @@ import fs from 'node:fs';
 const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {run};';const {run}=await import('data:text/javascript,'+encodeURIComponent(harness));
 run(`{
 OrbitalArrival.enabled=true;state=initial();Cosmology.sync(state);
-let c=FlightSetup.read();assert.equal(c.arrivalFuelPercent,50);assert.ok(c.sail&&c.collector&&!c.burst&&!c.engine);
+let c=FlightSetup.read();assert.equal(c.arrivalFuelPercent,50);assert.ok(c.sail&&c.collector&&!c.burst&&c.engine);
 for(const percent of [0,35,65]){state.flightSetup=FlightSetup.normalize({sail:true,collector:true,arrivalFuelPercent:percent});state=restore(JSON.parse(JSON.stringify(state)));assert.equal(FlightSetup.preferred().arrivalFuelPercent,percent);}
 state=initial();state.flightSetup=FlightSetup.normalize({sail:true,collector:true,burst:true,dump:true,arrivalFuelPercent:65});state.current='boss-wall';state.ship=Space.point(object(state.current).p3);state.selected=ExtendedCatalog.ensureGalaxy(object(state.current)).id;Cosmology.sync(state);FlightSetup.sync();
 const pref=JSON.stringify(state.flightSetup);c=FlightSetup.read();assert.ok(c.engine&&!c.sail&&!c.collector&&!c.burst&&!c.dump);assert.equal(state.departureMode,'engine');assert.equal(c.arrivalFuelPercent,65);

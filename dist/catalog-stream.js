@@ -169,7 +169,7 @@ const ExtendedCatalog={
  capture(saved){
   saved.catalogGeometry=MapLayout.version;
   saved.catalogRevision=EXTENDED_BOOT.revision;
-  const ids=new Set([saved.current,saved.selected,saved.flight?.target,saved.flight?.fromId,...(saved.visited||[]),...(saved.destroyed||[]),...(saved.itinerary||[]).map(n=>n.id),...(saved.flight?.route||[]).map(n=>n.id)]);
+  const ids=new Set([saved.current,saved.selected,saved.flight?.target,saved.flight?.fromId,...(saved.visited||[]),...(saved.destroyed||[]),...(saved.flightHistory||[]).flatMap(h=>[h.fromId,h.target]),...(saved.itinerary||[]).map(n=>n.id),...(saved.flight?.route||[]).map(n=>n.id)]);
   // Include the parent galaxy so a generated star can still be identified on reload.
   for(const id of ids){const o=this.get(id);if(o?.parentGalaxy)ids.add(o.parentGalaxy);if(o?.parentObject)ids.add(o.parentObject);const anchor=o&&MapLayout.anchorId(o);if(anchor)ids.add(anchor);if(o?.departureStar)ids.add(o.departureStar);}
   saved.catalogObjects=[...ids].map(id=>this.pinned.get(id)).filter(Boolean);
@@ -222,7 +222,7 @@ const ExtendedCatalog={
  },
  drawSystems(){
   const get=id=>{const o=this.get(id);return o?.atlasOnly||!this.matchesMap(o)?null:o;};
-  for(const s of EXTENDED_BOOT.systems){const members=s.members.map(get).filter(Boolean);if(members.length<2||cam.span>2000&&members.every(o=>o.kind==='star'))continue;
+  for(const s of EXTENDED_BOOT.systems){if(s.id==='system-alpha-centauri')continue;const members=s.members.map(get).filter(Boolean);if(members.length<2||cam.span>2000&&members.every(o=>o.kind==='star'))continue;
    for(let i=0;i<s.links.length;i++){const [ai,bi]=s.links[i],a=get(ai),b=get(bi);if(!a||!b)continue;let pa=screen(a),pb=screen(b);
     if(s.id==='system-alpha-centauri'&&i===1){const other=get(s.members[1]);if(other){const p=screen(other);pa={x:(pa.x+p.x)/2,y:(pa.y+p.y)/2};}}
     const d=Math.hypot(pa.x-pb.x,pa.y-pb.y);if(d>Math.max(width,height)*1.5||Math.max(pa.x,pb.x)<0||Math.min(pa.x,pb.x)>width||Math.max(pa.y,pb.y)<0||Math.min(pa.y,pb.y)>height)continue;
@@ -234,7 +234,7 @@ const ExtendedCatalog={
   const s=this.systemByMember.get(id);if(!s)return;
   try{const members=await Promise.all(s.members.map(id=>this.resolve({id})));const labels=members.map((o,i)=>'<button class="map-size-action" data-system-member="'+i+'">'+o.name+' ↗</button>').join('');
    const tertiary=members.length>2?'<ellipse cx="180" cy="95" rx="158" ry="72"/><circle cx="320" cy="62" r="4"/>':'';
-   showDialog('<div class="modal-eyebrow">'+(s.associationOnly?'КАТАЛОЖНАЯ ГРУППА · СВЯЗЬ НЕ ПОДТВЕРЖДЕНА':s.relationship==='interacting'?'ВЗАИМОДЕЙСТВУЮЩАЯ СИСТЕМА · СХЕМА СВЯЗИ':'СВЯЗАННАЯ СИСТЕМА · УСЛОВНАЯ СХЕМА')+'</div><h2>'+s.name+'</h2>'+(s.associationOnly?'':'<svg class="system-diagram" viewBox="0 0 360 190" role="img" aria-label="Схема связи компонентов: '+s.name+'"><g fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 5">'+tertiary+'<ellipse cx="160" cy="95" rx="68" ry="28"/></g><g fill="currentColor"><circle cx="148" cy="95" r="5"/><circle cx="218" cy="81" r="4"/></g><text x="140" y="120">A</text><text x="220" y="70">B</text>'+(members.length>2?'<text x="325" y="53">C</text>':'')+'</svg>')+'<p>'+s.note+'</p>'+labels+'<p class="object-sources"><a href="'+s.source+'" target="_blank" rel="noopener">Источник связи ↗</a></p>');
+   showDialog('<div class="modal-eyebrow">'+(s.associationOnly?'КАТАЛОЖНАЯ ГРУППА · СВЯЗЬ НЕ ПОДТВЕРЖДЕНА':s.relationship==='interacting'?'ВЗАИМОДЕЙСТВУЮЩАЯ СИСТЕМА · СХЕМА СВЯЗИ':'СВЯЗАННАЯ СИСТЕМА · УСЛОВНАЯ СХЕМА')+'</div><h2>'+s.name+'</h2>'+(s.associationOnly?'':'<svg class="system-diagram" viewBox="0 0 360 190" role="img" aria-label="Схема связи компонентов: '+s.name+'"><g fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 5">'+tertiary+'<ellipse cx="160" cy="95" rx="68" ry="28"/></g><g fill="currentColor"><circle cx="148" cy="95" r="5"/><circle cx="218" cy="81" r="4"/></g><text x="140" y="120">A</text><text x="220" y="70">B</text>'+(members.length>2?'<text x="325" y="53">C</text>':'')+'</svg>')+'<p>'+s.note+'</p>'+(s.id==='system-alpha-centauri'?'<p>На карте компоненты движутся по кеплеровым орбитам: AB — 79,929 года, Проксима — около 547 тысяч лет по часам внешнего наблюдателя. Здесь показана условная схема иерархии. <a href="https://arxiv.org/abs/1610.06079" target="_blank" rel="noopener">Орбита AB</a> · <a href="https://arxiv.org/abs/1611.03495" target="_blank" rel="noopener">Орбита C</a>.</p>':'')+labels+'<p class="object-sources"><a href="'+s.source+'" target="_blank" rel="noopener">Источник связи ↗</a></p>');
    for(let i=0;i<members.length;i++){const b=document.querySelector('[data-system-member="'+i+'"]');if(b)b.onclick=()=>{$('infoDialog').close();this.pin(members[i]);select(members[i].id);this.focus(members[i]);};}
   }catch(e){toast(e.message);}
  },
