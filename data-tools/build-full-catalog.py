@@ -3,7 +3,7 @@
 No network. HYG sentinel distances are never used. Unknown objects receive only
 an atlas-only record; approximate measured/model distances remain navigable.
 """
-import os,shutil,tempfile
+import os,shutil,tempfile,sys
 import csv, json, math, re, hashlib, unicodedata, collections, subprocess
 from disk_geometry import locate as locate_disk, basis as sky_basis, unit as sky_unit, dot as sky_dot
 from astrometry_policy import match_hyg
@@ -33,7 +33,7 @@ def dump(p,v):
     p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(v,ensure_ascii=False,separators=(',',':'),allow_nan=False))
 
 # Export only the original physical and display layers, never the extension itself.
-js="""const fs=require('fs'),vm=require('vm'),c=vm.createContext({console});vm.runInContext(['catalog','astronomy','catalog-import','catalog-retired','coordinates','cosmic-catalog','layout-data','map-layout'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\\n'),c);process.stdout.write(vm.runInContext('JSON.stringify(OBJECTS.map(o=>({...o,display:MapLayout.project(o)})))',c));"""
+js="""const fs=require('fs'),vm=require('vm'),c=vm.createContext({console});vm.runInContext(['catalog','astronomy','catalog-import','catalog-retired','coordinates','cosmic-catalog','layout-data','map-layout'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\\n'),c);process.stdout.write(vm.runInContext('JSON.stringify(OBJECTS.map(o=>({...o,display:o.p3?MapLayout.base(o.p3):{x:o.x,y:o.y}})))',c));"""
 node='/opt/homebrew/bin/node' if Path('/opt/homebrew/bin/node').exists() else 'node'
 core=json.loads(subprocess.check_output([node,'-e',js],cwd=ROOT))
 byid={o['id']:o for o in core}
@@ -505,7 +505,16 @@ dump(ROOT/'data-tools/system-position-audit.json',system_audit)
 coverage['LowZIndependent']['documentedSystemEstimates']=sum(v['status']=='unresolved' and not (policies.get(rawmap.get('ngc:'+name),{}).get('atlasOnly',False) if rawmap.get('ngc:'+name) in byid else record_byid[rawmap['ngc:'+name]][11].get('atlasOnly',False)) for name,v in lowz['objects'].items())
 coverage['LowZIndependent']['atlasOnly']-=coverage['LowZIndependent']['documentedSystemEstimates']
 cosmic_patches,cosmic_audit=merge_catalogs(ROOT,core,records,patches,coverage,projection)
-revision=hashlib.sha256(Path(__file__).read_bytes()+b''.join(hashlib.sha256(p.read_bytes()).digest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path,ROOT/'data-tools/hipparcos-errors.json',ROOT/'data-tools/low-z-galaxy-distances.json',ROOT/'data-tools/hipparcos-2007.json',ROOT/'data-tools/astrometry_policy.py',ROOT/'data-tools/globular-cluster-models.json',ROOT/'data-tools/nearby-galaxy-stars.json',ROOT/'data-tools/confirmed-systems.json',ROOT/'data-tools/coordinate-policy.json',ROOT/'data-tools/galaxy-disk-models.json',ROOT/'data-tools/galaxy-disk-objects.json',ROOT/'data-tools/magellanic-cepheids.json',ROOT/'data-tools/disk_geometry.py',ROOT/'data-tools/cosmic_merge.py',ROOT/'data-tools/import-cosmic-catalogs.py',ROOT/'data-tools/cosmic-catalogs.json.gz'])+json.dumps(core,ensure_ascii=False).encode()).hexdigest()[:12]
+# Apply the same display-only transformation as runtime AFTER every source,
+# host-local view and physical correction; build spatial trees from final points.
+with tempfile.TemporaryDirectory(prefix='parus-map-layout-') as layout_tmp:
+    layout_input=Path(layout_tmp)/'input.json';layout_output=Path(layout_tmp)/'output.json'
+    dump(layout_input,{'core':core,'patches':patches,'policies':policies,'records':records,'members':member_rows})
+    subprocess.run([node,str(ROOT/'data-tools/project-map-layout.mjs'),str(layout_input),str(layout_output)],cwd=ROOT,check=True)
+    placed=json.loads(layout_output.read_text())
+    patches,policies,records,member_rows=(placed[k] for k in ('patches','policies','records','members'))
+geometry_version=placed['geometryVersion']
+revision=hashlib.sha256(Path(__file__).read_bytes()+b''.join(hashlib.sha256(p.read_bytes()).digest() for p in [ROOT/'dist/map-layout.js',ROOT/'data-tools/project-map-layout.mjs',RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path,ROOT/'data-tools/hipparcos-errors.json',ROOT/'data-tools/low-z-galaxy-distances.json',ROOT/'data-tools/hipparcos-2007.json',ROOT/'data-tools/astrometry_policy.py',ROOT/'data-tools/globular-cluster-models.json',ROOT/'data-tools/nearby-galaxy-stars.json',ROOT/'data-tools/confirmed-systems.json',ROOT/'data-tools/coordinate-policy.json',ROOT/'data-tools/galaxy-disk-models.json',ROOT/'data-tools/galaxy-disk-objects.json',ROOT/'data-tools/magellanic-cepheids.json',ROOT/'data-tools/disk_geometry.py',ROOT/'data-tools/cosmic_merge.py',ROOT/'data-tools/import-cosmic-catalogs.py',ROOT/'data-tools/cosmic-catalogs.json.gz'])+json.dumps(core,ensure_ascii=False).encode()).hexdigest()[:12]
 DATA_ROOT='catalog-data/'+revision
 FINAL_OUT=ROOT/'dist'/DATA_ROOT
 FINAL_OUT.parent.mkdir(parents=True,exist_ok=True)
@@ -559,7 +568,7 @@ for r in records:
     index.append([r[0],r[1],r[2],r[3],r[6],locations[r[0]],key,bool(r[11].get('atlasOnly'))]+([r[11]['catalogClass']] if r[11].get('catalogClass') else []))
 dump(OUT/'search.json',index)
 
-summary={'version':2,'mapProjection':'orthographic-galactic-xy','sampling':'weighted-stable-exponential-v1','dataRoot':DATA_ROOT,'revision':revision,'total':len(core)+len(member_rows)+len(records),'core':len(core)+len(member_rows),'extra':len(records),'sourceCoverage':coverage,'mapRows':len(records)-len(atlas_only),'atlasOnlyRows':len(atlas_only),'unknownExtra':sum(r[6]=='unknown' for r in records),'approximateExtra':sum(r[6]=='approximate' for r in records),'nodes':nodes,'roots':roots,'search':'search.json','systems':len(systems),'foregroundWithin50':len(foreground)}
+summary={'version':2,'mapProjection':'galactic-xy-milkyway-lift-v3','geometryVersion':geometry_version,'sampling':'weighted-stable-exponential-v1','dataRoot':DATA_ROOT,'revision':revision,'total':len(core)+len(member_rows)+len(records),'core':len(core)+len(member_rows),'extra':len(records),'sourceCoverage':coverage,'mapRows':len(records)-len(atlas_only),'atlasOnlyRows':len(atlas_only),'unknownExtra':sum(r[6]=='unknown' for r in records),'approximateExtra':sum(r[6]=='approximate' for r in records),'nodes':nodes,'roots':roots,'search':'search.json','systems':len(systems),'foregroundWithin50':len(foreground)}
 dump(OUT/'manifest.json',summary)
 # Publish a complete immutable snapshot. Rebuilding the same revision may reuse
 # identical bytes, but must never delete files under already-open clients.
@@ -571,10 +580,13 @@ if FINAL_OUT.exists():
 else:os.replace(OUT,FINAL_OUT)
 OUT=FINAL_OUT
 dump(ROOT/'dist/catalog-data/current.json',{'revision':revision,'dataRoot':DATA_ROOT,'total':summary['total'],'manifest':DATA_ROOT+'/manifest.json'})
-boot={'dataRoot':DATA_ROOT,'cosmicPatches':cosmic_patches,'geometryVersion':2,'coordinateCorrections':[r for r in records if (not r[11].get('cosmicCatalog') or r[11].get('catalogPositionUpdated')) and (r[11].get('boundSystemPrimary') or r[11].get('redshiftIndependent') or r[11].get('distanceHost') or r[11].get('catalogDistanceLy') is not None or r[10]=='GlobularModels')],'revision':revision,'members':member_rows,'policies':policies,'hiddenIds':[r[0] for r in atlas_only+member_rows if r[11].get('atlasOnly')],'total':summary['total'],'patches':patches,'foreground':foreground,'systems':systems,'renames':renames,'sourceCoverage':coverage,'pulsarCorrections':[r for r in records if r[10]=='ATNF' and (r[11].get('distanceHost') or 'параллакс' in r[7]) and not r[11].get('atlasOnly')],'systemTiles':{i:locations[i] for s in systems for i in s['members'] if i in locations},'rawMap':{k:v for k,v in rawmap.items() if k.startswith('atnf:') and v in byid}}
+boot={'dataRoot':DATA_ROOT,'cosmicPatches':cosmic_patches,'geometryVersion':geometry_version,'coordinateCorrections':[r for r in records if (not r[11].get('cosmicCatalog') or r[11].get('catalogPositionUpdated')) and (r[11].get('boundSystemPrimary') or r[11].get('redshiftIndependent') or r[11].get('distanceHost') or r[11].get('catalogDistanceLy') is not None or r[10]=='GlobularModels')],'revision':revision,'members':member_rows,'policies':policies,'hiddenIds':[r[0] for r in atlas_only+member_rows if r[11].get('atlasOnly')],'total':summary['total'],'patches':patches,'foreground':foreground,'systems':systems,'renames':renames,'sourceCoverage':coverage,'pulsarCorrections':[r for r in records if r[10]=='ATNF' and (r[11].get('distanceHost') or 'параллакс' in r[7]) and not r[11].get('atlasOnly')],'systemTiles':{i:locations[i] for s in systems for i in s['members'] if i in locations},'rawMap':{k:v for k,v in rawmap.items() if k.startswith('atnf:') and v in byid}}
 (ROOT/'dist/catalog-extended.js').write_text('// Generated from complete local source snapshots.\nconst EXTENDED_BOOT='+json.dumps(boot,ensure_ascii=False,separators=(',',':'),allow_nan=False)+';\n')
 dump(ROOT/'data-tools/full-catalog-audit.json',{'total':summary['total'],'core':len(core)+len(member_rows),'extra':len(records),'sourceCoverage':coverage,'mappedRows':summary['mapRows'],'atlasOnlyRows':summary['atlasOnlyRows'],'leafRecords':len(locations),'foreground':foreground,'systems':len(systems),'unknownExtra':summary['unknownExtra'],'approximateExtra':summary['approximateExtra'],'sourceSHA256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path]}})
+subprocess.run([sys.executable,str(ROOT/'data-tools/build-map-layers.py')],check=True)
+layer_revision=json.loads((ROOT/'dist/map-layers/current.json').read_text())['revision']
 html=ROOT/'dist/index.html';html.write_text(re.sub(r'(catalog-extended\.js\?v=)[^\"]+',lambda m:m[1]+revision,html.read_text()))
+html.write_text(re.sub(r'(map-layer-data\.js\?v=)[^"]+',lambda m:m[1]+layer_revision,html.read_text()))
 # Keep the public provenance index in sync with the actual generated catalog.
 source_path=ROOT/'dist/catalog-sources.json';source_info=json.loads(source_path.read_text());full=source_info.setdefault('fullCatalog',{})
 full.update(records=summary['total'],coordinatePolicy='data-tools/coordinate-policy.json',diskModels='data-tools/galaxy-disk-models.json',diskSelection='data-tools/galaxy-disk-objects.json',diskAudit='data-tools/galaxy-disk-audit.json',pulsarAudit='data-tools/pulsar-distance-audit.json')

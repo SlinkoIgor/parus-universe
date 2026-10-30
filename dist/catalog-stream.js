@@ -3,8 +3,15 @@
 const ExtendedCatalog={
  manifest:null,cache:new Map(),inflight:new Map(),pinned:new Map(),visibleMap:new Map(),visible:[],wanted:[],worker:null,seq:0,searchLimit:100,lastUpdate:-Infinity,active:0,errors:new Map(),foreground:new Set(EXTENDED_BOOT.foreground),systemByMember:new Map(),
  transitions:new Map(),cutKey:null,
- matchesMap(o){return !!o&&this.matches(o.kind,typeof filter==='string'?filter:'all',o);},
- opacity(o){return MapDetails.opacity(o,cam.span)*(this.coreIndex?.has(o.id)||this.pinned.has(o.id)?1:this.transitions.get(o.id)?.alpha??1);},
+ matchesMap(o,categoryOnly=false){
+  if(!o)return false;
+  const selected=typeof filter==='string'?filter:'all';
+  // Keep bulk survey envelopes out of the overview, including pinned/saved
+  // targets. Atlas search and explicit class filters retain the full catalog.
+  if(selected==='all'&&o.cosmicCatalog&&!o.cosmicLandmark&&(o.kind==='void'||o.cosmicSubtype==='supercluster'))return false;
+  return this.matches(o.kind,selected,o)&&(categoryOnly||!globalThis.MapLayers||MapLayers.admits(o));
+ },
+ opacity(o,detail=true){return (detail?MapDetails.opacity(o,cam.span):1)*(this.coreIndex?.has(o.id)||this.pinned.has(o.id)||globalThis.MapLayers?.visibleMap.has(o.id)?1:this.transitions.get(o.id)?.alpha??1);},
  stagger(id){let h=2166136261;for(const c of id)h=Math.imul(h^c.charCodeAt(0),16777619);return(h>>>0)%181;},
  adoptCut(rows,now){
   const target=new Map(rows.filter(o=>!o.atlasOnly).slice(0,8000).map(o=>[o.id,o]));
@@ -21,7 +28,7 @@ const ExtendedCatalog={
  },
  sources:{HYG:['https://github.com/astronexus/HYG-Database','HYG 4.1'],OpenNGC:['https://github.com/mattiaverga/OpenNGC','OpenNGC'],ATNF:['https://www.atnf.csiro.au/research/pulsar/psrcat/','ATNF 2.9.0']},
  get total(){return EXTENDED_BOOT.total+OBJECTS.filter(o=>o.nuclearStar).length+[...this.pinned.values()].filter(o=>o.synthetic).length;},
- get(id){return this.coreIndex?.get(id)||this.pinned.get(id)||this.visibleMap.get(id);},
+ get(id){return this.coreIndex?.get(id)||this.pinned.get(id)||globalThis.MapLayers?.get(id)||this.visibleMap.get(id);},
  background(o){return MapDetails.mass(o)===null&&!o.synthetic&&!o.messier&&(!o.galaxyMember||o.bulkGalaxyMember)&&(o.bulkGalaxyMember||o.streamed||o.kind==='star'&&o.d>0&&o.d<=50&&!this.foreground.has(o.id));},
  readJSON(path){if(globalThis.PARUS_CATALOG_FILES?.[path])return Promise.resolve().then(()=>{const v=globalThis.PARUS_CATALOG_FILES[path];return typeof v==='string'?JSON.parse(v):v;});const url=path.startsWith('catalog-data/')?(EXTENDED_BOOT.dataRoot||'catalog-data')+'/'+path.slice(13):path;if(globalThis.PARUS_CATALOG_FILES?.[url])return Promise.resolve().then(()=>{const v=globalThis.PARUS_CATALOG_FILES[url];return typeof v==='string'?JSON.parse(v):v;});return fetch(url+'?v='+EXTENDED_BOOT.revision).then(r=>{if(!r.ok)throw Error('Не удалось загрузить '+path);return r.json();});},
  astrometryNote(o){if(!o.astrometrySource)return;const note=o.uncertaintyMatched&&o.distanceRelativeError!=null?'Решение '+o.astrometrySource+'; σπ/π ≈ '+(100*o.distanceRelativeError).toFixed(1).replace('.',',')+'%.':'Для принятого расстояния формальная погрешность не задана; погрешность другого решения не подставляется.';o.coordinateNote=(o.coordinateNote||'')+' '+note;},
@@ -55,7 +62,7 @@ const ExtendedCatalog={
   if(extra.filamentLengthLy)o.facts.extra=['Длина оси',extra.filamentLengthLy.toLocaleString('ru-RU',{maximumSignificantDigits:4})+' св. лет'];
   for(const m of extra.catalogMeasurements||[])if(!o.facts.refs.some(r=>r[0]===m.source))o.facts.refs.push([m.source,m.catalog]);
   if(extra.regionData)o.region=extra.regionData;
-  this.stellarProperties(o);this.astrometryNote(o);if(extra.periodSeconds)o.facts.extra=['Период вращения',String(extra.periodSeconds)+' с'];return o;
+  this.stellarProperties(o);this.astrometryNote(o);if(extra.periodSeconds)o.facts.extra=['Период вращения',String(extra.periodSeconds)+' с'];globalThis.StellarClusters?.prepare(o);globalThis.Nebulae?.prepare(o);return o;
  },
  init(){
   this.coreIndex=new Map(OBJECTS.map(o=>[o.id,o]));
@@ -93,6 +100,7 @@ const ExtendedCatalog={
    if(patch.massSolar&&o.facts)o.facts.mass=patch.massSolar.toLocaleString('ru-RU',{maximumSignificantDigits:4})+' M☉ · '+patch.massBasis;
   }
   for(const s of EXTENDED_BOOT.systems)for(const id of s.members){this.systemByMember.set(id,s);const o=this.coreIndex.get(id);if(s.id==='system-cygnus-x1'&&o?.facts)o.facts.refs=[...(o.facts.refs||[]).filter(r=>r[0]!==s.source),[s.source,'Расстояние и параметры двойной системы']];}
+  MapLayout.resolve=id=>this.get(id);MapLayout.init();
  },
  start(){
   if(typeof fetch!=='function'&&!globalThis.PARUS_CATALOG_FILES)return;
@@ -124,13 +132,14 @@ const ExtendedCatalog={
  update(now){
   this.advanceVisibility(now);
   if(now-this.lastUpdate<180)return;this.lastUpdate=now;
-  if(this.manifest){this.wanted=this.nodesForView(cam,width,height);for(const file of this.wanted)if(!this.cache.has(file)&&this.inflight.size<4&&now-(this.errors.get(file)||-Infinity)>3000)this.tile(file).then(()=>{this.lastUpdate=-Infinity;}).catch(()=>{});
+  if(this.manifest){this.wanted=this.nodesForView(cam,width,height);for(const file of this.wanted)if(!this.cache.has(file)&&this.inflight.size+(globalThis.MapLayers?.inflight.size||0)<4&&now-(this.errors.get(file)||-Infinity)>3000)this.tile(file).then(()=>{this.lastUpdate=-Infinity;}).catch(()=>{});
    if(this.wanted.every(file=>this.cache.has(file))){const key=this.wanted.join('|');if(key!==this.cutKey){this.cutKey=key;this.adoptCut(this.wanted.flatMap(file=>this.cache.get(file)),now);}}
   }
   if(cam.span<200000)for(const g of GALAXIES){if(g.id==='milkyway')continue;const p=MapLayout.project(g);if(Math.hypot(cam.x-p.x,cam.y-p.y)<cam.span)this.ensureGalaxy(OBJECTS.find(o=>o.id===g.id)||this.get(g.id));}
  },
  pin(o){
   if(!o)return o;const core=OBJECTS.find(q=>q.id===o.id);if(core)return core;
+  globalThis.StellarClusters?.prepare(o);globalThis.Nebulae?.prepare(o);
   this.pinned.set(o.id,o);this.prepareGalaxy(o);this.repairLocalStar(o);return o;
  },
  repairLocalStar(o,seen=new Set()){
@@ -162,17 +171,19 @@ const ExtendedCatalog={
   saved.catalogRevision=EXTENDED_BOOT.revision;
   const ids=new Set([saved.current,saved.selected,saved.flight?.target,saved.flight?.fromId,...(saved.visited||[]),...(saved.destroyed||[]),...(saved.itinerary||[]).map(n=>n.id),...(saved.flight?.route||[]).map(n=>n.id)]);
   // Include the parent galaxy so a generated star can still be identified on reload.
-  for(const id of [...ids]){const o=this.get(id);if(o?.parentGalaxy)ids.add(o.parentGalaxy);if(o?.parentObject)ids.add(o.parentObject);if(o?.departureStar)ids.add(o.departureStar);}
+  for(const id of ids){const o=this.get(id);if(o?.parentGalaxy)ids.add(o.parentGalaxy);if(o?.parentObject)ids.add(o.parentObject);const anchor=o&&MapLayout.anchorId(o);if(anchor)ids.add(anchor);if(o?.departureStar)ids.add(o.departureStar);}
   saved.catalogObjects=[...ids].map(id=>this.pinned.get(id)).filter(Boolean);
   for(const id of this.pinned.keys())if(!ids.has(id))this.pinned.delete(id);
  },
- restore(saved){const oldGeometry=saved&&(saved.catalogGeometry!==MapLayout.version||saved.catalogRevision!==EXTENDED_BOOT.revision);for(const o of saved?.catalogObjects||[]){if(!o||typeof o.id!=='string')continue;const correction=(EXTENDED_BOOT.coordinateCorrections||EXTENDED_BOOT.pulsarCorrections||[]).find(r=>r[0]===o.id);if(correction)this.adopt(o,this.decode(correction),saved);
+ restore(saved){const oldGeometry=saved&&(saved.catalogGeometry!==MapLayout.version||saved.catalogRevision!==EXTENDED_BOOT.revision),oldCoordinates=(saved?.catalogGeometry??1)<2,restoring=new Map((saved?.catalogObjects||[]).filter(o=>o?.id).map(o=>[o.id,o]));for(const o of saved?.catalogObjects||[]){if(!o||typeof o.id!=='string')continue;const correction=(EXTENDED_BOOT.coordinateCorrections||EXTENDED_BOOT.pulsarCorrections||[]).find(r=>r[0]===o.id);if(correction)this.adopt(o,this.decode(correction),saved);
   if(o.mapGeometry!==MapLayout.version&&o.p3?.every(Number.isFinite)){
-   const host=o.galaxyMember&&this.coreIndex.get(o.parentGalaxy);
-   if(host&&o.mapPosition){const before=MapLayout.legacy(host.p3,host.id),after=MapLayout.baseProject(host);o.mapPosition={x:o.mapPosition.x+after.x-before.x,y:o.mapPosition.y+after.y-before.y};}
-   else o.mapPosition=MapLayout.base(o.p3);
+   const previous=o.mapGeometry??saved?.catalogGeometry??1,host=o.galaxyMember&&this.coreIndex.get(o.parentGalaxy);
+   let raw=o.mapPosition||MapLayout.base(o.p3);
+   if(previous<2){if(host&&o.mapPosition){const before=MapLayout.legacy(host.p3,host.id),after=MapLayout.rawProject(host);raw={x:raw.x+after.x-before.x,y:raw.y+after.y-before.y};}else raw=MapLayout.base(o.p3);}
+   delete o.mapOffset;const d=MapLayout.displacement(o,raw,id=>this.coreIndex.get(id)||restoring.get(id)||this.pinned.get(id));
+   o.mapOffset=[d.x,d.y];o.mapPosition={x:raw.x+d.x,y:raw.y+d.y};
    o.mapGeometry=MapLayout.version;
-   if(!o.synthetic){o.atlasOnly=this.hiddenIds.has(o.id)||o.positionQuality==='unknown';o.navigable=!o.atlasOnly&&!!o.p3;delete o.distanceRelativeError;o.uncertaintyMatched=false;}
+   if(previous<2&&!o.synthetic){o.atlasOnly=this.hiddenIds.has(o.id)||o.positionQuality==='unknown';o.navigable=!o.atlasOnly&&!!o.p3;delete o.distanceRelativeError;o.uncertaintyMatched=false;}
   }
   if(this.hiddenIds.has(o.id)||o.positionQuality==='unknown'){o.atlasOnly=true;o.navigable=false;o.coordinateNote=o.positionReason||'Индивидуальная глубина или пригодное расстояние не определены. Только атлас.';if(o.historicalNavigation)o.coordinateNote+=' Прежняя приблизительная навигационная оценка сохранена только для текущего положения корабля или старого маршрута.';}if((o.p3==null||o.p3.every(Number.isFinite))&&(o.atlasOnly||Number.isFinite(o.mapPosition?.x)&&Number.isFinite(o.mapPosition?.y)))this.pin(o);
  }
@@ -180,8 +191,8 @@ const ExtendedCatalog={
   if(saved?.flight&&(this.get(saved.flight.fromId)?.synthetic||this.get(saved.flight.target)?.synthetic))delete saved.flight.view;
   if(oldGeometry){
    const f=saved.flight,target=f&&this.get(f.target);
-   if(f&&target?.p3&&f.from?.p3){if(saved.phase!=='flyby'){const aim=f.aim?.p3?f.aim:target;f.distance=Space.distance(f.from,aim);f.cosmic=Cosmology.isCosmic(this.get(f.fromId)||f.from,target);if(f.distance>0&&saved.ship)Object.assign(saved.ship,Space.mix(f.from,aim,f.covered/f.distance));}delete f.view;}
-   else if(!f&&saved.ship){const current=this.get(saved.current);if(current?.p3)Object.assign(saved.ship,Space.point(current.p3));}
+   if(f){if(oldCoordinates&&target?.p3&&f.from?.p3&&saved.phase!=='flyby'){const aim=f.aim?.p3?f.aim:target;f.distance=Space.distance(f.from,aim);f.cosmic=Cosmology.isCosmic(this.get(f.fromId)||f.from,target);if(f.distance>0&&saved.ship)Object.assign(saved.ship,Space.mix(f.from,aim,f.covered/f.distance));}delete f.view;}
+   else if(oldCoordinates&&saved.ship){const current=this.get(saved.current);if(current?.p3)Object.assign(saved.ship,Space.point(current.p3));}
    saved.catalogGeometry=MapLayout.version;
    saved.catalogRevision=EXTENDED_BOOT.revision;
   }
@@ -192,7 +203,7 @@ const ExtendedCatalog={
   if(g.kind==='star'&&!state.destroyed.includes(g.id))return null;
   this.prepareGalaxy(g);
   const candidates=[...OBJECTS,...this.pinned.values(),...this.visible].filter(o=>o.id!==g.id&&o.kind==='star'&&!o.synthetic&&!o.atlasOnly&&o.p3&&!state.destroyed.includes(o.id));
-  const radius=g.kind==='home'?10:g.kind==='galaxy'?Math.max(1,(g.galaxy?.diameterLy||30000)*.6):g.region?Math.max(1,Math.min(10000,g.region.major*.5)):Math.max(1,g.diameterLy||0);
+  const radius=g.kind==='home'?10:g.kind==='galaxy'?Math.max(1,(g.galaxy?.diameterLy||30000)*.6):g.region&&!g.region.mapSizeDerived?Math.max(1,Math.min(10000,g.region.major*.5)):Math.max(1,g.diameterLy||0);
   const real=candidates.filter(o=>o.parentGalaxy===g.id||Space.distance(o,g)<radius).sort((a,b)=>Space.distance(a,g)-Space.distance(b,g))[0];
   if(real){g.departureStar=real.id;return real;}
   let n=1;while(state.destroyed.includes('game-star:'+g.id+':'+n))n++;
@@ -202,11 +213,11 @@ const ExtendedCatalog={
   Object.assign(o,Space.point(o.p3));o.d=Math.hypot(...o.p3);this.pin(o);g.departureStar=id;return o;
  },
  draw(){
-  const points=[...this.visible,...this.pinned.values(),...OBJECTS.filter(o=>this.background(o))],seen=new Set(),protectedPoints=OBJECTS.filter(o=>this.matchesMap(o)&&!this.background(o)&&!o.region&&MapDetails.visible(o,cam.span)).map(o=>screen(o)).filter(p=>p.x>-30&&p.x<width+30&&p.y>-30&&p.y<height+30);
+  const points=[...(globalThis.MapLayers?.visible||[]),...this.visible,...this.pinned.values(),...OBJECTS.filter(o=>this.background(o))],seen=new Set(),protectedPoints=OBJECTS.filter(o=>this.matchesMap(o)&&!this.background(o)&&!o.region&&MapDetails.visible(o,cam.span)).map(o=>({...screen(o),level:MapDetails.level(o)})).filter(p=>p.x>-30&&p.x<width+30&&p.y>-30&&p.y<height+30);
   const buckets=new Map();for(const p of protectedPoints){const k=Math.floor(p.x/16)+','+Math.floor(p.y/16);if(!buckets.has(k))buckets.set(k,[]);buckets.get(k).push(p);}
-  for(const o of points){if(seen.has(o.id)||!this.matchesMap(o)||!this.background(o)||!MapDetails.visible(o,cam.span)||this.opacity(o)<.015||o.region&&RegionMap.pixelRadius(o)>=4||o.id===state.selected||o.id===state.current)continue;seen.add(o.id);const p=screen(o);if(p.x<0||p.y<0||p.x>width||p.y>height)continue;
-   let covered=false;const bx=Math.floor(p.x/16),by=Math.floor(p.y/16);for(let ix=-1;ix<=1;ix++)for(let iy=-1;iy<=1;iy++)if((buckets.get((bx+ix)+','+(by+iy))||[]).some(q=>Math.hypot(q.x-p.x,q.y-p.y)<16))covered=true;if(covered)continue;
-   ctx.save();ctx.globalAlpha=(o.kind==='star'?.65:.9)*this.opacity(o);ctx.fillStyle=paint(o.kind==='star'?'#858585':'#555555');ctx.beginPath();ctx.arc(p.x,p.y,o.kind==='star'?1.25:1.85,0,Math.PI*2);ctx.fill();ctx.restore();hitObjects.push({o,p,r:5,background:true});
+  for(const o of points){if(seen.has(o.id)||!this.matchesMap(o)||!MapDetails.visible(o,cam.span)||!this.background(o)||this.opacity(o)<.015||!RegionMap.asPoint(o)||o.id===state.selected||o.id===state.current)continue;seen.add(o.id);const p=screen(o);if(p.x<0||p.y<0||p.x>width||p.y>height)continue;
+   let covered=false;const bx=Math.floor(p.x/16),by=Math.floor(p.y/16);for(let ix=-1;ix<=1;ix++)for(let iy=-1;iy<=1;iy++)if((buckets.get((bx+ix)+','+(by+iy))||[]).some(q=>q.level>=MapDetails.level(o)&&Math.hypot(q.x-p.x,q.y-p.y)<16))covered=true;if(covered&&!(globalThis.MapLayers?.active&&MapLayers.manages(o)))continue;
+   ctx.save();ctx.globalAlpha=(o.kind==='star'?.65:.9)*this.opacity(o)*RegionMap.pointOpacity(o);if(MapSymbols.handles(o))MapSymbols.draw(o,p,'#555555');else{ctx.fillStyle=paint(o.kind==='star'?'#858585':'#555555');ctx.beginPath();ctx.arc(p.x,p.y,o.kind==='star'?1.25:1.85,0,Math.PI*2);ctx.fill();}ctx.restore();hitObjects.push({o,p,r:5,background:true});
   }
  },
  drawSystems(){

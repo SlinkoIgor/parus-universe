@@ -797,3 +797,6 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
 
 .reach-readout{margin-top:10px;white-space:pre-line;font:9px/1.7 var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
 @media(max-width:700px){.map-controls[open]{background:color-mix(in srgb,var(--paper) 94%,transparent)}}
+
+.map-layers-readout{display:block;max-width:145px;margin:5px 0 8px;color:var(--muted);font:9px/1.5 var(--mono)}
+@media(max-width:700px){.map-controls:not([open])>.map-layers-readout{display:none}}

@@ -22,6 +22,12 @@ if catalog.exists():
  search=json.loads((catalog/'search.json').read_text())
  names={'manifest.json','search.json'}|{n['file'] for n in manifest['nodes']}|{row[5] for row in search}
  files={'catalog-data/'+name:(catalog/name).read_text() for name in sorted(names)}
+ layer_pointer=root/'map-layers/current.json'
+ if layer_pointer.exists():
+  layer_root=json.loads(layer_pointer.read_text())['dataRoot']
+  layer_manifest=json.loads((root/layer_root/'manifest.json').read_text())
+  for node in layer_manifest['nodes']:
+   if 'file' in node:files[layer_root+'/'+node['file']]=(root/layer_root/node['file']).read_text()
  payload=json.dumps(files,ensure_ascii=False,separators=(',',':')).replace('</script','<\\/script')
  html=html.replace('</head>','<script>globalThis.PARUS_CATALOG_FILES='+payload+';</script></head>')
 output=Path(sys.argv[1]);output.parent.mkdir(parents=True,exist_ok=True);output.write_text(html)

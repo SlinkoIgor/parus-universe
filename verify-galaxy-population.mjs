@@ -21,6 +21,33 @@ for(const m of input.objects){
  assert.equal(r[11].distanceErrorLy,m.distanceErrorKpc*1000*3.2615637771674336);
  assert.equal(r[11].parentGalaxy,m.host??undefined);
 }
+// Display policy must retain every sourced extragalactic stellar population,
+// including the same bulk flag used by the Clouds, M31, M33 and the Bridge.
+const diskInput=JSON.parse(fs.readFileSync('data-tools/galaxy-disk-objects.json','utf8')).objects;
+const diskAudit=new Map(JSON.parse(fs.readFileSync('data-tools/galaxy-disk-audit.json','utf8')).rows.map(q=>[q.id,q]));
+const diskStars=diskInput.filter(m=>m.kind==='star').map(m=>{const q=diskAudit.get(m.id),r=read(q?.action==='alias-of-existing-member'?q.target:m.id);assert.ok(r,m.id);return r;});
+context.populationDisplayRows=[...input.objects.map(m=>read(m.id)),...diskStars];
+run(`{
+ const snapshot=JSON.stringify(populationDisplayRows),stars=populationDisplayRows.map(r=>ExtendedCatalog.decode(r));
+ for(const o of stars){
+  const scale=o.hostDiameterLy||o.positionEstimate.referenceScaleLy;
+  assert.equal(MapDetails.maxSpan(o),scale*5,o.id+' uses its host/population scale');
+  for(const span of [2000,5000,scale,scale*2])assert.ok(MapDetails.visible(o,span),o.id+' disappeared on resolved view '+span);
+  assert.equal(MapDetails.visible(o,scale*5),false,'population still disappears on the wider overview');
+  if(o.bulkGalaxyMember)assert.equal(MapDetails.landmark(o),false,'bulk stars cannot bypass their class limit');
+ }
+ assert.equal(MapDetails.visible({kind:'star'},2000),false,'ordinary Milky Way cutoff stays in force');
+ assert.equal(MapDetails.maxSpan({kind:'star',synthetic:true,galaxyMember:true,hostDiameterLy:100000}),2000,'game stars retain their own cutoff');
+ assert.equal(JSON.stringify(populationDisplayRows),snapshot,'rendering does not change catalogue rows, source distances or errors');
+ state=initial();state.expansion=false;Cosmology.sync(state);MapLayers.active=false;MapLayers.visible=[];MapLayers.visibleMap.clear();width=1440;height=1000;
+ for(const mode of ['dark','light'])for(const host of ['lmc','smc','andromeda','triangulum']){
+  theme=mode;filter='all';const g=object(host),p=MapLayout.project(g);cam={x:p.x,y:p.y,span:g.galaxy.diameterLy*2};
+  ExtendedCatalog.visible=stars.filter(o=>o.parentGalaxy===host);state.selected=host;
+  MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawObjects();ExtendedCatalog.draw();MapLabels.draw();
+  assert.ok(hitObjects.filter(h=>h.o.kind==='star'&&h.o.parentGalaxy===host).length>100,host+' must contain visible stars on the whole-galaxy view');
+ }
+}`);
+console.log('PASS every OGLE/LGGS star retains host/population-scale visibility, resolved Cloud/M31/M33 rendering in both themes, ordinary/game-star cutoffs and unchanged source rows');
 for(const host of ['lmc','smc']){
  const group=input.objects.filter(m=>m.host===host),rows=group.map(m=>read(m.id));
  assert.ok(new Set(rows.map(r=>r[3])).size>500,'individual distances do not form a shared shell');

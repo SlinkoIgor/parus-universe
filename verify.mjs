@@ -25,4 +25,14 @@ import './verify-flight-menu.mjs';
 
 import './verify-atlas-transitions.mjs';
 
+import './verify-map-hierarchy.mjs';
+
+import './verify-map-landmarks.mjs';
+
+import './verify-stellar-cluster-map.mjs';
+
+import './verify-milkyway-layout.mjs';
+
+import './verify-map-class-symbols.mjs';
+
 import './verify-current-reach.mjs';

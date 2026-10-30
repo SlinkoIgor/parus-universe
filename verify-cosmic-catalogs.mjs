@@ -33,6 +33,48 @@ assert.ok(JSON.stringify(EXTENDED_BOOT).length<5e6,'bounded eager boot');
 `);
 console.log('PASS immutable data root, source types, unknown sizes, aggregate mass and bounded eager boot');
 
+// The overview omits bulk void/supercluster envelopes, but neither the atlas
+// nor saved navigation loses any records. Exercise every affected survey row.
+context.overviewRows=rows.filter(r=>r[11].cosmicCatalog&&(r[2]==='void'||r[11].cosmicSubtype==='supercluster'));
+assert.equal(context.overviewRows.filter(r=>r[2]==='void').length,635);
+assert.equal(context.overviewRows.filter(r=>r[11].cosmicSubtype==='supercluster').length,1313);
+await run(`(async()=>{
+state=initial();state.expansion=false;Cosmology.sync(state);filter='all';
+var surveyObjects=overviewRows.map(r=>ExtendedCatalog.decode(r));
+for(const o of surveyObjects){
+ assert.equal(ExtendedCatalog.matchesMap(o),false,o.id+' hidden in overview');
+ assert.equal(ExtendedCatalog.matches(o.kind,'all',o),true,o.id+' retained in atlas');
+ filter=o.kind==='void'?'void':'structure';assert.equal(ExtendedCatalog.matchesMap(o),true,o.id+' visible in class filter');filter='all';
+}
+for(const id of ['bootes','local-void','eridanus-supervoid','laniakea','shapley','quipu','sloan','boss-wall'])assert.equal(ExtendedCatalog.matchesMap(object(id)),true,'named landmark '+id);
+for(const o of imported.filter(o=>o.cosmicSubtype==='filament'))assert.equal(ExtendedCatalog.matchesMap(o),true,'filament retained');
+var overviewVisible=ExtendedCatalog.visible,overviewPinned=new Map(ExtendedCatalog.pinned);
+for(const o of [...surveyObjects.filter(o=>o.kind==='void').slice(0,2),...surveyObjects.filter(o=>o.cosmicSubtype==='supercluster').slice(0,2),imported[2]]){
+ ExtendedCatalog.pin(o);ExtendedCatalog.visible=[o];state.selected=o.id;state.current=o.id;
+ const p=MapLayout.project(o);cam={x:p.x,y:p.y,span:Math.max(o.region.major,o.region.minor)*3};
+ for(const mode of ['all','void','structure','all']){
+  filter=mode;MapLabels.begin();RegionMap.draw();drawObjects();ExtendedCatalog.draw();
+  const expected=mode==='all'?o.cosmicSubtype==='filament':mode===(o.kind==='void'?'void':'structure');
+  assert.equal(RegionMap.hits.some(h=>h.o.id===o.id),expected,'contour and hit area '+o.id+' '+mode);
+  assert.equal(MapLabels.queue.some(q=>q.key==='region-'+o.id),expected,'label '+o.id+' '+mode);
+  // The same object also has a point symbol when its envelope is too small.
+  const region=o.region;delete o.region;MapLabels.begin();drawObjects();ExtendedCatalog.draw();
+  assert.equal(hitObjects.some(h=>h.o.id===o.id),expected,'point symbol '+o.id+' '+mode);o.region=region;
+ }
+}
+filter='all';state=initial();state.expansion=false;var hiddenTarget=surveyObjects[0];state.selected=hiddenTarget.id;
+ExtendedCatalog.capture(state);var overviewSaved=JSON.parse(JSON.stringify(state));ExtendedCatalog.pinned.clear();state=restore(overviewSaved);
+assert.equal(state.selected,hiddenTarget.id);assert.ok(object(hiddenTarget.id).navigable);assert.equal(ExtendedCatalog.matchesMap(object(hiddenTarget.id)),false,'reload cannot reveal hidden selected target');
+filter='void';assert.equal(ExtendedCatalog.matchesMap(object(hiddenTarget.id)),true);filter='all';ExtendedCatalog.visible=overviewVisible;
+for(const [mode,total] of [['void',635],['structure',16734]]){
+ const found=await ExtendedCatalog.search('',mode,20000);
+ assert.equal(found.total,total,'full atlas class '+mode);
+}
+const overviewSearch=await ExtendedCatalog.search(surveyObjects[0].name,'all',100);assert.ok(overviewSearch.items.some(o=>o.id===surveyObjects[0].id),'overview search retains hidden objects');
+ExtendedCatalog.pinned=overviewPinned;
+})()`);
+console.log('PASS all 1948 survey envelopes hidden only in overview; named landmarks/filaments, class filters, points, contours, labels, hits, atlas search and saved navigation retained');
+
 // A normal flight to an actual newly imported nearby group, including reload.
 run(`
 state=initial();state.expansion=false;paused=false;state.selected=imported[0].id;
