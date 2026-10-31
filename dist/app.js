@@ -653,7 +653,8 @@ function showObject(id=state.selected){
  if(o.catalogDistanceLy!=null)html+=row('Исходная каталожная дальность',distanceText(o.catalogDistanceLy)+'<small>До оценки по принадлежности к системе; не используется в текущем маршруте</small>');
  if(o.gravity)html+=row('Модель пролёта',o.gravity.note);
  if(o.coordinateNote)html+=row('Координаты',o.coordinateNote);
- if(o.mapOffset?.some(v=>Math.abs(v)>1e-6))html+=row('На схеме','Положение условно смещено для отделения внеплоскостных объектов от оптического диска Млечного Пути. Это не граница принадлежности к Галактике; расстояния рассчитаны по физическим 3D-координатам.');
+ if(globalThis.MapRadial?.active())html+=row('На радиальной карте',MapRadial.explain(o).text+'<small>'+MapRadial.explain(o).chain.map(p=>MapRadial.resolve(p.id)?.name||p.id).join(' → ')+'</small>');
+ else if(o.mapOffset?.some(v=>Math.abs(v)>1e-6))html+=row('На схеме','Положение условно смещено для отделения внеплоскостных объектов от оптического диска Млечного Пути. Это не граница принадлежности к Галактике; расстояния рассчитаны по физическим 3D-координатам.');
  if(o.positionEstimate){const e=o.positionEstimate,shared=Number.isFinite(e.sharedDistanceErrorLy)?' Общая погрешность дальности центра ≈ '+distanceText(e.sharedDistanceErrorLy)+'; она коррелирована для членов системы.':e.sharedDistanceNote||' Общая систематика расстояния отдельно не оценена.';html+=row('Локальный диапазон позиции','≈ '+distanceText(e.localEnvelopeLy)+'<small>'+e.envelopeMeaning+shared+'</small>');if(e.anchor)html+=row(e.method==='bounded-compact-host'?'Опорное скопление':'Опорная галактика',object(e.anchor)?.name||e.anchorName||e.anchor);}
  if(o.membershipNote)html+=row('Членство',o.membershipNote);
  const system=ExtendedCatalog.systemByMember.get(o.id);if(system)html+=row('Связанная система',system.name+'<small>'+system.note+'</small>');

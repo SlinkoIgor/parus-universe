@@ -40,6 +40,8 @@ import './verify-milkyway-layout.mjs';
 import './verify-map-class-symbols.mjs';
 
 import './verify-map-slice.mjs';
+import './verify-map-radial.mjs';
+import './verify-system-coordinates.mjs';
 
 import './verify-current-reach.mjs';
 

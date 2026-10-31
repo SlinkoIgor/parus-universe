@@ -1,0 +1,77 @@
+{
+  "id": "recursive-radial-v3",
+  "version": 3,
+  "units": "ly",
+  "axes": "reference-epoch heliocentric Galactic XYZ; screen Y = -Yg",
+  "localDomains": [
+    {
+      "host": "sgr",
+      "radiusLy": 1000000,
+      "kinds": [
+        "star",
+        "pulsar",
+        "blackhole",
+        "stellar-cluster",
+        "nebula"
+      ]
+    },
+    {
+      "host": "andromeda",
+      "radiusLy": 1000000,
+      "kinds": [
+        "star",
+        "pulsar",
+        "blackhole",
+        "stellar-cluster",
+        "nebula"
+      ]
+    }
+  ],
+  "protected": [
+    "sol"
+  ],
+  "rules": [
+    "protected-anchor",
+    "distance-domain",
+    "declared-host",
+    "local-cartographic-domain",
+    "published-cf4-group",
+    "independent-anchor"
+  ],
+  "distanceDomains": [
+    {
+      "id": "solar-neighbours",
+      "origin": "sol",
+      "kinds": [
+        "star",
+        "pulsar",
+        "blackhole",
+        "stellar-cluster",
+        "nebula"
+      ],
+      "radiusLy": 1000,
+      "minimumCount": 100,
+      "countKind": "star",
+      "outsidePolicy": "exclude-distant-intruders"
+    },
+    {
+      "id": "milkyway-neighbours",
+      "origin": "sgr",
+      "kinds": [
+        "galaxy"
+      ],
+      "radiusLy": 15000000,
+      "minimumCount": 100,
+      "countKind": "galaxy",
+      "coverageCatalog": {
+        "prefix": "ungc-",
+        "minimumCount": 110,
+        "note": "Independent single-catalogue coverage avoids counting aliases from several catalogues as 100 distinct galaxies. Margin includes the self Milky Way entry and classification uncertainty; no spatial deduplication or membership is inferred."
+      },
+      "outsidePolicy": "exclude-distant-intruders"
+    }
+  ],
+  "pole": "screen negative Y for Z >= 0; positive Y for Z < 0",
+  "notes": "Full radial rule at every admitted parent link. Solar 1000 ly and Galactic-centre 15 million ly domains select their origin BEFORE membership rules. Local centres of stellar clusters/nebulae use the solar frame too. Compact Galactic neighbourhoods are cartographic domains, not inferred membership. Outside-domain intrusion protection is retained explicitly from v2. Contours move rigidly; descendants use their own radial offsets. Root origin is the Sun. Frozen source coordinates and published links; no fitting.",
+  "projection": "full-radial"
+}

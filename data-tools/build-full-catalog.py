@@ -33,9 +33,10 @@ def dump(p,v):
     p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(v,ensure_ascii=False,separators=(',',':'),allow_nan=False))
 
 # Export only the original physical and display layers, never the extension itself.
-js="""const fs=require('fs'),vm=require('vm'),c=vm.createContext({console});vm.runInContext(['catalog','astronomy','catalog-import','catalog-retired','coordinates','cosmic-catalog','layout-data','map-layout'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\\n'),c);process.stdout.write(vm.runInContext('JSON.stringify(OBJECTS.map(o=>({...o,display:o.p3?MapLayout.base(o.p3):{x:o.x,y:o.y}})))',c));"""
+js="""const fs=require('fs'),vm=require('vm'),c=vm.createContext({console});vm.runInContext(['catalog','astronomy','catalog-import','catalog-retired','coordinates','cosmic-catalog','layout-data','map-layout','orbital-motion'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\\n'),c);process.stdout.write(vm.runInContext('JSON.stringify({core:OBJECTS.map(o=>({...o,display:o.p3?MapLayout.base(o.p3):{x:o.x,y:o.y}})),joint:OrbitalMotion.referenceAstrometry()})',c));"""
 node='/opt/homebrew/bin/node' if Path('/opt/homebrew/bin/node').exists() else 'node'
-core=json.loads(subprocess.check_output([node,'-e',js],cwd=ROOT))
+exported=json.loads(subprocess.check_output([node,'-e',js],cwd=ROOT))
+core=exported['core'];joint=exported['joint']
 byid={o['id']:o for o in core}
 byhyg={str(o['hygId']):o for o in core if o.get('hygId') is not None}
 byngc={o['ngc']:o for o in core if o.get('ngc')}
@@ -84,7 +85,7 @@ for q in hyg:
         solution={'astrometrySource':'SIMBAD matched parallax','parallaxMas':plx,'parallaxErrorMas':err,'distanceRelativeError':rel,'uncertaintyMatched':rel is not None}
     bad=(rel is not None and rel>MAX_RELATIVE_ERROR) or (not 0<pc<100000 and d is not None and rel is None)
     original=byid.get(ident)
-    independent_original=bool(original and original.get('p3') and d and abs(original['d']-d)/d>.01)
+    independent_original=bool(original and original.get('p3') and d and abs(original['d']/PC-pc)>COORDINATE_POLICY['hygDistanceMatchTolerancePc'])
     if independent_original:
         bad=False;solution={'astrometrySource':'Preserved independent core distance','distanceRelativeError':None,'uncertaintyMatched':False}
     extra.update(solution)
@@ -434,6 +435,26 @@ for system in systems:
     members=[component(i) for i in system['members']]
     valid=[q for q in members if q['d'] and q['ra'] is not None and q['dec'] is not None]
     if len(valid)<2:continue
+    if system['id']=='system-alpha-centauri':
+        note='Совместная опорная 3D-конфигурация на эпоху '+str(joint['epoch'])+': общий центр AB и орбита Kervella et al. 2016; отдельная астрометрия Проксимы Kervella et al. 2017, табл. 2/B.1. Центры перенесены из 1991.25 опубликованными скоростями. Это модель, не точная современная эфемерида; ошибки расстояния AB коррелированы.'
+        anchor=joint['entries']['ab']['p3']
+        for q in valid:
+            ident=q['id'];pos=joint['positions'][ident];d=math.hypot(*pos)
+            icrs=[sum(MATRIX[j][i]*pos[j] for j in range(3)) for i in range(3)]
+            ra=math.degrees(math.atan2(icrs[1],icrs[0]))%360;dec=math.degrees(math.asin(icrs[2]/d))
+            original={'distanceLy':q['d'],'raDeg':q['ra'],'decDeg':q['dec'],'source':'Preserved core / HYG 4.1'}
+            raw=next(r for r in hyg if rawmap['hyg:'+r['id']]==ident)
+            original['hyg']={'distancePc':float(raw['dist']),'raDeg':float(raw['ra'])*15,'decDeg':float(raw['dec']),'source':'HYG 4.1'}
+            measured=joint['entries']['proxima' if ident=='proxima' else 'ab']
+            metadata={'coordinateModel':'alpha-joint-v1','coordinateEpoch':joint['epoch'],'coordinateFrame':joint['frame'],'sourceAstrometryEpoch':joint['astrometryEpoch'],'catalogAstrometry':original,'referenceURL':'https://arxiv.org/abs/1611.03495','distanceSource':'https://arxiv.org/abs/1610.06079','systemParallaxMas':measured['parallaxMas'],'systemParallaxErrorMas':measured['parallaxErrorMas'],'systemDistanceRelativeError':measured['parallaxErrorMas']/measured['parallaxMas'],'systemDistanceErrorCorrelated':ident!='proxima','boundSystemPrimary':'alpha','systemAnchorP3':anchor,'astrometrySource':'Kervella 2016/2017 joint reference configuration','distanceRelativeError':None,'uncertaintyMatched':False,'atlasOnly':False,'positionReason':''}
+            if ident in byid:
+                patches[ident]={'d':d,'raDeg':ra,'decDeg':dec,'p3':pos,'positionQuality':'model','distanceMethod':note,'display':[pos[0],-pos[1]],**metadata}
+                policies[ident]=metadata
+            else:
+                row=record_byid[ident];row[3:8]=[d,ra,dec,'model',note];row[11].update(metadata,p3=pos);row[11].pop('parallaxMas',None);row[11].pop('parallaxErrorMas',None);row[12:14]=[pos[0],-pos[1]]
+            system_audit.append({'system':system['id'],'action':'joint-astrometry-and-relative-orbit','member':ident,'original':original,'p3':pos,'epoch':joint['epoch'],'source':metadata['referenceURL']})
+        system.update(schematic=False,coordinateModel='alpha-joint-v1',coordinateEpoch=joint['epoch'],note=note)
+        continue
     if system['id']=='system-cygnus-x1':
         bh=byid['cygnus'];q=component(rawmap['hyg:97987']);period=5.6/365.25
         separation=(61.8*period**2)**(1/3)/63241.077
@@ -514,7 +535,7 @@ with tempfile.TemporaryDirectory(prefix='parus-map-layout-') as layout_tmp:
     placed=json.loads(layout_output.read_text())
     patches,policies,records,member_rows=(placed[k] for k in ('patches','policies','records','members'))
 geometry_version=placed['geometryVersion']
-revision=hashlib.sha256(Path(__file__).read_bytes()+b''.join(hashlib.sha256(p.read_bytes()).digest() for p in [ROOT/'dist/map-layout.js',ROOT/'data-tools/project-map-layout.mjs',RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path,ROOT/'data-tools/hipparcos-errors.json',ROOT/'data-tools/low-z-galaxy-distances.json',ROOT/'data-tools/hipparcos-2007.json',ROOT/'data-tools/astrometry_policy.py',ROOT/'data-tools/globular-cluster-models.json',ROOT/'data-tools/nearby-galaxy-stars.json',ROOT/'data-tools/confirmed-systems.json',ROOT/'data-tools/coordinate-policy.json',ROOT/'data-tools/galaxy-disk-models.json',ROOT/'data-tools/galaxy-disk-objects.json',ROOT/'data-tools/magellanic-cepheids.json',ROOT/'data-tools/disk_geometry.py',ROOT/'data-tools/cosmic_merge.py',ROOT/'data-tools/import-cosmic-catalogs.py',ROOT/'data-tools/cosmic-catalogs.json.gz'])+json.dumps(core,ensure_ascii=False).encode()).hexdigest()[:12]
+revision=hashlib.sha256(Path(__file__).read_bytes()+b''.join(hashlib.sha256(p.read_bytes()).digest() for p in [ROOT/'dist/map-layout.js',ROOT/'dist/orbital-motion.js',ROOT/'data-tools/project-map-layout.mjs',RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path,ROOT/'data-tools/hipparcos-errors.json',ROOT/'data-tools/low-z-galaxy-distances.json',ROOT/'data-tools/hipparcos-2007.json',ROOT/'data-tools/astrometry_policy.py',ROOT/'data-tools/globular-cluster-models.json',ROOT/'data-tools/nearby-galaxy-stars.json',ROOT/'data-tools/confirmed-systems.json',ROOT/'data-tools/coordinate-policy.json',ROOT/'data-tools/galaxy-disk-models.json',ROOT/'data-tools/galaxy-disk-objects.json',ROOT/'data-tools/magellanic-cepheids.json',ROOT/'data-tools/disk_geometry.py',ROOT/'data-tools/cosmic_merge.py',ROOT/'data-tools/import-cosmic-catalogs.py',ROOT/'data-tools/cosmic-catalogs.json.gz'])+json.dumps(core,ensure_ascii=False).encode()).hexdigest()[:12]
 DATA_ROOT='catalog-data/'+revision
 FINAL_OUT=ROOT/'dist'/DATA_ROOT
 FINAL_OUT.parent.mkdir(parents=True,exist_ok=True)
@@ -619,3 +640,5 @@ source_info['provenance'].append({'name':'Low-z independent galaxy distances','u
 source_info['provenance'] += [{'name':'Hipparcos new reduction, van Leeuwen 2007','url':'https://cdsarc.cds.unistra.fr/viz-bin/cat/I/311','changes':'HIP, parallax and formal error. Error attached only when the same solution reproduces the adopted HYG distance; explicit 1997/manual exceptions preserved.'},{'name':'Baumgardt Galactic globular-cluster compilation','url':gc_data['source'],'changes':'Only ATNF-associated hosts; measured sky coordinates, cluster distance/error and model tidal-radius bound. Individual depths remain unknown.'}]
 source_path.write_text(json.dumps(source_info,ensure_ascii=False,indent=2)+'\n')
 print(json.dumps({k:v for k,v in summary.items() if k not in ('nodes','roots')},ensure_ascii=False,indent=2))
+
+subprocess.run([sys.executable,str(ROOT/'data-tools/build-map-radial.py')],check=True)

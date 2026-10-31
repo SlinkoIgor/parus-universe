@@ -29,12 +29,16 @@ const MapSlice={
   this.render();return this.loading;
  },
  setMode(mode){
-  this.mode=mode==='slice'?'slice':'full';
+  this.mode=['full','slice','radial'].includes(mode)?mode:'full';
+  Cosmology.cache.clear();
+  ExtendedCatalog.transitions.clear();ExtendedCatalog.visible=[];ExtendedCatalog.visibleMap.clear();
+  MapLayers.setGeometry(this.mode==='radial'?globalThis.MapRadial?.layers:null);
   try{localStorage.setItem('parus-map-mode',this.mode);}catch{}
   hover=null;hitObjects=[];RegionMap.hits=[];RegionMap.renderCache=null;
   ExtendedCatalog.lastUpdate=-Infinity;ExtendedCatalog.cutKey=null;
   MapLayers.lastUpdate=-Infinity;
   if(this.mode==='slice')this.load();
+  if(this.mode==='radial')MapRadial.load();
   this.render();this.renderSelection();updateMapHeading();
  },
  renderSelection(){
@@ -43,13 +47,15 @@ const MapSlice={
  },
  render(){
   document.querySelectorAll('[data-map-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mapMode===this.mode)));
-  $('mapControlsTitle').textContent=this.mode==='slice'?'Карта · срез':'Карта и время';
+  $('mapControlsTitle').textContent=this.mode==='slice'?'Карта · срез':this.mode==='radial'?'Карта · радиальная':'Карта и время';
   const status=$('mapSliceStatus');
-  status.hidden=this.mode!=='slice'||!this.error&&!this.loading;
-  status.textContent=this.error?'Не удалось загрузить срез. Нажмите «Срез» ещё раз.':this.loading?'Загрузка среза…':'';
-  status.title=this.error||'';
+  const index=this.mode==='radial'?MapRadial:this,label=this.mode==='radial'?'Радиальная':'Срез';
+  status.hidden=this.mode==='full'||!index.error&&!index.loading;
+  status.textContent=index.error?'Не удалось загрузить карту. Нажмите «'+label+'» ещё раз.':index.loading?'Загрузка карты…':'';
+  status.title=index.error||'';
   // The complete atlas stays searchable. Only its map is sliced.
-  $('mapModeNotice').hidden=this.mode!=='slice';
+  $('mapModeNotice').hidden=this.mode==='full';
+  $('mapModeNotice').textContent=this.mode==='radial'?'Звёзды до 1000 св. лет размещаются от Солнца, галактики до 15 млн св. лет — от центра Млечного Пути. Остальные объекты — от своих опор. Размеры контуров сохранены; полёты рассчитаны в 3D.':'Атлас показывает весь каталог. На карте — срез толщиной от 100 млн св. лет у Солнца до 10 млрд на краю обозримой Вселенной; отбор по каталожным 3D-позициям.';
  },
  setup(){
   let mode='full';try{mode=localStorage.getItem('parus-map-mode');}catch{}

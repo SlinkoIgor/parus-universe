@@ -2,6 +2,11 @@
 // Coarser structures are complete spatial layers, never point-LOD samples.
 const MapLayers={
  active:false,boot:MAP_LAYER_BOOT,categories:Object.keys(MAP_LAYER_BOOT.roots),cache:new Map(),inflight:new Map(),errors:new Map(),slices:new Map(),ready:new Map(),visible:[],visibleMap:new Map(),wanted:new Set(),lastUpdate:-Infinity,
+ setGeometry(boot){
+  this.boot=boot||MAP_LAYER_BOOT;this.waitingGeometry=globalThis.MapSlice?.mode==='radial'&&!boot;
+  this.cache.clear();this.errors.clear();this.slices.clear();this.ready.clear();
+  this.visible=[];this.visibleMap.clear();this.wanted.clear();this.landmarkContext=null;this.lastUpdate=-Infinity;
+ },
  category(o){return MapDetails.group(o);},
  manages(o){return Object.hasOwn(this.boot.roots,this.category(o));},
  get(id){return this.visibleMap.get(id);},
@@ -17,12 +22,13 @@ const MapLayers={
  },
  load(file){
   if(this.cache.has(file)){const rows=this.cache.get(file);this.cache.delete(file);this.cache.set(file,rows);return Promise.resolve(rows);}
-  if(this.inflight.has(file))return this.inflight.get(file);
-  const promise=ExtendedCatalog.readJSON(this.boot.dataRoot+'/'+file).then(rows=>{const objects=rows.map(r=>ExtendedCatalog.decode(r));this.cache.set(file,objects);this.errors.delete(file);return objects;}).catch(e=>{this.errors.set(file,performance.now());this.error=e.message;throw e;}).finally(()=>{this.inflight.delete(file);this.lastUpdate=-Infinity;});
-  this.inflight.set(file,promise);return promise;
+  const boot=this.boot,key=boot.dataRoot+'/'+file;
+  if(this.inflight.has(key))return this.inflight.get(key);
+  const promise=ExtendedCatalog.readJSON(boot.dataRoot+'/'+file).then(rows=>{if(this.boot!==boot)return [];const objects=rows.map(r=>ExtendedCatalog.decode(r));this.cache.set(file,objects);this.errors.delete(file);return objects;}).catch(e=>{if(this.boot===boot){this.errors.set(file,performance.now());this.error=e.message;}throw e;}).finally(()=>{if(this.inflight.get(key)===promise)this.inflight.delete(key);this.lastUpdate=-Infinity;});
+  this.inflight.set(key,promise);return promise;
  },
  update(now){
-  if(!this.active||now-this.lastUpdate<180)return;this.lastUpdate=now;
+  if(!this.active||this.waitingGeometry||now-this.lastUpdate<180)return;this.lastUpdate=now;
   const groups=this.filesForView(cam,width,height);this.wanted=new Set([...groups.values()].flat());
   // Load the structural context before its smaller objects. A pending larger
   // cut keeps the previous complete one, while newly exposed detail waits.

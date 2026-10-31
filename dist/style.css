@@ -813,9 +813,10 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
 @media(max-width:700px){.map-controls[open]{width:145px}.map-controls .expansion-control{line-height:1.1}}
 
 /* Map selection is independent of the class filter and expedition state. */
-.map-mode-switch{display:flex;width:100%;gap:0;margin:0 0 10px;border:1px solid var(--line)}
+.map-mode-switch{display:flex;flex-wrap:wrap;width:100%;gap:0;margin:0 0 10px;border:1px solid var(--line)}
 .map-mode-switch button{flex:1;min-width:0;padding:8px 2px;font:9px var(--mono);white-space:nowrap}
-.map-mode-switch button:first-child{flex:0 0 40%}
+.map-mode-switch button:first-child{flex:0 0 55%}
+.map-mode-switch button[data-map-mode="radial"]{flex:0 0 100%;border-left:0;border-top:1px solid var(--line)}
 .map-mode-switch button+button{border-left:1px solid var(--line)}
 .map-mode-switch button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 .map-mode-switch button:focus-visible{outline:2px solid var(--ink);outline-offset:3px}

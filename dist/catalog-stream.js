@@ -113,11 +113,11 @@ const ExtendedCatalog={
  tile(file){
   if(this.cache.has(file)){const r=this.cache.get(file);this.cache.delete(file);this.cache.set(file,r);return Promise.resolve(r);}
   if(this.inflight.has(file))return this.inflight.get(file);
-  const promise=this.readJSON(file.startsWith('map-slices/')?file:'catalog-data/'+file).then(rows=>{const objects=rows.map(r=>this.decode(r));this.cache.set(file,objects);while(this.cache.size>48){const key=[...this.cache.keys()].find(k=>!this.wanted.includes(k));if(!key)break;this.cache.delete(key);}this.errors.delete(file);return objects;}).catch(e=>{this.errors.set(file,performance.now());throw e;}).finally(()=>this.inflight.delete(file));
+  const promise=this.readJSON(/^(map-slices|map-radial)\//.test(file)?file:'catalog-data/'+file).then(rows=>{const objects=rows.map(r=>this.decode(r));this.cache.set(file,objects);while(this.cache.size>48){const key=[...this.cache.keys()].find(k=>!this.wanted.includes(k));if(!key)break;this.cache.delete(key);}this.errors.delete(file);return objects;}).catch(e=>{this.errors.set(file,performance.now());throw e;}).finally(()=>this.inflight.delete(file));
   this.inflight.set(file,promise);return promise;
  },
  nodesForView(view,w,h){
-  const manifest=globalThis.MapSlice?.mode==='slice'?MapSlice.manifest:this.manifest;
+  const manifest=globalThis.MapSlice?.mode==='slice'?MapSlice.manifest:globalThis.MapRadial?.active()?MapRadial.manifest:this.manifest;
   if(!manifest)return [];
   view=Cosmology.referenceView(view);
   const pixel=view.span/Math.max(1,w),box=[view.x-w*.55*pixel,view.y-h*.60*pixel,view.x+w*.7*pixel,view.y+h*.6*pixel];
@@ -133,7 +133,7 @@ const ExtendedCatalog={
  update(now){
   this.advanceVisibility(now);
   if(now-this.lastUpdate<180)return;this.lastUpdate=now;
-  if(this.manifest&&(globalThis.MapSlice?.mode!=='slice'||MapSlice.manifest)){this.wanted=this.nodesForView(cam,width,height);for(const file of this.wanted)if(!this.cache.has(file)&&this.inflight.size+(globalThis.MapLayers?.inflight.size||0)<4&&now-(this.errors.get(file)||-Infinity)>3000)this.tile(file).then(()=>{this.lastUpdate=-Infinity;}).catch(()=>{});
+  if(this.manifest&&(globalThis.MapSlice?.mode!=='slice'||MapSlice.manifest)&&(!globalThis.MapRadial?.active()||MapRadial.manifest)){this.wanted=this.nodesForView(cam,width,height);for(const file of this.wanted)if(!this.cache.has(file)&&this.inflight.size+(globalThis.MapLayers?.inflight.size||0)<4&&now-(this.errors.get(file)||-Infinity)>3000)this.tile(file).then(()=>{this.lastUpdate=-Infinity;}).catch(()=>{});
    if(this.wanted.every(file=>this.cache.has(file))){const key=this.wanted.join('|');if(key!==this.cutKey){this.cutKey=key;this.adoptCut(this.wanted.flatMap(file=>this.cache.get(file)),now);}}
   }
   if(cam.span<200000)for(const g of GALAXIES){if(g.id==='milkyway')continue;const p=MapLayout.project(g);if(Math.hypot(cam.x-p.x,cam.y-p.y)<cam.span)this.ensureGalaxy(OBJECTS.find(o=>o.id===g.id)||this.get(g.id));}
@@ -149,7 +149,7 @@ const ExtendedCatalog={
   this.repairLocalStar(host,seen);
   // Store a reference-epoch position. MapLayout.project already applies the
   // common host translation; storing its expanded position applied that twice.
-  const base=MapLayout.baseProject(host),offset=o.p3.map((v,i)=>v-host.p3[i]);
+  const base=MapLayout.ordinaryProject(host),offset=o.p3.map((v,i)=>v-host.p3[i]);
   o.mapPosition={x:base.x+offset[0],y:base.y-offset[1]};
   MapLayout.cache.delete(o.id);Cosmology.cache.delete(o.id);
  },
@@ -176,7 +176,7 @@ const ExtendedCatalog={
   saved.catalogObjects=[...ids].map(id=>this.pinned.get(id)).filter(Boolean);
   for(const id of this.pinned.keys())if(!ids.has(id))this.pinned.delete(id);
  },
- restore(saved){const oldGeometry=saved&&(saved.catalogGeometry!==MapLayout.version||saved.catalogRevision!==EXTENDED_BOOT.revision),oldCoordinates=(saved?.catalogGeometry??1)<2,restoring=new Map((saved?.catalogObjects||[]).filter(o=>o?.id).map(o=>[o.id,o]));for(const o of saved?.catalogObjects||[]){if(!o||typeof o.id!=='string')continue;const correction=(EXTENDED_BOOT.coordinateCorrections||EXTENDED_BOOT.pulsarCorrections||[]).find(r=>r[0]===o.id);if(correction)this.adopt(o,this.decode(correction),saved);
+ restore(saved){const oldGeometry=saved&&(saved.catalogGeometry!==MapLayout.version||saved.catalogRevision!==EXTENDED_BOOT.revision),oldCoordinates=(saved?.catalogGeometry??1)<2,restoring=new Map((saved?.catalogObjects||[]).filter(o=>o?.id).map(o=>[o.id,o]));for(const o of saved?.catalogObjects||[]){if(!o||typeof o.id!=='string')continue;const authoritative=this.coreIndex.get(o.id);if(authoritative?.coordinateModel)this.adopt(o,authoritative,saved);const correction=(EXTENDED_BOOT.coordinateCorrections||EXTENDED_BOOT.pulsarCorrections||[]).find(r=>r[0]===o.id);if(correction)this.adopt(o,this.decode(correction),saved);
   if(o.mapGeometry!==MapLayout.version&&o.p3?.every(Number.isFinite)){
    const previous=o.mapGeometry??saved?.catalogGeometry??1,host=o.galaxyMember&&this.coreIndex.get(o.parentGalaxy);
    let raw=o.mapPosition||MapLayout.base(o.p3);
@@ -193,7 +193,7 @@ const ExtendedCatalog={
   if(oldGeometry){
    const f=saved.flight,target=f&&this.get(f.target);
    if(f){if(oldCoordinates&&target?.p3&&f.from?.p3&&saved.phase!=='flyby'){const aim=f.aim?.p3?f.aim:target;f.distance=Space.distance(f.from,aim);f.cosmic=Cosmology.isCosmic(this.get(f.fromId)||f.from,target);if(f.distance>0&&saved.ship)Object.assign(saved.ship,Space.mix(f.from,aim,f.covered/f.distance));}delete f.view;}
-   else if(oldCoordinates&&saved.ship){const current=this.get(saved.current);if(current?.p3)Object.assign(saved.ship,Space.point(current.p3));}
+   else if(saved.ship&&(oldCoordinates||this.get(saved.current)?.coordinateModel)){const current=this.get(saved.current);if(current?.p3)Object.assign(saved.ship,Space.point(current.p3));}
    saved.catalogGeometry=MapLayout.version;
    saved.catalogRevision=EXTENDED_BOOT.revision;
   }

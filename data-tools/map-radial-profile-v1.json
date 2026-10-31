@@ -1,0 +1,17 @@
+{
+  "id": "recursive-radial-v1",
+  "version": 1,
+  "units": "ly",
+  "axes": "reference-epoch heliocentric Galactic XYZ; screen Y = -Yg",
+  "root": {"innerLy": 5000000, "outerLy": 30000000},
+  "galaxy": {"innerLy": 100000, "outerLy": 300000},
+  "group": {"innerLy": 0, "outerLy": 1000000},
+  "localDomains": [
+    {"host": "sgr", "radiusLy": 1000000},
+    {"host": "andromeda", "radiusLy": 1000000}
+  ],
+  "protected": ["sol", "sgr", "milkyway", "andromeda", "triangulum"],
+  "rules": ["protected-anchor", "declared-host", "local-cartographic-domain", "published-cf4-group", "independent-anchor"],
+  "pole": "screen negative Y for Z >= 0; positive Y for Z < 0",
+  "notes": "All thresholds are cartographic settings, not measured membership boundaries. Domains do not assert physical satellite status. Frozen CF4 anchors are admitted by explicit profile revision, never by catalogue-wide refitting."
+}

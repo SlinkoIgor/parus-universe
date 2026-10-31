@@ -1,0 +1,70 @@
+{
+  "id": "recursive-radial-v2",
+  "version": 2,
+  "units": "ly",
+  "axes": "reference-epoch heliocentric Galactic XYZ; screen Y = -Yg",
+  "root": {
+    "innerLy": 5000000,
+    "outerLy": 30000000
+  },
+  "galaxy": {
+    "innerLy": 100000,
+    "outerLy": 300000
+  },
+  "group": {
+    "innerLy": 0,
+    "outerLy": 1000000
+  },
+  "localDomains": [
+    {
+      "host": "sgr",
+      "radiusLy": 1000000
+    },
+    {
+      "host": "andromeda",
+      "radiusLy": 1000000
+    }
+  ],
+  "protected": [
+    "sol",
+    "sgr",
+    "milkyway"
+  ],
+  "rules": [
+    "protected-anchor",
+    "declared-host",
+    "local-cartographic-domain",
+    "published-cf4-group",
+    "independent-anchor"
+  ],
+  "distanceDomains": [
+    {
+      "id": "solar-neighbours",
+      "origin": "sol",
+      "kinds": [
+        "star",
+        "pulsar"
+      ],
+      "radiusLy": 25,
+      "minimumCount": 100,
+      "countKind": "star"
+    },
+    {
+      "id": "milkyway-neighbours",
+      "origin": "sgr",
+      "kinds": [
+        "galaxy"
+      ],
+      "radiusLy": 15000000,
+      "minimumCount": 100,
+      "countKind": "galaxy",
+      "coverageCatalog": {
+        "prefix": "ungc-",
+        "minimumCount": 110,
+        "note": "Independent single-catalogue coverage avoids counting aliases from several catalogues as 100 distinct galaxies. Margin includes the self Milky Way entry and classification uncertainty; no spatial deduplication or membership is inferred."
+      }
+    }
+  ],
+  "pole": "screen negative Y for Z >= 0; positive Y for Z < 0",
+  "notes": "Distance domains override parent frames for centre positions: exact physical radius inside a frozen sphere; outside radius is at least 2a-a*a/r. Origin directions are Galactic longitude. Shapes follow their moved anchor. These fixed cartographic thresholds enclose at least the nearest 100 catalogue records and are not membership/halo boundaries. No catalogue-wide refit. Exact stellar catalogue positions take priority over the separate Alpha Centauri display orbit in this mode."
+}

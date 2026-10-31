@@ -5,8 +5,7 @@ import assert from 'node:assert/strict';
 import {catalogPath} from './catalog-path.mjs';
 
 // Load the production UI, including the new script, in the existing canvas VM.
-const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]
- .replace("'dist/map-layout.js',","'dist/map-layout.js','dist/map-slice.js',")+'\nexport {context,run};';
+const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';
 const {context,run}=await import('data:text/javascript,'+encodeURIComponent(harness));
 const info=JSON.parse(fs.readFileSync('dist/map-slices/current.json'));
 const slice=JSON.parse(fs.readFileSync('dist/'+info.dataRoot+'/manifest.json'));

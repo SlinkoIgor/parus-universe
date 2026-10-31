@@ -40,7 +40,8 @@ const MapLayout={
  place(o,base=this.base(o.p3)){const d=o.mapOffset?{x:o.mapOffset[0],y:o.mapOffset[1]}:this.displacement(o,base);return{x:base.x+d.x,y:base.y+d.y};},
  legacy(p3,id){const d=Math.hypot(...p3),a=Math.atan2(-p3[1],p3[0])+(LAYOUT_DATA.entries[id]?.offset||0);return{x:d*Math.cos(a),y:d*Math.sin(a)};},
  project(p){const base=globalThis.OrbitalMotion?.position(p)||this.baseProject(p);return typeof Cosmology==='undefined'?base:Cosmology.project(p,base);},
- baseProject(p){
+ baseProject(p){return globalThis.MapRadial?.active()?MapRadial.project(p):this.ordinaryProject(p);},
+ ordinaryProject(p){
   if(p.atlasOnly)return{x:NaN,y:NaN};
   if(p.mapPosition)return p.mapPosition;
   if(!p.p3)return this.cache.get(p.id)||{x:p.x,y:p.y};
