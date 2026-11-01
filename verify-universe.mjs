@@ -32,6 +32,7 @@ for(const id of ['CCPC-z20-002','CCPC-z65-005',DistantCatalog.objects.find(o=>o.
 }
 for(const mode of ['full','slice','radial']){MapSlice.mode=mode;MapSlice.centerZ=0;for(const o of DistantCatalog.objects.filter(o=>!o.atlasOnly).slice(0,5)){assert.equal(MapDetails.opacity(o,1.15e11),1);assert.ok(Number.isFinite(MapLayout.project(o).x));}}
 state=initial();Cosmology.sync(state);width=1440;height=855;const overview=UniverseMap.overview();goCamera(overview.x,overview.y,overview.span,true);
+assert.ok(mapContext(overview)[1].includes(distanceText(2*UniverseMap.radius)),'heading and boundary share the same reference horizon');
 const g=UniverseMap.geometry();assert.ok(g.y-g.r>80);assert.ok(g.y+g.r<height-20);assert.equal(UniverseMap.hit(g.x,g.y),null,'no inner galaxies-and-clusters region');
 for(const area of UniverseMap.areas){assert.equal(area.navigable,false);assert.equal(area.p3,undefined);}
 for(const q of UniverseMap.areas.slice(0,3)){const r=(q.r0+q.r1)/2*g.k;assert.equal(UniverseMap.hit(g.x-r,g.y).id,q.id);}
@@ -41,4 +42,4 @@ cam.span=24;assert.equal(UniverseMap.active(),false);assert.equal(UniverseMap.hi
 assert.equal(run('OBJECTS.length'),counts.core+3406);
 assert.equal(run('ExtendedCatalog.total'),counts.total+3406);
 console.log('PASS universe epochs: reference light cone, selectable retained rings and exterior, no inner region, viewport fit and no navigation coordinates');
-console.log('PASS distant sources: 173 candidates, 3226 new JADES targets, all 3298 spectra retained, five conflicts Atlas-only, existing galaxy merged without moving it, source units/model masses/unknown sizes and save restoration');
+console.log('PASS distant sources: 173 candidates, 3226 new JADES targets, all 3298 observation rows retained, five conflicts Atlas-only, existing galaxy merged without moving it, source units/model masses/unknown sizes and save restoration');

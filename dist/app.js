@@ -205,7 +205,7 @@ function mapContext(view){
  if(span<30000000)return [nearSun<5e6?'Местная группа':'Группы галактик','Галактики и их объединения.','04'];
  if(span<1e9)return ['Скопления галактик','Скопления и потоки космической паутины.','05'];
  if(span<4e10)return ['Космическая паутина','Стены, войды и крупномасштабные структуры.','06'];
- return ['Обозримая Вселенная','Исходная наблюдаемая область атласа · размер '+distanceText(93e9*Cosmology.scale()),'∞'];
+ return ['Обозримая Вселенная','Исходная наблюдаемая область атласа · размер '+distanceText((globalThis.UniverseMap?2*UniverseMap.radius:93e9)*Cosmology.scale()),'∞'];
 }
 function updateMapHeading(){const view=cameraGoal||cam,[title,sub,sheet]=mapContext(view);
  $('mapTitle').textContent=title;$('mapSubtitle').textContent=sub;$('mapSubtitle').hidden=!sub;$('mapSheet').textContent='/ '+sheet;
