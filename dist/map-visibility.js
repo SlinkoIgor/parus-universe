@@ -2,11 +2,14 @@
 // A camera only asks for spatial coverage. It never chooses representatives.
 const MapVisibility={
  classSpans:{galaxy:3e8,quasar:3e8,'galaxy-cluster':1.2e9,filament:1.8e9},
+ // Individually sourced cosmological landmarks remain useful on the overview.
+ // Their scientific catalogue class and the fixed density hierarchy stay intact.
+ overviewPoint(o){return !!(o.cosmicLandmark&&!o.atlasOnly&&['galaxy','quasar'].includes(o.kind)&&o.cosmology?.distanceLy>0&&o.p3?.every(Number.isFinite));},
  get active(){return typeof MAP_VISIBILITY_BOOT!=='undefined'&&MAP_VISIBILITY_BOOT.version===1&&MAP_VISIBILITY_BOOT.catalogRevision===EXTENDED_BOOT.revision&&MAP_VISIBILITY_BOOT.geometryVersion===MapLayout.version&&(!MapRadial.manifest||MAP_VISIBILITY_BOOT.radialRevision===MapRadial.manifest.revision);},
  limit(o){
   if(!this.active||o.synthetic||o.nuclearStar)return Infinity;
   const p=MAP_VISIBILITY_BOOT.pixels[o.id]?.[MapSlice.mode==='radial'?1:0];
-  const density=p===undefined||p<0?Infinity:p,group=MapDetails.group(o),classSpan=this.classSpans[group]??Infinity;
+  const density=p===undefined||p<0?Infinity:p,group=MapDetails.group(o),classSpan=this.overviewPoint(o)?Infinity:this.classSpans[group]??Infinity;
   return Math.min(density,classSpan/1440);
  },
  focusSpan(o,span,viewportWidth=width){return Math.min(span,this.limit(o)*Math.max(1,viewportWidth)*.7);},
