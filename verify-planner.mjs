@@ -32,7 +32,7 @@ plannerReset();const passive=ReleasingBrake.plan(2,.9,Magnetic.rho()*SHIP.sailAr
 for(const t of [0,.1,.5,1]){const q=ReleasingBrake.sampleProper(passive,passive.proper*t),staticPath=FlightPath.distance(passive,Magnetic,q.proper,0,false);nearPlanner(staticPath,q.distance);const expanding=FlightPath.distance(passive,Magnetic,q.proper,0,true);assert.ok(Number.isFinite(expanding)&&expanding>=0&&expanding<=staticPath*(1+1e-9));}
 console.log('PASS collection switch: compatible defaults, preview/replay/reload, no free fuel and cosmological distances');
 for(const target of ['andromeda','3c273']){
- plannerReset();state.selected=target;state.expansion=true;state.flightSetup=FlightSetup.normalize({sail:true,collector:true,burst:true,collectGas:false});
+ plannerReset();state.selected=target;state.expansion=true;state.flightSetup=FlightSetup.normalize({sail:true,collector:true,burst:target==='andromeda',collectGas:false});
  const forecast=MissionPlanner.preview();assert.ok(forecast.valid,forecast.reason);if(target==='3c273')assert.ok(forecast.cosmic);launch();let count=0;
  while(state.flight&&count++<100)Simulation.step(1e12);
  assert.equal(state.current,target);nearPlanner(state.proper,forecast.proper);nearPlanner(state.earth,forecast.earth);assert.equal(state.captured,0);
@@ -51,10 +51,10 @@ for(const fraction of [0,.25,.5,1]){
 const tooMuch=MissionPlanner.preview({...shortSetup,arrivalFuelPercent:shortLimit.maxPercent+.05});assert.ok(!tooMuch.valid||tooMuch.arrivalFuelKg<(shortLimit.maxPercent+.05)/100-1e-8,'unreachable tank fill must never be invented');
 const noGas=MissionPlanner.fuelLimit({...shortSetup,densityCm3:0});assert.equal(noGas.valid,false);
 plannerReset();const noCollection=FlightSetup.normalize({sail:true,collector:true,collectGas:false,capacityKg:5});const dryLimit=MissionPlanner.fuelLimit(noCollection);assert.ok(dryLimit.maxPercent<=20);
-const fullSetup=FlightSetup.normalize({sail:true,collector:true,burst:true,arrivalFuelPercent:65});state.flightSetup=fullSetup;const fullForecast=MissionPlanner.preview();assert.ok(fullForecast.valid);nearPlanner(fullForecast.arrivalFuelKg,.65);
+const fullSetup=FlightSetup.normalize({sail:true,collector:true,burst:true,arrivalFuelPercent:85});state.flightSetup=fullSetup;const fullForecast=MissionPlanner.preview();assert.ok(fullForecast.valid);nearPlanner(fullForecast.arrivalFuelKg,.85);
 assert.equal(MissionPlanner.preview({...fullSetup,arrivalFuelPercent:100}).valid,false,'100% must be rejected rather than reported with a hidden 99% target');
-launch();Simulation.step(state.flight.mission.accelerationEnd.proper/2);state=restore(JSON.parse(JSON.stringify(state)));assert.equal(state.flight.mission.setup.arrivalFuelPercent,65);
-let tripGuard=0;while(state.flight&&tripGuard++<100)Simulation.step(1e12);assert.equal(state.current,'hyg-69451');nearPlanner(state.matter*1000,.65);nearPlanner(state.proper,fullForecast.proper);
+launch();Simulation.step(state.flight.mission.accelerationEnd.proper/2);state=restore(JSON.parse(JSON.stringify(state)));assert.equal(state.flight.mission.setup.arrivalFuelPercent,85);
+let tripGuard=0;while(state.flight&&tripGuard++<100)Simulation.step(1e12);assert.equal(state.current,'hyg-69451');nearPlanner(state.matter*1000,.85);nearPlanner(state.proper,fullForecast.proper);
 console.log('PASS plain scientific notation, absolute tank targets, reachable short-route limit, no-gas/no-collection limits and saved-slider flight');
 const synthetic={valid:true,accelerationEnd:{proper:1,distance:2},coast:{proper:3,distance:6},brake:{proper:6,distance:9},proper:10};
 FlightBuilder.drawRoute(synthetic,true,synthetic,null);const chart=$('builderRouteDiagram').innerHTML;
@@ -68,7 +68,7 @@ assert.ok(!noCoastChart.includes('Свободный полёт'));assert.ok(!no
 assert.equal(Simulation.slowMotionEnabled,false);
 for(const phase of ['launch','thrust','brake','dock','cruise'])for(const rate of [1,10,1000]){state.phase=phase;state.flight={replayRate:.000001};Simulation.smoothedFactor=.000001;speed=rate;assert.equal(Simulation.slowMotionFactor(),1);assert.equal(Simulation.replayRate(),rate);}
 plannerReset();speed=1;state.flightSetup=FlightSetup.normalize({engine:true});launch();Simulation.smoothedFactor=.000001;const properStart=state.proper;Simulation.advance(.25);nearPlanner(state.proper-properStart,.25,1e-10);
-plannerReset();const flashSetup=FlightSetup.normalize({sail:true,collector:true,burst:true});const fullFlash=MissionPlanner.acceleration(flashSetup,object(state.current),1,1e12,0,false,false),lastPhoton=fullFlash.rows.at(-1);nearPlanner(lastPhoton.source*365.25,30,1e-9);assert.ok(lastPhoton.proper>30/365.25);
-for(const row of fullFlash.rows)assert.ok(row.source<=Stellar.pulseYears+1e-11);
+plannerReset();const flashSetup=FlightSetup.normalize({sail:true,collector:true,burst:true});const fullFlash=MissionPlanner.acceleration(flashSetup,object(state.current),1,1e12,0,false,false),lastPhoton=fullFlash.rows.at(-1);const flashReception=MissionPlanner.lightReception({setup:flashSetup,acceleration:fullFlash,accelerationEnd:lastPhoton});nearPlanner(flashReception.source,fullFlash.collectorSurvival.usableSourceYears,1e-9);assert.ok(flashReception.durationProper>fullFlash.collectorSurvival.usableSourceYears);
+for(const row of fullFlash.rows)assert.ok(row.source<=fullFlash.preboost.emissionOffsetYears+Stellar.pulseYears+1e-11);
 console.log('PASS maximum-speed label, absent coast omitted, slowdown disabled at all rates/phases, normal clock progress and finite retarded flash');
 `);

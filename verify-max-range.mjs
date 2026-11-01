@@ -16,7 +16,9 @@ for(const [id,epoch,setup] of cases){
 }
 resetRange('boss-wall',0,{engine:true});state.matter=0;assert.equal(MissionReach.idle().comoving,0);state.matter=.000001;assert.ok(MissionReach.idle().comoving>0);
 resetRange('boss-wall',0,{engine:true,brakeEngine:false});assert.equal(MissionReach.idle().comoving,0);
-resetRange('alpha',0,{sail:true,collector:true,burst:true,arrivalFuelPercent:50});const first=MissionReach.idle();
+// Continuous-light round trips cover repeated ordinary departures; the
+// preboosted flash envelope is covered independently in the cases above.
+resetRange('alpha',0,{sail:true,collector:true,burst:false,arrivalFuelPercent:50});const first=MissionReach.idle();
 // At trillion-year ETAs a final burn can be smaller than one total-clock ULP.
 // Advance that real, separately timed stage too, rather than demand rounding up.
 const fly=()=>{const p=MissionPlanner.preview();assert.ok(p.valid,p.reason);MissionPlanner.launch();assert.ok(state.flight);const exact=state.flight.mission,from={earth:state.earth,proper:state.proper};Simulation.tick(exact.proper*.37);assert.ok(state.flight&&state.flight.covered>0);state=restore(JSON.parse(JSON.stringify(state)));for(let rest=0;state.flight&&rest<4;rest++)Simulation.tick(FlightEstimate.get().proper);assert.equal(state.flight,null);assert.ok(Math.abs(state.earth-from.earth-exact.earth)<Math.max(.001,exact.earth*1e-10,4*Number.EPSILON*Math.abs(state.earth)));assert.ok(Math.abs(state.proper-from.proper-exact.proper)<Math.max(1e-6,exact.proper*1e-10,4*Number.EPSILON*Math.abs(state.proper)));assert.ok(Math.abs(state.matter*1000-exact.arrivalFuelKg)<1e-7);return exact;};
@@ -30,7 +32,7 @@ for(let i=0;i<2;i++){state.selected='boss-wall';fly();findDepartureStar();fly();
 console.log('PASS two complete BOSS round trips with frozen expansion, retained optics/50% preference, real motion and no stale range');
 // BOSS has significant depth: a sphere projects to a disk, not a 2D distance test.
 const boss=object('boss-wall');assert.ok(Math.hypot(boss.p3[0],boss.p3[1])<Math.hypot(...boss.p3));
-resetRange('alpha',0,{sail:true,collector:true,burst:true});state.selected='boss-wall';const outbound=MissionPlanner.preview();MissionPlanner.launch();Simulation.tick(outbound.proper*.2);const q=shipReachability();assert.ok(q.active);assert.ok(q.witness&&q.comoving>0&&q.comoving<Cosmology.horizon());assert.ok(q.witness.arrivalFuelKg+1e-8>=q.setup.capacityKg*(q.setup.arrivalFuelPercent||0)/100);assert.ok($('reachReadout').title.includes('Проекция'));
+resetRange('alpha',0,{sail:true,collector:true,burst:false});state.selected='boss-wall';const outbound=MissionPlanner.preview();MissionPlanner.launch();Simulation.tick(outbound.proper*.2);const q=shipReachability();assert.ok(q.active);assert.ok(q.witness&&q.comoving>0&&q.comoving<Cosmology.horizon());assert.ok(q.witness.arrivalFuelKg+1e-8>=q.setup.capacityKg*(q.setup.arrivalFuelPercent||0)/100);assert.ok($('reachReadout').title.includes('Проекция'));
 console.log('PASS 3D projection caveat and configured reserve and braking envelope while a flight is active');
 resetRange('boss-wall',0,{sail:true,collector:true,burst:true,arrivalFuelPercent:50});state.selected='alpha';const failed=MissionPlanner.preview();assert.equal(failed.valid,false);assert.ok(failed.rangeBlocked);FlightBuilder.open();assert.equal($('launchConfigured').disabled,true);$('flightBuilder').close();console.log('PASS impossible long engine transfer is rejected before orbital shooting; no incomplete brake, false arrival or builder crash');
 }`);

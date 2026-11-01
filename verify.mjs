@@ -13,6 +13,8 @@ import './verify-departure-access.mjs';
 
 import './verify-boss-local.mjs';
 import './verify-flash-reception.mjs';
+import './verify-collector-survival.mjs';
+import './verify-preboost.mjs';
 
 import './verify-flight-policy.mjs';
 import './verify-max-range.mjs';

@@ -19,8 +19,8 @@ const pureGas=ShipPhysics.run({dustMassPercent:0},()=>Magnetic.rho(1e6)),dusty=S
 console.log('PASS editable masses, efficiencies including 0.1%, power and separate acceleration/braking caps; actual arrivals, clocks and fuel');
 const lightBase=FlightSetup.normalize({...defaults,engine:false,sail:true,collector:false,massSolar:0});const full=MissionPlanner.acceleration(lightBase,sol,1,.00001,0,false,false),absorbed=MissionPlanner.acceleration({...lightBase,reflectivityPercent:0},sol,1,.00001,0,false,false);nearTask(full.rows[0].a,absorbed.rows[0].a*2,1e-12);
 const spectrum={kind:'thermal',temperatureK:5772};assert.ok(BeamOptics.fraction(1e12,0,spectrum,100000,50,.01)<BeamOptics.fraction(1e12,0,spectrum,100000,50,0));
-resetTask();state.current='proxima';state.ship=Space.point(target.p3);state.selected='alpha';
-for(const burstDays of [.5,30]){const c=FlightSetup.normalize({...defaults,engine:false,burst:true,burstDays,arrivalFuelPercent:0}),p=MissionPlanner.preview(c);assert.ok(p.valid,p.reason);assert.ok(p.acceleration.rows.at(-1).source<=burstDays/365.25*(1+1e-9));}
+resetTask();state.current='proxima';state.ship=Space.point(target.p3);state.selected='andromeda';
+for(const burstDays of [.5,30]){const c=FlightSetup.normalize({...defaults,engine:false,burst:true,burstDays,arrivalFuelPercent:0}),p=MissionPlanner.preview(c);assert.ok(p.valid,p.reason);assert.ok(MissionPlanner.burstScheduled(p));const localSource=p.acceleration.rows.at(-1).source-p.acceleration.preboost.emissionOffsetYears;assert.ok(localSource<=burstDays/365.25*(1+1e-9));assert.ok(MissionPlanner.lightReception(p).source<=Math.min(burstDays/365.25,p.acceleration.collectorSurvival.usableSourceYears)*(1+1e-9));}
 console.log('PASS reflection/absorption, additional angular divergence and editable retarded source duration');
 resetTask();state.selected='alpha';state.flightSetup=FlightSetup.normalize({...defaults,capacityKg:.5,arrivalFuelPercent:0});
 const before=JSON.parse(JSON.stringify(state));MissionPlanner.launch();assert.ok(state.flight.rollback);const summary=JSON.stringify(state.flight.summary);Simulation.tick(state.flight.mission.proper*.3);renderUI();assert.equal(JSON.stringify(state.flight.summary),summary);assert.equal($('arrivalProper').textContent,durationText(state.flight.summary.proper));assert.ok($('progressRemaining').textContent.includes('Осталось на борту'));
@@ -28,9 +28,9 @@ state=restore(JSON.parse(JSON.stringify(state)));FlightHistory.cancel();for(cons
 assert.equal(state.flight,null);
 MissionPlanner.launch();Simulation.tick(FlightEstimate.get().proper);assert.ok(!state.flight);assert.equal(state.flightHistory.length,1);const history=JSON.stringify(state.flightHistory);state=restore(JSON.parse(JSON.stringify(state)));assert.equal(JSON.stringify(state.flightHistory),history);state.selected='sol';const originalTrail=JSON.stringify(state.flightHistory);MissionPlanner.launch();assert.ok(state.flight);Simulation.tick(state.flight.mission.proper*.2);FlightHistory.cancel();assert.equal(JSON.stringify(state.flightHistory),originalTrail);assert.equal(state.current,'alpha');
 console.log('PASS frozen summary, remaining proper time, reload/cancel restores clocks/fuel/settings and keeps previous completed tracks');
-resetTask();state.current='proxima';state.ship=Space.point(target.p3);state.selected='alpha';state.flightSetup=FlightSetup.normalize({...defaults,burst:true,arrivalFuelPercent:0});MissionPlanner.launch();assert.ok(state.destroyed.includes('proxima'));Simulation.tick(.000001);FlightHistory.cancel();assert.ok(!state.destroyed.includes('proxima'));
+resetTask();state.current='proxima';state.ship=Space.point(target.p3);state.selected='andromeda';state.flightSetup=FlightSetup.normalize({...defaults,burst:true,arrivalFuelPercent:0});MissionPlanner.launch();assert.ok(!state.destroyed.includes('proxima'));Simulation.tick(state.flight.mission.acceleration.preboost.preparationEnd.proper+.000001);assert.ok(state.destroyed.includes('proxima'));FlightHistory.cancel();assert.ok(!state.destroyed.includes('proxima'));
 resetTask();const arbitrary=object('sirius');state.ship=Space.point(object('alpha').p3);state.current='alpha';assert.equal(routeLabelDistance(arbitrary),distanceText(Cosmology.physicalDistance(state.ship,arbitrary)));assert.notEqual(routeLabelDistance(arbitrary),distanceText(arbitrary.d));
-width=1200;height=900;MapLabels.begin();circleLabel('ship-reach','x','y',{x:350,y:450},100);const label=MapLabels.queue.find(q=>q.key==='ship-reach');assert.equal(label.candidates.length,1);assert.equal(label.candidates[0].y,340);
+width=1200;height=900;MapLabels.begin();circleLabel('ship-reach','x','y',{x:350,y:450},100);const label=MapLabels.queue.find(q=>q.key==='ship-reach');assert.equal(label.candidates.length,1);assert.equal(label.candidates[0].y,368);
 console.log('PASS burst rollback, source-relative distances and one circle-bound label anchor');
 resetTask();cam.span=.00006;
 for(const q of OrbitalMotion.planets){const E=OrbitalMotion.phase(q,2026.81);nearTask(OrbitalMotion.phase(q,2026.81+q.period),E,1e-11);nearTask(Math.hypot(...OrbitalMotion.vector(q,0)),q.a*OrbitalMotion.AU*(1-q.e),1e-12);nearTask(Math.hypot(...OrbitalMotion.vector(q,Math.PI)),q.a*OrbitalMotion.AU*(1+q.e),1e-12);}
@@ -60,7 +60,7 @@ console.log('PASS arbitrary positive acceleration/braking values survive normali
 assert.equal(FlightSetup.normalize({}).diffraction,true);
 for(const id of ['proxima','sirius']){
  resetTask();state.selected=id;
- const normal=FlightSetup.normalize({...FlightSetup.defaults(),collectorDiameterM:100000,collectorMinAu:1,arrivalFuelPercent:0}),ideal={...normal,diffraction:false},on=MissionPlanner.preview(normal),off=MissionPlanner.preview(ideal);
+ const normal=FlightSetup.normalize({...FlightSetup.defaults(),collectorDiameterM:100000,collectorMinAu:1,divergenceDeg:0,arrivalFuelPercent:0}),ideal={...normal,diffraction:false},on=MissionPlanner.preview(normal),off=MissionPlanner.preview(ideal);
  assert.ok(on.valid,on.reason);assert.ok(off.valid,off.reason);assert.ok(off.proper<on.proper,'ideal beam changes ETA');assert.equal(off.acceleration.diffraction.enabled,false);assert.notEqual(off.acceleration.lightEndReason,'negligible');
  assert.ok(off.acceleration.rows.every(q=>q.a<=10*G0*(1+1e-8)));
  state.flightSetup=ideal;MissionPlanner.launch(off);Simulation.tick(off.accelerationEnd.proper*.2);state=restore(JSON.parse(JSON.stringify(state)));assert.equal(FlightSetup.read().diffraction,false);FlightBuilder.open();assert.ok($('builderPhysicsNote').textContent.includes('Дифракция отключена'));assert.ok($('builderOpticsDiagram').innerHTML.includes('идеальный пучок'));
@@ -70,9 +70,9 @@ for(const id of ['proxima','sirius']){
 resetTask();state.current='alpha';state.ship=Space.point(object('alpha').p3);
 let idealFlash=null;
 for(const profile of ['iip','ia','ibc']){
- const c=FlightSetup.normalize({...FlightSetup.defaults(),engine:false,burst:true,burstSpectrum:profile,diffraction:false}),a=MissionPlanner.acceleration(c,object('alpha'),1,1e8,0,false,false);
- assert.equal(a.lightEndReason,'pulse');nearTask(a.rows.at(-1).source,c.burstDays/365.25,1e-12);assert.ok(a.rows.every(q=>q.a<=10*G0*(1+1e-8)));
+ const c=FlightSetup.normalize({...FlightSetup.defaults(),engine:false,burst:true,burstSpectrum:profile,diffraction:false,divergenceDeg:0}),a=MissionPlanner.accelerationSegment(c,object('alpha'),1,1e8,0,false,false);
+ assert.equal(a.lightEndReason,'collector');nearTask(a.rows.at(-1).source,a.collectorSurvival.usableSourceYears,1e-12);assert.ok(a.rows.every(q=>q.a<=10*G0*(1+1e-8)));
  if(idealFlash)nearTask(a.rows.at(-1).beta,idealFlash.rows.at(-1).beta,1e-12);idealFlash=a;
 }
-console.log('PASS diffraction toggle changes full plans and actual flights, survives active reload and read-only UI; ideal flash retains source duration and 10g cap');
+console.log('PASS diffraction toggle changes full plans and actual flights, survives active reload and read-only UI; ideal flash retains physical duration, collector cutoff and 10g cap');
 }`);

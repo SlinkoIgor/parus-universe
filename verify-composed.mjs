@@ -22,7 +22,7 @@ assert.ok(checked>40,'too few feasible combinations: '+checked);console.log('PAS
 const base=FlightSetup.normalize({sail:true,collector:true,burst:true,capacityKg:1,densityCm3:1});
 composedReset();const fast=MissionPlanner.plan(base,object(state.current),object(state.selected),1),filled=MissionPlanner.plan({...base,fill:true},object(state.current),object(state.selected),1);
 assert.ok(filled.arrivalFuelKg>.98);assert.ok(filled.proper>fast.proper);nearComposed(filled.arrivalFuelKg,.99,1e-10);
-const dense=MissionPlanner.plan({...base,densityCm3:10},object(state.current),object(state.selected),1);assert.ok(dense.proper<fast.proper);
+const dense=MissionPlanner.plan({...base,densityCm3:10},object(state.current),object(state.selected),1);assert.ok(dense.proper<fast.proper,'denser gas shortens the faster preboosted flight');
 composedReset(0);state.current='proxima';state.ship=Space.point(object('proxima').p3);state.selected='alpha';const short=MissionPlanner.plan({...base,fill:true},object(state.current),object(state.selected),0);assert.ok(short.valid);assert.ok(short.arrivalFuelKg>0&&short.arrivalFuelKg<.1,'short route cannot refill 1 kg');
 const large=MissionPlanner.plan({...base,capacityKg:5},object(state.current),object(state.selected),0);assert.equal(large.initialFuelKg,0);nearComposed(large.capturedKg,large.arrivalFuelKg+large.burnedKg,1e-8);
 const solo=MissionPlanner.plan({...base,brakeEngine:false},object(state.current),object(state.selected),0);assert.equal(solo.valid,false);assert.equal(solo.proper,Infinity);assert.ok(solo.diagnostic>1e9);
@@ -69,7 +69,7 @@ composedReset();const ninety=MissionPlanner.plan({...base,fill:true,reservePerce
 nearComposed(ninety.arrivalFuelKg,.9,1e-10);assert.ok(ninety.proper<filled.proper&&ninety.proper>fast.proper);
 // Expanding-space forecasts and integration use the same powered/coasting path.
 for(const target of ['m87','3c273']){
- composedReset();state.selected=target;state.expansion=true;Cosmology.sync(state);state.flightSetup={...base,fill:true,capacityKg:2,densityCm3:.5};const eta=FlightEstimate.get();assert.ok(Number.isFinite(eta.proper));launch();let steps=0;while(state.flight&&steps++<12)Simulation.step(1e12);assert.equal(state.current,target);nearComposed(state.proper,eta.proper,1e-7);nearComposed(state.earth,eta.earth,1e-7);nearComposed(state.matter*1000,eta.arrivalFuelKg,1e-7);
+ composedReset();state.selected=target;state.expansion=true;Cosmology.sync(state);state.flightSetup={...base,burst:false,fill:true,capacityKg:2,densityCm3:.5};const eta=FlightEstimate.get();assert.ok(Number.isFinite(eta.proper));launch();let steps=0;while(state.flight&&steps++<12)Simulation.step(1e12);assert.equal(state.current,target);nearComposed(state.proper,eta.proper,1e-7);nearComposed(state.earth,eta.earth,1e-7);nearComposed(state.matter*1000,eta.arrivalFuelKg,1e-7);
 }
 composedReset();state.selected='mom-z14';state.expansion=true;state.flightSetup=base;Cosmology.sync(state);assert.ok(FlightEstimate.get().unreachable);launch();assert.equal(state.flight,null);
 // Both stopped routes and geodesic passages keep the configured braking policy.
