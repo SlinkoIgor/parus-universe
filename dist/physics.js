@@ -1021,7 +1021,7 @@ const MissionPlanner={
 // landmark. The outer bound includes acceleration time and cosmological redshift;
 // each displayed radius has a feasible witness using the real braking solver.
 const MissionReach={
- cache:new Map(),
+ cache:new Map(),witnesses:new WeakMap(),coastCache:new WeakMap(),
  solve(c,source,origin,fuel,epoch,startBeta=0,orbit=null,coastOnly=false){
   const key=JSON.stringify([source?.id,origin.p3,c,fuel,epoch,orbit?.radius,startBeta,state.destroyed,coastOnly]);
   if(this.cache.has(key))return this.cache.get(key);
@@ -1039,21 +1039,50 @@ const MissionReach={
    else for(let n=0;n<28&&(hi-lo)>Math.max(1e-12,hi*1e-4);n++){const mid=(lo+hi)/2,q=probe(mid);if(q.valid){lo=mid;witness=q;}else hi=mid;}
   }
   const result={comoving:lo,upper:hi,beta:witness?.peakBeta||0,epoch,setup:c,witness:witness?{proper:witness.proper,earth:witness.earth,arrivalFuelKg:witness.arrivalFuelKg}:null};
+  if(witness)this.witnesses.set(result,witness);
   if(this.cache.size>24)this.cache.clear();this.cache.set(key,result);return result;
  },
  idle(){
   const source=object(state.current),c=FlightSetup.read(),epoch=Math.ceil((state.cosmicTime||0)/1000)*1000,orbit=state.orbit;
   return this.solve(c,source,Space.point(source?.p3||state.ship.p3),state.matter*1000,epoch,orbit?.beta||0,orbit);
  },
+ coasting(f,setup){
+  const p=f?.mission,index=f?.missionStage||0;
+  if(!p?.cosmic||!p.expansion||state.expansion===false||index>1||!Number.isFinite(p.coastEpoch)){if(f)this.coastCache.delete(f);return null;}
+  const end=p.accelerationEnd,sample=f.missionSample||MissionPlanner.stageSample(p,index,f.stageElapsed||0),fuel=Math.max(0,Math.min(setup.capacityKg,end.mass-setup.dryMassKg));
+  // A saved coast certificate applies only while the executing flight follows
+  // that same free trajectory. In particular, toggling expansion must not let
+  // a changed epoch, momentum or fuel reuse an unrelated braking witness.
+  if(index===1){
+   const epoch=p.coastEpoch+sample.earth,tolerance=Math.max(.001,Math.abs(epoch)*1e-10);
+   if(state.phase!=='cruise'||state.beta!==sample.beta||Math.abs(state.matter*1000-fuel)>Math.max(1e-12,fuel*1e-12)||Math.abs((state.cosmicTime||0)-epoch)>tolerance){this.coastCache.delete(f);return null;}
+  }
+  const key=JSON.stringify([setup,end.beta,end.mass,p.coastEpoch,state.destroyed]),distance=index===1?sample.comoving:0,proper=index===1?sample.proper:0,earth=index===1?sample.earth:0;
+  let memo=this.coastCache.get(f);
+  if(memo&&(memo.mission!==p||memo.key!==key))memo=null;
+  const anchor=current=>{
+   const q=this.solve(setup,null,Space.point([0,0,0]),fuel,current?state.cosmicTime:p.coastEpoch,current?state.beta:end.beta,null,true);
+   return{mission:p,key,q,plan:this.witnesses.get(q),distance:current?distance:0,proper:current?proper:0,earth:current?earth:0};
+  };
+  memo??=anchor(false);
+  // Subtract an already flown prefix of the SAME feasible coast + stop plan.
+  // Re-anchor if that witness would already be braking, or time was rewound.
+  if(proper<memo.proper||distance<memo.distance||!memo.plan||proper-memo.proper>memo.plan.coast.proper||distance-memo.distance>memo.q.comoving)memo=anchor(index===1);
+  if(!memo.plan){this.coastCache.delete(f);return null;}
+  this.coastCache.set(f,memo);
+  const travelled=distance-memo.distance,elapsed=proper-memo.proper,elapsedEarth=earth-memo.earth,q=memo.q,remaining=index===0?Math.max(0,end.comoving-sample.comoving):0;
+  return{...q,comoving:remaining+Math.max(0,q.comoving-travelled),upper:remaining+Math.max(0,q.upper-travelled),beta:index===0?end.beta:state.beta,epoch:index===0?p.coastEpoch:state.cosmicTime,witness:{...q.witness,proper:Math.max(0,q.witness.proper-elapsed),earth:Math.max(0,q.witness.earth-elapsedEarth)},remainingAcceleration:remaining};
+ },
  active(){
   const f=state.flight,p=f?.mission,c=FlightSetup.normalize(p?.setup||FlightSetup.read());
+  const setup=FlightSetup.normalize({...c,engine:false,sail:false,collector:false,burst:false,dump:false}),coasting=this.coasting(f,setup);if(coasting)return coasting;
   let beta=state.beta||0,fuel=state.matter*1000,epoch=state.cosmicTime||0,remaining=0;
   if(p&&(f.missionStage||0)===0){const end=p.accelerationEnd,sample=f.missionSample||MissionPlanner.stageSample(p,0,f.stageElapsed||0);beta=end.beta;fuel=Math.max(0,end.mass-MissionPlanner.dry);epoch=p.epoch+end.earth;remaining=Math.max(0,end.comoving-sample.comoving);}
   // Round down momentum/fuel and forward in time: caching must not invent extra
   // range. This affects only the displayed envelope, never the executing plan.
   const eta=Math.atanh(Math.min(1-Number.EPSILON,Math.max(0,beta))),unit=eta>0?10**(Math.floor(Math.log10(eta))-5):1;
   beta=Math.tanh(Math.floor(eta/unit)*unit);fuel=Math.floor((fuel+1e-12)*1e5)/1e5;epoch=Math.ceil(epoch/10000)*10000;
-  const setup=FlightSetup.normalize({...c,engine:false,sail:false,collector:false,burst:false,dump:false}),q=this.solve(setup,null,Space.point([0,0,0]),fuel,epoch,beta,null,true);
+  const q=this.solve(setup,null,Space.point([0,0,0]),fuel,epoch,beta,null,true);
   return{...q,comoving:q.witness?remaining+q.comoving:0,upper:remaining+q.upper,remainingAcceleration:remaining};
  }
 };

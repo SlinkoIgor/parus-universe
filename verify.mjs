@@ -52,6 +52,7 @@ import './verify-map-overview.mjs';
 import './verify-universe.mjs';
 
 import './verify-current-reach.mjs';
+import './verify-reach-reuse.mjs';
 
 import './verify-new-tasks.mjs';
 
