@@ -50,5 +50,45 @@ for(const mode of ['full','slice','radial'])for(const span of [24,1000,130000,3e
 }
 run(`cam={x:0,y:0,span:24};MapSlice.mode='full';assert.ok(MapAnnotations.opacity(object('sol'))>.03,'nearby names are not suppressed by a distant region at the same anchor');assert.equal(MapAnnotations.opacity(object('laniakea')),0);`);
 assert.equal(run('JSON.stringify(OBJECTS.map(o=>[o.id,o.p3,o.mapPosition,o.region]))'),science);
+// A real zero-coast mission places acceleration end and braking start at the
+// same point. Both captions must remain readable without moving atlas names.
+run(`
+ state=initial();state.expansion=false;state.current='alpha';state.ship=Space.point(object('alpha').p3);state.selected='andromeda';Cosmology.sync(state);MissionPlanner.launch();paused=true;
+ assert.ok(state.flight?.mission);assert.equal(state.flight.mission.coast.distance,0);
+ const annotationFlight=state.flight;Simulation.tick(annotationFlight.mission.accelerationEnd.proper*.99);paused=true;
+ function assertFlightCaptions(){
+  const moving=MapLabels.placed.filter(q=>MapAnnotations.flightLabel(q));
+  for(const a of moving)for(const b of MapLabels.placed)if(a!==b)assert.ok(!MapLabels.overlaps(a,b),'flight caption overlaps '+b.key);
+  const ship=screen(state.ship),r=state.flight&&['launch','brake'].includes(state.phase)?65:18;
+  for(const a of moving)assert.ok(!MapLabels.overlaps(a,{x:ship.x-r,y:ship.y-r,w:r*2,h:r*2}),'flight caption overlaps ship/sail');
+  return moving;
+ }
+ for(const viewport of [390,1440])for(const mode of ['full','slice','radial']){
+  width=viewport;height=viewport===390?844:1000;MapSlice.mode=mode;MapSlice.centerZ=0;const center=MapLayout.project(object('andromeda'));cam={...center,span:1.5e6};
+  MapLabels.begin();drawObjects();MapAnnotations.draw();const fixed=JSON.stringify(MapLabels.placed);
+  const physical=JSON.stringify(state);
+  MapLabels.begin();drawObjects();FlightMarks.draw();MapAnnotations.draw();
+  assert.equal(assertFlightCaptions().length,2,'both coincident mission events are labelled');
+  assert.equal(JSON.stringify(MapLabels.placed.filter(q=>!MapAnnotations.flightLabel(q))),fixed,'flight events leave atlas names fixed');
+  const placed=JSON.stringify(MapLabels.placed);MapLabels.begin();drawObjects();FlightMarks.draw();MapAnnotations.draw();assert.equal(JSON.stringify(MapLabels.placed),placed,'repeat frame stays fixed');
+  assert.equal(JSON.stringify(state),physical,'layout preserves flight, clocks, fuel and markers');
+ }
+ // Closely packed legacy events, the ship name, and an existing name all
+ // compete for readable rows, regardless of the order they were queued.
+ width=1440;height=1000;MapSlice.mode='full';cam={x:0,y:0,span:24};
+ function packedFlightCaptions(reverse=false){
+  MapLabels.begin();const p={x:650,y:400},labels=[['flight-mark-acceleration','КОНЕЦ РАЗГОНА · ПРОГНОЗ'],['flight-mark-brake','ТОРМОЖЕНИЕ ПАРУСОМ · ПРОГНОЗ'],['flight-mark-fine','ТОЧНОЕ ТОРМОЖЕНИЕ · ПРОГНОЗ'],['ship',SHIP_NAME]];
+  MapLabels.point({key:'fixed-neighbour',name:'Соседняя звезда',p:{x:650,y:426}});
+  for(const [key,name] of reverse?labels.reverse():labels)MapLabels.point({key,name,p,size:key==='ship'?10:8});
+  MapAnnotations.draw();return assertFlightCaptions();
+ }
+ assert.equal(packedFlightCaptions().length,4);const packed=JSON.stringify(MapLabels.placed);
+ assert.equal(packedFlightCaptions(true).length,4);assert.equal(JSON.stringify(MapLabels.placed),packed,'queue order does not move captions');
+ // Keep the chosen row when a forecast becomes an actual event, even though
+ // its text becomes shorter. Clipped or crowded labels may be omitted.
+ const retained=MapLabels.slots.get('flight-mark-brake');MapLabels.begin();MapLabels.point({key:'flight-mark-brake',name:'ТОРМОЖЕНИЕ ПАРУСОМ',p:{x:650,y:400},size:8});MapAnnotations.draw();assert.equal(MapLabels.slots.get('flight-mark-brake'),retained);assertFlightCaptions();
+ for(const p of [{x:-1000,y:400},{x:width-10,y:400},{x:650,y:height-5}]){MapLabels.begin();MapLabels.point({key:'flight-mark-brake',name:'ТОРМОЖЕНИЕ · ПРОГНОЗ',p,size:8});MapAnnotations.draw();assert.equal(assertFlightCaptions().length,0);}
+`);
+console.log('PASS coincident mission and legacy flight captions avoid all names, retain rows across frames/status changes, preserve atlas anchors and physical state, and stay within both viewport sizes in all map modes');
 console.log('PASS fixed name intervals and local anchors in all modes; panels do not move or reject names; no leaders; monotone coarse-layer cutoffs, no hidden tile loads, native areas and clickable labels');
 console.log(JSON.stringify(checks));
