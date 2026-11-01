@@ -14,6 +14,13 @@ The derived HYG and OpenNGC data portions in `dist/catalog-import.js`, `dist/cat
 
 Full source provenance, snapshot dates, transformations and source hashes are recorded in `dist/catalog-sources.json`.
 
+## Distant spectroscopic targets and protocluster candidates · 2026-11-01
+
+- **CCPC-II**, Franck & McGaugh (2016), ApJ 833, 15, [arXiv:1610.00713](https://arxiv.org/abs/1610.00713), [CDS J/ApJ/833/15](https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJ/833/15). All 173 candidate rows from `ccpc2`, including quality flags, source units, redshift errors and distinct model mass estimates, are retained. Access through CDS/VizieR; acknowledgment: this research has made use of the VizieR catalogue access tool, CDS, Strasbourg, France (DOI 10.26093/cds/vizier).
+- **JADES DR4 v1.2**, JWST Advanced Deep Extragalactic Survey team, [MAST JADES HLSP](https://archive.stsci.edu/hlsp/jades), GOODS-S/GOODS-N NIRSpec line-flux FITS `Obs_info` tables. Retained 3298 positive-redshift A/B/C observations, grouped conservatively into 3227 photometric targets. One target supplements the existing JADES-GS-z14-0; five conflicting targets remain Atlas-only. Full spectra, flux tables, article prose and imagery are not redistributed.
+
+Original authors, survey teams, archives and publishers retain rights in their source data; the repository code license does not relicense those tables. Derived selections, identity grouping, cosmology conversion and display are documented in `docs/universe-overview.md`; URLs, source hashes, units and retained factual rows are in `data-tools/distant-sources/` and the audit. Unknown uncertainties, sizes and masses are not replaced with typical values.
+
 ## Fonts
 
 Bundled **Golos Text** and **IBM Plex Mono** are distributed under the SIL Open Font License 1.1. Full notices and license terms are retained in `dist/fonts/golostext-OFL.txt` and `dist/fonts/ibmplexmono-OFL.txt`.

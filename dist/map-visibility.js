@@ -4,7 +4,7 @@ const MapVisibility={
  classSpans:{galaxy:3e8,quasar:3e8,'galaxy-cluster':1.2e9,filament:1.8e9},
  // Individually sourced cosmological landmarks remain useful on the overview.
  // Their scientific catalogue class and the fixed density hierarchy stay intact.
- overviewPoint(o){return !!(o.cosmicLandmark&&!o.atlasOnly&&['galaxy','quasar'].includes(o.kind)&&o.cosmology?.distanceLy>0&&o.p3?.every(Number.isFinite));},
+ overviewPoint(o){return !!((o.cosmicLandmark||o.distantCatalog)&&!o.atlasOnly&&(['galaxy','quasar'].includes(o.kind)||o.distantCatalog&&o.kind==='cluster')&&o.cosmology?.distanceLy>0&&o.p3?.every(Number.isFinite));},
  get active(){return typeof MAP_VISIBILITY_BOOT!=='undefined'&&MAP_VISIBILITY_BOOT.version===1&&MAP_VISIBILITY_BOOT.catalogRevision===EXTENDED_BOOT.revision&&MAP_VISIBILITY_BOOT.geometryVersion===MapLayout.version&&(!MapRadial.manifest||MAP_VISIBILITY_BOOT.radialRevision===MapRadial.manifest.revision);},
  limit(o){
   if(!this.active||o.synthetic||o.nuclearStar)return Infinity;

@@ -1,0 +1,7 @@
+{
+  "url": "https://archive.stsci.edu/hlsps/jades/dr4/goods-n/catalogs/hlsp_jades_jwst_nirspec_goods-n_clear-prism-gratings-line-fluxes_v1.2_catalog.fits",
+  "bytes": 33471360,
+  "sha256": "9bd55ef8e32564a1ac0acdcb80ae55a2f62c3abf7029070a2aa035ae941156bf",
+  "retrieved": "2026-11-01",
+  "note": "Official page links to goods-s directory for GOODS-N file, returning 404. The corresponding goods-n directory succeeds."
+}

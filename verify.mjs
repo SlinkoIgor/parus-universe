@@ -49,6 +49,7 @@ import './verify-map-render-cache.mjs';
 import './verify-map-visibility.mjs';
 import './verify-map-annotations.mjs';
 import './verify-map-overview.mjs';
+import './verify-universe.mjs';
 
 import './verify-current-reach.mjs';
 

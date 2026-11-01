@@ -2,6 +2,8 @@
 
 Current expansion generator: `build-full-catalog.py`. Existing curated core: `curate_catalog.py`; historical `normalize_catalog.py` must not replace the current core.
 
+Distant supplement: `python3 build-distant-catalog.py` reproduces `../dist/distant-catalog-data.js` and `distant-catalog-audit.json` without network access. CCPC-II fields/units and extracted JADES DR4 v1.2 `Obs_info` rows, URLs and SHA-256 values are retained in `distant-sources/`. FITS re-extraction requires astropy and `--extract-from DIR`; original file hashes are checked. Identity, conflict policy and source limitations: [universe-overview.md](../docs/universe-overview.md). This supplement preserves existing tile revisions and adopted positions.
+
 Full HYG 4.1 / OpenNGC / ATNF snapshots → 152010 generated atlas records (+40 nuclear stars at runtime), bounded spatial tiles, lazy search worker index, approximate positions and atlas-only uncertain records and catalog system links. Keep source snapshots in ignored `raw/`; derived `../dist/catalog-data/` is tracked. See `../README-AGENT.md` for regeneration, source paths, uncertainty, persistence and validation. Audit: `full-catalog-audit.json`. Run `node verify-stream.mjs`, `node verify-map.mjs`, `node verify.mjs`.
 
 The legacy curated audit `selection-audit.json` still verifies all 652 IAU names and the original nearest30 / brightest500 core. Licenses/provenance: `../dist/catalog-sources.json` and `../THIRD_PARTY_NOTICES.md`.

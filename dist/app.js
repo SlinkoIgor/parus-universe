@@ -138,7 +138,7 @@ function log(text){state.journal.push({t:state.earth,text});if(state.journal.len
 function toast(text){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,4200);}
 function screen(p){p=p===state.ship?FlightView.ship():MapLayout.project(p);return{x:width*.43+(p.x-cam.x)*width/cam.span,y:height*(width<700?.39:.50)+(p.y-cam.y)*width/cam.span};}
 function world(x,y){return{x:cam.x+(x-width*.43)*cam.span/width,y:cam.y+(y-height*(width<700?.39:.50))*cam.span/width};}
-function goCamera(x,y,span,instant=false,keepFollow=false){if(!keepFollow&&(followShip||shipFocusArmed))releaseShipCamera();cameraGoal=keepFollow&&(followShip||shipFocusArmed)?shipCamera(clamp(span,.00006,1.4e11)):{x,y,span:clamp(span,.00006,1.4e11)};if(instant){cam={...cameraGoal};cameraGoal=null;}updateMapHeading();}
+function goCamera(x,y,span,instant=false,keepFollow=false){if(!keepFollow&&(followShip||shipFocusArmed))releaseShipCamera();cameraGoal=keepFollow&&(followShip||shipFocusArmed)?shipCamera(clamp(span,.00006,zoomStops.at(-1).span)):{x,y,span:clamp(span,.00006,zoomStops.at(-1).span)};if(instant){cam={...cameraGoal};cameraGoal=null;}updateMapHeading();}
 function routeViewport(){
  const pad=Math.max(24,Math.min(54,width*.055)),card=$('flightCard').getBoundingClientRect();
  // Keep the route clear of the HUD, target card, heading and map buttons.
@@ -151,7 +151,7 @@ function focusShip(){globalThis.MapSlice?.focus(state.ship);if(followShip){follo
 function updateShipButton(){$('shipBtn').innerHTML=followShip?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8V3h5m8 0h5v5m0 8v5h-5M8 21H3v-5M12 6l5 12-5-3-5 3Z"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>';$('shipBtn').setAttribute('aria-label',followShip?'Отключить слежение: '+SHIP_NAME:'Центрировать: '+SHIP_NAME);$('shipBtn').classList.toggle('active',followShip);$('shipBtn').setAttribute('aria-pressed',String(followShip));$('shipBtn').title=SHIP_NAME+(followShip?' · отключить слежение':shipFocusArmed?' · нажмите ещё раз для слежения':' · центрировать');}
 function releaseShipCamera(){followShip=false;shipFocusArmed=false;updateShipButton();}
 // Presets and handle share the same piecewise logarithmic scale.
-const zoomStops=[{value:0,span:.00006},{value:1,span:24},{value:2,span:130000},{value:3,span:3e7},{value:4,span:5e9},{value:5,span:115e9},{value:5.15,span:1.4e11}];
+const zoomStops=[{value:0,span:.00006},{value:1,span:24},{value:2,span:130000},{value:3,span:3e7},{value:4,span:5e9},{value:5,get span(){return globalThis.UniverseMap?.overview().span||115e9;}},{value:5.15,get span(){return globalThis.UniverseMap?UniverseMap.overview().span*1.3:1.4e11;}}];
 function zoomInterpolate(input,from,to){
  const n=clamp(input,zoomStops[0][from],zoomStops.at(-1)[from]);
  const i=Math.max(1,zoomStops.findIndex(stop=>stop[from]>=n)),a=zoomStops[i-1],b=zoomStops[i];
@@ -169,7 +169,7 @@ function updateZoomControl(){
  $('zoomSlider').setAttribute('aria-valuetext','Ширина карты: '+distanceText(span));
 
  const measure=gridMetrics();$('zoomDivision').textContent=scaleDistanceText(measure.unit);$('mapScaleLine').style.width=measure.majorPixels+'px';$('mapScale').setAttribute('aria-label','Один крупный шаг сетки: '+scaleDistanceText(measure.unit));
- document.querySelectorAll('[data-zoom]').forEach(b=>{const active=Math.abs(Math.log(span/Number(b.dataset.zoom)))<.04;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
+ document.querySelectorAll('[data-zoom]').forEach(b=>{const active=Math.abs(Math.log(span/(Number(b.dataset.zoom)>=115e9&&globalThis.UniverseMap?UniverseMap.overview().span:Number(b.dataset.zoom))))<.04;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
 }
 function updateTimeControl(){
  const value=paused?0:speed;$('timeSlider').value=String(TIME_RATES.indexOf(value));
@@ -314,6 +314,7 @@ function renderUI(){
  $('earthClock').innerHTML=fmt(Math.floor(state.earth),0)+'<small>лет</small>';$('shipClock').innerHTML=fmt(Math.floor(state.proper),0)+'<small>лет</small>';
  const pct=f?Math.min(100,f.covered/f.distance*100):0;$('progressBar').style.width=pct+'%';$('progressValue').textContent=fmt(pct,1)+'%';$('progressRemaining').textContent=f&&eta?'Осталось на борту · '+durationText(eta.proper):'';$('cancelFlight').disabled=!f?.rollback;$('cancelFlight').title=f&&!f.rollback?'В этом старом сохранении нет снимка состояния до старта':'';$('progressLabel').textContent=f?.route?.length?'УЧАСТОК '+(f.legIndex+1)+' / '+f.route.length:f?.missed?'ПРОЛЁТ ЦЕЛИ':'ПРОЙДЕНО';updateTimeControl();
  FlightBuilder.renderCard(target,arrived,eta);
+ globalThis.UniverseMap?.renderCard(target);
 }
 
 const FlightBuilder={
@@ -759,7 +760,7 @@ function drawReachability(){
  const name='ПРЕДЕЛ ПОЛЁТА · '+distanceText(q.radius),detail='ТОПЛИВНЫЙ БАК НА ФИНИШЕ ≥ '+Math.round(q.setup.arrivalFuelPercent||0)+'% · ПРОЕКЦИЯ СФЕРЫ В 3D';
  if(r>=5||cam.span>=1e9)circleLabel('ship-reach',name,detail,p,r,40);
 }
-function drawHorizonBoundary(){if(cam.span>4e10){const p=screen({x:0,y:0}),r=465e8*Cosmology.scale()*width/cam.span;circle(p.x,p.y,r,'#a7a7a7',.8,[7,5]);circleLabel('observable-boundary','НАБЛЮДАЕМАЯ ВСЕЛЕННАЯ','ГРАНИЦА В ИСХОДНУЮ ЭПОХУ · НЕ ДАЛЬНОСТЬ ПОЛЁТА',p,r,15);}}
+function drawHorizonBoundary(){if(globalThis.UniverseMap){UniverseMap.draw();return;}if(cam.span>4e10){const p=screen({x:0,y:0}),r=465e8*Cosmology.scale()*width/cam.span;circle(p.x,p.y,r,'#a7a7a7',.8,[7,5]);circleLabel('observable-boundary','НАБЛЮДАЕМАЯ ВСЕЛЕННАЯ','ГРАНИЦА В ИСХОДНУЮ ЭПОХУ · НЕ ДАЛЬНОСТЬ ПОЛЁТА',p,r,15);}}
 function drawSymbol(o,p,selected=false){const destroyed=state.destroyed.includes(o.id)&&o.kind==='star';const ink=selected?'#171717':'#424242';ctx.save();ctx.translate(p.x,p.y);ctx.strokeStyle=paint(ink);ctx.lineWidth=1.25;
  if(globalThis.MapVisibility?.active&&MapDetails.level(o)>=3){circle(0,0,1.2,ink,.7);}
  else if(destroyed){circle(0,0,9,ink,.7,[2,3]);line(-5,-5,5,5,ink,.8);line(-5,5,5,-5,ink,.8);}
@@ -788,6 +789,7 @@ function drawObjects(){hitObjects=[];const departure=state.flight?.fromId||state
  for(const source of [ExtendedCatalog.visible,MapLayers.visible])for(const o of source){const q=pointView(o);if(q&&(!q.bg||q.sparse))candidates.set(o.id,q);}
  const visible=[];
  for(let q of candidates.values()){
+  if(q.o.distantCatalog||q.o.cosmicEpoch)continue;
   if(q.sparse===undefined)q=pointView(q.o);if(!q)continue;const {o,sparse,bg}=q;
   if(bg&&!sparse&&o.id!==state.selected&&o.id!==state.current||o.kind==='horizon'&&cam.span<=3e10||!ExtendedCatalog.matchesMap(o)||ExtendedCatalog.opacity(o,!sparse)<=.015)continue;
   const p=screen(o);if(!(p.x>-40&&p.x<width+40&&p.y>-40&&p.y<height+40))continue;
@@ -835,27 +837,27 @@ function drawShip(time){const p=screen(state.ship),f=state.flight,target=f?objec
  ctx.restore();if(cam.span<60000&&(!f||Math.hypot(p.x-screen(target).x,p.y-screen(target).y)>65))MapLabels.point({key:'ship',name:SHIP_NAME.toUpperCase(),p,priority:35});
 }
 function drawEffects(dt){effects=effects.filter(e=>e.age<8);for(const e of effects){e.age+=paused?0:dt*speed;const p=screen(e);for(let k=0;k<3;k++){const r=(e.age*48+k*24)%370;circle(p.x,p.y,r,`rgba(37,38,32,${Math.max(0,.38-r/980)})`,.7,k===1?[2,6]:[]);}for(let i=0;i<40;i++){const a=i*2.399,r=e.age*25+(i%5)*9;ctx.fillStyle=paint('#8b8b8b');ctx.fillRect(p.x+Math.cos(a)*r,p.y+Math.sin(a)*r,1,1);}}}
-function drawHover(){if(!hover||!ExtendedCatalog.matchesMap(hover))return;const p=screen(hover);if(MapSymbols.handles(hover)&&RegionMap.asPoint(hover)){circle(p.x,p.y,7,'#969696',.6,[2,4]);return;}if(hover.region||['structure','wall','void','ring','arc','horizon'].includes(hover.kind))return;circle(p.x,p.y,27,'#969696',.6,[2,4]);}
+function drawHover(){if(hover?.cosmicEpoch)return;if(!hover||!ExtendedCatalog.matchesMap(hover))return;const p=screen(hover);if(MapSymbols.handles(hover)&&RegionMap.asPoint(hover)){circle(p.x,p.y,7,'#969696',.6,[2,4]);return;}if(hover.region||['structure','wall','void','ring','arc','horizon'].includes(hover.kind))return;circle(p.x,p.y,27,'#969696',.6,[2,4]);}
 
 let lastFrame=performance.now();function frame(now){Cosmology.sync(state);const realDt=Math.max(0,(now-lastFrame)/1000);lastFrame=now;Simulation.advance(realDt);
  if(!document.hidden){if(cameraGoal){const a=1-Math.exp(-Math.min(realDt,.1)*8);cam.x+=(cameraGoal.x-cam.x)*a;cam.y+=(cameraGoal.y-cam.y)*a;cam.span=Math.exp(Math.log(cam.span)+(Math.log(cameraGoal.span)-Math.log(cam.span))*a);if(Math.abs(Math.log(cam.span/cameraGoal.span))<.0005&&Math.hypot(cam.x-cameraGoal.x,cam.y-cameraGoal.y)<cam.span*.0001){cam={...cameraGoal};cameraGoal=null;}}
  if(followShip||shipFocusArmed){const c=shipCamera(cam.span);cam.x=c.x;cam.y=c.y;}updateZoomControl();
- MapLayers.update(now);ExtendedCatalog.update(now);drawGrid();MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawHorizonBoundary();drawReachability();Route.draw();drawRoute();drawEffects(Math.min(realDt,.1));ExtendedCatalog.drawSystems();OrbitalMotion.draw();NuclearStars.draw();drawObjects();ExtendedCatalog.draw();drawShip(now);MapLabels.draw();Route.drawEncounter();drawHover();if(now-lastUI>100){renderUI();lastUI=now;}}
+ MapLayers.update(now);ExtendedCatalog.update(now);drawGrid();MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawHorizonBoundary();drawReachability();Route.draw();drawRoute();drawEffects(Math.min(realDt,.1));ExtendedCatalog.drawSystems();OrbitalMotion.draw();NuclearStars.draw();drawObjects();globalThis.DistantCatalog?.draw();ExtendedCatalog.draw();drawShip(now);MapLabels.draw();Route.drawEncounter();drawHover();if(now-lastUI>100){renderUI();lastUI=now;}}
  if(now-saveTick>1500){persist();saveTick=now;}requestAnimationFrame(frame);
 }
 
-function zoomAtPointer(e){e.preventDefault();cameraGoal=null;const factor=Math.exp(clamp(e.deltaY,-220,220)*.006),span=clamp(cam.span*factor,.00006,1.4e11);
+function zoomAtPointer(e){e.preventDefault();cameraGoal=null;const factor=Math.exp(clamp(e.deltaY,-220,220)*.006),span=clamp(cam.span*factor,.00006,zoomStops.at(-1).span);
  if(followShip||shipFocusArmed)cam=shipCamera(span);
  else{const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,before=world(x,y);cam.span=span;const after=world(x,y);cam.x+=before.x-after.x;cam.y+=before.y-after.y;}
  updateMapHeading();updateZoomControl();}
 canvas.addEventListener('wheel',zoomAtPointer,{passive:false});
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;releaseShipCamera();pointer={down:true,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,moved:false,id:e.pointerId};canvas.setPointerCapture(e.pointerId);cameraGoal=null;});
-canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;if(pointer.down&&e.pointerId===pointer.id){const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.hypot(e.clientX-pointer.startX,e.clientY-pointer.startY)>5)pointer.moved=true;if(pointer.moved){cam.x-=dx*cam.span/width;cam.y-=dy*cam.span/width;canvas.style.cursor='grabbing';updateMapHeading();}pointer.x=e.clientX;pointer.y=e.clientY;}else{hover=(globalThis.MapAnnotations?.active&&MapAnnotations.hit(x,y))||hitObjects.find(({p,r=23})=>Math.hypot(x-p.x,y-p.y)<r)?.o||RegionMap.hit(x,y);canvas.style.cursor=hover?'pointer':'crosshair';}});
-canvas.addEventListener('pointerup',e=>{if(!pointer.down||e.pointerId!==pointer.id)return;if(!pointer.moved){const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const hit=hitObjects.map(h=>({...h,d:Math.hypot(x-h.p.x,y-h.p.y)})).filter(h=>h.d<(h.r||28)).sort((a,b)=>Number(!!a.background)-Number(!!b.background)||a.d-b.d)[0];const annotation=globalThis.MapAnnotations?.active&&MapAnnotations.hit(x,y);if(annotation)select(annotation.id);else if(hit)select(hit.o.id);else{const region=RegionMap.hit(x,y);if(region)select(region.id);}}pointer.down=false;canvas.style.cursor='crosshair';});
+canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;if(pointer.down&&e.pointerId===pointer.id){const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.hypot(e.clientX-pointer.startX,e.clientY-pointer.startY)>5)pointer.moved=true;if(pointer.moved){cam.x-=dx*cam.span/width;cam.y-=dy*cam.span/width;canvas.style.cursor='grabbing';updateMapHeading();}pointer.x=e.clientX;pointer.y=e.clientY;}else{hover=(globalThis.MapAnnotations?.active&&MapAnnotations.hit(x,y))||hitObjects.find(({p,r=23})=>Math.hypot(x-p.x,y-p.y)<r)?.o||RegionMap.hit(x,y)||globalThis.UniverseMap?.hit(x,y);canvas.style.cursor=hover?'pointer':'crosshair';}});
+canvas.addEventListener('pointerup',e=>{if(!pointer.down||e.pointerId!==pointer.id)return;if(!pointer.moved){const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const hit=hitObjects.map(h=>({...h,d:Math.hypot(x-h.p.x,y-h.p.y)})).filter(h=>h.d<(h.r||28)).sort((a,b)=>Number(!!a.background)-Number(!!b.background)||a.d-b.d)[0];const annotation=globalThis.MapAnnotations?.active&&MapAnnotations.hit(x,y);if(annotation)select(annotation.id);else if(hit)select(hit.o.id);else{const region=RegionMap.hit(x,y)||globalThis.UniverseMap?.hit(x,y);if(region)select(region.id);}}pointer.down=false;canvas.style.cursor='crosshair';});
 canvas.addEventListener('pointercancel',()=>{pointer.down=false;canvas.style.cursor='crosshair';});canvas.addEventListener('pointerleave',()=>hover=null);
 
 $('shipBtn').onclick=focusShip;
-document.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>{goCamera(cam.x,cam.y,Number(b.dataset.zoom),false,true);});
+document.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>{if(Number(b.dataset.zoom)>=115e9&&globalThis.UniverseMap){UniverseMap.focus();return;}goCamera(cam.x,cam.y,Number(b.dataset.zoom),false,true);});
 $('expansionToggle').addEventListener('change',e=>{state.expansion=e.target.checked;Cosmology.sync(state);FlightEstimate.idleKey=null;FlightEstimate.active=new WeakMap();renderUI();persist();});
 $('zoomSlider').addEventListener('input',e=>{cameraGoal=null;const span=zoomInterpolate(Number(e.target.value),'value','span');if(followShip||shipFocusArmed)cam=shipCamera(span);else cam.span=span;updateMapHeading();updateZoomControl();});
 $('catalogBtn').onclick=()=>{if($('catalog').hidden)openCatalog();else closeCatalog();};$('closeCatalog').onclick=closeCatalog;$('search').oninput=()=>{ExtendedCatalog.searchLimit=100;clearTimeout(catalogTimer);catalogTimer=setTimeout(renderCatalog,160);};

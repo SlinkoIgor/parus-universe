@@ -3,6 +3,7 @@
 const MapDetails={
  massCache:new WeakMap(),nameCache:new WeakMap(),
  typeName(o){
+  if(o.cosmicEpoch||o.distantCatalog&&o.candidate)return o.type;
   if(o.catalogClass==='galaxy-cluster')return 'Скопление галактик';
   if(o.cosmicSubtype==='filament')return 'Галактический филамент';
   if(o.cosmicSubtype==='supercluster')return 'Сверхскопление галактик';
@@ -63,6 +64,7 @@ const MapDetails={
   // One cutoff per scale class. Compact landmarks use the same boundary,
   // then compete for empty screen space in the final label pass.
   if(o.synthetic)return 2000;
+  if(o.distantCatalog)return Infinity;
   // Every resolved population retains its host scale. Larger local objects
   // also keep their own class range; adding a host cannot shorten that range.
   const hostSpan=o.galaxyMember?(o.hostDiameterLy||30000)*5:o.bulkGalaxyMember&&o.positionEstimate?.referenceScaleLy>0?o.positionEstimate.referenceScaleLy*5:0;
