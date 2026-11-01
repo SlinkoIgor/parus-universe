@@ -13,8 +13,7 @@ for(const mode of ['full','slice','radial']){
    assert.ok(o.cosmicLandmark&&o.source&&o.cosmology.distanceLy>Cosmology.horizon(0));
    assert.equal(MapVisibility.limit(o),MAP_VISIBILITY_BOOT.pixels[o.id][mode==='radial'?1:0],'preserve the fixed density threshold');
    assert.equal(MapDetails.opacity(o,cam.span),1);assert.equal(RegionMap.asPoint(o),true);
-   assert.equal(MapAnnotations.entries.get(o.id).name,o.name,'keep published numeric designations');
-   assert.ok(MapAnnotations.opacity(o)>.03,'desktop overview name: '+o.id);
+   assert.equal(MapDetails.mapLabelName(o),null,'a published catalogue designation is not a proper name');
   }
   for(const id of ['andromeda','triangulum','3c273']){
    state.selected=id;assert.equal(MapVisibility.overviewPoint(object(id)),false);assert.equal(MapDetails.opacity(object(id),cam.span),0,'ordinary galaxies and quasars keep their class cutoff');
@@ -24,13 +23,12 @@ for(const mode of ['full','slice','radial']){
   drawObjects();MapLabels.begin();MapAnnotations.draw();
   for(const id of ['mom-z14','jades-z14']){
    assert.ok(hitObjects.some(h=>h.o.id===id),'clickable point: '+id);
-   const hit=MapAnnotations.hits.find(h=>h.object.id===id);assert.ok(hit,'named point: '+id);
-   assert.equal(MapAnnotations.hit(hit.box.x+hit.box.w/2,hit.box.y+hit.box.h/2).id,id);
+   assert.ok(!MapAnnotations.hits.some(h=>h.object.id===id),'numeric captions stay hidden, including cached metadata: '+id);
   }
  `);
  // One interval per point and name, independent of selection, pan and menus.
  run(`for(const o of OBJECTS.filter(o=>MapVisibility.overviewPoint(o))){
-  const entry=MapAnnotations.entries.get(o.id),limit=MapVisibility.limit(o),end=entry.limits[mode==='radial'?1:0];let ended=false,seen=false;
+  const entry=MapAnnotations.entries.get(o.id),limit=MapVisibility.limit(o),end=entry?.limits[mode==='radial'?1:0]??limit;assert.equal(entry,undefined,'numeric points are absent from generated name metadata');let ended=false,seen=false;
   for(const pixel of [1e-6,end*.5,end*.8,end*.9,end,end*2,limit,limit*2].sort((a,b)=>a-b)){
    cam={x:0,y:0,span:pixel*width};const alpha=MapAnnotations.opacity(o),point=MapDetails.opacity(o,cam.span);
    cam.x=1e20;cam.y=-1e20;state.selected=o.id;assert.equal(MapAnnotations.opacity(o),alpha);assert.equal(MapDetails.opacity(o,cam.span),point);
@@ -39,10 +37,10 @@ for(const mode of ['full','slice','radial']){
  }`);
  for(const width of [390,1440]){
   context.viewportWidth=width;
-  run(`width=viewportWidth;cam={x:0,y:0,span:1.15e11};for(const o of OBJECTS.filter(o=>MapVisibility.overviewPoint(o)))assert.equal(MapDetails.opacity(o,cam.span),1,'point survives mobile overview');`);
+  run(`width=viewportWidth;for(const o of OBJECTS.filter(o=>MapVisibility.overviewPoint(o))){cam={x:0,y:0,span:1.15e11};assert.equal(MapDetails.opacity(o,cam.span),MapVisibility.opacity(o,cam.span,width),'mobile overview obeys the common density threshold');cam.span=Math.min(cam.span,MapVisibility.limit(o)*width*.5);assert.equal(MapDetails.opacity(o,cam.span),1,'focusing reaches the ordinary visibility window');}`);
  }
  run('width=1440');
 }
 run(`assert.equal(MapVisibility.overviewPoint({kind:'galaxy',cosmicLandmark:true,atlasOnly:true,cosmology:{distanceLy:3e10},p3:[3e10,0,0]}),false);`);
 assert.equal(run('JSON.stringify(OBJECTS.map(o=>[o.id,o.p3,o.mapPosition,o.redshift,o.cosmology,o.source,o.navigable,o.region]))'),science);
-console.log('PASS two sourced cosmic point landmarks beyond the light horizon, published names, fixed visibility intervals in all modes/mobile, ordinary class cutoffs, clickable captions and unchanged science');
+console.log('PASS sourced cosmic points follow common density in all modes/mobile and remain discoverable by focus; generated names exclude numeric captions, class cutoffs and science are unchanged');

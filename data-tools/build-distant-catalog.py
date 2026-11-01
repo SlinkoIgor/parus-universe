@@ -48,9 +48,8 @@ def extract(directory):
             assert not any('z' in n.lower() and ('err' in n.lower() or 'sigma' in n.lower()) for n in table.columns.names)
             for r in table.data:
                 flag = str(r['z_Spec_flag']).strip(); z = float(r['z_Spec'])
-                if not(z > 0 and flag in ('A','B','C')): continue
-                rows.append({'field':field, 'observationID':str(r['Unique_ID']).strip(), 'targetID':str(r['NIRSpec_ID']).strip(), 'photometryDR5ID':int(r['NIRCam_DR5_ID']), 'raDeg':float(r['RA_TARG']), 'decDeg':float(r['DEC_TARG']), 'redshift':z, 'quality':flag})
-    dump(SOURCES/'jades-observations.json', {'table':'Obs_info', 'positionColumns':['RA_TARG','DEC_TARG'], 'positionUnit':'deg J2000', 'redshiftUnit':'dimensionless', 'redshiftUncertainty':'Not supplied in Obs_info; A/B/C are quality flags, not sigma.', 'observations':rows})
+                rows.append({'field':field, 'observationID':str(r['Unique_ID']).strip(), 'programID':int(r['PID']), 'tier':str(r['TIER']).strip(), 'targetID':str(r['NIRSpec_ID']).strip(), 'photometryDR5ID':int(r['NIRCam_DR5_ID']), 'raDeg':float(r['RA_TARG']), 'decDeg':float(r['DEC_TARG']), 'redshift':z, 'quality':flag})
+    dump(SOURCES/'jades-observations.json', {'table':'Obs_info', 'positionColumns':['RA_TARG','DEC_TARG'], 'positionUnit':'deg J2000', 'redshiftUnit':'dimensionless', 'redshiftUncertainty':'Not supplied in Obs_info; quality flags are not sigma.', 'qualityFlags':{'A':'Highly robust: S/N>5 emission lines in R~1000 data','B':'Highly robust: S/N>5 emission lines in Prism/Clear','C':'Secure: visually identified spectral breaks and/or low S/N emission lines','D':'Tentative redshift; not used for map distance','E':'No redshift; raw sentinel retained only in observations'}, 'observations':rows})
 
 def build():
     js = "const fs=require('fs'),vm=require('vm'),c=vm.createContext({console});vm.runInContext(['catalog','astronomy','catalog-import','catalog-retired','coordinates','cosmic-catalog','layout-data','map-layout','cosmology','map-details','catalog-extended','catalog-stream'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\\n'),c);process.stdout.write(vm.runInContext('JSON.stringify(OBJECTS)',c));"
@@ -71,21 +70,32 @@ def build():
         groups[(o['field'],key)].append(o)
     candidates = []; conflicts = []
     for (field, key), rows in sorted(groups.items()):
-        rows.sort(key=lambda o:('ABC'.index(o['quality']),o['observationID']))
-        conflict = any(separation(a,b)>1 or not compatible(a,b) for a in rows for b in rows)
+        rows.sort(key=lambda o:('ABCDE'.index(o['quality']),o['observationID']))
+        usable = [r for r in rows if r['quality'] in 'ABC' and r['redshift']>0]
+        conflict = any(separation(a,b)>1 or not compatible(a,b) for a in usable for b in usable)
         ident = f'jades-dr4-{field}-{key}'
         if conflict: conflicts.append({'id':ident,'observations':[r['observationID'] for r in rows],'reason':'Same photometric source, incompatible z or target position. Retained only in Atlas.'})
-        r = rows[0]
-        candidates.append({'id':ident,'name':f'JADES {field.upper()} DR5 {key}' if r['photometryDR5ID']>0 else 'JADES '+key,'kind':'galaxy', 'raDeg':r['raDeg'],'decDeg':r['decDeg'],'redshift':r['redshift'], 'atlasOnly':conflict,'catalog':'JADES DR4','quality':r['quality'],'field':field,'observations':rows,'referenceURL':'https://archive.stsci.edu/hlsp/jades'})
+        r = usable[0] if usable else rows[0]
+        reason = 'Incompatible reliable redshifts or target coordinates.' if conflict else 'No accepted positive A/B/C spectroscopic redshift.' if not usable else None
+        candidates.append({'id':ident,'name':f'JADES {field.upper()} DR5 {key}' if r['photometryDR5ID']>0 else 'JADES '+key,'kind':'galaxy' if usable else 'unknown', 'raDeg':r['raDeg'],'decDeg':r['decDeg'],**({'redshift':r['redshift']} if usable else {}), 'atlasOnly':conflict or not usable, **({'positionReasonCode':'conflicting-observations' if conflict else 'unreliable-redshift','sourcePositionReason':reason} if reason else {}),'catalog':'JADES DR4','quality':r['quality'],'field':field,'observations':rows,'referenceURL':'https://archive.stsci.edu/hlsp/jades'})
 
     raw = (SOURCES/'ccpc-tables.raw').read_text()
-    table = raw.split('#Name: J/ApJ/833/15/ccpc2\n',1)[1].split('#Table',1)[0]
-    lines = [s for s in table.splitlines() if s and not s.startswith('#')]
-    for row in csv.DictReader([lines[0]]+lines[3:],delimiter='\t'):
-        r = {k:v.strip() for k,v in row.items()}
-        candidates.append({'id':r['Name'],'name':r['Name'],'kind':'cluster','raDeg':float(r['RAJ2000']),'decDeg':float(r['DEJ2000']),'redshift':float(r['z']),'redshiftError':float(r['e_z']),'members':int(r['o_z']),'best':r['f_Name']=='B','quality':int(r['Q']),'effectiveRadiusMpc':float(r['Re']),'candidate':True,'catalogData':r,'catalogUnits':{'Re':'Mpc','sigma':'km/s','Mass':'1e14 solar masses; virial model estimate','OME':'1e14 solar masses; overdensity model estimate','Vol':'comoving Mpc^3','CProb':'percent','redshift':'dimensionless'},'catalog':'CCPC-II','referenceURL':'https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJ/833/15'})
+    def table_rows(name):
+        table = raw.split('#Name: J/ApJ/833/15/'+name+'\n',1)[1].split('#Table',1)[0]
+        lines = [s for s in table.splitlines() if s and not s.startswith('#')]
+        return [{k:v.strip() for k,v in row.items()} for row in csv.DictReader([lines[0]]+lines[3:],delimiter='\t')]
+    for r in table_rows('ccpc2'):
+        candidates.append({'id':r['Name'],'name':r['Name'],'kind':'cluster','raDeg':float(r['RAJ2000']),'decDeg':float(r['DEJ2000']),'redshift':float(r['z']),'redshiftStatistic':'median','redshiftError':float(r['e_z']),'members':int(r['o_z']),'best':r['f_Name']=='B','quality':int(r['Q']),'effectiveRadiusMpc':float(r['Re']),'candidate':True,'sourceTable':'ccpc2','catalogData':r,'catalogUnits':{'Re':'Mpc','sigma':'km/s','Mass':'1e14 solar masses; virial model estimate','OME':'1e14 solar masses; overdensity model estimate','Vol':'comoving Mpc^3','CProb':'percent','redshift':'dimensionless'},'catalog':'CCPC-II','referenceURL':'https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJ/833/15'})
+    interest = collections.defaultdict(list)
+    for r in table_rows('table6'): interest[r['Name']].append(r)
+    for name, rows in sorted(interest.items()):
+        assert all({k:v for k,v in r.items() if k!='recno'}=={k:v for k,v in rows[0].items() if k!='recno'} for r in rows), name
+        r=rows[0]
+        candidates.append({'id':name,'name':name,'kind':'cluster','raDeg':float(r['RAJ2000']),'decDeg':float(r['DEJ2000']),'redshift':float(r['<z>']),'redshiftStatistic':'mean','members':int(r['o_<z>']),'effectiveRadiusMpc':float(r['Re']),'objectOfInterest':True,'sourceTable':'table6','catalogData':r,'catalogRows':rows,'catalogUnits':{'Re':'Mpc','redshift':'dimensionless'},'catalog':'CCPC-II','referenceURL':'https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJ/833/15'})
     added = []; matches = []
     for o in candidates:
+        if 'redshift' not in o:
+            added.append(o);continue
         o['cosmology'] = cosmology(o['redshift']); o['d'] = o['cosmology']['distanceLy']
         v = unit(o['raDeg'],o['decDeg']); o['p3'] = [sum(x*y for x,y in zip(row,v))*o['d'] for row in MATRIX]
         c = cell(v); near = []
@@ -101,12 +111,12 @@ def build():
             if len(targets)>1:
                 o['atlasOnly']=True;conflicts.append({'id':o['id'],'targets':targets,'reason':'Ambiguous existing identities. Atlas only.'})
             added.append(o)
-    counts = {'inputObservations':len(observations),'photometricTargets':len(groups),'ccpcCandidates':sum(o['catalog']=='CCPC-II' for o in candidates),'added':len(added),'mergedExisting':len(matches),'atlasOnly':sum(bool(o.get('atlasOnly')) for o in added),'existingRecordsChecked':len(existing)}
+    counts = {'inputObservations':len(observations),'photometricTargets':len(groups),'ccpcCandidates':sum(bool(o.get('candidate')) for o in candidates),'ccpcInterestObjects':len(interest),'ccpcInterestRows':sum(map(len,interest.values())),'added':len(added),'mergedExisting':len(matches),'atlasOnly':sum(bool(o.get('atlasOnly')) for o in added),'located':sum(not o.get('atlasOnly') for o in added),'withoutReliableRedshift':sum('redshift' not in o for o in added),'existingRecordsChecked':len(existing)}
     source_meta = {name:json.loads((SOURCES/name).read_text()) for name in ('ccpc-tables.json','jades-gs-dr4.json','jades-gn-dr4.json')}
     content = {'version':1,'counts':counts,'sources':source_meta,'objects':added,'matches':matches}
     content['revision'] = hashlib.sha256(json.dumps(content,sort_keys=True,ensure_ascii=False).encode()).hexdigest()[:12]
     (ROOT/'dist/distant-catalog-data.js').write_text('const DISTANT_CATALOG_DATA='+json.dumps(content,ensure_ascii=False,separators=(',',':'),allow_nan=False)+';\n')
-    dump(ROOT/'data-tools/distant-catalog-audit.json', {'revision':content['revision'],'counts':counts,'conflicts':conflicts,'matches':[{'sourceId':r['sourceId'],'targetId':r['targetId'],'basis':r['basis']} for r in matches],'identityPolicy':'Group by field + positive NIRCam_DR5_ID, never by program-local NIRSpec_ID. Missing photometric IDs retain independent observation IDs. All grouped observations retained. Incompatible z/coordinates are Atlas only. A/B/C priority chooses a representative, never invents a sigma. Full original cosmic source catalogue and final core checked for overlaps.'})
+    dump(ROOT/'data-tools/distant-catalog-audit.json', {'revision':content['revision'],'counts':counts,'qualityFlags':dict(collections.Counter(r['quality'] for r in observations)),'duplicateInterestRows':{k:[r['recno'] for r in v] for k,v in interest.items() if len(v)>1},'conflicts':conflicts,'matches':[{'sourceId':r['sourceId'],'targetId':r['targetId'],'basis':r['basis']} for r in matches],'identityPolicy':'Group by field + positive NIRCam_DR5_ID, never by program-local NIRSpec_ID. Missing photometric IDs retain independent observation IDs. All 5190 grouped observations retained. Only positive A/B/C redshifts determine map positions or conflicts; D/E stay in provenance, never disqualifying a reliable A/B/C measurement. Groups without an accepted z remain unclassified and Atlas-only, with no invented distance. A/B/C priority and stable observation ID choose a representative, never invent a sigma. CCPC table6 duplicate source rows retained under one Name; source mean z is distinguished from main-table median. Full original cosmic source catalogue and final core checked for overlaps.'})
     print(json.dumps({'revision':content['revision'],**counts},ensure_ascii=False))
 
 if __name__ == '__main__':

@@ -1,8 +1,9 @@
 // Read the final imported/merged catalogue, including current core policies.
 import fs from 'node:fs';import vm from 'node:vm';
-export async function readMapCatalog(){
+export async function readMapCatalog({supplement=false}={}){
  const c=vm.createContext({console});
  vm.runInContext(['catalog','astronomy','catalog-import','catalog-retired','coordinates','cosmic-catalog','layout-data','map-layout','cosmology','map-details','catalog-extended','catalog-stream'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
+ if(supplement)vm.runInContext(['distant-catalog-data','distant-catalog'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
  const core=vm.runInContext('OBJECTS',c),sky=vm.runInContext('Space.fromSky.bind(Space)',c),pointer=JSON.parse(fs.readFileSync('dist/catalog-data/current.json')),manifest=JSON.parse(fs.readFileSync('dist/'+pointer.dataRoot+'/manifest.json'));
  // Bound open files and buffers without changing the manifest's row order.
  const leaves=manifest.nodes.filter(n=>!n.children.length),parts=new Array(leaves.length);let cursor=0;

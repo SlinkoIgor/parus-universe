@@ -24,10 +24,11 @@ const MapAnnotations={
   ctx.save();ctx.globalAlpha=q.alpha;text(q.name,x,y+offset,size,q.color||'#454545','left','sans');ctx.restore();q.onPlace?.(box);
  },
  draw(){
-  const queued=MapLabels.queue.filter(q=>!q.object||q.key.startsWith('galaxy-')&&!this.entries.has(q.object.id)).map(q=>q.object?{...q,object:null}:q),items=[];
+  const queued=MapLabels.queue.filter(q=>!q.object||q.key.startsWith('galaxy-')&&!this.entries.has(q.object.id)&&MapDetails.mapLabelName(q.object)).map(q=>q.object?{...q,name:MapDetails.mapLabelName(q.object).toUpperCase(),object:null}:q),items=[];
   for(const [id,entry] of this.entries){const o=ExtendedCatalog.get(id);if(!o||!MapDetails.visible(o,cam.span)||!ExtendedCatalog.matchesMap(o))continue;
+   const name=MapDetails.mapLabelName(o);if(!name)continue;
    const alpha=this.opacity(o)*ExtendedCatalog.opacity(o);if(alpha<=.03)continue;const p=screen(o);if(p.x<0||p.x>width||p.y<0||p.y>height)continue;
-   items.push({key:'object-'+id,name:entry.name,object:o,p,rank:entry.rank,alpha});
+   items.push({key:'object-'+id,name:name===o.name?entry.name:name,object:o,p,rank:entry.rank,alpha});
   }
   items.sort((a,b)=>a.rank-b.rank);
   this.admitted=items.map(q=>q.object.id);this.overflow=[];this.hits=[];

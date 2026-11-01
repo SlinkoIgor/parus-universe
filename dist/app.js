@@ -789,7 +789,7 @@ function drawObjects(){hitObjects=[];const departure=state.flight?.fromId||state
  for(const source of [ExtendedCatalog.visible,MapLayers.visible])for(const o of source){const q=pointView(o);if(q&&(!q.bg||q.sparse))candidates.set(o.id,q);}
  const visible=[];
  for(let q of candidates.values()){
-  if(q.o.distantCatalog||q.o.cosmicEpoch)continue;
+  if(q.o.cosmicEpoch)continue;
   if(q.sparse===undefined)q=pointView(q.o);if(!q)continue;const {o,sparse,bg}=q;
   if(bg&&!sparse&&o.id!==state.selected&&o.id!==state.current||o.kind==='horizon'&&cam.span<=3e10||!ExtendedCatalog.matchesMap(o)||ExtendedCatalog.opacity(o,!sparse)<=.015)continue;
   const p=screen(o);if(!(p.x>-40&&p.x<width+40&&p.y>-40&&p.y<height+40))continue;
@@ -842,7 +842,7 @@ function drawHover(){if(hover?.cosmicEpoch)return;if(!hover||!ExtendedCatalog.ma
 let lastFrame=performance.now();function frame(now){Cosmology.sync(state);const realDt=Math.max(0,(now-lastFrame)/1000);lastFrame=now;Simulation.advance(realDt);
  if(!document.hidden){if(cameraGoal){const a=1-Math.exp(-Math.min(realDt,.1)*8);cam.x+=(cameraGoal.x-cam.x)*a;cam.y+=(cameraGoal.y-cam.y)*a;cam.span=Math.exp(Math.log(cam.span)+(Math.log(cameraGoal.span)-Math.log(cam.span))*a);if(Math.abs(Math.log(cam.span/cameraGoal.span))<.0005&&Math.hypot(cam.x-cameraGoal.x,cam.y-cameraGoal.y)<cam.span*.0001){cam={...cameraGoal};cameraGoal=null;}}
  if(followShip||shipFocusArmed){const c=shipCamera(cam.span);cam.x=c.x;cam.y=c.y;}updateZoomControl();
- MapLayers.update(now);ExtendedCatalog.update(now);drawGrid();MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawHorizonBoundary();drawReachability();Route.draw();drawRoute();drawEffects(Math.min(realDt,.1));ExtendedCatalog.drawSystems();OrbitalMotion.draw();NuclearStars.draw();drawObjects();globalThis.DistantCatalog?.draw();ExtendedCatalog.draw();drawShip(now);MapLabels.draw();Route.drawEncounter();drawHover();if(now-lastUI>100){renderUI();lastUI=now;}}
+ MapLayers.update(now);ExtendedCatalog.update(now);drawGrid();MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawHorizonBoundary();drawReachability();Route.draw();drawRoute();drawEffects(Math.min(realDt,.1));ExtendedCatalog.drawSystems();OrbitalMotion.draw();NuclearStars.draw();drawObjects();ExtendedCatalog.draw();drawShip(now);MapLabels.draw();Route.drawEncounter();drawHover();if(now-lastUI>100){renderUI();lastUI=now;}}
  if(now-saveTick>1500){persist();saveTick=now;}requestAnimationFrame(frame);
 }
 

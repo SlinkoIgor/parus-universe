@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import crypto from 'node:crypto';
 import {readMapCatalog} from './map-radial-catalog.mjs';
 
-const {c,rows,objects:catalogObjects,manifest,pointer}=await readMapCatalog();
+const {c,rows,objects:catalogObjects,manifest,pointer}=await readMapCatalog({supplement:true});
 vm.runInContext(fs.readFileSync('dist/map-radial-data.js','utf8')+'\n'+fs.readFileSync('dist/map-radial.js','utf8'),c);
 const details=vm.runInContext('MapDetails',c);
 const radialPointer=JSON.parse(fs.readFileSync('dist/map-radial/current.json'));
@@ -15,8 +15,9 @@ const byId=new Map(objects.map(o=>[o.id,o]));c.MapLayout.resolve=id=>byId.get(id
 const complete=new Set(['filament','galaxy-cluster','stellar-cluster','nebula','supercluster','void']);
 // Same deterministic importance in both projections; selection and load order
 // never enter it. Unknown mass stays unknown, rather than receiving a typical mass.
+const completeObject=o=>complete.has(details.group(o))&&!details.cosmologicalPoint(o);
 const groups=new Map(objects.map(o=>[o.id,details.group(o)]));
-const hostRange=new Map(objects.filter(o=>complete.has(groups.get(o.id))&&details.maxSpan(o)>({'stellar-cluster':300000,nebula:300000,'galaxy-cluster':2e9}[groups.get(o.id)]??Infinity)).map(o=>[o.id,details.maxSpan(o)/1440]));
+const hostRange=new Map(objects.filter(o=>completeObject(o)&&details.maxSpan(o)>({'stellar-cluster':300000,nebula:300000,'galaxy-cluster':2e9}[groups.get(o.id)]??Infinity)).map(o=>[o.id,details.maxSpan(o)/1440]));
 const ranks=new Map(objects.map(o=>[o.id,[details.level(o),details.mass(o)??-1,Number(!!o.cosmicLandmark),Number(!!o.messier),Number(!!details.mapLabelName(o)),-(o.apparentV??99)]]));
 const compare=(a,b)=>{const x=ranks.get(a),y=ranks.get(b);for(let i=0;i<x.length;i++)if(x[i]!==y[i])return y[i]-x[i];return a<b?-1:a>b?1:0;};
 objects.sort((a,b)=>compare(a.id,b.id));
@@ -32,14 +33,14 @@ for(const mode of ['full','radial']){
   for(const o of objects){
    // Full sourced contour layers have their own fixed class cutoff. They must
    // not crowd compact contents out of the point hierarchy.
-   if(complete.has(groups.get(o.id)))continue;
+   if(completeObject(o))continue;
    const p=positions.get(o.id),key=Math.floor(p.x/size)+','+Math.floor(p.y/size);
    if(occupied.has(key))continue;occupied.add(key);limits.set(o.id,size/spacing);
   }
  }
- for(const o of objects){const diameter=!o.sizeEstimated&&!o.sizeUnknown?(o.diameterLy||o.galaxy?.diameterLy||0):0;const p=Math.max(1e-6,limits.get(o.id),diameter/8);(pixels[o.id]??=[]).push(complete.has(groups.get(o.id))?(hostRange.get(o.id)??-1):p);}
+ for(const o of objects){const diameter=!o.sizeEstimated&&!o.sizeUnknown?(o.diameterLy||o.galaxy?.diameterLy||0):0;const p=Math.max(1e-6,limits.get(o.id),diameter/8);(pixels[o.id]??=[]).push(completeObject(o)?(hostRange.get(o.id)??-1):p);}
 }
-const dependencies=['data-tools/build-map-visibility.mjs','data-tools/map-radial-catalog.mjs','dist/map-details.js','dist/map-layout.js','dist/map-radial.js','dist/map-radial-data.js','dist/catalog-extended.js'];
+const dependencies=['data-tools/build-map-visibility.mjs','data-tools/map-radial-catalog.mjs','dist/map-details.js','dist/map-layout.js','dist/map-radial.js','dist/map-radial-data.js','dist/catalog-extended.js','dist/distant-catalog.js','dist/distant-catalog-data.js'];
 const revision=crypto.createHash('sha256').update(manifest.revision+radialManifest.revision+dependencies.map(p=>fs.readFileSync(p)).join('')).digest('hex').slice(0,12);
 const root='map-visibility/'+revision,out='dist/'+root;fs.mkdirSync(out,{recursive:true});
 function write(file,value){const content=JSON.stringify(value)+'\n',path='dist/'+file;if(fs.existsSync(path)){if(fs.readFileSync(path,'utf8')!==content)throw Error('Immutable visibility index differs: '+file);return;}fs.writeFileSync(path,content);}
@@ -64,7 +65,7 @@ for(const [mode,source] of [['full',manifest],['radial',radialManifest]]){
  }
  modes[mode]={nodes,roots:source.roots.map(id=>visit(id,rows.slice()).index)};
 }
-const boot={version:1,revision,catalogRevision:manifest.revision,radialRevision:radialManifest.revision,geometryVersion:c.MapLayout.version,spacing,modes,pixels};
+const boot={version:1,revision,supplementRevision:c.DistantCatalog.data.revision,catalogRevision:manifest.revision,radialRevision:radialManifest.revision,geometryVersion:c.MapLayout.version,spacing,modes,pixels};
 write(root+'/manifest.json',boot);
 function publish(path,content){const temp=path+'.'+process.pid+'.tmp';fs.writeFileSync(temp,content);fs.renameSync(temp,path);}
 publish('dist/map-visibility-data.js',"'use strict';\n// Generated fixed per-object cartographic thresholds, in ly per CSS pixel.\nconst MAP_VISIBILITY_BOOT="+JSON.stringify(boot)+';\n');

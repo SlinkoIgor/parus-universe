@@ -3,7 +3,7 @@
 const MapDetails={
  massCache:new WeakMap(),nameCache:new WeakMap(),
  typeName(o){
-  if(o.cosmicEpoch||o.distantCatalog&&o.candidate)return o.type;
+  if(o.cosmicEpoch||o.distantCatalog)return o.type;
   if(o.catalogClass==='galaxy-cluster')return 'Скопление галактик';
   if(o.cosmicSubtype==='filament')return 'Галактический филамент';
   if(o.cosmicSubtype==='supercluster')return 'Сверхскопление галактик';
@@ -60,11 +60,14 @@ const MapDetails={
   this.nameCache.set(o,{key,value});return value;
  },
  level(o){return({home:0,star:0,pulsar:0,blackhole:0,nebula:1,'stellar-cluster':1,galaxy:2,quasar:2,'galaxy-cluster':3,filament:4,supercluster:4,structure:4,wall:4,ring:4,arc:4,void:4,horizon:4})[this.group(o)]??0;},
+ // Sourced cosmological centres with no measured extent compete as points,
+ // including on the overview. This is a display class, independent of survey
+ // membership and of the signal/flight horizon.
+ cosmologicalPoint(o){return !!(!o.atlasOnly&&(o.cosmicLandmark||o.sizeUnknown)&&(['galaxy','quasar'].includes(o.kind)||o.kind==='cluster'&&this.group(o)==='galaxy-cluster')&&o.cosmology?.distanceLy>0&&o.p3?.every(Number.isFinite));},
  maxSpan(o){
   // One cutoff per scale class. Compact landmarks use the same boundary,
   // then compete for empty screen space in the final label pass.
   if(o.synthetic)return 2000;
-  if(o.distantCatalog)return Infinity;
   // Every resolved population retains its host scale. Larger local objects
   // also keep their own class range; adding a host cannot shorten that range.
   const hostSpan=o.galaxyMember?(o.hostDiameterLy||30000)*5:o.bulkGalaxyMember&&o.positionEstimate?.referenceScaleLy>0?o.positionEstimate.referenceScaleLy*5:0;

@@ -2,7 +2,7 @@
 // Epochs on the reference observer's past light cone, not present-day materials.
 // Flat H0=67.4, Om=.315, Or=.000092; log(a) quadrature, reproduced in docs.
 const UniverseMap={
- radius:46.1332705258e9,patterns:new Map(),labels:[],angle:-.72,
+ radius:46.1332705258e9,patterns:new Map(),labels:[],
  areas:[
   {id:'epoch-dawn',name:'Первые звёзды и галактики',type:'Космический рассвет',r0:27.4661e9,r1:37.6899e9,age:'≈0,1–0,9 млрд лет',desc:'Газ формирует первые звёзды и молодые галактики. Начинается реионизация; звёзды обогащают среду тяжёлыми элементами, появляется пыль.',note:'Условный диапазон z≈6–30. Переходы постепенны; граница первых звёзд модельна.'},
   {id:'epoch-dark',name:'Тёмные века',type:'Нейтральный газ до первых источников света',r0:37.6899e9,r1:45.2256916518e9,age:'≈0,38–100 млн лет',desc:'Вселенная уже прозрачна, но звёзд ещё нет. В основном это нейтральные водород и гелий. Неоднородности газа растут под действием гравитации.',note:'Это не эпоха пылевых облаков. Точки обозначают среду, а не обнаруженные объекты.'},
@@ -31,10 +31,10 @@ const UniverseMap={
  },
  draw(){
   this.labels=[];if(!this.active())return;const g=this.geometry();ctx.save();
-  const selected=hover?.cosmicEpoch?hover:object(state.selected);
+  const selected=object(state.selected),hovered=hover?.cosmicEpoch?hover:null;
   for(const [i,q] of this.areas.slice(0,3).entries()){
    this.path(g,q.r0,q.r1);ctx.fillStyle=this.pattern(['dawn','dark','cmb'][i]);ctx.globalAlpha=i===2?.4:.35;ctx.fill();
-   if(selected?.id===q.id){ctx.globalAlpha=.035;ctx.fillStyle=paint('#454545');ctx.fill();ctx.globalAlpha=.1;ctx.beginPath();ctx.arc(g.x,g.y,q.r1*g.k,this.angle-.22,this.angle+.22);ctx.arc(g.x,g.y,q.r0*g.k,this.angle+.22,this.angle-.22,true);ctx.closePath();ctx.fill();}
+   if(selected?.id===q.id||hovered?.id===q.id){ctx.globalAlpha=selected?.id===q.id?.07:.025;ctx.fillStyle=paint('#454545');ctx.fill();}
   }
   ctx.globalAlpha=.55;circle(g.x,g.y,g.r,'#808080',.8);circle(g.x,g.y,this.areas[2].r0*g.k,'#969696',.7);
   ctx.globalAlpha=.3;for(const q of this.areas.slice(0,2))circle(g.x,g.y,q.r0*g.k,'#969696',.6,[1,5]);ctx.globalAlpha=1;
@@ -48,7 +48,7 @@ const UniverseMap={
  },
  hit(x,y){
   if(!this.active())return null;const named=this.labels.find(({box:b})=>x>=b.x&&x<=b.x+b.w&&y>=b.y&&y<=b.y+b.h);if(named)return named.q;
-  const g=this.geometry(),r=Math.hypot(x-g.x,y-g.y)/g.k;this.angle=Math.atan2(y-g.y,x-g.x);
+  const g=this.geometry(),r=Math.hypot(x-g.x,y-g.y)/g.k;
   return r>this.radius?this.areas[3]:this.areas.slice(0,3).find(q=>r>=q.r0&&r<=q.r1)||null;
  },
  overview(){
