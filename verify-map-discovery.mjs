@@ -56,7 +56,7 @@ run(`{
  assert.equal(chart([star],()=>{const pair=[{x:point.x-100,y:point.y},{x:point.x+100,y:point.y}];RegionMap.hits=[{points:pair,segments:[pair],closed:false}];}).length,0,'filament segments remain occupied');
  const galaxy=samples.find(o=>o.kind==='galaxy'),g=MapLayout.project(galaxy);cam={x:g.x,y:g.y,span:MapDetails.maxSpan(galaxy)*2};point=chart([galaxy])[0].p;
  assert.equal(chart([galaxy],()=>MapLabels.contours.push({id:'other-galaxy',points:polygon(200),closed:true,container:true})).length,0,'a competing galaxy cannot fill another galaxy contour');
- cam={x:p.x,y:p.y,span:1e9};MapLayers.ready.set('filament',false);
+ cam={x:p.x,y:p.y,span:1e9};MapLayers.admitted.clear();MapLayers.ready.set('filament',false);
  assert.equal(chart([star]).length,0,'loading coarse context cannot look like free space');MapLayers.ready.set('filament',true);
  const pair=samples.filter(o=>o.parentGalaxy==='lmc'&&o.kind==='star'),first=chart(pair).map(h=>h.o.id);
  assert.equal(first.length,1,'coincident survey stars become one spaced representative');assert.deepEqual(chart([...pair].reverse()).map(h=>h.o.id),first,'source order cannot change the representative');

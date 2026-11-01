@@ -78,11 +78,13 @@ const MapDetails={
   if(o.kind==='galaxy'||o.kind==='quasar')return 3e8;
   return Infinity;
  },
- // Hide the complete filament class at the ruler's 200 million ly mark.
- opacity(o,span,viewportWidth){if(this.group(o)==='filament'&&gridMetrics({span},viewportWidth).unit>=2e8)return 0;const max=this.maxSpan(o);if(span>=max)return 0;if(span<=max*.8)return 1;const t=(span/max-.8)/.2;return 1-t*t*(3-2*t);},
+ // Fade continuously before the ruler reaches 200 million ly. The ruler's
+ // rounded tick itself must never make the entire network blink off.
+ opacity(o,span,viewportWidth=width){if(globalThis.MapVisibility?.active&&MapVisibility.limit(o)!==Infinity)return MapVisibility.opacity(o,span,viewportWidth);return this.classOpacity(o,span,viewportWidth);},
+ classOpacity(o,span,viewportWidth=width){if(this.group(o)==='filament'){const end=150e6*viewportWidth/128,t=Math.max(0,Math.min(1,(span/end-.6)/.4));return 1-t*t*(3-2*t);}const max=this.maxSpan(o);if(span>=max)return 0;if(span<=max*.8)return 1;const t=(span/max-.8)/.2;return 1-t*t*(3-2*t);},
  landmark(o){return !o.atlasOnly&&!o.synthetic&&!o.bulkGalaxyMember&&!o.nuclearStar&&o.p3?.every(Number.isFinite)&&Number.isFinite(this.maxSpan(o))&&!!(o.cosmicLandmark||o.messier||!o.streamed&&ExtendedCatalog.coreIndex?.has(o.id)&&!ExtendedCatalog.background(o));},
  discoverable(o){return !!(!o.atlasOnly&&!o.synthetic&&!o.nuclearStar&&o.positionQuality!=='unknown'&&o.navigable!==false&&o.p3?.length===3&&o.p3.every(Number.isFinite)&&Number.isFinite(this.maxSpan(o)));},
- sparse(o,span){return span>this.maxSpan(o)*.8&&this.discoverable(o);},
+ sparse(o,span){if(globalThis.MapVisibility?.active)return false;return span>this.maxSpan(o)*.8&&this.discoverable(o);},
  visible(o,span,viewportWidth){if(o.atlasOnly)return false;return this.opacity(o,span,viewportWidth)>.03;}
 };
 for(const o of OBJECTS){const name=MapDetails.cleanName(o);if(name!==o.name){o.aliases=[...new Set([...(o.aliases||[]),o.name])];o.name=name;}if(o.galaxy)o.galaxy.name=o.name;}
@@ -90,8 +92,8 @@ for(const o of OBJECTS){const name=MapDetails.cleanName(o);if(name!==o.name){o.a
 // Cache structural geometry with its render cache; index point glyphs per pass.
 const MapLandmarks={
  cache:null,points:null,ui:null,prepared:false,
- box(points){const xs=points.map(p=>p.x),ys=points.map(p=>p.y);return{x:Math.min(...xs),y:Math.min(...ys),w:Math.max(...xs)-Math.min(...xs),h:Math.max(...ys)-Math.min(...ys)};},
- cells(box,visit){const x0=Math.max(-1,Math.floor(box.x/64)),x1=Math.min(Math.ceil(width/64),Math.floor((box.x+box.w)/64)),y0=Math.max(-1,Math.floor(box.y/64)),y1=Math.min(Math.ceil(height/64),Math.floor((box.y+box.h)/64));for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)visit(x+','+y);},
+ box(points){let x=Infinity,y=Infinity,right=-Infinity,bottom=-Infinity;for(const p of points){x=Math.min(x,p.x);y=Math.min(y,p.y);right=Math.max(right,p.x);bottom=Math.max(bottom,p.y);}return{x,y,w:right-x,h:bottom-y};},
+ cells(box,visit){const x0=Math.max(-1,Math.floor(box.x/64)),x1=Math.min(Math.ceil(width/64),Math.floor((box.x+box.w)/64)),y0=Math.max(-1,Math.floor(box.y/64)),y1=Math.min(Math.ceil(height/64),Math.floor((box.y+box.h)/64));for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)visit(x+1+(y+1)*(Math.ceil(width/64)+3));},
  insert(grid,item){this.cells(item.box,key=>{if(!grid.has(key))grid.set(key,[]);grid.get(key).push(item);});},
  query(grid,box){const found=new Set();this.cells(box,key=>{for(const item of grid.get(key)||[])found.add(item);});return found;},
  occupied(box){let found=false;this.cells(box,key=>{if(found)return;for(const item of this.points.get(key)||[])if(MapLabels.overlaps(box,item.box)){found=true;break;}});return found;},
@@ -105,11 +107,11 @@ const MapLandmarks={
   for(const h of [...RegionMap.hits,...MapLabels.contours]){
    // Galaxy outlines are background for compact contents. Their actual glyphs
    // and labels already reserve space when the contents cannot be resolved.
-   const bounds=this.box(h.points),container=!!h.container;
+   const container=!!h.container;
    const segments=h.segments||h.points.slice(1).map((p,i)=>[h.points[i],p]);
    // Separate segment bounds avoid filling a large filament's empty bounding box.
    for(const pair of segments)this.insert(grid,{box:this.box(pair),pair,container});
-   if(h.closed)this.insert(grid,{box:bounds,polygon:h.points,container});
+   if(h.closed)this.insert(grid,{box:this.box(h.points),polygon:h.points,container});
   }
   this.cache={key,scale,hits:RegionMap.hits,grid};
  },
@@ -139,7 +141,7 @@ const MapLabels={
  queue:[],boxes:[],placed:[],contours:[],slots:new Map(),viewKey:null,
  dynamic(key){return key==='ship'||key==='ship-reach'||key==='light-reach'||key.startsWith('flight-mark-');},
  overlaps(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;},
- begin(){const key=[cam.x,cam.y,cam.span,width,height,state.selected,state.flight?.fromId||state.current].join(':');if(this.viewKey!==key){this.slots.clear();this.viewKey=key;}this.queue=[];this.placed=[];this.contours=[];MapLandmarks.points=null;MapLandmarks.ui=null;MapLandmarks.prepared=false;this.boxes=[{x:0,y:0,w:Math.min(width-30,430),h:150},{x:width-300,y:0,w:300,h:80},{x:0,y:height-45,w:width,h:45},{x:0,y:height-200,w:80,h:200},{x:0,y:132,w:185,h:480}];
+ begin(){const key=[cam.x,cam.y,cam.span,width,height,state.selected,state.flight?.fromId||state.current].join(':');if(this.viewKey!==key){this.slots.clear();this.viewKey=key;}this.queue=[];this.placed=[];this.contours=[];MapLandmarks.points=null;MapLandmarks.ui=null;MapLandmarks.prepared=false;this.boxes=[{x:0,y:0,w:Math.min(width-30,430),h:150},{x:width-300,y:0,w:300,h:80},{x:0,y:height-45,w:width,h:45},{x:0,y:height-200,w:80,h:200},{x:0,y:132,w:width<700?224:185,h:480}];
   // Reserve the card's column independently of its changing telemetry height.
   if(width>=700){const column=(width<=1050?300:310)+40;this.boxes.push({x:width-column,y:68,w:column,h:height-68});}
   else{const r=$('flightCard').getBoundingClientRect();this.boxes.push({x:r.left-12,y:Math.min(r.top-8,height*.45),w:r.width+24,h:height});}

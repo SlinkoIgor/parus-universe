@@ -41,6 +41,12 @@ if catalog.exists():
   radial_layers=json.loads((root/radial_root/'layers.json').read_text())
   radial_files=['map-radial/current.json',radial_root+'/manifest.json',radial_root+'/layers.json']+[n['file'] for n in radial_manifest['nodes']]+[radial_root+'/'+n['file'] for n in radial_layers['nodes'] if 'file' in n]
   for name in radial_files:files[name]=(root/name).read_text()
+ visibility_pointer=root/'map-visibility/current.json'
+ if visibility_pointer.exists():
+  visibility_root=json.loads(visibility_pointer.read_text())['dataRoot']
+  for path in (root/visibility_root).glob('*.json'):
+   if path.name=='manifest.json':continue
+   files[str(path.relative_to(root))]=path.read_text()
  payload=json.dumps(files,ensure_ascii=False,separators=(',',':')).replace('</script','<\\/script')
  html=html.replace('</head>','<script>globalThis.PARUS_CATALOG_FILES='+payload+';</script></head>')
 output=Path(sys.argv[1]);output.parent.mkdir(parents=True,exist_ok=True);output.write_text(html)

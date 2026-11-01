@@ -133,7 +133,7 @@ function log(text){state.journal.push({t:state.earth,text});if(state.journal.len
 function toast(text){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,4200);}
 function screen(p){p=p===state.ship?FlightView.ship():MapLayout.project(p);return{x:width*.43+(p.x-cam.x)*width/cam.span,y:height*(width<700?.39:.50)+(p.y-cam.y)*width/cam.span};}
 function world(x,y){return{x:cam.x+(x-width*.43)*cam.span/width,y:cam.y+(y-height*(width<700?.39:.50))*cam.span/width};}
-function goCamera(x,y,span,instant=false,keepFollow=false){if(!keepFollow&&followShip)releaseShipCamera();cameraGoal={x,y,span:clamp(span,.00006,1.4e11)};if(instant){cam={...cameraGoal};cameraGoal=null;}updateMapHeading();}
+function goCamera(x,y,span,instant=false,keepFollow=false){if(!keepFollow&&(followShip||shipFocusArmed))releaseShipCamera();cameraGoal=keepFollow&&(followShip||shipFocusArmed)?shipCamera(clamp(span,.00006,1.4e11)):{x,y,span:clamp(span,.00006,1.4e11)};if(instant){cam={...cameraGoal};cameraGoal=null;}updateMapHeading();}
 function routeViewport(){
  const pad=Math.max(24,Math.min(54,width*.055)),card=$('flightCard').getBoundingClientRect();
  // Keep the route clear of the HUD, target card, heading and map buttons.
@@ -142,7 +142,7 @@ function routeViewport(){
  return{left:pad,top:112,right:Math.max(pad+100,right),bottom:Math.max(180,bottom)};
 }
 function shipCamera(span=cam.span){const p=FlightView.ship();return{x:p.x+(width*.43-width/2)*span/width,y:p.y+(height*(width<700?.39:.50)-height/2)*span/width,span};}
-function focusShip(){if(followShip){followShip=false;shipFocusArmed=false;}else if(shipFocusArmed){followShip=true;}else shipFocusArmed=true;const c=shipCamera();goCamera(c.x,c.y,c.span,true,true);updateShipButton();}
+function focusShip(){globalThis.MapSlice?.focus(state.ship);if(followShip){followShip=false;shipFocusArmed=false;}else if(shipFocusArmed){followShip=true;}else shipFocusArmed=true;const c=shipCamera();goCamera(c.x,c.y,c.span,true,true);updateShipButton();}
 function updateShipButton(){$('shipBtn').innerHTML=followShip?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8V3h5m8 0h5v5m0 8v5h-5M8 21H3v-5M12 6l5 12-5-3-5 3Z"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>';$('shipBtn').setAttribute('aria-label',followShip?'Отключить слежение: '+SHIP_NAME:'Центрировать: '+SHIP_NAME);$('shipBtn').classList.toggle('active',followShip);$('shipBtn').setAttribute('aria-pressed',String(followShip));$('shipBtn').title=SHIP_NAME+(followShip?' · отключить слежение':shipFocusArmed?' · нажмите ещё раз для слежения':' · центрировать');}
 function releaseShipCamera(){followShip=false;shipFocusArmed=false;updateShipButton();}
 // Presets and handle share the same piecewise logarithmic scale.
@@ -653,7 +653,7 @@ function showObject(id=state.selected){
  if(o.catalogDistanceLy!=null)html+=row('Исходная каталожная дальность',distanceText(o.catalogDistanceLy)+'<small>До оценки по принадлежности к системе; не используется в текущем маршруте</small>');
  if(o.gravity)html+=row('Модель пролёта',o.gravity.note);
  if(o.coordinateNote)html+=row('Координаты',o.coordinateNote);
- if(globalThis.MapRadial?.active())html+=row('На радиальной карте',MapRadial.explain(o).text+'<small>'+MapRadial.explain(o).chain.map(p=>MapRadial.resolve(p.id)?.name||p.id).join(' → ')+'</small>');
+ if(globalThis.MapRadial?.active())html+=row('На радиальной карте',OrbitalMotion.isOrbiting(o)?'Орбитальная система перенесена целиком. Внутренние орбиты и движение сохранены в проекции XY; индивидуальные дальности компонентов от Солнца могут немного отличаться от радиусов на карте.':MapRadial.explain(o).text+'<small>'+MapRadial.explain(o).chain.map(p=>MapRadial.resolve(p.id)?.name||p.id).join(' → ')+'</small>');
  else if(o.mapOffset?.some(v=>Math.abs(v)>1e-6))html+=row('На схеме','Положение условно смещено для отделения внеплоскостных объектов от оптического диска Млечного Пути. Это не граница принадлежности к Галактике; расстояния рассчитаны по физическим 3D-координатам.');
  if(o.positionEstimate){const e=o.positionEstimate,shared=Number.isFinite(e.sharedDistanceErrorLy)?' Общая погрешность дальности центра ≈ '+distanceText(e.sharedDistanceErrorLy)+'; она коррелирована для членов системы.':e.sharedDistanceNote||' Общая систематика расстояния отдельно не оценена.';html+=row('Локальный диапазон позиции','≈ '+distanceText(e.localEnvelopeLy)+'<small>'+e.envelopeMeaning+shared+'</small>');if(e.anchor)html+=row(e.method==='bounded-compact-host'?'Опорное скопление':'Опорная галактика',object(e.anchor)?.name||e.anchorName||e.anchor);}
  if(o.membershipNote)html+=row('Членство',o.membershipNote);
@@ -724,7 +724,7 @@ function renderReachability(){
 }
 
 function circleLabel(key,name,detail,p,r,priority=25){
- const anchor={x:p.x,y:p.y-r-10,align:'center'};
+ const anchor={x:p.x,y:p.y-r+(key==='ship-reach'?18:-10),align:'center'};
  if(r>=5)MapLabels.add({key,name,detail,priority,size:9,candidates:[anchor]});
 }
 function drawReachability(){
@@ -740,7 +740,8 @@ function drawReachability(){
 }
 function drawHorizonBoundary(){if(cam.span>4e10){const p=screen({x:0,y:0}),r=465e8*Cosmology.scale()*width/cam.span;circle(p.x,p.y,r,'#a7a7a7',.8,[7,5]);circleLabel('observable-boundary','НАБЛЮДАЕМАЯ ВСЕЛЕННАЯ','ГРАНИЦА В ИСХОДНУЮ ЭПОХУ · НЕ ДАЛЬНОСТЬ ПОЛЁТА',p,r,15);}}
 function drawSymbol(o,p,selected=false){const destroyed=state.destroyed.includes(o.id)&&o.kind==='star';const ink=selected?'#171717':'#424242';ctx.save();ctx.translate(p.x,p.y);ctx.strokeStyle=paint(ink);ctx.lineWidth=1.25;
- if(destroyed){circle(0,0,9,ink,.7,[2,3]);line(-5,-5,5,5,ink,.8);line(-5,5,5,-5,ink,.8);}
+ if(globalThis.MapVisibility?.active&&MapDetails.level(o)>=3){circle(0,0,1.2,ink,.7);}
+ else if(destroyed){circle(0,0,9,ink,.7,[2,3]);line(-5,-5,5,5,ink,.8);line(-5,5,5,-5,ink,.8);}
  else if(o.kind==='home'){circle(0,0,14,ink,.8);circle(0,0,8,ink,1);ctx.fillStyle=paint(ink);ctx.beginPath();ctx.arc(0,0,2,0,Math.PI*2);ctx.fill();for(let i=0;i<8;i++){const a=i*Math.PI/4;line(Math.cos(a)*18,Math.sin(a)*18,Math.cos(a)*22,Math.sin(a)*22,ink,.7);}}
  else if(o.nuclearStar){circle(0,0,2.8,ink,1.2);ctx.fillStyle=paint(ink);ctx.fillRect(-.8,-.8,1.6,1.6);}
  else if(o.kind==='star'){const r=o.id==='sirius'?6:4;circle(0,0,r,ink,.8);ctx.fillStyle=paint(ink);ctx.beginPath();ctx.arc(0,0,1.5,0,Math.PI*2);ctx.fill();line(-r-5,0,-r-2,0,ink,.7);line(r+2,0,r+5,0,ink,.7);line(0,-r-5,0,-r-2,ink,.7);line(0,r+2,0,r+5,ink,.7);}
@@ -759,11 +760,22 @@ function drawObjects(){hitObjects=[];const departure=state.flight?.fromId||state
  const reserve=p=>{const key=Math.floor(p.x/24)+','+Math.floor(p.y/24);if(!occupied.has(key))occupied.set(key,[]);occupied.get(key).push(p);};
  const priority=o=>o.id==='sgr'&&cam.span<2?90:ExtendedCatalog.background(o)?10:o.id===state.selected?100:o.id===departure?85:o.cosmicLandmark?70:o.galaxy?50:o.id==='sol'?40:20;
  const queueLabel=(o,p,opacity)=>{if((StellarClusters.is(o)?StellarClusters.view(o).area<.5:o.kind==='nebula'?Nebulae.view(o).area<.5:true)&&(!o.galaxy||galaxyProjection(o.galaxy).r<=18))MapLabels.point({key:'object-'+o.id,object:o,name:o.id==='sol'?'СОЛНЦЕ / ЗЕМЛЯ':o.name,detail:()=>(o.id===(state.flight?.target||state.selected)?'ЦЕЛЬ · ':'')+routeLabelDistance(o),p,mass:MapDetails.mass(o),level:MapDetails.level(o),priority:priority(o),selected:o.id===state.selected,opacity});};
- const eligible=o=>MapDetails.visible(o,cam.span)||MapDetails.sparse(o,cam.span);
- const visible=[...new Map([...OBJECTS,...ExtendedCatalog.pinned.values(),...ExtendedCatalog.visible.filter(o=>eligible(o)&&(!ExtendedCatalog.background(o)||MapDetails.sparse(o,cam.span))),...MapLayers.visible.filter(o=>eligible(o)&&(!ExtendedCatalog.background(o)||MapDetails.sparse(o,cam.span)))].map(o=>[o.id,o])).values()].filter(o=>ExtendedCatalog.matchesMap(o)&&ExtendedCatalog.opacity(o,!MapDetails.sparse(o,cam.span))>.015&&(MapDetails.sparse(o,cam.span)||RegionMap.asPoint(o))&&(!ExtendedCatalog.background(o)||MapDetails.sparse(o,cam.span)||o.id===state.selected||o.id===state.current)&&eligible(o)&&(o.kind!=='horizon'||cam.span>3e10)).map(o=>({o,p:screen(o)})).filter(({p})=>p.x>-40&&p.x<width+40&&p.y>-40&&p.y<height+40).sort((a,b)=>MapDetails.level(b.o)-MapDetails.level(a.o)||MapDetails.massOrder(a.o,b.o)||priority(b.o)-priority(a.o)||(a.o.apparentV??20)-(b.o.apparentV??20)||a.o.id.localeCompare(b.o.id));
- for(const {o,p} of visible){
-  if(MapDetails.sparse(o,cam.span)){if(nearby(p))continue;const selected=o.id===state.selected,bg=ExtendedCatalog.background(o),opacity=(.7+.3*MapDetails.opacity(o,cam.span))*ExtendedCatalog.opacity(o,false);MapLabels.point({key:'object-'+o.id,object:o,name:o.id==='sol'?'СОЛНЦЕ / ЗЕМЛЯ':o.name,detail:()=>(o.id===(state.flight?.target||state.selected)?'ЦЕЛЬ · ':'')+routeLabelDistance(o),p,mass:MapDetails.mass(o),level:MapDetails.level(o),priority:priority(o),selected,opacity,sparse:true,onPlace:()=>{ctx.save();ctx.globalAlpha=opacity;if(bg&&!MapSymbols.handles(o)){ctx.fillStyle=paint(o.kind==='star'?'#858585':'#555555');ctx.beginPath();ctx.arc(p.x,p.y,o.kind==='star'?1.6:1.85,0,Math.PI*2);ctx.fill();if(selected)circle(p.x,p.y,7,'#646464',.8,[2,3]);}else drawSymbol(o,p,selected);ctx.restore();const hit={o,p,r:bg?5:MapSymbols.handles(o)?7:23,background:bg,sparse:true};hitObjects.push(hit);MapLandmarks.reserve(hit);}});continue;}
-  const bg=ExtendedCatalog.background(o);if(!bg&&nearby(p)){if((!MapLayers.active||!MapLayers.manages(o))&&MapDetails.mapLabelName(o)===null)continue;reserve(p);ctx.save();ctx.globalAlpha=ExtendedCatalog.opacity(o)*RegionMap.pointOpacity(o);if(MapSymbols.handles(o))drawSymbol(o,p,o.id===state.selected);else circle(p.x,p.y,2.2,'#777777',.8);ctx.restore();hitObjects.push({o,p,r:5,background:false});queueLabel(o,p,ExtendedCatalog.opacity(o)*RegionMap.pointOpacity(o));continue;}if(!bg)reserve(p);const selected=o.id===state.selected,opacity=ExtendedCatalog.opacity(o)*RegionMap.pointOpacity(o);ctx.save();ctx.globalAlpha=opacity;if(bg&&!MapSymbols.handles(o)){circle(p.x,p.y,3,'#969696',1);if(selected)circle(p.x,p.y,7,'#646464',.8,[2,3]);}else drawSymbol(o,p,selected);ctx.restore();hitObjects.push({o,p,r:MapSymbols.handles(o)?7:bg?7:23,background:bg});
+ // Classify each point once. Contours cannot become glyphs, and sorting
+ // compares precomputed ranks rather than repeatedly parsing catalogue fields.
+ const pointView=o=>{const sparse=MapDetails.sparse(o,cam.span);if(!(sparse||MapDetails.visible(o,cam.span))||!sparse&&!RegionMap.asPoint(o))return null;return{o,sparse,bg:ExtendedCatalog.background(o)};};
+ const candidates=new Map([...OBJECTS,...ExtendedCatalog.pinned.values()].map(o=>[o.id,{o}]));
+ for(const source of [ExtendedCatalog.visible,MapLayers.visible])for(const o of source){const q=pointView(o);if(q&&(!q.bg||q.sparse))candidates.set(o.id,q);}
+ const visible=[];
+ for(let q of candidates.values()){
+  if(q.sparse===undefined)q=pointView(q.o);if(!q)continue;const {o,sparse,bg}=q;
+  if(bg&&!sparse&&o.id!==state.selected&&o.id!==state.current||o.kind==='horizon'&&cam.span<=3e10||!ExtendedCatalog.matchesMap(o)||ExtendedCatalog.opacity(o,!sparse)<=.015)continue;
+  const p=screen(o);if(!(p.x>-40&&p.x<width+40&&p.y>-40&&p.y<height+40))continue;
+  visible.push({...q,p,level:MapDetails.level(o),mass:MapDetails.mass(o),rank:priority(o)});
+ }
+ visible.sort((a,b)=>b.level-a.level||(a.mass!==null&&b.mass!==null?b.mass-a.mass:a.mass!==null?-1:b.mass!==null?1:0)||b.rank-a.rank||(a.o.apparentV??20)-(b.o.apparentV??20)||a.o.id.localeCompare(b.o.id));
+ for(const {o,p,sparse,bg,mass,level,rank} of visible){
+  if(sparse){if(nearby(p))continue;const selected=o.id===state.selected,opacity=(.7+.3*MapDetails.opacity(o,cam.span))*ExtendedCatalog.opacity(o,false);MapLabels.point({key:'object-'+o.id,object:o,name:o.id==='sol'?'СОЛНЦЕ / ЗЕМЛЯ':o.name,detail:()=>(o.id===(state.flight?.target||state.selected)?'ЦЕЛЬ · ':'')+routeLabelDistance(o),p,mass,level,priority:rank,selected,opacity,sparse:true,onPlace:()=>{ctx.save();ctx.globalAlpha=opacity;if(bg&&!MapSymbols.handles(o)){ctx.fillStyle=paint(o.kind==='star'?'#858585':'#555555');ctx.beginPath();ctx.arc(p.x,p.y,o.kind==='star'?1.6:1.85,0,Math.PI*2);ctx.fill();if(selected)circle(p.x,p.y,7,'#646464',.8,[2,3]);}else drawSymbol(o,p,selected);ctx.restore();const hit={o,p,r:bg?5:MapSymbols.handles(o)?7:23,background:bg,sparse:true};hitObjects.push(hit);MapLandmarks.reserve(hit);}});continue;}
+  if(!globalThis.MapVisibility?.active&&!bg&&nearby(p)){if((!MapLayers.active||!MapLayers.manages(o))&&MapDetails.mapLabelName(o)===null)continue;reserve(p);ctx.save();ctx.globalAlpha=ExtendedCatalog.opacity(o)*RegionMap.pointOpacity(o);if(MapSymbols.handles(o))drawSymbol(o,p,o.id===state.selected);else circle(p.x,p.y,2.2,'#777777',.8);ctx.restore();hitObjects.push({o,p,r:5,background:false});queueLabel(o,p,ExtendedCatalog.opacity(o)*RegionMap.pointOpacity(o));continue;}if(!bg)reserve(p);const selected=o.id===state.selected,opacity=ExtendedCatalog.opacity(o)*RegionMap.pointOpacity(o);ctx.save();ctx.globalAlpha=opacity;if(bg&&!MapSymbols.handles(o)){circle(p.x,p.y,3,'#969696',1);if(selected)circle(p.x,p.y,7,'#646464',.8,[2,3]);}else drawSymbol(o,p,selected);ctx.restore();hitObjects.push({o,p,r:MapSymbols.handles(o)?7:bg?7:23,background:bg});
   // Large galaxy contours already queued their own label.
   queueLabel(o,p,opacity);
  }
@@ -806,25 +818,25 @@ function drawHover(){if(!hover||!ExtendedCatalog.matchesMap(hover))return;const 
 
 let lastFrame=performance.now();function frame(now){Cosmology.sync(state);const realDt=Math.max(0,(now-lastFrame)/1000);lastFrame=now;Simulation.advance(realDt);
  if(!document.hidden){if(cameraGoal){const a=1-Math.exp(-Math.min(realDt,.1)*8);cam.x+=(cameraGoal.x-cam.x)*a;cam.y+=(cameraGoal.y-cam.y)*a;cam.span=Math.exp(Math.log(cam.span)+(Math.log(cameraGoal.span)-Math.log(cam.span))*a);if(Math.abs(Math.log(cam.span/cameraGoal.span))<.0005&&Math.hypot(cam.x-cameraGoal.x,cam.y-cameraGoal.y)<cam.span*.0001){cam={...cameraGoal};cameraGoal=null;}}
- if(followShip){const c=shipCamera(cam.span);cam.x=c.x;cam.y=c.y;}updateZoomControl();
+ if(followShip||shipFocusArmed){const c=shipCamera(cam.span);cam.x=c.x;cam.y=c.y;}updateZoomControl();
  MapLayers.update(now);ExtendedCatalog.update(now);drawGrid();MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawHorizonBoundary();drawReachability();Route.draw();drawRoute();drawEffects(Math.min(realDt,.1));ExtendedCatalog.drawSystems();OrbitalMotion.draw();NuclearStars.draw();drawObjects();ExtendedCatalog.draw();drawShip(now);MapLabels.draw();Route.drawEncounter();drawHover();if(now-lastUI>100){renderUI();lastUI=now;}}
  if(now-saveTick>1500){persist();saveTick=now;}requestAnimationFrame(frame);
 }
 
 function zoomAtPointer(e){e.preventDefault();cameraGoal=null;const factor=Math.exp(clamp(e.deltaY,-220,220)*.006),span=clamp(cam.span*factor,.00006,1.4e11);
- if(followShip)cam=shipCamera(span);
+ if(followShip||shipFocusArmed)cam=shipCamera(span);
  else{const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,before=world(x,y);cam.span=span;const after=world(x,y);cam.x+=before.x-after.x;cam.y+=before.y-after.y;}
  updateMapHeading();updateZoomControl();}
 canvas.addEventListener('wheel',zoomAtPointer,{passive:false});
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;releaseShipCamera();pointer={down:true,x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,moved:false,id:e.pointerId};canvas.setPointerCapture(e.pointerId);cameraGoal=null;});
-canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;if(pointer.down&&e.pointerId===pointer.id){const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.hypot(e.clientX-pointer.startX,e.clientY-pointer.startY)>5)pointer.moved=true;if(pointer.moved){cam.x-=dx*cam.span/width;cam.y-=dy*cam.span/width;canvas.style.cursor='grabbing';updateMapHeading();}pointer.x=e.clientX;pointer.y=e.clientY;}else{hover=hitObjects.find(({p,r=23})=>Math.hypot(x-p.x,y-p.y)<r)?.o||RegionMap.hit(x,y);canvas.style.cursor=hover?'pointer':'crosshair';}});
-canvas.addEventListener('pointerup',e=>{if(!pointer.down||e.pointerId!==pointer.id)return;if(!pointer.moved){const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const hit=hitObjects.map(h=>({...h,d:Math.hypot(x-h.p.x,y-h.p.y)})).filter(h=>h.d<(h.r||28)).sort((a,b)=>Number(!!a.background)-Number(!!b.background)||a.d-b.d)[0];if(hit)select(hit.o.id);else{const region=RegionMap.hit(x,y);if(region)select(region.id);}}pointer.down=false;canvas.style.cursor='crosshair';});
+canvas.addEventListener('pointermove',e=>{const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;if(pointer.down&&e.pointerId===pointer.id){const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;if(Math.hypot(e.clientX-pointer.startX,e.clientY-pointer.startY)>5)pointer.moved=true;if(pointer.moved){cam.x-=dx*cam.span/width;cam.y-=dy*cam.span/width;canvas.style.cursor='grabbing';updateMapHeading();}pointer.x=e.clientX;pointer.y=e.clientY;}else{hover=(globalThis.MapAnnotations?.active&&MapAnnotations.hit(x,y))||hitObjects.find(({p,r=23})=>Math.hypot(x-p.x,y-p.y)<r)?.o||RegionMap.hit(x,y);canvas.style.cursor=hover?'pointer':'crosshair';}});
+canvas.addEventListener('pointerup',e=>{if(!pointer.down||e.pointerId!==pointer.id)return;if(!pointer.moved){const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const hit=hitObjects.map(h=>({...h,d:Math.hypot(x-h.p.x,y-h.p.y)})).filter(h=>h.d<(h.r||28)).sort((a,b)=>Number(!!a.background)-Number(!!b.background)||a.d-b.d)[0];const annotation=globalThis.MapAnnotations?.active&&MapAnnotations.hit(x,y);if(annotation)select(annotation.id);else if(hit)select(hit.o.id);else{const region=RegionMap.hit(x,y);if(region)select(region.id);}}pointer.down=false;canvas.style.cursor='crosshair';});
 canvas.addEventListener('pointercancel',()=>{pointer.down=false;canvas.style.cursor='crosshair';});canvas.addEventListener('pointerleave',()=>hover=null);
 
 $('shipBtn').onclick=focusShip;
 document.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>{goCamera(cam.x,cam.y,Number(b.dataset.zoom),false,true);});
 $('expansionToggle').addEventListener('change',e=>{state.expansion=e.target.checked;Cosmology.sync(state);FlightEstimate.idleKey=null;FlightEstimate.active=new WeakMap();renderUI();persist();});
-$('zoomSlider').addEventListener('input',e=>{cameraGoal=null;const span=zoomInterpolate(Number(e.target.value),'value','span');if(followShip)cam=shipCamera(span);else cam.span=span;updateMapHeading();updateZoomControl();});
+$('zoomSlider').addEventListener('input',e=>{cameraGoal=null;const span=zoomInterpolate(Number(e.target.value),'value','span');if(followShip||shipFocusArmed)cam=shipCamera(span);else cam.span=span;updateMapHeading();updateZoomControl();});
 $('catalogBtn').onclick=()=>{if($('catalog').hidden)openCatalog();else closeCatalog();};$('closeCatalog').onclick=closeCatalog;$('search').oninput=()=>{ExtendedCatalog.searchLimit=100;clearTimeout(catalogTimer);catalogTimer=setTimeout(renderCatalog,160);};
 $('themeBtn').onclick=()=>applyTheme(theme==='dark'?'light':'dark');
 $('menuBtn').onclick=()=>{const open=$('menu').hidden;$('menu').hidden=!open;$('menuBtn').setAttribute('aria-expanded',String(open));};

@@ -1,10 +1,10 @@
 'use strict';
 // Coarser structures are complete spatial layers, never point-LOD samples.
 const MapLayers={
- active:false,boot:MAP_LAYER_BOOT,categories:Object.keys(MAP_LAYER_BOOT.roots),cache:new Map(),inflight:new Map(),errors:new Map(),slices:new Map(),ready:new Map(),visible:[],visibleMap:new Map(),wanted:new Set(),lastUpdate:-Infinity,
+ active:false,boot:MAP_LAYER_BOOT,categories:Object.keys(MAP_LAYER_BOOT.roots),cache:new Map(),inflight:new Map(),errors:new Map(),slices:new Map(),ready:new Map(),admitted:new Set(),visible:[],visibleMap:new Map(),wanted:new Set(),lastUpdate:-Infinity,
  setGeometry(boot){
   this.boot=boot||MAP_LAYER_BOOT;this.waitingGeometry=globalThis.MapSlice?.mode==='radial'&&!boot;
-  this.cache.clear();this.errors.clear();this.slices.clear();this.ready.clear();
+  this.cache.clear();this.errors.clear();this.slices.clear();this.ready.clear();this.admitted.clear();
   this.visible=[];this.visibleMap.clear();this.wanted.clear();this.landmarkContext=null;this.lastUpdate=-Infinity;
  },
  category(o){return MapDetails.group(o);},
@@ -56,12 +56,16 @@ const MapLayers={
   // Beyond a complete layer's range, the bounded point catalogue may still
   // supply host-scale members or isolated representatives of that category.
   if(this.manages(o)&&this.enabled(this.category(o))&&!MapDetails.sparse(o,cam.span)&&!ExtendedCatalog.coreIndex?.has(o.id)&&!ExtendedCatalog.pinned.has(o.id)&&!this.visibleMap.has(o.id))return false;
+  if(globalThis.MapVisibility?.active)return true;
   const level=MapDetails.level(o);
+  // Readiness gates newly exposed detail. Losing readiness while panning
+  // must not blank an object whose context has already been shown.
+  if(this.admitted.has(o.id)||globalThis.OrbitalMotion?.isOrbiting(o))return true;
   // A small landmark can survive far past its own class. Wait for every
   // enabled coarser layer there, so an unloaded structure is never a gap.
-  if(MapDetails.sparse(o,cam.span))return this.completeAbove(level);
+  if(MapDetails.sparse(o,cam.span)){const ready=this.completeAbove(level);if(ready)this.admitted.add(o.id);return ready;}
   const dependencies=level===0?['stellar-cluster','nebula']:level===2?['filament','galaxy-cluster']:level===3?['filament']:[];
-  return dependencies.every(category=>!this.enabled(category)||this.ready.get(category)===true);
+  const ready=dependencies.every(category=>!this.enabled(category)||this.ready.get(category)===true);if(ready)this.admitted.add(o.id);return ready;
  },
  readout(){
   const s=cam.span,filaments=this.enabled('filament'),level=s<.01?'Планетные системы':s<2000?'Звёзды · звёздные скопления':s<300000?'Звёздные скопления · туманности':s<3e8?'Галактики · скопления галактик':s<2e9?'Скопления галактик'+(filaments?' · нити':' · крупные структуры'):filaments?'Нити · крупные структуры':'Крупные структуры';

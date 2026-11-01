@@ -25,7 +25,7 @@ for(const years of [0,1,40]){
   const p=ids.map(id=>MapLayout.project(object(id)));
   for(let i=0;i<ids.length;i++){
    assert.equal(JSON.stringify(object(ids[i]).p3),fixed[i],'projection preserves navigation reference');
-   if(mode==='radial')assert.ok(Math.abs(Math.hypot(p[i].x,p[i].y)-Math.hypot(...physical[ids[i]]))<1e-11,'same 3D epoch in radial');
+   if(mode==='radial'){const anchor=OrbitalMotion.alphaAnchor,q=MapRadial.placement({id:'test-frame',kind:'star',p3:anchor}).position;assert.ok(Math.hypot(p[i].x-q.x-physical[ids[i]][0]+anchor[0],p[i].y-q.y+physical[ids[i]][1]-anchor[1])<1e-11,'rigid local XY frame, shared by all three components');}
    else assert.deepEqual(p[i],MapLayout.base(physical[ids[i]]),'same 3D epoch in ordinary/slice');
   }
   const ab=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)*au,ac=Math.hypot(p[0].x-p[2].x,p[0].y-p[2].y)*au;
@@ -43,8 +43,8 @@ for(const years of [0,40,200000]){
 }
 state.universeElapsed=0;MapSlice.setMode('radial');globalThis.savedTrace=OrbitalMotion.trace;globalThis.drawnTracks=[];OrbitalMotion.trace=points=>drawnTracks.push(points);cam={...MapLayout.project(c),span:24};OrbitalMotion.draw();assert.equal(drawnTracks.length,1,'C orbit is drawn even at the standard system focus, not hidden by a zoom threshold');const cp=MapLayout.project(c);assert.ok(drawnTracks[0].some(p=>Math.hypot(p.x-cp.x,p.y-cp.y)<1e-11));OrbitalMotion.trace=savedTrace;
 // The same radial rule applies to nuclear-star and planetary motion/paths.
-const sgr=object('sgr'),centre=MapLayout.project(sgr),s2=object('s2'),np=MapLayout.project(s2),delta=NuclearStars.offset(s2.orbit,NuclearStars.phase(s2.orbit,NuclearStars.epoch));assert.ok(Math.abs(Math.hypot(np.x-centre.x,np.y-centre.y)-Math.hypot(...delta))<1e-9);
-for(const planet of OrbitalMotion.planets){const E=OrbitalMotion.phase(planet),p=OrbitalMotion.planetPoint(planet,E);assert.ok(Math.abs(Math.hypot(p.x,p.y)-Math.hypot(...OrbitalMotion.vector(planet,E)))<1e-12);}
+const sgr=object('sgr'),centre=MapLayout.project(sgr),s2=object('s2'),np=MapLayout.project(s2),delta=NuclearStars.offset(s2.orbit,NuclearStars.phase(s2.orbit,NuclearStars.epoch));assert.ok(Math.hypot(np.x-centre.x-delta[0],np.y-centre.y+delta[1])<1e-9);
+for(const planet of OrbitalMotion.planets){const E=OrbitalMotion.phase(planet),p=OrbitalMotion.planetPoint(planet,E);assert.ok(Math.abs(Math.hypot(p.x,p.y)-Math.hypot(...OrbitalMotion.vector(planet,E).slice(0,2)))<1e-12);}
 MapSlice.setMode('full');
 // The outer state-vector orbit must reproduce the published measured relative
 // XYZ and UVW, rather than interpreting its angles in an assumed sky plane.
@@ -69,6 +69,6 @@ state.catalogRevision='old';const before=JSON.stringify({from:state.flight.from,
 state=restore(JSON.parse(JSON.stringify(state)));
 assert.equal(JSON.stringify({from:state.flight.from,aim:state.flight.aim,distance:state.flight.distance,covered:state.flight.covered,ship:state.ship,history:state.flightHistory}),before);
 `);
-console.log('PASS sourced joint Alpha XYZ, close AB in all modes/epochs, visible projected C/AB orbits, nuclear/planet radial motion, measured outer state, uncertainty provenance and stale-save migration with frozen flights');
+console.log('PASS sourced joint Alpha XYZ, close AB in all modes/epochs, visible projected C/AB orbits, rigid XY orbital frames, nuclear/planet motion, measured outer state, uncertainty provenance and stale-save migration with frozen flights');
 execFileSync(process.execPath,['data-tools/audit-system-coordinates.mjs','/tmp/parus-system-coordinates-regression','--check'],{stdio:['ignore','pipe','pipe']});
 console.log('PASS full catalogue system audit: orbital bound and matching astrometric uncertainty solutions');

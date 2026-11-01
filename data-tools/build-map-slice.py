@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-"""Build point LOD samples *after* selecting a flared Galactic slice.
-
-Existing immutable leaf tiles are shared with the full atlas. Only internal
-representatives are new; every admitted row survives in a reachable leaf.
-No positions, measurements, uncertainties or original catalog rows are changed.
+"""Build immutable LOD trees for uniform, zoom-dependent Galactic slabs.
+Dyadic supersets cover every continuous thickness. Runtime applies the exact
+boundary and soft interior edge. All source rows and leaf tiles stay unchanged.
 """
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
@@ -16,8 +14,7 @@ DIST = ROOT / 'dist'
 pointer = json.loads((DIST / 'catalog-data/current.json').read_text())
 source = DIST / pointer['dataRoot']
 original = json.loads((source / 'manifest.json').read_text())
-profile = {'type': 'linear-galactic-xy', 'centerThicknessLy': 1e8,
-           'edgeThicknessLy': 1e10, 'radiusLy': 46.5e9}
+profile = {'type': 'uniform-zoom', 'thicknessToSpan': .5}
 matrix = [[-.0548755604162154, -.873437090234885, -.4838350155487132],
           [.4941094278755837, -.4448296299600112, .7469822444972189],
           [-.8676661490190047, -.1980763734312015, .4559837761750669]]
@@ -37,23 +34,21 @@ def write(path, value):
     path.write_text(content)
 
 
-def contains(row):
+def height(row):
     extra = row[11]
     if extra.get('atlasOnly') or row[6] == 'unknown':
-        return False
+        return math.inf
     p = extra.get('p3')
     if not p:
         d, ra, dec = row[3:6]
         if not all(isinstance(v, (int, float)) and math.isfinite(v) for v in (d, ra, dec)) or d <= 0:
-            return False
+            return math.inf
         a, b = math.radians(ra), math.radians(dec)
         v = [d * math.cos(b) * math.cos(a), d * math.cos(b) * math.sin(a), d * math.sin(b)]
         p = [sum(x * y for x, y in zip(r, v)) for r in matrix]
     if len(p) != 3 or not all(math.isfinite(v) for v in p):
-        return False
-    t = min(1, math.hypot(p[0], p[1]) / profile['radiusLy'])
-    half = (profile['centerThicknessLy'] + (profile['edgeThicknessLy'] - profile['centerThicknessLy']) * t) / 2
-    return abs(p[2]) <= half
+        return math.inf
+    return abs(p[2])
 
 
 def rank(row):
@@ -86,62 +81,76 @@ def union(a, b):
 
 
 nodes = []
-counts = {}
+reuse = {}
+samples = {}
 
 
 def read_leaf(node):
-    return node['file'], [r for r in json.loads((source / node['file']).read_text()) if contains(r)]
+    rows = json.loads((source / node['file']).read_text())
+    return node['file'], [(height(r), r) for r in rows]
 
 
-# Independent immutable files can be read together; ordering and sampling below
-# remain deterministic regardless of file-provider/IO completion order.
 with ThreadPoolExecutor(max_workers=8) as pool:
     leaves = dict(pool.map(read_leaf, [n for n in original['nodes'] if not n['children']]))
 
 
-def visit(index):
+def visit(index, half):
     old = original['nodes'][index]
     if old['children']:
-        children = [v for i in old['children'] if (v := visit(i)) is not None]
+        children = [v for i in old['children'] if (v := visit(i, half)) is not None]
         if not children:
             return None
         if len(children) == 1:
             return children[0]
-        sample = sorted([r for c in children for r in c['sample']], key=rank)[:48]
-        box = children[0]['box']
+        signature = tuple(children)
+        if signature in reuse:
+            return reuse[signature]
+        sample = sorted([r for child in children for r in samples[child]], key=rank)[:48]
+        box = nodes[children[0]]['box']
         geometry = {}
-        for c in children:
-            box = union(box, c['box'])
-            for size, b in c['geometry'].items():
+        for child in children:
+            n = nodes[child]
+            box = union(box, n['box'])
+            for size, *b in n.get('geometryBoxes', []):
                 geometry[size] = union(geometry[size], b) if size in geometry else b
-        node = {'children': [c['id'] for c in children], 'count': sum(c['count'] for c in children)}
+        content = json.dumps(sample, ensure_ascii=False, separators=(',', ':'), allow_nan=False)
+        name = hashlib.sha256(content.encode()).hexdigest()[:20] + '.json'
+        write(out / name, sample)
+        node = {'children': children, 'count': sum(nodes[i]['count'] for i in children), 'zMaxLy': max(nodes[i]['zMaxLy'] for i in children), 'file': data_root + '/' + name}
     else:
-        rows = leaves.pop(old['file'])
+        rows = [r for z, r in leaves[old['file']] if z <= half]
         if not rows:
             return None
-        for row in rows:
-            key = row[11].get('cosmicSubtype') or row[11].get('catalogClass') or row[2]
-            counts[key] = counts.get(key, 0) + 1
+        # Nested slabs: an unchanged count means exactly the same source rows.
+        signature = (old['file'], len(rows))
+        if signature in reuse:
+            return reuse[signature]
         sample = sorted(rows, key=rank)[:48]
         box, geometry = envelope(rows)
-        node = {'children': [], 'count': len(rows), 'file': old['file']}
-    ident = len(nodes)
+        node = {'children': [], 'count': len(rows), 'zMaxLy': max(z for z, r in leaves[old['file']] if z <= half), 'file': old['file']}
     node['box'] = box
     if geometry:
         node['geometryBoxes'] = [[size, *b] for size, b in sorted(geometry.items())]
-    if node['children']:
-        node['file'] = data_root + '/' + str(ident) + '.json'
-        write(DIST / node['file'], sample)
+    ident = len(nodes)
     nodes.append(node)
-    return {**node, 'id': ident, 'sample': sample, 'geometry': geometry}
+    samples[ident] = sample
+    reuse[signature] = ident
+    return ident
 
 
-roots = [v['id'] for i in original['roots'] if (v := visit(i)) is not None]
-manifest = {'version': 2, 'revision': revision, 'catalogRevision': original['revision'],
+bands = []
+for exponent in range(-16, 37):
+    half = 2.0**exponent
+    roots = [v for i in original['roots'] if (v := visit(i, half)) is not None]
+    bands.append({'halfThicknessLy': half, 'roots': roots,
+                  'mapRows': sum(nodes[i]['count'] for i in roots)})
+manifest = {'version': 3, 'revision': revision, 'catalogRevision': original['revision'],
             'geometryVersion': original['geometryVersion'], 'profile': profile,
-            'selection': 'abs(Zg) <= 0.5 * (1e8 + (1e10 - 1e8) * min(hypot(Xg,Yg)/46.5e9, 1)) ly; nominal reference-epoch catalog position',
+            'selection': 'abs(Zg) <= reference viewport span / 4; uniform everywhere; dyadic index supersets, exact runtime filter',
             'sampling': original['sampling'], 'dataRoot': data_root,
-            'counts': counts, 'mapRows': sum(nodes[i]['count'] for i in roots), 'nodes': nodes, 'roots': roots}
+            'mapRows': bands[-1]['mapRows'], 'bands': bands, 'nodes': nodes,
+            'roots': bands[-1]['roots']}
 write(out / 'manifest.json', manifest)
 write(DIST / 'map-slices/current.json', {'revision': revision, 'dataRoot': data_root})
-print(json.dumps({'revision': revision, 'mapRows': manifest['mapRows'], 'counts': counts}, ensure_ascii=False))
+print(json.dumps({'revision': revision, 'bands': len(bands), 'nodes': len(nodes),
+                  'mapRows': manifest['mapRows']}, ensure_ascii=False))

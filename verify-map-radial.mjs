@@ -107,7 +107,7 @@ run(`{
   assert.ok(physical[99].r<domain.radiusLy);
   assert.deepEqual(mapped.slice(0,100).map(o=>o.id),physical.slice(0,100).map(o=>o.id),'nearest 100 '+domain.countKind+' match physical distance order');
   if(domain.coverageCatalog){const prefix=domain.coverageCatalog.prefix,individual=physical.filter(o=>o.id.startsWith(prefix)),screen=mapped.filter(o=>o.id.startsWith(prefix));assert.ok(individual[domain.coverageCatalog.minimumCount-1].r<domain.radiusLy);assert.deepEqual(screen.slice(0,100).map(o=>o.id),individual.slice(0,100).map(o=>o.id),'single-catalogue galaxy order avoids mixed-catalogue aliases');}
-  for(const o of records)if(o.r<=domain.radiusLy)assert.ok(Math.abs(o.r-o.m)<1e-6,o.id+' exact distance');else assert.ok(o.m>=domain.radiusLy,o.id+' outside exact sphere');
+  for(const o of records)if(o.r<=domain.radiusLy){if(!OrbitalMotion.isOrbiting(lookup.get(o.id)))assert.ok(Math.abs(o.r-o.m)<1e-6,o.id+' exact distance');}else assert.ok(o.m>=domain.radiusLy,o.id+' outside exact sphere');
   // A newly added pole object is placed independently; it cannot enter the
   // protected radius and cannot move any previously projected record.
   const before=JSON.stringify(physical.slice(0,100).map(o=>MapLayout.project(lookup.get(o.id))));
@@ -120,7 +120,7 @@ run(`{
  assert.equal(foreign.filter(o=>{const p=MapLayout.project(o),x=p.x-q.x,y=p.y-q.y,u=x*Math.cos(shape.rotation)+y*Math.sin(shape.rotation),v=-x*Math.sin(shape.rotation)+y*Math.cos(shape.rotation);return(u/(shape.diameterLy/2))**2+(v/(shape.diameterLy*shape.axisRatio/2))**2<=1;}).length,0,'foreign or beyond conservative 1 million ly halo boundary cannot overlap MW; Galactic halo itself is allowed');
  // Both projections now share the same adopted 3D orbital snapshot.
  const alpha=object('alpha'),catalogue=MapLayout.project(alpha);state.earth=40;state.universeElapsed=40;assert.notDeepEqual(MapLayout.project(alpha),catalogue);
- const current=OrbitalMotion.alphaPositions3D().alpha,radial=MapLayout.project(alpha);assert.ok(Math.abs(Math.hypot(radial.x,radial.y)-Math.hypot(...current))<1e-12);
+ const current=OrbitalMotion.alphaPositions3D().alpha,radial=MapLayout.project(alpha);assert.deepEqual(radial,OrbitalMotion.projectSnapshot(alpha,current));
  MapSlice.setMode('full');assert.deepEqual(MapLayout.project(alpha),MapLayout.base(current));
  MapLayout.resolve=resolve;state=initial();MapSlice.setMode('full');
 }`);

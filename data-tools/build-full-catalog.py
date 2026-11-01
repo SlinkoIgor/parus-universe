@@ -642,3 +642,7 @@ source_path.write_text(json.dumps(source_info,ensure_ascii=False,indent=2)+'\n')
 print(json.dumps({k:v for k,v in summary.items() if k not in ('nodes','roots')},ensure_ascii=False,indent=2))
 
 subprocess.run([sys.executable,str(ROOT/'data-tools/build-map-radial.py')],check=True)
+
+subprocess.run([node,str(ROOT/'data-tools/build-map-visibility.mjs')],check=True)
+
+subprocess.run([node,str(ROOT/'data-tools/build-map-labels.mjs')],check=True)

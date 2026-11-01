@@ -1,9 +1,12 @@
 'use strict';
-// A reference-epoch flared slice in physical Galactic XYZ. Display coordinates and
+// A zoom-dependent, uniform slice in physical Galactic XYZ. Display coordinates and
 // cartographic Milky Way offsets never participate in this selection.
 const MapSlice={
- mode:'full',profile:{type:'linear-galactic-xy',centerThicknessLy:1e8,edgeThicknessLy:1e10,radiusLy:46.5e9},manifest:null,loading:null,error:null,
- halfThicknessAt(p3){const p=this.profile,t=Math.min(1,Math.hypot(p3[0],p3[1])/p.radiusLy);return(p.centerThicknessLy+(p.edgeThicknessLy-p.centerThicknessLy)*t)/2;},
+ mode:'full',centerZ:0,profile:{type:'uniform-zoom',thicknessToSpan:.5},manifest:null,loading:null,error:null,
+ halfThicknessAt(p3,view=cam){return Cosmology.referenceView(view).span*this.profile.thicknessToSpan/2;},
+ treeForView(view){const m=this.manifest;if(!m)return null;const half=Math.abs(this.centerZ)+this.halfThicknessAt(null,view),band=m.bands.find(b=>b.halfThicknessLy>=half)||m.bands.at(-1);return{nodes:m.nodes,roots:band.roots,band:band.halfThicknessLy};},
+ focus(o){if(o?.p3?.every(Number.isFinite)&&!o.atlasOnly){this.centerZ=o.p3[2];if(typeof ExtendedCatalog!=='undefined'){ExtendedCatalog.cutKey=null;ExtendedCatalog.lastUpdate=-Infinity;}}},
+ opacity(o){if(this.mode!=='slice'||!o?.p3)return 1;const t=Math.max(0,Math.min(1,(1-Math.abs(o.p3[2]-this.centerZ)/this.halfThicknessAt())/.1));return t*t*(3-2*t);},
  includes(o){
   if(this.mode!=='slice')return true;
   if(!o||o.atlasOnly||o.positionQuality==='unknown')return false;
@@ -12,7 +15,7 @@ const MapSlice={
   // Some historical regions have only a made-up 2D arrival anchor. It cannot
   // establish membership of a physical 3D slab.
   if(o?.arrivalAnchor&&!Number.isFinite(o.raDeg)&&!Number.isFinite(o.decDeg))return false;
-  return o?.p3?.length===3&&o.p3.every(Number.isFinite)&&Math.abs(o.p3[2])<=this.halfThicknessAt(o.p3);
+  return o?.p3?.length===3&&o.p3.every(Number.isFinite)&&Math.abs(o.p3[2]-this.centerZ)<=this.halfThicknessAt(o.p3);
  },
  async load(){
   if(this.manifest||this.loading)return this.loading;
@@ -21,7 +24,7 @@ const MapSlice={
    try{
     const pointer=await ExtendedCatalog.readJSON('map-slices/current.json');
     const manifest=await ExtendedCatalog.readJSON(pointer.dataRoot+'/manifest.json');
-    if(manifest.version!==2||manifest.catalogRevision!==EXTENDED_BOOT.revision||manifest.geometryVersion!==MapLayout.version||Object.entries(this.profile).some(([key,value])=>manifest.profile?.[key]!==value))throw Error('Индекс среза не соответствует каталогу и форме');
+    if(manifest.version!==3||!manifest.bands?.length||manifest.catalogRevision!==EXTENDED_BOOT.revision||manifest.geometryVersion!==MapLayout.version||Object.entries(this.profile).some(([key,value])=>manifest.profile?.[key]!==value))throw Error('Индекс среза не соответствует каталогу и форме');
     this.manifest=manifest;ExtendedCatalog.lastUpdate=-Infinity;
    }catch(e){this.error=e.message;}
    finally{this.loading=null;this.render();}
@@ -30,7 +33,9 @@ const MapSlice={
  },
  setMode(mode){
   this.mode=['full','slice','radial'].includes(mode)?mode:'full';
+  if(this.mode==='slice'){const anchor=followShip||shipFocusArmed?state.ship:object(state.selected);if(anchor?.p3){const p=screen(anchor);if(p.x>=0&&p.x<=width&&p.y>=0&&p.y<=height)this.focus(anchor);}}
   Cosmology.cache.clear();
+  globalThis.MapLayers?.admitted?.clear();
   ExtendedCatalog.transitions.clear();ExtendedCatalog.visible=[];ExtendedCatalog.visibleMap.clear();
   MapLayers.setGeometry(this.mode==='radial'?globalThis.MapRadial?.layers:null);
   try{localStorage.setItem('parus-map-mode',this.mode);}catch{}
@@ -39,6 +44,7 @@ const MapSlice={
   MapLayers.lastUpdate=-Infinity;
   if(this.mode==='slice')this.load();
   if(this.mode==='radial')MapRadial.load();
+  if(followShip||shipFocusArmed){const c=shipCamera();goCamera(c.x,c.y,c.span,true,true);}
   this.render();this.renderSelection();updateMapHeading();
  },
  renderSelection(){
@@ -55,7 +61,7 @@ const MapSlice={
   status.title=index.error||'';
   // The complete atlas stays searchable. Only its map is sliced.
   $('mapModeNotice').hidden=this.mode==='full';
-  $('mapModeNotice').textContent=this.mode==='radial'?'Звёзды до 1000 св. лет размещаются от Солнца, галактики до 15 млн св. лет — от центра Млечного Пути. Остальные объекты — от своих опор. Размеры контуров сохранены; полёты рассчитаны в 3D.':'Атлас показывает весь каталог. На карте — срез толщиной от 100 млн св. лет у Солнца до 10 млрд на краю обозримой Вселенной; отбор по каталожным 3D-позициям.';
+  $('mapModeNotice').textContent=this.mode==='radial'?'Звёзды до 1000 св. лет размещаются от Солнца, галактики до 15 млн св. лет — от центра Млечного Пути. Орбитальные системы сохраняют форму в проекции XY. Полёты рассчитаны в 3D.':'Срез параллелен плоскости Млечного Пути. Толщина везде одинакова — половина ширины карты. При фокусировке срез проходит через выбранный объект; перемещение карты его высоту не меняет. Атлас показывает весь каталог.';
  },
  setup(){
   let mode='full';try{mode=localStorage.getItem('parus-map-mode');}catch{}

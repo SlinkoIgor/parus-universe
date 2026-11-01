@@ -11,17 +11,22 @@ const ExtendedCatalog={
   if(selected==='all'&&o.cosmicCatalog&&!o.cosmicLandmark&&(o.kind==='void'||o.cosmicSubtype==='supercluster'))return false;
   return this.matches(o.kind,selected,o)&&(categoryOnly||!o.id||!globalThis.MapSlice||MapSlice.includes(o))&&(categoryOnly||!globalThis.MapLayers||MapLayers.admits(o));
  },
- opacity(o,detail=true){return (detail?MapDetails.opacity(o,cam.span):1)*(this.coreIndex?.has(o.id)||this.pinned.has(o.id)||globalThis.MapLayers?.visibleMap.has(o.id)?1:this.transitions.get(o.id)?.alpha??1);},
+ opacity(o,detail=true){return (detail?MapDetails.opacity(o,cam.span):1)*(globalThis.MapSlice?.opacity(o)??1)*(this.coreIndex?.has(o.id)||this.pinned.has(o.id)||globalThis.MapLayers?.visibleMap.has(o.id)?1:this.transitions.get(o.id)?.alpha??1);},
  stagger(id){let h=2166136261;for(const c of id)h=Math.imul(h^c.charCodeAt(0),16777619);return(h>>>0)%181;},
  adoptCut(rows,now){
-  const target=new Map(rows.filter(o=>!o.atlasOnly&&(!globalThis.MapSlice||MapSlice.includes(o))).slice(0,8000).map(o=>[o.id,o]));
+  const fresh=rows.filter(o=>!o.atlasOnly&&(!globalThis.MapSlice||MapSlice.includes(o))),byid=new Map(fresh.map(o=>[o.id,o]));
+  // The fixed hierarchy already contains every eligible point. Only legacy
+  // indexes need viewport history to keep their changing representatives.
+  const retained=globalThis.MapVisibility?.active?[]:[...this.transitions.values()].filter(q=>q.alpha>.015&&this.retainInView(q.o)).map(q=>byid.get(q.o.id)||q.o);
+  const target=new Map((globalThis.MapVisibility?.active?fresh:[...retained,...fresh].slice(0,8000)).map(o=>[o.id,o]));
   for(const [id,q] of this.transitions)if(!target.has(id)&&q.to!==0)Object.assign(q,{from:q.alpha,to:0,start:now,delay:this.stagger(id),duration:650});
   for(const [id,o] of target){const q=this.transitions.get(id);if(q){q.o=o;if(q.to!==1)Object.assign(q,{from:q.alpha,to:1,start:now,delay:0,duration:400});}else this.transitions.set(id,{o,alpha:0,from:0,to:1,start:now,delay:this.stagger(id),duration:450});}
-  // A rapid tour can visit many cuts before their fades finish. Bound the union,
-  // retaining every object in the current cut and the most visible departing ones.
-  if(this.transitions.size>16000)for(const [id] of [...this.transitions].filter(([,q])=>!q.to).sort((a,b)=>a[1].alpha-b[1].alpha).slice(0,this.transitions.size-16000))this.transitions.delete(id);
+  // Legacy samples need a union cap. Fixed visibility releases offscreen fades
+  // on time, without discarding eligible points to satisfy a camera quota.
+  if(!globalThis.MapVisibility?.active&&this.transitions.size>16000)for(const [id] of [...this.transitions].filter(([,q])=>!q.to).sort((a,b)=>a[1].alpha-b[1].alpha).slice(0,this.transitions.size-16000))this.transitions.delete(id);
   this.visibilityDirty=true;this.advanceVisibility(now);
  },
+ retainInView(o){if(o.atlasOnly||!this.matches(o.kind,typeof filter==='string'?filter:'all',o)||!MapSlice.includes(o)||!MapDetails.visible(o,cam.span)&&!MapDetails.sparse(o,cam.span))return false;const p=screen(o);return p.x>=-64&&p.x<=width+64&&p.y>=-64&&p.y<=height+64;},
  advanceVisibility(now){
   for(const [id,q] of this.transitions){if(q.alpha===1&&q.to===1)continue;const t=Math.max(0,Math.min(1,(now-q.start-q.delay)/q.duration));q.alpha=q.from+(q.to-q.from)*t*t*(3-2*t);if(!q.to&&t===1){this.transitions.delete(id);this.visibilityDirty=true;}}
   if(this.visibilityDirty){this.visible=[...this.transitions.values()].map(q=>q.o);this.visibleMap=new Map(this.visible.map(o=>[o.id,o]));this.visibilityDirty=false;}
@@ -113,11 +118,12 @@ const ExtendedCatalog={
  tile(file){
   if(this.cache.has(file)){const r=this.cache.get(file);this.cache.delete(file);this.cache.set(file,r);return Promise.resolve(r);}
   if(this.inflight.has(file))return this.inflight.get(file);
-  const promise=this.readJSON(/^(map-slices|map-radial)\//.test(file)?file:'catalog-data/'+file).then(rows=>{const objects=rows.map(r=>this.decode(r));this.cache.set(file,objects);while(this.cache.size>48){const key=[...this.cache.keys()].find(k=>!this.wanted.includes(k));if(!key)break;this.cache.delete(key);}this.errors.delete(file);return objects;}).catch(e=>{this.errors.set(file,performance.now());throw e;}).finally(()=>this.inflight.delete(file));
+  const promise=this.readJSON(/^(map-slices|map-radial|map-visibility)\//.test(file)?file:'catalog-data/'+file).then(rows=>{const objects=rows.map(r=>this.decode(r));this.cache.set(file,objects);while(this.cache.size>48){const key=[...this.cache.keys()].find(k=>!this.wanted.includes(k));if(!key)break;this.cache.delete(key);}this.errors.delete(file);return objects;}).catch(e=>{this.errors.set(file,performance.now());throw e;}).finally(()=>this.inflight.delete(file));
   this.inflight.set(file,promise);return promise;
  },
  nodesForView(view,w,h){
-  const manifest=globalThis.MapSlice?.mode==='slice'?MapSlice.manifest:globalThis.MapRadial?.active()?MapRadial.manifest:this.manifest;
+  if(globalThis.MapVisibility?.active)return MapVisibility.filesForView(view,w,h);
+  const manifest=globalThis.MapSlice?.mode==='slice'?MapSlice.treeForView(view):globalThis.MapRadial?.active()?MapRadial.manifest:this.manifest;
   if(!manifest)return [];
   view=Cosmology.referenceView(view);
   const pixel=view.span/Math.max(1,w),box=[view.x-w*.55*pixel,view.y-h*.60*pixel,view.x+w*.7*pixel,view.y+h*.6*pixel];
@@ -134,7 +140,7 @@ const ExtendedCatalog={
   this.advanceVisibility(now);
   if(now-this.lastUpdate<180)return;this.lastUpdate=now;
   if(this.manifest&&(globalThis.MapSlice?.mode!=='slice'||MapSlice.manifest)&&(!globalThis.MapRadial?.active()||MapRadial.manifest)){this.wanted=this.nodesForView(cam,width,height);for(const file of this.wanted)if(!this.cache.has(file)&&this.inflight.size+(globalThis.MapLayers?.inflight.size||0)<4&&now-(this.errors.get(file)||-Infinity)>3000)this.tile(file).then(()=>{this.lastUpdate=-Infinity;}).catch(()=>{});
-   if(this.wanted.every(file=>this.cache.has(file))){const key=this.wanted.join('|');if(key!==this.cutKey){this.cutKey=key;this.adoptCut(this.wanted.flatMap(file=>this.cache.get(file)),now);}}
+   if(this.wanted.every(file=>this.cache.has(file))){const key=(MapSlice.mode==='slice'?MapSlice.centerZ+':'+MapSlice.halfThicknessAt().toPrecision(5)+':':'')+this.wanted.join('|');if(key!==this.cutKey){this.cutKey=key;this.adoptCut(this.wanted.flatMap(file=>this.cache.get(file)),now);}}
   }
   if(cam.span<200000)for(const g of GALAXIES){if(g.id==='milkyway')continue;const p=MapLayout.project(g);if(Math.hypot(cam.x-p.x,cam.y-p.y)<cam.span)this.ensureGalaxy(OBJECTS.find(o=>o.id===g.id)||this.get(g.id));}
  },
@@ -166,7 +172,7 @@ const ExtendedCatalog={
   const file=entry.tile||EXTENDED_BOOT.systemTiles?.[entry.id];if(!file)throw Error('Нет адреса записи каталога');
   const rows=await this.tile(file),o=rows.find(o=>o.id===entry.id);if(!o)throw Error('Запись не найдена в каталоге');return this.pin(o);
  },
- focus(o){if(o.nuclearStar){NuclearStars.focus(o.orbit);return;}if(o.atlasOnly){toast(o.positionReason||'Для этого объекта недостаточно точное положение. Он доступен только в атласе.');return;}if(o.region){RegionMap.focus(o);this.ensureGalaxy(o);return;}const p=MapLayout.project(o),span=o.positionEstimate?Math.max(24,4*o.positionEstimate.localEnvelopeLy,4*(o.diameterLy||0)):o.kind==='galaxy'?(o.galaxy?.diameterLy||30000)*2.8:o.positionQuality==='unknown'?Math.max(400,Math.hypot(p.x,p.y)*.04):o.synthetic?2:o.kind==='star'?24:Math.max(24,Math.min(20000,(o.d||100)*.03));const system=this.systemByMember.get(o.id);goCamera(p.x,p.y,system?.separationLy?Math.max(.00006,system.separationLy*6):span);this.ensureGalaxy(o);},
+ focus(o){globalThis.MapSlice?.focus(o);if(o.nuclearStar){NuclearStars.focus(o.orbit);return;}if(o.atlasOnly){toast(o.positionReason||'Для этого объекта недостаточно точное положение. Он доступен только в атласе.');return;}if(o.region){RegionMap.focus(o);this.ensureGalaxy(o);return;}const p=MapLayout.project(o),span=o.positionEstimate?Math.max(24,4*o.positionEstimate.localEnvelopeLy,4*(o.diameterLy||0)):o.kind==='galaxy'?(o.galaxy?.diameterLy||30000)*2.8:o.positionQuality==='unknown'?Math.max(400,Math.hypot(p.x,p.y)*.04):o.synthetic?2:o.kind==='star'?24:Math.max(24,Math.min(20000,(o.d||100)*.03));const system=this.systemByMember.get(o.id),viewSpan=system?.separationLy?Math.max(.00006,system.separationLy*6):span;goCamera(p.x,p.y,globalThis.MapVisibility?.active?MapVisibility.focusSpan(o,viewSpan):viewSpan);this.ensureGalaxy(o);},
  capture(saved){
   saved.catalogGeometry=MapLayout.version;
   saved.catalogRevision=EXTENDED_BOOT.revision;
@@ -216,8 +222,8 @@ const ExtendedCatalog={
  draw(){
   const points=[...(globalThis.MapLayers?.visible||[]),...this.visible,...this.pinned.values(),...OBJECTS.filter(o=>this.background(o))],seen=new Set(),protectedPoints=OBJECTS.filter(o=>this.matchesMap(o)&&!this.background(o)&&!o.region&&MapDetails.visible(o,cam.span)).map(o=>({...screen(o),level:MapDetails.level(o)})).filter(p=>p.x>-30&&p.x<width+30&&p.y>-30&&p.y<height+30);
   const buckets=new Map();for(const p of protectedPoints){const k=Math.floor(p.x/16)+','+Math.floor(p.y/16);if(!buckets.has(k))buckets.set(k,[]);buckets.get(k).push(p);}
-  for(const o of points){if(seen.has(o.id)||!this.matchesMap(o)||MapDetails.sparse(o,cam.span)||!MapDetails.visible(o,cam.span)||!this.background(o)||this.opacity(o)<.015||!RegionMap.asPoint(o)||o.id===state.selected||o.id===state.current)continue;seen.add(o.id);const p=screen(o);if(p.x<0||p.y<0||p.x>width||p.y>height)continue;
-   let covered=false;const bx=Math.floor(p.x/16),by=Math.floor(p.y/16);for(let ix=-1;ix<=1;ix++)for(let iy=-1;iy<=1;iy++)if((buckets.get((bx+ix)+','+(by+iy))||[]).some(q=>q.level>=MapDetails.level(o)&&Math.hypot(q.x-p.x,q.y-p.y)<16))covered=true;const name=MapDetails.mapLabelName(o);if(covered&&name===null&&!(globalThis.MapLayers?.active&&MapLayers.manages(o)))continue;
+  for(const o of points){if(seen.has(o.id)||!RegionMap.asPoint(o)||MapDetails.sparse(o,cam.span)||!MapDetails.visible(o,cam.span)||!this.matchesMap(o)||!this.background(o)||this.opacity(o)<.015||o.id===state.selected||o.id===state.current)continue;seen.add(o.id);const p=screen(o);if(p.x<0||p.y<0||p.x>width||p.y>height)continue;
+   let covered=false;const bx=Math.floor(p.x/16),by=Math.floor(p.y/16);for(let ix=-1;ix<=1;ix++)for(let iy=-1;iy<=1;iy++)if((buckets.get((bx+ix)+','+(by+iy))||[]).some(q=>q.level>=MapDetails.level(o)&&Math.hypot(q.x-p.x,q.y-p.y)<16))covered=true;const name=MapDetails.mapLabelName(o);if(!globalThis.MapVisibility?.active&&covered&&name===null&&!(globalThis.MapLayers?.active&&MapLayers.manages(o)))continue;
    ctx.save();ctx.globalAlpha=(o.kind==='star'?.65:.9)*this.opacity(o)*RegionMap.pointOpacity(o);if(MapSymbols.handles(o))MapSymbols.draw(o,p,'#555555');else{ctx.fillStyle=paint(o.kind==='star'?'#858585':'#555555');ctx.beginPath();ctx.arc(p.x,p.y,o.kind==='star'?1.25:1.85,0,Math.PI*2);ctx.fill();}ctx.restore();hitObjects.push({o,p,r:5,background:true});
    if(name!==null)MapLabels.point({key:'object-'+o.id,object:o,name,detail:()=>routeLabelDistance(o),p,mass:MapDetails.mass(o),level:MapDetails.level(o),priority:10,opacity:this.opacity(o)*RegionMap.pointOpacity(o)});
   }

@@ -73,7 +73,16 @@ const OrbitalMotion={
  alphaPositions(year=this.epoch+this.elapsed()){
   const points=this.alphaPositions3D(year);return points&&Object.fromEntries(Object.entries(points).map(([id,p])=>[id,MapLayout.base(p)]));
  },
- projectSnapshot(o,p3){const snapshot={...o,p3,mapPosition:null,mapOffset:null};return globalThis.MapRadial?.active()?MapRadial.placement(snapshot).position:MapLayout.ordinaryProject(snapshot);},
+ isOrbiting(o){return ['alpha','hyg-71453','proxima'].includes(o?.id)||!!o?.nuclearStar;},
+ projectSnapshot(o,p3){
+  // Preserve an orbital system as one local XY frame. A nonlinear pointwise
+  // projection turns ellipses into other curves and separates shared foci.
+  if(globalThis.MapRadial?.active()){
+   const anchor=['alpha','hyg-71453','proxima'].includes(o?.id)?this.alphaAnchor:o?.kind==='planet'?[0,0,0]:null;
+   if(anchor){const p=MapRadial.placement({id:'orbit-frame',kind:'star',p3:anchor}).position;return{x:p.x+p3[0]-anchor[0],y:p.y-p3[1]+anchor[1]};}
+  }
+  const snapshot={...o,p3,mapPosition:null,mapOffset:null};return globalThis.MapRadial?.active()?MapRadial.placement(snapshot).position:MapLayout.ordinaryProject(snapshot);
+ },
  position(o){
   if(o?.nuclearStar&&o.orbit.e<1)return NuclearStars.map(o.orbit,NuclearStars.phase(o.orbit,NuclearStars.epoch+this.elapsed()));
   if(['alpha','hyg-71453','proxima'].includes(o?.id)){
@@ -108,7 +117,7 @@ const OrbitalMotion={
    for(const q of this.planets){const r=q.a*this.AU*width/cam.span;if(r<2||r>20000)continue;this.trace(Array.from({length:241},(_,n)=>this.planetPoint(q,n/240*2*Math.PI)));const v=this.vector(q,this.phase(q)),p=screen(this.planetPoint(q,this.phase(q)));if(p.x<-20||p.x>width+20||p.y<-20||p.y>height+20)continue;circle(p.x,p.y,2.5,'#454545',1);MapLabels.point({key:'planet-'+q.name,name:q.name,detail:fmt(Math.hypot(...v)/this.AU,2)+' а.е. от Солнца',p,priority:65,opacity:1});}
   }
   if(this.alphaAnchor){
-   for(const id of ['proxima','alpha','hyg-71453']){const o=ExtendedCatalog.get(id);if(!o||!ExtendedCatalog.matchesMap(o))continue;const r=(id==='proxima'?this.wideReferenceOrbit().a:this.alphaAB.a*this.AU)*width/cam.span;if(r<2||r>20000)continue;this.trace(this.alphaTrack(id).points);}
+   for(const id of ['proxima','alpha','hyg-71453']){const o=ExtendedCatalog.get(id);if(!o||!ExtendedCatalog.matchesMap(o,true)||!MapSlice.includes(o))continue;const r=(id==='proxima'?this.wideReferenceOrbit().a:this.alphaAB.a*this.AU)*width/cam.span;if(r<2||r>20000)continue;this.trace(this.alphaTrack(id).points);}
   }
  }
 };

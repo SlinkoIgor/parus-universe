@@ -47,7 +47,7 @@ function crosses(a,b,box){
  return corners.some((c,i)=>{const d=corners[(i+1)%4];return Math.max(a[0],b[0])>=Math.min(c[0],d[0])&&Math.min(a[0],b[0])<=Math.max(c[0],d[0])&&Math.max(a[1],b[1])>=Math.min(c[1],d[1])&&Math.min(a[1],b[1])<=Math.max(c[1],d[1])&&orient(a,b,c)*orient(a,b,d)<=0&&orient(c,d,a)*orient(c,d,b)<=0;});
 }
 const summaries=[];
-for(const [center,span] of [['sol',6.95e8],['sol',7e8],['coma',1e8],['sol',1.49e9]]){
+for(const [center,span] of [['sol',6.95e8],['sol',7e8],['coma',1e8],['sol',1.4e9]]){
  context.probeCenter=center;context.probeSpan=span;
  const view=run(`{const p=MapLayout.project(object(probeCenter));cam={x:p.x,y:p.y,span:probeSpan};settleLayers();MapLabels.begin();RegionMap.draw();}({...cam})`);
  const hits=new Set(run('RegionMap.hits.filter(h=>h.o.cosmicSubtype==="filament").map(h=>h.o.id)'));
@@ -63,7 +63,7 @@ console.log('PASS every source spine crossing viewport, including offscreen anch
 run(`
 // All stellar clusters/nebulae load before ordinary stars, and all spines and
 // galaxy clusters load before ordinary galaxies. Filters have their own files.
-MapLayers.ready.clear();filter='all';cam={x:0,y:0,span:1000};assert.equal(MapLayers.admits(object('alpha')),false);assert.equal(MapLayers.admits(object('andromeda')),false);
+MapLayers.ready.clear();MapLayers.admitted.clear();filter='all';cam={x:0,y:0,span:1000};assert.equal(MapLayers.admits(object('alpha')),true,'known orbit remains visible without streaming context');assert.equal(MapLayers.admits(object('sirius')),false);assert.equal(MapLayers.admits(object('andromeda')),false);
 MapLayers.ready.set('stellar-cluster',true);MapLayers.ready.set('nebula',true);assert.equal(MapLayers.admits(object('alpha')),true);
 MapLayers.ready.set('filament',true);MapLayers.ready.set('galaxy-cluster',true);assert.equal(MapLayers.admits(object('andromeda')),true);
 filter='galaxy';assert.equal(MapLayers.admits(object('andromeda')),true,'explicit class filter has no hidden competitors');
@@ -87,8 +87,8 @@ var selected=RegionMap.hits.find(h=>h.o.cosmicSubtype==='filament').o;ExtendedCa
 for(const mode of ['dark','light'])for(const viewport of [390,900,1280,1920])for(const category of ['all','structure']){
  theme=mode;filter=category;width=viewport;height=720;
  const boundary=150e6*viewport/128;
- cam={x:0,y:0,span:boundary*.999};settleLayers();MapLabels.begin();RegionMap.draw();
- assert.equal(gridMetrics().unit,1e8);assert.ok(RegionMap.hits.some(h=>h.o.cosmicSubtype==='filament'),'full network remains at the 100 million ruler');
+ cam={x:0,y:0,span:boundary*.6};settleLayers();MapLabels.begin();RegionMap.draw();
+ assert.ok(gridMetrics().unit<=1e8);assert.ok(RegionMap.hits.some(h=>h.o.cosmicSubtype==='filament'),'full network remains before the fade starts');
  for(const span of [boundary,boundary*1.001,boundary*4,1.15e11]){
   cam.span=span;assert.ok(gridMetrics().unit>=2e8);assert.equal(MapLayers.enabled('filament'),false);
   assert.equal(MapLayers.filesForView(cam,width,height).get('filament').length,0,'hidden layer requests no tiles');
@@ -98,7 +98,7 @@ for(const mode of ['dark','light'])for(const viewport of [390,900,1280,1920])for
   assert.ok(!MapLabels.queue.some(q=>q.key==='region-'+selected.id));
   assert.ok(!/нити/i.test(MapLayers.readout()));assert.equal(state.selected,selected.id);
  }
- cam.span=boundary*.999;settleLayers();MapLabels.begin();RegionMap.draw();assert.ok(RegionMap.hits.some(h=>h.o.cosmicSubtype==='filament'),'zooming in restores the full layer');
+ cam.span=boundary*.6;settleLayers();MapLabels.begin();RegionMap.draw();assert.ok(RegionMap.hits.some(h=>h.o.cosmicSubtype==='filament'),'zooming in restores the full layer');
 }
 // Querying another viewport must use the supplied dimensions, even before resize.
 filter='all';width=1280;cam={x:0,y:0,span:7e8};

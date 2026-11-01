@@ -282,7 +282,7 @@
   },
   "fullCatalog": {
     "builder": "data-tools/build-full-catalog.py",
-    "manifest": "catalog-data/5e08584258ba/manifest.json",
+    "manifest": "catalog-data/47ba380fdce5/manifest.json",
     "records": 260898,
     "coverage": {
       "HYG": 119626,
@@ -338,7 +338,7 @@
       "method": "Individual published period-Wesenheit distances and errors; no common host shell or disk approximation. Host-local display uses an orthographic sky view of true 3D coordinates, rotated to align the observed population with its schematic outline; physical depth remains in p3."
     },
     "galaxyPopulationCoverage": "data-tools/galaxy-population-coverage.json",
-    "dataRoot": "catalog-data/5e08584258ba",
+    "dataRoot": "catalog-data/47ba380fdce5",
     "current": "catalog-data/current.json",
     "cosmicCatalogs": {
       "MCXC-II": {

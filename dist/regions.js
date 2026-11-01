@@ -44,7 +44,7 @@ globalThis.StellarClusters=StellarClusters;
 const MapSymbols={
  handles(o){return ['stellar-cluster','galaxy-cluster','nebula'].includes(MapDetails.group(o));},
  draw(o,p,ink='#424242'){
-  const group=MapDetails.group(o);ctx.save();ctx.translate(p.x,p.y);ctx.strokeStyle=ctx.fillStyle=paint(ink);ctx.lineWidth=1;ctx.setLineDash([]);ctx.beginPath();
+  const group=MapDetails.group(o);if(globalThis.MapVisibility?.active&&MapDetails.level(o)>=3){circle(p.x,p.y,1.2,ink,.7);return;}ctx.save();ctx.translate(p.x,p.y);ctx.strokeStyle=ctx.fillStyle=paint(ink);ctx.lineWidth=1;ctx.setLineDash([]);ctx.beginPath();
   if(group==='stellar-cluster'){ctx.arc(0,0,1.6,0,Math.PI*2);ctx.fill();}
   else if(group==='galaxy-cluster'){ctx.moveTo(0,-3.6);ctx.lineTo(3.6,0);ctx.lineTo(0,3.6);ctx.lineTo(-3.6,0);ctx.closePath();ctx.stroke();}
   else if(group==='nebula'){
@@ -88,10 +88,10 @@ for(const o of OBJECTS){
 const RegionMap={
  hits:[],curves:new WeakMap(),anchors:new WeakMap(),
  pixelRadius(o){return Math.max(o.region.major,o.region.minor)*Cosmology.regionScale(o)*.5*width/cam.span;},
- asPoint(o){return StellarClusters.is(o)?StellarClusters.view(o).point>.03:o.kind==='nebula'?Nebulae.view(o).point>.03:!o.region||o.region.shape!=='polyline'&&this.pixelRadius(o)<4;},
- pointOpacity(o){return StellarClusters.is(o)?StellarClusters.view(o).point:o.kind==='nebula'?Nebulae.view(o).point:1;},
+ asPoint(o){if(globalThis.MapVisibility?.active&&(o.kind==='horizon'||o.region&&MapDetails.level(o)>=3))return false;if(globalThis.MapVisibility?.active&&MapSymbols.handles(o))return true;return StellarClusters.is(o)?StellarClusters.view(o).point>.03:o.kind==='nebula'?Nebulae.view(o).point>.03:!o.region||o.region.shape!=='polyline'&&this.pixelRadius(o)<4;},
+ pointOpacity(o){if(globalThis.MapVisibility?.active&&MapSymbols.handles(o))return 1;return StellarClusters.is(o)?StellarClusters.view(o).point:o.kind==='nebula'?Nebulae.view(o).point:1;},
  center(o){return o.id==='laniakea'?{x:0,y:0}:MapLayout.project(o);},
- focus(o){const r=o.region,p=this.center(o);goCamera(p.x,p.y,Math.max(r.major,r.minor)*Cosmology.regionScale(o)*Math.max(1.7,width/Math.max(height*.6,1)));toast(r.note);},
+ focus(o){globalThis.MapSlice?.focus(o);const r=o.region,p=this.center(o);goCamera(p.x,p.y,Math.max(r.major,r.minor)*Cosmology.regionScale(o)*Math.max(1.7,width/Math.max(height*.6,1)));toast(r.note);},
  outline(r){if(r.shape==='polyline')return r.points.map(([x,y])=>({x,y}));const p=[];for(let i=0;i<=96;i++){const t=i/96,a=t*Math.PI*2;let x,y;
   if(r.shape==='ribbon'){const u=t<=.5?t*2:2-t*2;x=(u-.5)*r.major;y=Math.sin(u*Math.PI*3)*r.minor*.18+(t<=.5?-1:1)*r.minor*.28;}
   else if(r.shape==='arc'){x=(t-.5)*r.major;y=(4*(t-.5)**2-.5)*r.minor;}
@@ -108,23 +108,46 @@ const RegionMap={
   }
   const result=[...keep].sort((a,b)=>a-b).map(i=>({x:p[i][0],y:p[i][1]}));cache.set(level,result);while(cache.size>3)cache.delete(cache.keys().next().value);return result;
  },
- clip(a,b){let lo=0,hi=1;const dx=b.x-a.x,dy=b.y-a.y;for(const [p,q] of [[-dx,a.x+10],[dx,width+10-a.x],[-dy,a.y+10],[dy,height+10-a.y]]){if(p===0){if(q<0)return null;}else{const t=q/p;if(p<0)lo=Math.max(lo,t);else hi=Math.min(hi,t);if(lo>hi)return null;}}return[{x:a.x+lo*dx,y:a.y+lo*dy},{x:a.x+hi*dx,y:a.y+hi*dy}];},
- draw(){
-  const layers=globalThis.MapLayers,fade=[...ExtendedCatalog.transitions.values()].some(q=>q.o.region&&(!layers?.active||!layers.manages(q.o))&&q.alpha!==q.to),key=[cam.x,cam.y,cam.span,width,height,dpr,theme,state.selected,hover?.id,filter,globalThis.MapSlice?.mode,ExtendedCatalog.pinned.size,OBJECTS.length,fade?performance.now():0].join(':'),cache=this.renderCache,scale=Cosmology.scale();
-  const cosmicShift=cache?Math.abs(scale/cache.scale-1)*(2+Math.hypot(cam.x,cam.y)/cam.span)*Math.max(width,height):Infinity;
-  if(cache&&cache.key===key&&cache.points===ExtendedCatalog.visible&&cache.layers===layers?.visible&&cosmicShift<.15){this.hits=cache.hits;for(const h of this.hits)h.label=null;MapLabels.queue.push(...cache.labels);ctx.drawImage(cache.canvas,0,0,width,height);return;}
-  const surface=cache?.canvas||document.createElement('canvas');surface.width=Math.round(width*dpr);surface.height=Math.round(height*dpr);const target=surface.getContext('2d');target.setTransform(dpr,0,0,dpr,0,0);target.clearRect(0,0,width,height);
-  const first=MapLabels.queue.length;this.render(target);this.renderCache={key,scale,points:ExtendedCatalog.visible,layers:layers?.visible,canvas:surface,hits:this.hits,labels:MapLabels.queue.slice(first)};ctx.drawImage(surface,0,0,width,height);
+ clip(a,b,pad=10){
+  // Trivial rejection/acceptance avoids temporary clipping arrays for almost
+  // every segment. Keep independent screen endpoints for the pan cache.
+  if(a.x < -pad&&b.x < -pad||a.x>width+pad&&b.x>width+pad||a.y < -pad&&b.y < -pad||a.y>height+pad&&b.y>height+pad)return null;
+  if(a.x>=-pad&&a.x<=width+pad&&a.y>=-pad&&a.y<=height+pad&&b.x>=-pad&&b.x<=width+pad&&b.y>=-pad&&b.y<=height+pad)return[{...a},{...b}];
+  let lo=0,hi=1;const dx=b.x-a.x,dy=b.y-a.y;
+  for(let i=0;i<4;i++){const p=i===0?-dx:i===1?dx:i===2?-dy:dy,q=i===0?a.x+pad:i===1?width+pad-a.x:i===2?a.y+pad:height+pad-a.y;if(p===0){if(q<0)return null;}else{const t=q/p;if(p<0)lo=Math.max(lo,t);else hi=Math.min(hi,t);if(lo>hi)return null;}}
+  return[{x:a.x+lo*dx,y:a.y+lo*dy},{x:a.x+hi*dx,y:a.y+hi*dy}];
  },
- render(target){const ctx=target;this.hits=[];for(const o of [...new Map([...ExtendedCatalog.visible,...(globalThis.MapLayers?.visible||[]),...ExtendedCatalog.pinned.values(),...OBJECTS].map(o=>[o.id,o])).values()].filter(o=>o.region&&!o.atlasOnly&&ExtendedCatalog.matchesMap(o)&&MapDetails.visible(o,cam.span)&&ExtendedCatalog.opacity(o)>.015).sort((a,b)=>b.region.major-a.region.major)){const r=o.region,c=screen(this.center(o)),scale=width/cam.span*Cosmology.regionScale(o),rx=r.major*.5*scale,ry=r.minor*.5*scale,polyline=r.shape==='polyline';
-  const stellar=StellarClusters.is(o),nebula=o.kind==='nebula',area=stellar?StellarClusters.view(o).area:nebula?Nebulae.view(o).area:1;
-  if(area<=.03||!polyline&&(Math.max(rx,ry)<(stellar||nebula?2:4)||Math.max(rx,ry)>20000)||c.x+rx*1.2<0||c.x-rx*1.2>width||c.y+ry*1.2<0||c.y-ry*1.2>height)continue;
-  const points=(polyline?this.curve(r,scale):this.outline(r)).map(p=>({x:c.x+p.x*scale,y:c.y+p.y*scale})),selected=o.id===state.selected,highlighted=selected||hover?.id===o.id,segments=polyline?points.slice(1).map((p,i)=>this.clip(points[i],p)).filter(Boolean):null;if(polyline&&!segments.length)continue;
+ draw(){
+  const layers=globalThis.MapLayers,fade=[...ExtendedCatalog.transitions.values()].some(q=>q.o.region&&(!layers?.active||!layers.manages(q.o))&&q.alpha!==q.to),key=[cam.span,width,height,dpr,theme,state.selected,filter,globalThis.MapSlice?.mode,globalThis.MapSlice?.centerZ,ExtendedCatalog.pinned.size,OBJECTS.length,fade?performance.now():0].join(':'),cache=this.renderCache,scale=Cosmology.scale(),pad=96;
+  const cosmicShift=cache?Math.abs(scale/cache.scale-1)*(2+Math.hypot(cam.x,cam.y)/cam.span)*Math.max(width,height):Infinity,dx=cache?(cache.x-cam.x)*width/cam.span:0,dy=cache?(cache.y-cam.y)*width/cam.span:0;
+  if(cache&&cache.key===key&&cache.points===ExtendedCatalog.visible&&cache.layers===layers?.visible&&cosmicShift<.15&&Math.abs(dx)<=pad&&Math.abs(dy)<=pad){
+   // Reuse a padded raster while panning. Move only disposable screen geometry;
+   // world vertices, catalogue positions and label anchors stay untouched.
+   this.hits=cache.hits;const sx=dx-cache.shiftX,sy=dy-cache.shiftY;
+   for(const h of this.hits){h.label=null;if(sx||sy){for(const p of h.points){p.x+=sx;p.y+=sy;}if(h.segments)for(const pair of h.segments)for(const p of pair){p.x+=sx;p.y+=sy;}}}
+   if(sx||sy)for(const label of cache.labels)for(const p of label.candidates){p.x+=sx;p.y+=sy;}
+   cache.shiftX=dx;cache.shiftY=dy;MapLabels.queue.push(...cache.labels);this.blit(cache);this.drawHighlight();return;
+  }
+  const surface=cache?.canvas||document.createElement('canvas'),w=Math.round((width+2*pad)*dpr),h=Math.round((height+2*pad)*dpr);if(surface.width!==w)surface.width=w;if(surface.height!==h)surface.height=h;const target=surface.getContext('2d');target.setTransform(dpr,0,0,dpr,pad*dpr,pad*dpr);target.clearRect(-pad,-pad,width+2*pad,height+2*pad);
+  const first=MapLabels.queue.length;this.render(target,pad);this.renderCache={key,scale,x:cam.x,y:cam.y,shiftX:0,shiftY:0,pad,points:ExtendedCatalog.visible,layers:layers?.visible,canvas:surface,hits:this.hits,labels:MapLabels.queue.slice(first)};this.blit(this.renderCache);this.drawHighlight();
+ },
+ blit(cache){ctx.drawImage(cache.canvas,(cache.pad-cache.shiftX)*dpr,(cache.pad-cache.shiftY)*dpr,width*dpr,height*dpr,0,0,width,height);},
+ render(target,padding=0){const ctx=target;this.hits=[];for(const o of [...new Map([...ExtendedCatalog.visible,...(globalThis.MapLayers?.visible||[]),...ExtendedCatalog.pinned.values(),...OBJECTS].map(o=>[o.id,o])).values()].filter(o=>o.region&&!o.atlasOnly&&ExtendedCatalog.matchesMap(o)&&MapDetails.visible(o,cam.span)&&ExtendedCatalog.opacity(o)>.015).sort((a,b)=>b.region.major-a.region.major)){const r=o.region,c=screen(this.center(o)),scale=width/cam.span*Cosmology.regionScale(o),rx=r.major*.5*scale,ry=r.minor*.5*scale,polyline=r.shape==='polyline';
+  const nativeArea=globalThis.MapVisibility?.active&&MapDetails.level(o)>=3,stellar=StellarClusters.is(o),nebula=o.kind==='nebula',area=stellar?StellarClusters.view(o).area:nebula?Nebulae.view(o).area:1;
+  if(area<=.03||!polyline&&(Math.max(rx,ry)<(nativeArea?.05:stellar||nebula?2:4)||Math.max(rx,ry)>20000)||c.x+rx*1.2 < -padding||c.x-rx*1.2>width+padding||c.y+ry*1.2 < -padding||c.y-ry*1.2>height+padding)continue;
+  const points=(polyline?this.curve(r,scale):this.outline(r)).map(p=>({x:c.x+p.x*scale,y:c.y+p.y*scale})),selected=o.id===state.selected,highlighted=selected,segments=polyline?points.slice(1).map((p,i)=>this.clip(points[i],p,padding+10)).filter(Boolean):null;if(polyline&&!segments.length)continue;
   const opacity=ExtendedCatalog.opacity(o)*area;ctx.save();ctx.globalAlpha=opacity;ctx.beginPath();if(polyline){for(const [a,b] of segments){ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);}}else points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));if(!['arc','polyline'].includes(r.shape))ctx.closePath();ctx.strokeStyle=paint(highlighted?'#454545':'#777777');ctx.lineWidth=highlighted?1.25:.7;ctx.setLineDash(polyline?[]:MapSymbols.dash(o)||(r.shape==='ring'?[7,5]:[3,6]));ctx.stroke();ctx.restore();
-  // One permanent contour anchor in world coordinates; panning never selects a new vertex.
-  const anchor=this.labelAnchor(r),label={x:c.x+anchor.x*scale,y:c.y+anchor.y*scale-9,align:'center'};
-  const hit={o,points,segments,label:null,closed:!['arc','polyline'].includes(r.shape)};this.hits.push(hit);
-  if(stellar||nebula?area>=.5&&Math.max(rx,ry)>=3:Math.max(rx,ry)>=18)MapLabels.add({key:'region-'+o.id,object:o,name:o.name.toUpperCase(),detail:r.shape==='polyline'?'ОСЬ ПО КАТАЛОГУ SDSS':r.sizeKind==='half-number'?'ОБЛАСТЬ 50% ЗВЁЗД · r₅₀':r.sizeKind==='half-light'?'ОБЛАСТЬ ПОЛОВИНЫ СВЕТА':nebula?'КАТАЛОЖНЫЙ РАЗМЕР · ФОРМА УСЛОВНАЯ':r.illustrative?'ГРАНИЦА УСЛОВНАЯ':'ПРИБЛИЖЁННАЯ ОБЛАСТЬ',mass:MapDetails.mass(o),level:MapDetails.level(o),priority:selected?100:30,size:9,opacity,color:selected?'#454545':'#757575',candidates:[label],onPlace:box=>{hit.label=box;}});
+  const hit={o,points,segments,opacity,label:null,closed:!['arc','polyline'].includes(r.shape)};this.hits.push(hit);
+  if((stellar||nebula?area>=.5&&Math.max(rx,ry)>=3:Math.max(rx,ry)>=18)&&MapDetails.mapLabelName(o)!==null){
+  // A permanent world anchor; numbered catalogue spines need no label work.
+  const anchor=this.labelAnchor(r),label={x:c.x+anchor.x*scale,y:c.y+anchor.y*scale-9,align:'center'};MapLabels.add({key:'region-'+o.id,object:o,name:o.name.toUpperCase(),detail:r.shape==='polyline'?'ОСЬ ПО КАТАЛОГУ SDSS':r.sizeKind==='half-number'?'ОБЛАСТЬ 50% ЗВЁЗД · r₅₀':r.sizeKind==='half-light'?'ОБЛАСТЬ ПОЛОВИНЫ СВЕТА':nebula?'КАТАЛОЖНЫЙ РАЗМЕР · ФОРМА УСЛОВНАЯ':r.illustrative?'ГРАНИЦА УСЛОВНАЯ':'ПРИБЛИЖЁННАЯ ОБЛАСТЬ',mass:MapDetails.mass(o),level:MapDetails.level(o),priority:selected?100:30,size:9,opacity,color:selected?'#454545':'#757575',candidates:[label],onPlace:box=>{hit.label=box;}});}
  }},
+ // Hover is a small overlay: it never invalidates cached contours, labels or
+ // their collision grid. Selection still rebuilds the persistent selected style.
+ drawHighlight(){
+  if(!hover||hover.id===state.selected)return;const h=this.hits.find(h=>h.o.id===hover.id);if(!h)return;
+  ctx.save();ctx.globalAlpha=h.opacity;ctx.strokeStyle=paint('#454545');ctx.lineWidth=1.25;ctx.setLineDash(h.segments?[]:MapSymbols.dash(h.o)||(h.o.region.shape==='ring'?[7,5]:[3,6]));ctx.beginPath();
+  if(h.segments){for(const [a,b] of h.segments){ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);}}else{h.points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));if(h.closed)ctx.closePath();}ctx.stroke();ctx.restore();
+ },
  hit(x,y){for(const h of [...this.hits].reverse()){if(h.label&&x>=h.label.x&&x<=h.label.x+h.label.w&&y>=h.label.y&&y<=h.label.y+h.label.h)return h.o;for(const [a,b] of h.segments||h.points.slice(1).map((p,i)=>[h.points[i],p])){const dx=b.x-a.x,dy=b.y-a.y,t=Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1)));if(Math.hypot(x-a.x-t*dx,y-a.y-t*dy)<9)return h.o;}}return null;}
 };
