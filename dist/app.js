@@ -11,7 +11,7 @@ const object=id=>OBJECTS.find(o=>o.id===id)||ExtendedCatalog.get(id);
 function objectTypeText(o){return !o?'':(state.destroyed.includes(o.id)&&o.kind==='star'?'ОСТАТОК ЗВЕЗДЫ':MapDetails.typeName(o))+(MapDetails.component(o)?' · компонент '+MapDetails.component(o):'');}
 const distance=(a,b)=>Space.distance(a,b);
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-const TIME_RATES=[0,1,10,100,1000];
+const TIME_RATES=[0,.5,1,10,100,1000];
 const SPEED_TICKS=[0,.09,.99,.999,.9999,.99999,.999999,.9999999,.99999999,.999999999];
 function speedScale(beta){
  beta=clamp(beta,0,SPEED_TICKS.at(-1));const x=-Math.log1p(-beta)/Math.LN10;
@@ -126,7 +126,7 @@ const FlightHistory={
 
 try{state=restore(JSON.parse(localStorage.getItem(STORE)));}catch{state=initial();}
 FlightSetup.sync();
-paused=!!state.paused;speed=[1,10,100,1000].includes(state.timeScale)?state.timeScale:1;
+paused=!!state.paused;speed=state.timeScale>0&&TIME_RATES.includes(state.timeScale)?state.timeScale:1;
 if(state.flight&&state.phase!=='flyby')Route.configure();
 if(state.flight&&!state.flight.markers?.length)FlightMarks.plan();
 const canvas=$('map'),ctx=canvas.getContext('2d');
@@ -173,7 +173,7 @@ function updateZoomControl(){
 }
 function updateTimeControl(){
  const value=paused?0:speed;$('timeSlider').value=String(TIME_RATES.indexOf(value));
- $('timeSlider').setAttribute('aria-valuetext',value===0?'Пауза':value+'×');
+ $('timeSlider').setAttribute('aria-valuetext',value===0?'Пауза':String(value).replace('.',',')+'×');
  document.querySelectorAll('[data-time]').forEach(button=>{const active=Number(button.dataset.time)===value;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));});
 }
 function setTimeRate(value){
@@ -308,7 +308,7 @@ function renderUI(){
  $('massDry').style.width=dryWidth+'%';$('massFuel').style.width=fuelWidth+'%';$('massTotal').textContent=massText(Rocket.dryMass+state.matter);
  $('massBar').setAttribute('aria-label','Сухая масса '+fmt(SHIP.dryMassKg,3)+' кг; топливо '+fmt(state.matter*1000,3)+' из '+fmt(Rocket.fuelCapacity*1000,3)+' кг; свободно '+fmt((Rocket.fuelCapacity-state.matter)*1000,3)+' кг');
  $('massBar').title='Сухая масса '+fmt(SHIP.dryMassKg,3)+' кг | Топливо '+massText(state.matter)+' | Свободно '+massText(Rocket.fuelCapacity-state.matter);
- const rate=Simulation.replayRate();$('timeRate').textContent=paused?'Пауза':rate<speed?'СЛОУМО ×'+compact(speed/rate):'1 с = '+fmt(speed,0)+(speed===1?' год':' лет')+' на борту';$('timeRate').classList.toggle('replaying',rate<speed);
+ const rate=Simulation.replayRate();$('timeRate').textContent=paused?'Пауза':rate<speed?'СЛОУМО ×'+compact(speed/rate):'1 с = '+fmt(speed,speed<1?1:0)+(speed===1?' год':speed<1?' года':' лет')+' на борту';$('timeRate').classList.toggle('replaying',rate<speed);
 
  const cosmicYears=Math.floor(state.universeElapsed??state.earth);$('universeClock').textContent=fmt(13800000000+cosmicYears,0);
  $('earthClock').innerHTML=fmt(Math.floor(state.earth),0)+'<small>лет</small>';$('shipClock').innerHTML=fmt(Math.floor(state.proper),0)+'<small>лет</small>';
@@ -647,7 +647,7 @@ function closeMenu(){$('menu').hidden=true;$('menuBtn').setAttribute('aria-expan
 function openCatalog(){closeMenu();$('catalog').hidden=false;renderCatalog();$('search').focus();}
 function closeCatalog(){$('catalog').hidden=true;Route.picking=false;}
 function showDialog(html){closeMenu();$('dialogContent').innerHTML=html;$('infoDialog').showModal();}
-function showHelp(){showDialog('<div class="modal-eyebrow">'+SHIP_NAME.toUpperCase()+' / ПОЛЁТ</div><h2>Свет, топливо и остановка.</h2><p>Выберите собственную тягу, постоянный свет звезды через зеркало Ø 100 км либо вспышку через то же зеркало. Вспышка длится 30 суток по часам звезды; постоянный свет действует на всём участке разгона. Звезда уничтожается только в режиме вспышки. Для Солнца этот режим запрещён.</p><p>По умолчанию сухая масса — 1 кг, включая парус Si₃N₄ Ø 100 м массой 0,785 кг. Бак — 1 кг. Световой разгон сохраняет топливо, его масса учитывается. Парус и обратная тяга совместно тормозят корабль, собирая и расходуя вещество. Остаток бака не является условием миссии и показывается в прогнозе. По умолчанию пределы разгона и торможения — 10 g; их можно изменить в параметрах корабля.</p><p>На 1× секунда игрока равна году на борту. Вертикальная шкала темпа под масштабом: 0 — пауза, 1× / 10× / 100× / 1000× — скорость симуляции. Пробел — пауза; колесо — масштаб карты; перетаскивание — перемещение.</p><button class="modal-start" id="startExploring">Продолжить →</button>');$('startExploring').onclick=()=>$('infoDialog').close();}
+function showHelp(){showDialog('<div class="modal-eyebrow">'+SHIP_NAME.toUpperCase()+' / ПОЛЁТ</div><h2>Свет, топливо и остановка.</h2><p>Выберите собственную тягу, постоянный свет звезды через зеркало Ø 100 км либо вспышку через то же зеркало. Вспышка длится 30 суток по часам звезды; постоянный свет действует на всём участке разгона. Звезда уничтожается только в режиме вспышки. Для Солнца этот режим запрещён.</p><p>По умолчанию сухая масса — 1 кг, включая парус Si₃N₄ Ø 100 м массой 0,785 кг. Бак — 1 кг. Световой разгон сохраняет топливо, его масса учитывается. Парус и обратная тяга совместно тормозят корабль, собирая и расходуя вещество. Остаток бака не является условием миссии и показывается в прогнозе. По умолчанию пределы разгона и торможения — 10 g; их можно изменить в параметрах корабля.</p><p>На 1× секунда игрока равна году на борту. Вертикальная шкала темпа под масштабом: 0 — пауза, 0,5× / 1× / 10× / 100× / 1000× — скорость симуляции. На 0,5× секунда игрока равна половине бортового года. Пробел — пауза; колесо — масштаб карты; перетаскивание — перемещение.</p><button class="modal-start" id="startExploring">Продолжить →</button>');$('startExploring').onclick=()=>$('infoDialog').close();}
 
 function showModel(){
  const star=object(state.current)||object(state.flight?.fromId),light=Stellar.stellarLight(star);
