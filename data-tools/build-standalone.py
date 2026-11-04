@@ -12,7 +12,7 @@ def css(match):
   return 'url(data:'+mime+';base64,'+base64.b64encode(p.read_bytes()).decode()+')'
  return '<style>'+re.sub(r'url\(([^)]+)\)',asset,text)+'</style>'
 html=re.sub(r'<link[^>]+href="([^" ]+\.css(?:\?[^" ]*)?)"[^>]*>',css,html)
-html=re.sub(r'<script src="([^" ]+)"></script>',lambda m:'<script>'+ (root/m[1].split('?')[0]).read_text().replace('</script','<\\/script')+'</script>',html)
+html=re.sub(r'<script src="([^" ]+)"(?: data-app)?></script>',lambda m:'<script>'+ (root/m[1].split('?')[0]).read_text().replace('</script','<\\/script')+'</script>',html)
 # file:// cannot fetch local tiles. Embed their JSON as strings; parse only the
 # requested tile. HTTP preview remains the efficient, bounded-memory default.
 pointer=root/'catalog-data/current.json'

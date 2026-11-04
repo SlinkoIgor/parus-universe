@@ -58,3 +58,5 @@ import './verify-reach-reuse.mjs';
 import './verify-new-tasks.mjs';
 
 import './verify-flight-tracks.mjs';
+
+import './verify-runtime-performance.mjs';
