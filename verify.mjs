@@ -45,6 +45,7 @@ import './verify-map-slice.mjs';
 import './verify-map-radial.mjs';
 import './verify-system-coordinates.mjs';
 import './verify-map-continuity.mjs';
+import './verify-landmark-continuity.mjs';
 import './verify-map-render-cache.mjs';
 import './verify-map-visibility.mjs';
 import './verify-map-annotations.mjs';

@@ -83,13 +83,17 @@ const MapDetails={
   if(o.kind==='galaxy'||o.kind==='quasar')return 3e8;
   return Infinity;
  },
+ origin(o){return o.id==='sol'||o.kind==='home';},
+ // Visibility metadata uses reference-epoch ly/pixel. Expanding envelopes and
+ // sourced overview points keep the same screen window as their geometry.
+ lodScale(o){if(!o.kind&&o.id)o=ExtendedCatalog.get(o.id)||o;return globalThis.MapVisibility?.overviewPoint(o)?Cosmology.scale():Cosmology.regionScale(o);},
  // Fade continuously before the ruler reaches 200 million ly. The ruler's
  // rounded tick itself must never make the entire network blink off.
- opacity(o,span,viewportWidth=width){if(globalThis.MapVisibility?.active&&MapVisibility.limit(o)!==Infinity)return MapVisibility.opacity(o,span,viewportWidth);return this.classOpacity(o,span,viewportWidth);},
- classOpacity(o,span,viewportWidth=width){if(this.group(o)==='filament'){const end=150e6*viewportWidth/128,t=Math.max(0,Math.min(1,(span/end-.6)/.4));return 1-t*t*(3-2*t);}const max=this.maxSpan(o);if(span>=max)return 0;if(span<=max*.8)return 1;const t=(span/max-.8)/.2;return 1-t*t*(3-2*t);},
+ opacity(o,span,viewportWidth=width){if(this.origin(o))return 1;if(globalThis.MapVisibility?.active&&MapVisibility.limit(o)!==Infinity)return MapVisibility.opacity(o,span,viewportWidth);return this.classOpacity(o,span,viewportWidth);},
+ classOpacity(o,span,viewportWidth=width){if(this.origin(o))return 1;span/=this.lodScale(o);if(this.group(o)==='filament'){const end=150e6*viewportWidth/128,t=Math.max(0,Math.min(1,(span/end-.6)/.4));return 1-t*t*(3-2*t);}const max=this.maxSpan(o);if(span>=max)return 0;if(span<=max*.8)return 1;const t=(span/max-.8)/.2;return 1-t*t*(3-2*t);},
  landmark(o){return !o.atlasOnly&&!o.synthetic&&!o.bulkGalaxyMember&&!o.nuclearStar&&o.p3?.every(Number.isFinite)&&Number.isFinite(this.maxSpan(o))&&!!(o.cosmicLandmark||o.messier||!o.streamed&&ExtendedCatalog.coreIndex?.has(o.id)&&!ExtendedCatalog.background(o));},
  discoverable(o){return !!(!o.atlasOnly&&!o.synthetic&&!o.nuclearStar&&o.positionQuality!=='unknown'&&o.navigable!==false&&o.p3?.length===3&&o.p3.every(Number.isFinite)&&Number.isFinite(this.maxSpan(o)));},
- sparse(o,span){if(globalThis.MapVisibility?.active)return false;return span>this.maxSpan(o)*.8&&this.discoverable(o);},
+ sparse(o,span){if(this.origin(o)||globalThis.MapVisibility?.active)return false;return span>this.maxSpan(o)*.8&&this.discoverable(o);},
  visible(o,span,viewportWidth){if(o.atlasOnly)return false;return this.opacity(o,span,viewportWidth)>.03;}
 };
 for(const o of OBJECTS){const name=MapDetails.cleanName(o);if(name!==o.name){o.aliases=[...new Set([...(o.aliases||[]),o.name])];o.name=name;}if(o.galaxy)o.galaxy.name=o.name;}

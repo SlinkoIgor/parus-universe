@@ -683,12 +683,8 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
 
 .station-details{display:flex;align-items:baseline;gap:10px;min-width:0;font:10px/1.5 var(--mono)}
 .station-details>small{font:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.station-star-action{flex-shrink:0;padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px;pointer-events:auto}
-.station-star-action:hover{opacity:.85}
 @media(max-width:700px){.station-details{gap:6px}}
 
-.station-transfer{display:none;text-align:left;margin:0 16px 12px;padding:0;font:11px/1.5 var(--mono)}
-@media(max-width:700px) and (max-height:740px){.station-transfer{display:block}}
 
 @media(min-width:701px){.map-controls{max-height:calc(100dvh - var(--hud) - 215px)}}
 @media(min-width:701px) and (max-height:780px){.map-controls .zoom-panel{height:110px;margin:10px 0 14px}.map-controls .time-panel{height:96px}}

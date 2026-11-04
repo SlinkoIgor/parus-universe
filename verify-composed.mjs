@@ -69,13 +69,13 @@ composedReset();const ninety=MissionPlanner.plan({...base,fill:true,reservePerce
 nearComposed(ninety.arrivalFuelKg,.9,1e-10);assert.ok(ninety.proper<filled.proper&&ninety.proper>fast.proper);
 // Expanding-space forecasts and integration use the same powered/coasting path.
 for(const target of ['m87','3c273']){
- composedReset();state.selected=target;state.expansion=true;Cosmology.sync(state);state.flightSetup={...base,burst:false,fill:true,capacityKg:2,densityCm3:.5};const eta=FlightEstimate.get();assert.ok(Number.isFinite(eta.proper));launch();let steps=0;while(state.flight&&steps++<12)Simulation.step(1e12);assert.equal(state.current,target);nearComposed(state.proper,eta.proper,1e-7);nearComposed(state.earth,eta.earth,1e-7);nearComposed(state.matter*1000,eta.arrivalFuelKg,1e-7);
+ composedReset();state.selected=target;state.expansion=true;Cosmology.sync(state);state.flightSetup={...base,burst:false,fill:true,capacityKg:2,densityCm3:.5};const eta=FlightEstimate.get();assert.ok(Number.isFinite(eta.proper));launch();let steps=0;while(state.flight&&steps++<12)Simulation.step(1e12);if(!['star','home'].includes(object(target).kind)){assert.equal(object(state.current).kind,'star');assert.equal(object(state.current).parentObject,target);assert.ok(state.visited.includes(target));}else assert.equal(state.current,target);nearComposed(state.proper,eta.proper,1e-7);nearComposed(state.earth,eta.earth,1e-7);nearComposed(state.matter*1000,eta.arrivalFuelKg,1e-7);
 }
 composedReset();state.selected='mom-z14';state.expansion=true;state.flightSetup=base;Cosmology.sync(state);assert.ok(FlightEstimate.get().unreachable);launch();assert.equal(state.flight,null);
 // Both stopped routes and geodesic passages keep the configured braking policy.
 for(const nodes of [[{id:'alpha',mode:'stop'},{id:'sirius',mode:'stop'}],[{id:'sgr',mode:'flyby'},{id:'m87',mode:'stop'}]]){
  composedReset();state.current='proxima';state.ship=Space.point(object('proxima').p3);state.flightSetup={...base,fill:true};state.itinerary=nodes;assert.ok(Route.analyze().valid);Route.start();let n=0;while(state.flight&&n++<20){Simulation.step(1e12);if(state.phase==='flyby'){const saved=JSON.parse(JSON.stringify(state));state=restore(saved);}}
- assert.equal(state.current,nodes.at(-1).id);assert.ok(state.visited.includes(nodes[0].id));assert.ok(state.matter*1000>.98);
+ const end=nodes.at(-1).id;if(!['star','home'].includes(object(end).kind)){assert.equal(object(state.current).kind,'star');assert.equal(object(state.current).parentObject,end);assert.ok(state.visited.includes(end));}else assert.equal(state.current,end);assert.ok(state.visited.includes(nodes[0].id));assert.ok(state.matter*1000>.98);
 }
 console.log('PASS intermediate reserves, expanding-space ETA/arrival, horizon, stopped routes and reload at a black-hole passage');
 

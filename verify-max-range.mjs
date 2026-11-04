@@ -22,13 +22,13 @@ resetRange('alpha',0,{sail:true,collector:true,burst:false,arrivalFuelPercent:50
 // At trillion-year ETAs a final burn can be smaller than one total-clock ULP.
 // Advance that real, separately timed stage too, rather than demand rounding up.
 const fly=()=>{const p=MissionPlanner.preview();assert.ok(p.valid,p.reason);MissionPlanner.launch();assert.ok(state.flight);const exact=state.flight.mission,from={earth:state.earth,proper:state.proper};Simulation.tick(exact.proper*.37);assert.ok(state.flight&&state.flight.covered>0);state=restore(JSON.parse(JSON.stringify(state)));for(let rest=0;state.flight&&rest<4;rest++)Simulation.tick(FlightEstimate.get().proper);assert.equal(state.flight,null);assert.ok(Math.abs(state.earth-from.earth-exact.earth)<Math.max(.001,exact.earth*1e-10,4*Number.EPSILON*Math.abs(state.earth)));assert.ok(Math.abs(state.proper-from.proper-exact.proper)<Math.max(1e-6,exact.proper*1e-10,4*Number.EPSILON*Math.abs(state.proper)));assert.ok(Math.abs(state.matter*1000-exact.arrivalFuelKg)<1e-7);return exact;};
-fly();assert.equal(state.current,'boss-wall');assert.ok(MissionReach.idle().comoving<first.comoving);findDepartureStar();fly();assert.ok(state.current.startsWith('game-star:boss-wall:'));state.selected='alpha';fly();assert.equal(state.current,'alpha');
+fly();assert.ok(state.current.startsWith('arrival-star:boss-wall:'));assert.ok(canBoost('beam'));state.selected='alpha';fly();assert.equal(state.current,'alpha');
 const later=MissionReach.idle();assert.ok(later!==first&&later.comoving<first.comoving);state.selected='boss-wall';assert.ok(Space.distance(state.ship,object('boss-wall'))>Cosmology.horizon());assert.equal(MissionPlanner.preview().valid,false);
 console.log('PASS BOSS outward → synthetic star → return, reload and exact fuel/clocks; late-universe horizon correctly rejects another BOSS trip');
 // Repeated trips remain possible with a frozen expansion factor. No reservoir,
 // source mode or preview may remain stuck on the previous leg after arrival.
 resetRange('alpha',0,{sail:true,collector:true,arrivalFuelPercent:50},false);
-for(let i=0;i<2;i++){state.selected='boss-wall';fly();findDepartureStar();fly();state.selected='alpha';fly();assert.equal(state.current,'alpha');assert.ok(FlightSetup.read().sail&&FlightSetup.read().collector&&!FlightSetup.read().burst);assert.equal(shipReachability(),null);assert.equal(state.cosmicTime,0);}
+for(let i=0;i<2;i++){state.selected='boss-wall';fly();assert.ok(canBoost('beam'));state.selected='alpha';fly();assert.equal(state.current,'alpha');assert.ok(FlightSetup.read().sail&&FlightSetup.read().collector&&!FlightSetup.read().burst);assert.equal(shipReachability(),null);assert.equal(state.cosmicTime,0);}
 console.log('PASS two complete BOSS round trips with frozen expansion, retained optics/50% preference, real motion and no stale range');
 // BOSS has significant depth: a sphere projects to a disk, not a 2D distance test.
 const boss=object('boss-wall');assert.ok(Math.hypot(boss.p3[0],boss.p3[1])<Math.hypot(...boss.p3));

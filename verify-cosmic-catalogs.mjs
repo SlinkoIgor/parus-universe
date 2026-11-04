@@ -84,7 +84,7 @@ MissionPlanner.launch();assert.ok(state.flight);Simulation.tick(plan.proper*.31)
 ExtendedCatalog.capture(state);var saved=JSON.parse(JSON.stringify(state)),remaining=FlightEstimate.get().proper;
 ExtendedCatalog.pinned.clear();state=restore(saved);assert.equal(state.selected,imported[0].id);assert.ok(object(imported[0].id).navigable);
 assert.ok(state.catalogObjects.length<10);assert.ok(Math.abs(FlightEstimate.get().proper-remaining)<1e-10);
-Simulation.tick(remaining);assert.ok(!state.flight);assert.equal(state.current,imported[0].id);assert.equal(state.beta,0);assert.equal(state.orbit,null);
+Simulation.tick(remaining);assert.ok(!state.flight);assert.equal(object(state.current).kind,'star');assert.equal(object(state.current).parentObject,imported[0].id);assert.ok(state.visited.includes(imported[0].id));assert.equal(state.beta,0);assert.equal(state.orbit,null);
 assert.ok(Math.abs(state.matter*1000-plan.arrivalFuelKg)<1e-6);
 `);
 console.log('PASS imported target launch, full stop, fuel and in-flight save/restore');

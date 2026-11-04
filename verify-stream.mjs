@@ -33,14 +33,14 @@ await run(`(async()=>{const r=unknownEntry;var o=await ExtendedCatalog.resolve({
 console.log('PASS lazy lookup, finite 3D coordinates, atlas-only unknown positions, bounded saved references and selection restore');
 
 run(`
-state=initial();var galaxy=object('bode'),star=ExtendedCatalog.ensureGalaxy(galaxy);assert.ok(star);assert.ok(star.kind==='star');assert.ok(star.synthetic);assert.ok(Space.distance(star,galaxy)<1);
-state.current=galaxy.id;state.ship=Space.point(galaxy.p3);state.selected=star.id;state.paused=false;paused=false;speed=1;launch();assert.ok(state.flight);assert.equal(state.flight.boost,false);
-var guard=0;while(state.flight&&guard++<100)Simulation.step(1e5);assert.equal(state.current,star.id);assert.ok(canBoost());
-state.selected='triangulum';state.flightSetup=FlightSetup.normalize({...FlightSetup.preferred(),burst:true});FlightSetup.sync();launch();assert.ok(state.flight.boost);assert.ok(state.destroyed.includes(star.id));
+state=initial();var galaxy=object('bode');state.current=null;state.ship=Space.point(V3.add(galaxy.p3,[2,0,0]));state.selected=galaxy.id;state.expansion=false;state.flightSetup=FlightSetup.normalize({engine:true,sail:false,arrivalFuelPercent:0});state.paused=false;paused=false;speed=1;
+var star=ExtendedCatalog.arrivalStar(galaxy);assert.ok(star.synthetic);assert.equal(object(star.id),undefined);launch();assert.ok(state.flight);assert.equal(state.flight.boost,false);
+var guard=0;while(state.flight&&guard++<100)Simulation.step(1e5);assert.equal(state.current,star.id);state.flightSetup=FlightSetup.normalize({sail:true,collector:true,burst:true,arrivalFuelPercent:0});assert.ok(canBoost());
+state.selected='triangulum';FlightSetup.sync();launch();assert.ok(state.flight.boost);Simulation.tick((state.flight.mission.acceleration.preboost?.preparationEnd.proper||0)+1e-7);assert.ok(state.destroyed.includes(star.id));
 ExtendedCatalog.capture(state);var saved=JSON.parse(JSON.stringify(state));ExtendedCatalog.pinned.clear();state=restore(saved);assert.ok(object(star.id));assert.equal(state.flight.fromId,star.id);assert.ok(state.flight.boost);
-state=initial();state.destroyed=[star.id];var next=ExtendedCatalog.ensureGalaxy(galaxy);assert.ok(next&&next.id!==star.id,'a used fallback star cannot strand the expedition');
+state=initial();state.destroyed=[star.id];var next=ExtendedCatalog.arrivalStar(galaxy);assert.ok(next&&next.id!==star.id);assert.equal(object(next.id),undefined,'replacement stays undiscovered until another arrival');
 `);
-console.log('PASS galaxy arrival -> local star -> sail boost, reload during boost, replacement after using a fictional star');
+console.log('PASS direct galaxy arrival -> sail boost, reload during boost, undiscovered replacement after using a fictional star');
 
 // A hundred background stars at the foreground position must never change labels.
 run(`state=initial();resize();cam={x:0,y:0,span:24};MapLabels.begin();drawObjects();drawShip(0);MapLabels.draw();var originalLabels=MapLabels.placed.map(p=>p.key);var base=object('proxima');ExtendedCatalog.visible=Array.from({length:100},(_,i)=>({...base,id:'background-test-'+i,streamed:true,name:'BG '+i}));MapLabels.begin();drawObjects();ExtendedCatalog.draw();drawShip(0);MapLabels.draw();assert.deepEqual(MapLabels.placed.map(p=>p.key),originalLabels);assert.ok(!hitObjects.some(p=>p.background&&p.o.id.startsWith('background-test-')));`);
@@ -67,7 +67,8 @@ for(const filter of ['blackhole','quasar','horizon'])assert.equal((await query('
 for(const filter of ['galaxy-cluster','structure','void'])assert.ok((await query('',filter)).total>500,filter+' has imported observed records');
 console.log('PASS real worker search across HYG/OpenNGC/ATNF and bounded result pages');
 
-run(`state=initial();for(const host of ['andromeda','lmc','smc']){const g=object(host),stars=OBJECTS.filter(o=>o.parentGalaxy===host&&o.galaxyMember&&!o.atlasOnly);assert.ok(stars.length>0);assert.ok(stars.every(o=>!o.synthetic&&o.navigable));const found=ExtendedCatalog.ensureGalaxy(g);assert.ok(found.galaxyMember&&!found.synthetic);assert.ok(MapDetails.maxSpan(found)>g.galaxy.diameterLy);assert.ok(MapDetails.visible(found,g.galaxy.diameterLy*2));assert.ok(MapDetails.visible(found,24));}
-for(const id of ['vela','sgr','bootes','laniakea','ring','local-void']){const body=object(id),star=ExtendedCatalog.ensureGalaxy(body);assert.ok(star&&star.kind==='star');assert.ok(star.navigable);state.current=id;state.ship=Space.point(body.p3);state.selected=star.id;state.matter=Rocket.initialFuel;state.flight=null;state.beta=0;launch();assert.ok(state.flight,id+' must reach its departure star');var n=0;while(state.flight&&n++<100)Simulation.step(1e9);assert.equal(state.current,star.id);assert.ok(canBoost());}
+run(`state=initial();for(const host of ['andromeda','lmc','smc']){const g=object(host),stars=OBJECTS.filter(o=>o.parentGalaxy===host&&o.galaxyMember&&!o.atlasOnly);assert.ok(stars.length>0);assert.ok(stars.every(o=>!o.synthetic&&o.navigable));for(const found of stars){assert.ok(MapDetails.maxSpan(found)>g.galaxy.diameterLy);assert.ok(MapDetails.visible(found,g.galaxy.diameterLy*2));assert.ok(MapDetails.visible(found,24));}}
+for(const id of ['bootes','laniakea','ring','local-void']){const body=object(id),star=ExtendedCatalog.arrivalStar(body);assert.ok(star?.synthetic&&star.navigable);assert.equal(JSON.stringify(star.p3),JSON.stringify(body.p3));assert.equal(object(star.id),undefined);}
+for(const id of ['vela','sgr','3c273']){const star=ExtendedCatalog.arrivalStar(object(id));assert.ok(star?.synthetic);assert.equal(star.parentObject,id);assert.equal(object(star.id),undefined);}
 `);
-console.log('PASS actual stars in M31/LMC/SMC and departure stars after arrival at pulsars, black holes, voids and mega-regions');
+console.log('PASS real stars in M31/LMC/SMC retain their visibility; extended arrival stars stay hidden and compact non-stellar stops also have hidden arrival stars');

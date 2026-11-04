@@ -81,6 +81,6 @@ const first=FlightView.ship();ExtendedCatalog.capture(state);state=restore(JSON.
 // Frozen flyby aims use the displaced target's local view, not a second lift.
 const target=object('omega'),aim=Space.point(target.p3.map((v,i)=>v+(i===0?.01:0))),q={from:f.from,fromId:f.fromId,target:'omega',aim};const end=FlightView.at(q,1),p0=MapLayout.baseProject(target);assert.ok(Math.abs(end.x-p0.x-.01)<1e-7);assert.equal(end.y,p0.y);
 // Generated departure stars remain local after capture/reload as well.
-state=initial();const star=ExtendedCatalog.ensureGalaxy(target),offset=star.p3.map((v,i)=>v-target.p3[i]);state.current=target.id;state.selected=star.id;state.ship=Space.point(target.p3);ExtendedCatalog.capture(state);state=restore(JSON.parse(JSON.stringify(state)));const sp=MapLayout.baseProject(object(star.id)),tp=MapLayout.baseProject(target);assert.ok(Math.abs(sp.x-tp.x-offset[0])<1e-8);assert.ok(Math.abs(sp.y-tp.y+offset[1])<1e-8);
+state=initial();const star=ExtendedCatalog.revealArrival(target),offset=star.p3.map((v,i)=>v-target.p3[i]);state.current=target.id;state.selected=star.id;state.ship=Space.point(target.p3);ExtendedCatalog.capture(state);state=restore(JSON.parse(JSON.stringify(state)));const sp=MapLayout.baseProject(object(star.id)),tp=MapLayout.baseProject(target);assert.ok(Math.abs(sp.x-tp.x-offset[0])<1e-8);assert.ok(Math.abs(sp.y-tp.y+offset[1])<1e-8);
 console.log('PASS moved-position loading/rendering, v2 host/uncertainty migration, unchanged active/completed flight physics, affine ship/marks, reload and local departure stars');
 }`);

@@ -17,6 +17,38 @@ run(`{
  followShip=false;shipFocusArmed=false;cam={x:100,y:200,span:24};focusShip();assert.equal(shipFocusArmed,true);
  for(const deltaY of [-100,100,220,-220]){zoomAtPointer({preventDefault(){},deltaY,clientX:30,clientY:200});const p=screen(state.ship);assert.ok(Math.hypot(p.x-width/2,p.y-height/2)<1e-7);}
  const c=shipCamera(.01);goCamera(cam.x,cam.y,.01,true,true);assert.ok(Math.hypot(cam.x-c.x,cam.y-c.y)<1e-12);releaseShipCamera();
+ // Wheel zoom can fit the whole atlas after expansion, including a frozen late
+ // epoch. The preset rail stays fixed; the camera and ship focus may go beyond it.
+ const expedition=JSON.stringify(state),presets=JSON.stringify(zoomStops);
+ for(const size of [[1440,1000],[390,844]])for(const epoch of [0,15e9,100e9,1e12])for(const expanding of [true,false]){
+  [width,height]=size;state.cosmicTime=epoch;state.expansion=expanding;Cosmology.sync(state);
+  const physics=JSON.stringify(state),radius=46.5e9*Cosmology.scale();
+  cam={x:0,y:0,span:1.4e11};cameraGoal=null;
+  const pointer={preventDefault(){},deltaY:220,clientX:width*.43,clientY:height*(width<700?.39:.50)};
+  let steps=0;
+  do{zoomAtPointer(pointer);steps++;}while(radius*width/cam.span>Math.min(width*.4,height*.35)&&steps<100);
+  assert.ok(steps<100,'the expanded atlas fits without reaching the old zoom cap');
+  assert.ok(Number.isFinite(cam.span)&&cam.span>1.4e11,'wheel can continue beyond the fixed preset rail');
+  const centre=screen(object('sol')),r=radius*width/cam.span;
+  assert.ok(centre.x-r>=0&&centre.x+r<=width&&centre.y-r>=0&&centre.y+r<=height,'the whole atlas boundary fits');
+  for(const o of OBJECTS.filter(o=>o.p3&&!o.atlasOnly)){
+   const p=screen(o);assert.ok(p.x>=0&&p.x<=width&&p.y>=0&&p.y<=height,'catalogue position fits: '+o.id);
+  }
+  const span=cam.span;focusShip();assert.equal(cam.span,span,'centring must preserve the expanded zoom');releaseShipCamera();
+  goCamera(cam.x,cam.y,span*2,true);assert.equal(cam.span,span*2,'camera navigation can retain wide views');
+  assert.ok(Number.isFinite(gridMetrics().majorPixels));updateZoomControl();
+  assert.equal($('zoomSlider').value,'5.15','the unchanged slider rests at its upper endpoint');
+  // Return to the solar neighbourhood with the existing atlas navigation.
+  ExtendedCatalog.focus(object('sol'));assert.equal(cameraGoal.span,24);assert.equal(cameraGoal.x,0);assert.equal(cameraGoal.y,0);
+  assert.equal(JSON.stringify(state),physics,'camera actions never advance or edit the expedition');
+ }
+ state=JSON.parse(expedition);Cosmology.sync(state);width=1440;height=1000;cameraGoal=null;cam={x:0,y:0,span:24};
+ const cursor={preventDefault(){},deltaY:220,clientX:width*.71,clientY:height*.32},anchor=world(cursor.clientX,cursor.clientY);
+ for(let i=0;i<30;i++)zoomAtPointer(cursor);
+ const at=screen(anchor);assert.ok(Math.hypot(at.x-cursor.clientX,at.y-cursor.clientY)<1e-7,'wheel keeps its cursor anchor beyond the old cap');
+ for(let i=0;i<30;i++)zoomAtPointer({...cursor,deltaY:-220});assert.ok(Math.abs(cam.span/24-1)<1e-12);
+ assert.equal(JSON.stringify(zoomStops),presets);
+ cam={x:0,y:0,span:24};cameraGoal=null;
  // Every orbit in radial is exactly the ordinary XY ellipse plus one translation.
  MapRadial.manifest=radialManifest;
  for(const years of [0,40,200000]){
@@ -28,4 +60,4 @@ run(`{
  for(const mode of ['full','slice','radial']){cam={...MapLayout.project(object('alpha')),span:.002};MapSlice.setMode(mode);let n=0;OrbitalMotion.trace=points=>{if(['alpha','hyg-71453'].some(id=>{const p=MapLayout.project(object(id));return points.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<1e-11)}))n++;};OrbitalMotion.draw();assert.equal(n,2,'both A/B tracks immediately drawn in '+mode);}
  OrbitalMotion.trace=trace;MapSlice.setMode('full');
 }`);
-console.log('PASS retained viewport detail, readiness during pan, smooth filament fade, first-click ship zoom anchoring and XY ellipses with immediate AB tracks in all modes');
+console.log('PASS retained viewport detail, readiness during pan, smooth filament fade, expanded-universe wheel zoom and solar return, ship/cursor anchoring and XY ellipses with immediate AB tracks in all modes');

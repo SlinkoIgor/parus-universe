@@ -19,7 +19,7 @@ for(const id of sparseStars){assert.equal(MapDetails.visible(object(id),cam.span
 // below their own class. Compare two complete render passes over real data.
 const standard=()=>JSON.stringify({points:hitObjects.filter(h=>!h.sparse).map(h=>h.o.id),regions:RegionMap.hits.map(h=>h.o.id),labels:MapLabels.placed.filter(q=>!MapLabels.queue.find(l=>l.key===q.key)?.sparse)});
 landmarkChart();const withLandmarks=standard(),originalLandmark=MapDetails.landmark;MapDetails.landmark=()=>false;landmarkChart();assert.equal(standard(),withLandmarks);MapDetails.landmark=originalLandmark;
-for(const span of [129000,130000,131000]){cam={x:0,y:0,span};settleLandmarkLayers();landmarkChart();assert.equal(hitObjects.filter(h=>h.o.kind==='star'||h.o.kind==='home').length,0,'no stellar cloud returns on the Milky Way overview');}
+for(const span of [129000,130000,131000]){cam={x:0,y:0,span};settleLandmarkLayers();landmarkChart();assert.equal(hitObjects.filter(h=>h.o.kind==='star').length,0,'no stellar cloud returns on the Milky Way overview');assert.ok(hitObjects.some(h=>h.o.id==='sol'),'home remains the sole stellar reference');}
 filter='structure';cam={x:0,y:0,span:1.15e11};settleLandmarkLayers();landmarkChart();assert.ok(!hitObjects.some(h=>h.sparse),'class filters also apply to exceptions');
 filter='galaxy';settleLandmarkLayers();landmarkChart();assert.ok(hitObjects.some(h=>h.o.id==='mom-z14'));assert.ok(hitObjects.every(h=>h.o.kind==='galaxy'));
 filter='all';cam={x:0,y:0,span:2500};settleLandmarkLayers();MapLayers.admitted.clear();MapLayers.ready.set('stellar-cluster',false);landmarkChart();assert.ok(!hitObjects.some(h=>h.sparse&&h.o.kind==='star'),'exceptions wait for the full coarser context');

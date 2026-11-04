@@ -14,8 +14,9 @@ const MapVisibility={
  },
  focusSpan(o,span,viewportWidth=width){return Math.min(span,this.limit(o)*Math.max(1,viewportWidth)*.7);},
  opacity(o,span,viewportWidth=width){
+  if(MapDetails.origin(o))return 1;
   const limit=this.limit(o);if(limit===Infinity)return 1;
-  const pixel=span/Math.max(1,viewportWidth);if(pixel>=limit)return 0;if(pixel<=limit*.8)return 1;
+  const pixel=span/MapDetails.lodScale(o)/Math.max(1,viewportWidth);if(pixel>=limit)return 0;if(pixel<=limit*.8)return 1;
   const t=(pixel/limit-.8)/.2;return 1-t*t*(3-2*t);
  },
  filesForView(view,w,h){

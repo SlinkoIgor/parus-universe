@@ -5,7 +5,7 @@ function localReset(epoch,expansion=true){state=initial();state.expansion=expans
 function localNear(a,b,eps=1e-6){assert.ok(Math.abs(a-b)<=eps*Math.max(1,Math.abs(a),Math.abs(b)),a+' != '+b);}
 for(const epoch of [0,7.342773063e9,14e9])for(const expansion of [true,false]){
  localReset(epoch,expansion);const host=object('boss-wall');for(const id of [...ExtendedCatalog.pinned.keys()])if(id.startsWith('game-star:boss-wall:'))ExtendedCatalog.pinned.delete(id);delete host.departureStar;
- findDepartureStar();const star=object(state.selected),offset=V3.sub(star.p3,host.p3),map=MapLayout.project(star),parent=MapLayout.project(host),d=Space.distance(host,star);
+ const legacy={...ExtendedCatalog.arrivalStar(host),id:'game-star:boss-wall:1',p3:V3.add(host.p3,[.12*Math.cos(2.399963),.12*Math.sin(2.399963),.025])};delete legacy.arrivalHost;const star=ExtendedCatalog.pin(legacy);state.selected=star.id;const offset=V3.sub(star.p3,host.p3),map=MapLayout.project(star),parent=MapLayout.project(host),d=Space.distance(host,star);
  assert.ok(star.synthetic);assert.equal(Cosmology.group(star).id,Cosmology.group(host).id);localNear(map.x-parent.x,offset[0]);localNear(map.y-parent.y,-offset[1]);localNear(Cosmology.physicalDistance(state.ship,star),d,1e-12);
  const p=MissionPlanner.preview();assert.ok(p.valid,p.reason);assert.equal(p.cosmic,false);localNear(p.distance,d,1e-12);const start={proper:state.proper,earth:state.earth,fuel:state.matter};MissionPlanner.launch();
  const f=state.flight,a=FlightView.at(f,0),b=FlightView.at(f,1);assert.ok(Math.hypot(a.x-b.x,a.y-b.y)<.2,'local route cannot stretch into billions of map light-years');
@@ -14,7 +14,7 @@ for(const epoch of [0,7.342773063e9,14e9])for(const expansion of [true,false]){
  const record=saved.catalogObjects.find(o=>o.id===star.id);assert.ok(record);record.mapPosition={x:1e20,y:1e20};
  state=restore(saved);assert.ok(!state.flight.view,'stale expanded endpoints are discarded');const repaired=object(star.id);localNear(MapLayout.baseProject(repaired).x-MapLayout.baseProject(host).x,offset[0]);
  const remaining=FlightEstimate.get();Simulation.tick(remaining.proper);assert.equal(state.flight,null);assert.equal(state.current,star.id);assert.equal(state.beta,0);assert.ok(canBoost('burst'));localNear(state.proper-start.proper,p.proper,1e-8);localNear(state.earth-start.earth,p.earth,5e-6);localNear(state.matter*1000,p.arrivalFuelKg,1e-8);assert.ok(state.matter>=0&&state.matter<=start.fuel+1e-6);
- console.log('PASS BOSS → synthetic star: local map, distance, motion, corrupt-old-view migration, clocks/fuel and actual arrival:',epoch,expansion);
+ console.log('PASS legacy BOSS → synthetic star: local map, distance, motion, corrupt-old-view migration, clocks/fuel and actual arrival:',epoch,expansion);
 }
 // A child across the arbitrary local-group distance threshold still uses its host.
 const edge={id:'test-edge-host',kind:'structure',p3:[4e6+.01,0,0]},child={id:'test-edge-star',kind:'star',synthetic:true,parentObject:edge.id,p3:[4e6-.01,0,0]};ExtendedCatalog.pinned.set(edge.id,edge);ExtendedCatalog.pinned.set(child.id,child);assert.equal(Cosmology.group(child).id,edge.id);

@@ -22,7 +22,7 @@ for(const fraction of [0,.1,.5,.99])for(const span of [.00006,24,130000]){
 function reset(){state=initial();paused=false;Simulation.debt=0;Simulation.wallDebt=0;Cosmology.sync(state);FlightEstimate.active=new WeakMap();FlightEstimate.idleKey=null;}
 reset();assert.ok(Cosmology.horizon()>16e9&&Cosmology.horizon()<17e9);assert.ok(Cosmology.horizon(1e10)<Cosmology.horizon());
 state.selected='mom-z14';assert.ok(FlightEstimate.get().unreachable);launch(true);assert.ok(FlightEstimate.get().unreachable);renderUI();assert.equal($('horizonNotice').hidden,false);tickPhysics(state.flight.engine.burnProper);tickPhysics(1e12);assert.ok(state.flight);assert.notEqual(state.current,'mom-z14');assert.ok(state.flight.covered<17e9);assert.ok(FlightEstimate.get().unreachable);
-reset();state.selected='mom-z14';state.expansion=false;Cosmology.sync(state);assert.ok(Number.isFinite(FlightEstimate.get().proper));launch(true);tickPhysics(state.flight.engine.burnProper);tickPhysics(1e12);assert.equal(state.current,'mom-z14');
+reset();state.selected='mom-z14';state.expansion=false;Cosmology.sync(state);assert.ok(Number.isFinite(FlightEstimate.get().proper));launch(true);tickPhysics(state.flight.engine.burnProper);tickPhysics(1e12);assert.equal(object(state.current).kind,'star');assert.equal(object(state.current).parentObject,'mom-z14');assert.ok(state.visited.includes('mom-z14'));
 reset();state.selected='3c273';assert.ok(Number.isFinite(FlightEstimate.get().proper),'3C273 is inside the travel horizon');
 `);
 const audit=JSON.parse(fs.readFileSync('data-tools/pulsar-distance-audit.json','utf8'));

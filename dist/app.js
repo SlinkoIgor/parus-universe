@@ -110,7 +110,13 @@ function restore(saved){
   if(upgraded.flightSetup){const c=upgraded.flightSetup;if(c.divergenceDeg===undefined||c.divergenceDeg===0)c.divergenceDeg=ShipPhysics.fields.divergenceDeg[0];c.burst=false;}
   if(!upgraded.flight&&upgraded.departureMode==='burst')upgraded.departureMode='beam';
  }
- if(!upgraded.flight)upgraded.beta=upgraded.orbit?.beta||0;
+ if(!upgraded.flight){
+  const host=object(upgraded.current),star=ExtendedCatalog.arrivalStar(host,upgraded.destroyed);
+  // Old stationary saves already occupy the arrival point. Reveal its star
+  // without changing the position, fuel, clocks or an active trajectory.
+  if(star&&!upgraded.orbit&&Space.distance(upgraded.ship,host)<1e-10){ExtendedCatalog.revealArrival(host,star);upgraded.current=star.id;if(upgraded.selected===host.id)upgraded.selected=star.id;for(const id of [host.id,star.id])if(!upgraded.visited.includes(id))upgraded.visited.push(id);}
+  upgraded.beta=upgraded.orbit?.beta||0;
+ }
  if(upgraded.orbit){const o=upgraded.orbit,host=object(o.targetId);if(host?.p3){const angle=o.angle||0,radial=V3.add(V3.mul(o.radial,Math.cos(angle)),V3.mul(o.tangent,Math.sin(angle)));upgraded.ship=Space.point(V3.add(host.p3,V3.mul(radial,o.radius/LY)));}}
  if(upgraded.flight&&!('cosmic' in upgraded.flight))upgraded.flight.cosmic=Cosmology.isCosmic(object(upgraded.flight.fromId)||upgraded.flight.from,object(upgraded.flight.target));
  return Route.sanitize(upgraded);
@@ -138,7 +144,7 @@ function log(text){state.journal.push({t:state.earth,text});if(state.journal.len
 function toast(text){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,4200);}
 function screen(p){p=p===state.ship?FlightView.ship():MapLayout.project(p);return{x:width*.43+(p.x-cam.x)*width/cam.span,y:height*(width<700?.39:.50)+(p.y-cam.y)*width/cam.span};}
 function world(x,y){return{x:cam.x+(x-width*.43)*cam.span/width,y:cam.y+(y-height*(width<700?.39:.50))*cam.span/width};}
-function goCamera(x,y,span,instant=false,keepFollow=false){if(!keepFollow&&(followShip||shipFocusArmed))releaseShipCamera();cameraGoal=keepFollow&&(followShip||shipFocusArmed)?shipCamera(clamp(span,.00006,zoomStops.at(-1).span)):{x,y,span:clamp(span,.00006,zoomStops.at(-1).span)};if(instant){cam={...cameraGoal};cameraGoal=null;}updateMapHeading();}
+function goCamera(x,y,span,instant=false,keepFollow=false){if(!keepFollow&&(followShip||shipFocusArmed))releaseShipCamera();cameraGoal=keepFollow&&(followShip||shipFocusArmed)?shipCamera(clamp(span,.00006,MAX_CAMERA_SPAN)):{x,y,span:clamp(span,.00006,MAX_CAMERA_SPAN)};if(instant){cam={...cameraGoal};cameraGoal=null;}updateMapHeading();}
 function routeViewport(){
  const pad=Math.max(24,Math.min(54,width*.055)),card=$('flightCard').getBoundingClientRect();
  // Keep the route clear of the HUD, target card, heading and map buttons.
@@ -150,6 +156,9 @@ function shipCamera(span=cam.span){const p=FlightView.ship();return{x:p.x+(width
 function focusShip(){globalThis.MapSlice?.focus(state.ship);if(followShip){followShip=false;shipFocusArmed=false;}else if(shipFocusArmed){followShip=true;}else shipFocusArmed=true;const c=shipCamera();goCamera(c.x,c.y,c.span,true,true);updateShipButton();}
 function updateShipButton(){$('shipBtn').innerHTML=followShip?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8V3h5m8 0h5v5m0 8v5h-5M8 21H3v-5M12 6l5 12-5-3-5 3Z"/></svg>':'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>';$('shipBtn').setAttribute('aria-label',followShip?'Отключить слежение: '+SHIP_NAME:'Центрировать: '+SHIP_NAME);$('shipBtn').classList.toggle('active',followShip);$('shipBtn').setAttribute('aria-pressed',String(followShip));$('shipBtn').title=SHIP_NAME+(followShip?' · отключить слежение':shipFocusArmed?' · нажмите ещё раз для слежения':' · центрировать');}
 function releaseShipCamera(){followShip=false;shipFocusArmed=false;updateShipButton();}
+// Numerical guard only: far beyond the atlas even at Cosmology's maximum a(t).
+// Wheel/keyboard zoom may continue past the unchanged preset rail.
+const MAX_CAMERA_SPAN=1e100;
 // Presets and handle share the same piecewise logarithmic scale.
 const zoomStops=[{value:0,span:.00006},{value:1,span:24},{value:2,span:130000},{value:3,span:3e7},{value:4,span:5e9},{value:5,get span(){return globalThis.UniverseMap?.overview().span||115e9;}},{value:5.15,get span(){return globalThis.UniverseMap?UniverseMap.overview().span*1.3:1.4e11;}}];
 function zoomInterpolate(input,from,to){
@@ -188,7 +197,7 @@ function fitRoute(target){
  const span=Math.max(current.span,Math.abs(a.x-b.x)*width/(v.right-v.left)*1.25,Math.abs(a.y-b.y)*width/(v.bottom-v.top)*1.25);
  goCamera((a.x+b.x)/2-((v.left+v.right)/2-width*.43)*span/width,(a.y+b.y)/2-((v.top+v.bottom)/2-height*(width<700?.39:.50))*span/width,span);
 }
-function select(id,fit=false){const o=object(id);if(!o)return;ExtendedCatalog.pin(o);ExtendedCatalog.ensureGalaxy(o);state.selected=id;renderUI();if(fit)fitRoute(o);renderCatalog();persist();if(state.flight&&!Route.picking)showObject(id);}
+function select(id,fit=false){const o=object(id);if(!o)return;ExtendedCatalog.pin(o);state.selected=id;renderUI();if(fit)fitRoute(o);renderCatalog();persist();if(state.flight&&!Route.picking)showObject(id);}
 let compactMapControls=null;
 function resize(){const r=canvas.getBoundingClientRect();width=r.width;height=r.height;dpr=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);const controls=document.querySelector('.map-controls'),compact=width<700;if(controls&&compact!==compactMapControls){controls.open=!compact;compactMapControls=compact;}}
 new ResizeObserver(resize).observe(canvas);
@@ -262,7 +271,7 @@ function renderUI(){
  if(f&&!f.summary){const estimate=f.mission||FlightEstimate.get();f.summary={distance:f.distance,proper:estimate?.proper,earth:estimate?.earth};}
  $('targetName').textContent=target.name;$('targetType').textContent=objectTypeText(target);$('targetVisited').hidden=!state.visited.includes(target.id);
  $('flightCard').classList.toggle('in-flight',active);$('shipLocation').textContent=current?'Стоянка · '+current.name:active?'В пути · '+(object(f.fromId)?.name||'Межзвёздное пространство'):'Межзвёздное пространство';
- $('shipLocationType').textContent=objectTypeText(current)+(state.orbit&&current?' · орбита '+fmt(state.orbit.radius/Stellar.r0,2)+' а.е.':'');$('shipLocationType').hidden=!current;$('findDepartureStar').hidden=active||!current||canBoost('beam');$('findDepartureStarCard').hidden=$('findDepartureStar').hidden;$('shipLocation').title=current?current.name+' · '+objectTypeText(current):$('shipLocation').textContent;
+ $('shipLocationType').textContent=objectTypeText(current)+(state.orbit&&current?' · орбита '+fmt(state.orbit.radius/Stellar.r0,2)+' а.е.':'');$('shipLocationType').hidden=!current;$('shipLocation').title=current?current.name+' · '+objectTypeText(current):$('shipLocation').textContent;
  const d=target.navigable?(f?.summary?.distance??f?.distance??Cosmology.physicalDistance(state.ship,target)):NaN;$('targetDistance').innerHTML=Number.isFinite(d)?compact(d)+' <small>св. лет</small>':'<small>Расстояние неизвестно</small>';
  $('departureSection').hidden=active||arrived||!target.navigable;document.querySelectorAll('[data-departure]').forEach(b=>{const on=(state.departureMode||'burst')===b.dataset.departure;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));b.hidden=b.dataset.departure==='burst'&&current?.id==='sol';b.disabled=b.dataset.departure!=='engine'&&!canBoost(b.dataset.departure);});
  const planningBoost=!MissionPlanner.enabledIdle()&&!state.flightSetup&&!active&&boost&&!arrived&&target.navigable;$('sailSection').hidden=!planningBoost;
@@ -287,7 +296,7 @@ function renderUI(){
  $('routeCount').textContent=(f?.route?.length||state.itinerary.length)||'';
  let action,hint;
  if(active){action='';hint=f.missed?'Цель пройдена. Остановка потребует оставшегося тормозного пути.':state.phase==='thrust'?'Двигатель расходует массу. Скорость растёт по ракетному уравнению.':state.phase==='launch'?(f.wind?.beamPower?'Пучок не расходится. Доплеровское ослабление растёт со скоростью.':'Парус Ø 100 м. Поток слабеет как 1/r² и из-за эффекта Доплера.'):state.phase==='brake'?'Парус собирает газ, двигатель расходует часть потока на обратную тягу. Остаток топлива зависит от траектории.':state.phase==='dock'?'Торможение парусом ослабло. Последнюю скорость гасит двигатель обратной тягой.':'Инерционный полёт. Тормозной путь рассчитывается по текущей скорости и массе.';}
- else if(arrived){action=target.departureStar?'Найти звезду для разгона':'Выбрать следующую цель';hint=boost?'Прибытие. Выберите цель — и подготовьте звёздный парус.':'Прибытие. Следующая точка ждёт в атласе.';}
+ else if(arrived){action='Выбрать следующую цель';hint=boost?'Прибытие. Выберите цель — и подготовьте звёздный парус.':'Прибытие. Следующая точка ждёт в атласе.';}
  else if(!target.navigable){action='Ориентир атласа';hint=target.atlasOnly?'Положение недостаточно точное для карты и полёта. Объект сохранён в атласе.':'Область атласа с условным положением; физический маршрут не назначается.';}
  else if(boost){action=state.departureMode==='beam'?'Лететь на парусе':'Взорвать и лететь';hint=state.departureMode==='beam'?'Свет звезды · топливо сохраняется.':'Звезда будет уничтожена · топливо сохраняется.';}
  else{action='Лететь на тяге';hint=Rocket.usableFuel(state.matter)>0?'Топливо расходуется · торможение автоматически.':'Запас рабочего вещества исчерпан.';}
@@ -449,10 +458,10 @@ const FlightBuilder={
   const diffraction=p?.acceleration?.diffraction,spectrum=diffraction?.spectrum||BeamOptics.spectrum(c,light),oldOptics=this.readOnly&&c.collector&&c.sail&&!diffraction;
   const opticsNote=oldOptics?'Сохранённый полёт рассчитан по прежней модели без дифракции. ':c.diffraction?'Дифракция учтена: идеальная круглая апертура '+fmt((diffraction?.diameterM||c.collectorDiameterM)/1000,2)+' км, парус '+fmt((diffraction?.sailRadiusM||c.sailDiameterM/2)*2,0)+' м. '+BeamOptics.label(spectrum)+'. '+(c.burst?'Шаблоны Nugent: 100–2500 нм, спектр меняется по времени у источника. ':'Тепловое приближение спектра звезды. '):'Дифракция отключена. '+(c.divergenceDeg>0?'Пучок расширяется с заданным полным углом '+angleText(c.divergenceDeg)+'°. ':'Идеальный пучок без расширения: весь собранный свет достигает паруса. ');
   $('builderPhysicsNote').textContent=(c.collector&&c.sail?opticsNote+'Добавочная расходимость '+angleText(c.divergenceDeg)+'°. Идеальное наведение и фокусировка; угловой размер источника не учтён. ':c.sail?'Прямой поток убывает как 1/r². ':'')+(c.sail?'Доплеровское ослабление и задержка света учтены. ':'')+'Плотность газа при торможении — однородная модель, а не измерение у цели.'+(p?.arrival?' Гравитация цели — изолированная точечная масса в слабом поле.':'')+(p?.departureOrbit?' При следующем старте учитывается орбитальная энергия; ориентация плоскости орбиты не рассчитывается.':'');
-  const arrival=p?.arrival||(!this.readOnly?OrbitalArrival.target(object(state.selected)):null);
+  const arrival=p?.arrival||(!this.readOnly&&!p?.arrivalStar?OrbitalArrival.target(object(state.selected)):null);
   $('builderArrivalTitle').textContent=arrival?'Торможение и выход на орбиту':'Полная остановка';
   $('builderOrbitSpeed').textContent=arrival?fmt(arrival.speed/1000,2)+' км/с':'0 км/с';
-  $('builderOrbitReason').textContent=arrival?'Гравитация цели учтена. Полёт заканчивается на круговой орбите с касательной скоростью; тормозной парус складывается.':'Цель протяжённая либо индивидуальная масса неизвестна. Полёт заканчивается полной остановкой.';
+  $('builderOrbitReason').textContent=arrival?'Гравитация цели учтена. Полёт заканчивается на круговой орбите с касательной скоростью; тормозной парус складывается.':p?.arrivalStar?'Прибытие к звезде у выбранной цели. Индивидуальная масса неизвестна; полёт заканчивается полной остановкой.':'Цель протяжённая либо индивидуальная масса неизвестна. Полёт заканчивается полной остановкой.';
   $('builderOrbitRadiusLabel').textContent=arrival?'Радиус орбиты':'Режим прибытия';
   $('builderOrbitRadius').textContent=arrival?fmt(arrival.radius/Stellar.r0,arrival.radius/Stellar.r0<100?2:0)+' а.е.':'Стоянка';
   const comparison=p?.vacuumComparison,difference=comparison&&p.valid?comparison.burnedKg-p.brake.burned:null;
@@ -569,7 +578,7 @@ function launch(forceEngine=false){
  state.controlG=10;state.auto=true;const boost=!forceEngine&&wantsBoost();if(!forceEngine&&state.current==='sol'&&state.departureMode==='burst'){toast('Вспышка Солнца запрещена. Выберите собственную тягу или постоянный свет.');return;}if(!boost&&!Rocket.usableFuel(state.matter)){toast('Нет рабочего вещества для тяги.');return;}
  const from={...state.ship},d=distance(from,target),cosmic=Cosmology.isCosmic(object(state.current)||from,target);Cosmology.sync(state);if(d<1e-14)return;const engine=boost?null:Rocket.plan(state.matter,d*(cosmic?Cosmology.scale():1),0,Math.max(1,state.controlG||100)),wind=boost?{...windPlan(),baseCovered:0,elapsedProper:0}:null;
  const rollback=FlightHistory.snapshot(),summary=FlightEstimate.get();
- state.flight={rollback,summary:{distance:d,proper:summary?.proper,earth:summary?.earth},cosmic,from,target:target.id,fromId:state.current,distance:d,covered:0,coastRate:0,maxBeta:wind?wind.beta:engine.beta,engine,wind,magnetic:null,boost,departureMode:boost?state.departureMode:'engine',starEpochEarth:state.earth,starR0:Stellar.r0,medium:GasMedium.forLeg(from,target,state.sail),missed:false,autoStopping:false,replayRate:(wind?wind.proper:engine.burnProper)/5};
+ state.flight={rollback,summary:{distance:d,proper:summary?.proper,earth:summary?.earth},cosmic,from,target:target.id,arrivalStar:ExtendedCatalog.arrivalStar(target),fromId:state.current,distance:d,covered:0,coastRate:0,maxBeta:wind?wind.beta:engine.beta,engine,wind,magnetic:null,boost,departureMode:boost?state.departureMode:'engine',starEpochEarth:state.earth,starR0:Stellar.r0,medium:GasMedium.forLeg(from,target,state.sail),missed:false,autoStopping:false,replayRate:(wind?wind.proper:engine.burnProper)/5};
  state.beta=0;state.acceleration=boost?Stellar.sample(wind,0).force/wind.massKg:Rocket.acceleration(Rocket.dryMass+state.matter,engine.maxG);state.phase=boost?'launch':'thrust';Simulation.smoothedFactor=Math.min(1,state.flight.replayRate);paused=false;
  if(boost){const current=object(state.current);if(state.departureMode==='burst'){state.destroyed.push(current.id);effects.push({x:from.x,y:from.y,p3:from.p3,age:0});}log((state.departureMode==='burst'?'Звёздная вспышка: ':'Постоянный свет: ')+current.name+'. Зеркало Ø 100 км. Прогноз '+percentC(wind.beta)+'. Топливо сохранено.');toast(state.departureMode==='burst'?'Вспышка длится 30 суток у звезды.':'Постоянный пучок света: звезда сохраняется.');}
 
@@ -602,7 +611,14 @@ function advance(ds,earth,proper,comoving=false,path){
  if(f.covered>f.distance+Math.max(1e-10,f.distance*1e-10)&&!f.missed&&state.beta>1e-8){f.missed=true;toast('Цель пройдена. Физический тормозной путь ещё не исчерпан.');}
 }
 function finishFlight(arrived){const f=state.flight,target=object(f.target);FlightHistory.complete(f);state.orbit=null;
- if(arrived){state.ship=Space.point(target.p3);state.current=target.id;if(state.transferSetup?.starId===target.id){state.flightSetup=FlightSetup.normalize(state.transferSetup.setup);state.departureMode=state.flightSetup.sail?(state.flightSetup.burst?'burst':'beam'):'engine';state.transferSetup=null;}if(!state.visited.includes(target.id))state.visited.push(target.id);ExtendedCatalog.ensureGalaxy(target);log('Прибытие: '+target.name+'. Борт: '+compact(state.proper)+' лет; Неподвижный наблюдатель: '+compact(state.earth)+' лет.');toast('Прибытие: '+target.name+'. Выберите следующую цель.');}
+ if(arrived){
+  const stop=ExtendedCatalog.revealArrival(target,f.arrivalStar||f.mission?.arrivalStar||(f.mission?.arrival?null:ExtendedCatalog.arrivalStar(target)));
+  state.ship=Space.point(stop.p3);state.current=stop.id;
+  if(stop!==target){state.selected=stop.id;if(!state.visited.includes(stop.id))state.visited.push(stop.id);}
+  if(state.transferSetup?.starId===target.id){state.flightSetup=FlightSetup.normalize(state.transferSetup.setup);state.departureMode=state.flightSetup.sail?(state.flightSetup.burst?'burst':'beam'):'engine';state.transferSetup=null;}
+  if(!state.visited.includes(target.id))state.visited.push(target.id);
+  log('Прибытие: '+stop.name+'. Борт: '+compact(state.proper)+' лет; Неподвижный наблюдатель: '+compact(state.earth)+' лет.');toast('Прибытие: '+stop.name+'. Выберите следующую цель.');
+ }
  else{state.current=null;log('Остановка вне цели. До неё '+distanceText(distance(state.ship,target))+'.');toast(SHIP_NAME+' остановлен. До цели '+distanceText(distance(state.ship,target))+'.');}
  const orbital=arrived&&OrbitalArrival.park(f);if(orbital){log('Круговая орбита: '+fmt(state.orbit.radius/Stellar.r0,2)+' а.е.; '+fmt(state.orbit.speed/1000,2)+' км/с.');toast('Выход на орбиту: '+target.name+'.');}
  state.matter=Rocket.usableFuel(state.matter);if(!orbital)state.beta=0;state.acceleration=0;state.phase='idle';state.flight=null;renderUI();renderCatalog();persist();if(arrived)Route.afterStop(f);
@@ -611,13 +627,6 @@ function autoFraction(predict){
  const f=state.flight,remaining=f.distance-f.covered;if(Route.isFlyby()){if(predict(1).distance/Cosmology.factor(f)<=remaining)return 1;let lo=0,hi=1;for(let i=0;i<60;i++){const p=(lo+hi)/2;if(predict(p).distance/Cosmology.factor(f)>remaining)hi=p;else lo=p;}return(lo+hi)/2;}if(!Route.braking())return 1;
  const gap=p=>{const v=predict(p),epoch=state.cosmicTime||0,dt=state.expansion!==false?v.earth:0;return remaining-(v.comovingDistance??v.distance/Cosmology.factor(f,epoch+dt/2))-Simulation.stoppingDistance(Magnetic.stopping(v.fuel,v.beta,Math.max(1,Math.abs(state.controlG)||100)),epoch+dt);};
  if(gap(1)>=0)return 1;let lo=0,hi=1;for(let i=0;i<60;i++){const mid=(lo+hi)/2;if(gap(mid)>=0)lo=mid;else hi=mid;}return (lo+hi)/2;
-}
-function findDepartureStar(){
- if(state.flight)return;const here=object(state.current),star=ExtendedCatalog.ensureGalaxy(here);
- if(!star){toast('У текущей стоянки не найдена доступная звезда.');return;}
- // Find a transfer destination: no teleportation, free fuel or remote supernova.
- if(!OrbitalArrival.enabled){const c=FlightSetup.read();state.transferSetup={starId:star.id,setup:{...c}};state.flightSetup=FlightSetup.normalize({...c,engine:true,dump:false,sail:false,collector:false,burst:false,brakeEngine:true,arrivalFuelPercent:0,fill:false});}FlightSetup.sync();
- select(star.id);ExtendedCatalog.focus(star);toast(Rocket.usableFuel(state.matter)>0?'Выбрана звезда у стоянки. Перелёт к ней — на тяге двигателя.':'Звезда найдена. Для перелёта к ней нужно топливо в топливном баке.');
 }
 function tickPhysics(dt){Simulation.tick(dt);}
 
@@ -656,7 +665,7 @@ function showModel(){
 }
 
 function showObject(id=state.selected){
- const o=object(id);if(!o)return;ExtendedCatalog.ensureGalaxy(o);const f=o.facts,g=o.galaxy;
+ const o=object(id);if(!o)return;const f=o.facts,g=o.galaxy;
  const row=(label,value)=>'<div class="fact-row"><dt>'+label+'</dt><dd>'+value+'</dd></div>';
  let luminosity=f.lum!==undefined?'≈ '+quantity(f.lum)+' L☉<small>Болометрическая мощность: ≈ '+quantity(f.lum*Astro.solarLuminosity)+' Вт</small>':f.visual?'≈ '+quantity(f.visual.solarV)+' L☉,'+(f.band||'V')+'<small>Собственная светимость в полосе '+(f.band||'V')+'; абсолютная величина M'+(f.band||'V')+' ≈ '+fmt(f.visual.absoluteV,1)+' mag</small>':f.lumUnknown;
  const sizeButton=o.region?'<button class="map-size-action" id="viewRegion">Показать область ↗</button>':(g||o.id==='sgr')?'<button class="map-size-action" id="viewGalaxy">Показать галактику в масштабе <span>↗</span></button>':'';
@@ -683,14 +692,13 @@ function showObject(id=state.selected){
  html+=row('От Солнца',o.atlasOnly?'Надёжная дальность неизвестна':distanceText(o.d))+'</dl>';
  if(ExtendedCatalog.systemByMember.has(o.id))html+='<button class="map-size-action" id="viewSystem">Показать связанную систему ↗</button>';
  if(o.id==='sgr'||o.nuclearStar)html+='<button class="map-size-action" id="viewNuclearCluster">Звёзды и орбиты у Стрельца A* ↗</button>';
- if(o.departureStar)html+='<button class="map-size-action" id="viewLocalStar">Найти звезду для разгона ↗</button>';
  if(o.atlasOnly)html+='<p class="object-note">Только атлас: положение недостаточно точное. На карте объект не размещён.</p>';
  html+='<p class="object-note">Оценки округлены. M☉ — масса Солнца; L☉ — его полная светимость, L☉,V и L☉,B — светимость Солнца в соответствующей полосе. Это собственное излучение, а не видимая яркость с Земли.</p>';
  if(f.visual)html+='<p class="object-note">Полосовая светимость рассчитана из каталожной фотометрии и расстояния атласа: M = m − 5 log₁₀(d/10 пк), L/L☉ = 10⁰·⁴⁽ᴹ☉⁻ᴹ⁾. Без поправки на поглощение пылью; это приблизительная оценка, не полная болометрическая мощность.</p>';
  if(MapDetails.component(o))html+='<p class="object-sources"><a href="https://www.nasa.gov/universe/chandra-scouts-nearest-star-system-for-possible-hazards/" target="_blank" rel="noopener">NASA · компоненты Альфы Центавра ↗</a></p>';
  if(f.note)html+='<p class="object-note">'+f.note+'</p>';
  html+='<p class="object-sources">'+f.refs.map(([url,label])=>'<a href="'+url+'" target="_blank" rel="noopener">'+label+' ↗</a>').join('')+'</p>';
- showDialog(html);if(o.id==='sgr'||o.nuclearStar)$('viewNuclearCluster').onclick=()=>{$('infoDialog').close();NuclearStars.focus();};if(ExtendedCatalog.systemByMember.has(o.id))$('viewSystem').onclick=()=>ExtendedCatalog.showSystem(o.id);if(o.departureStar)$('viewLocalStar').onclick=()=>{const star=ExtendedCatalog.ensureGalaxy(o);$('infoDialog').close();if(o.id===state.current)findDepartureStar();else if(star){select(star.id);ExtendedCatalog.focus(star);}};if(o.region)$('viewRegion').onclick=()=>{$('infoDialog').close();RegionMap.focus(o);};if(g||o.id==='sgr')$('viewGalaxy').onclick=()=>{const shape=g||GALAXIES[0];$('infoDialog').close();focusGalaxy(shape);};
+ showDialog(html);if(o.id==='sgr'||o.nuclearStar)$('viewNuclearCluster').onclick=()=>{$('infoDialog').close();NuclearStars.focus();};if(ExtendedCatalog.systemByMember.has(o.id))$('viewSystem').onclick=()=>ExtendedCatalog.showSystem(o.id);if(o.region)$('viewRegion').onclick=()=>{$('infoDialog').close();RegionMap.focus(o);};if(g||o.id==='sgr')$('viewGalaxy').onclick=()=>{const shape=g||GALAXIES[0];$('infoDialog').close();focusGalaxy(shape);};
 }
 function focusGalaxy(g){const span=g.diameterLy*Math.max(2.5,width/Math.max(height*.58,1));const p=MapLayout.project(g);goCamera(p.x,p.y,span);toast('Оптический контур · '+distanceText(g.diameterLy)+' · в масштабе карты');}
 function showJournal(){showDialog('<div class="modal-eyebrow">'+SHIP_NAME.toUpperCase()+' / ЖУРНАЛ</div><h2>След экспедиции.</h2><p>Исследовано '+state.visited.length+' из '+(OBJECTS.length-1)+' точек · пройдено '+distanceText(state.totalDistance)+' · собрано '+massText(state.captured)+' · аннигилировано на '+compact(state.spentEnergy/1e15)+' ПДж; отведено тепла '+compact(state.heatRadiated/1e15)+' ПДж.</p>'+[...state.journal].reverse().map(e=>'<div class="journal-entry"><time>'+compact(e.t)+' лет</time><p>'+e.text+'</p></div>').join(''));}
@@ -846,7 +854,7 @@ let lastFrame=performance.now();function frame(now){Cosmology.sync(state);const 
  if(now-saveTick>1500){persist();saveTick=now;}requestAnimationFrame(frame);
 }
 
-function zoomAtPointer(e){e.preventDefault();cameraGoal=null;const factor=Math.exp(clamp(e.deltaY,-220,220)*.006),span=clamp(cam.span*factor,.00006,zoomStops.at(-1).span);
+function zoomAtPointer(e){e.preventDefault();cameraGoal=null;const factor=Math.exp(clamp(e.deltaY,-220,220)*.006),span=clamp(cam.span*factor,.00006,MAX_CAMERA_SPAN);
  if(followShip||shipFocusArmed)cam=shipCamera(span);
  else{const r=canvas.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,before=world(x,y);cam.span=span;const after=world(x,y);cam.x+=before.x-after.x;cam.y+=before.y-after.y;}
  updateMapHeading();updateZoomControl();}
@@ -874,8 +882,7 @@ document.querySelectorAll('[data-sail]').forEach(b=>b.onclick=()=>{if(state.flig
 
 $('timeSlider').addEventListener('input',event=>setTimeRate(TIME_RATES[Number(event.target.value)]));
 document.querySelectorAll('[data-time]').forEach(button=>button.onclick=()=>setTimeRate(button.dataset.time));
-$('findDepartureStar').onclick=$('findDepartureStarCard').onclick=()=>{syncClock();findDepartureStar();};
-$('launchBtn').onclick=()=>{syncClock();if(state.current===state.selected){const here=object(state.current),star=ExtendedCatalog.ensureGalaxy(here);if(star)findDepartureStar();else openCatalog();}else launch();};$('helpBtn').onclick=showHelp;$('modelBtn').onclick=showModel;$('journalBtn').onclick=showJournal;$('objectInfo').onclick=()=>showObject(state.flight?.target||state.selected);$('closeDialog').onclick=()=>$('infoDialog').close();
+$('launchBtn').onclick=()=>{syncClock();if(state.current===state.selected){openCatalog();}else launch();};$('helpBtn').onclick=showHelp;$('modelBtn').onclick=showModel;$('journalBtn').onclick=showJournal;$('objectInfo').onclick=()=>showObject(state.flight?.target||state.selected);$('closeDialog').onclick=()=>$('infoDialog').close();
 $('infoDialog').addEventListener('click',e=>{if(e.target===$('infoDialog')){const r=$('infoDialog').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('infoDialog').close();}});
 $('resetBtn').onclick=()=>{showDialog('<div class="modal-eyebrow">НОВАЯ ЭКСПЕДИЦИЯ</div><h2>Снова от Солнца?</h2><p>Текущий прогресс в этом браузере будет сброшен.</p><button class="modal-start" id="confirmReset">Начать заново →</button>');$('confirmReset').onclick=()=>{state=initial();paused=false;speed=1;Simulation.debt=0;Simulation.wallDebt=0;delete Simulation.smoothedFactor;lastFrame=performance.now();effects=[];goCamera(0,0,24);renderUI();persist();$('infoDialog').close();toast('Новая экспедиция. Солнечная система, нулевой год.');};};
 window.addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select,button,summary')||$('infoDialog').open||$('flightBuilder').open)return;if(e.code==='Space'){e.preventDefault();syncClock();paused=!paused;renderUI();persist();}if(e.key==='Escape'){closeCatalog();closeMenu();}if(e.key==='+'||e.key==='=')goCamera(cam.x,cam.y,cam.span/2,false,true);if(e.key==='-')goCamera(cam.x,cam.y,cam.span*2,false,true);});

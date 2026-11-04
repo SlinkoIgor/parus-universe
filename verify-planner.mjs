@@ -35,7 +35,7 @@ for(const target of ['andromeda','3c273']){
  plannerReset();state.selected=target;state.expansion=true;state.flightSetup=FlightSetup.normalize({sail:true,collector:true,burst:target==='andromeda',collectGas:false});
  const forecast=MissionPlanner.preview();assert.ok(forecast.valid,forecast.reason);if(target==='3c273')assert.ok(forecast.cosmic);launch();let count=0;
  while(state.flight&&count++<100)Simulation.step(1e12);
- assert.equal(state.current,target);nearPlanner(state.proper,forecast.proper);nearPlanner(state.earth,forecast.earth);assert.equal(state.captured,0);
+ if(!['star','home'].includes(object(target).kind)){assert.equal(object(state.current).kind,'star');assert.equal(object(state.current).parentObject,target);assert.ok(state.visited.includes(target));}else assert.equal(state.current,target);nearPlanner(state.proper,forecast.proper);nearPlanner(state.earth,forecast.earth);assert.equal(state.captured,0);
 }
 console.log('PASS complete expanding intergalactic flights without gas collection');
 assert.equal(quantity(7.3e-5),'7,3·10⁻⁵');assert.ok(!quantity(7.3e-5).includes('<'));

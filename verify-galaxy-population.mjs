@@ -71,7 +71,7 @@ for(const host of ['lmc','smc']){
  let xx=0,yy=0,xy=0;for(const r of rows){const x=r[12]-mx,y=r[13]-my;xx+=x*x;yy+=y*y;xy+=x*y;}
  assert.ok((xx*yy-xy*xy)/(xx*yy)>.01,'two-dimensional Cloud population');
  context.hostUnderTest=host;
- run(`{state=initial();const g=object(hostUnderTest),star=ExtendedCatalog.ensureGalaxy(g);assert.ok(star.galaxyMember&&!star.synthetic&&star.navigable);assert.equal(star.positionEstimate.method,'individual-period-Wesenheit');assert.ok(ExtendedCatalog.background(star));}`);
+ run(`{state=initial();const g=object(hostUnderTest),star=OBJECTS.find(o=>o.parentGalaxy===g.id&&o.galaxyMember&&!o.atlasOnly&&o.positionEstimate?.method==='individual-period-Wesenheit');assert.ok(star.galaxyMember&&!star.synthetic&&star.navigable);assert.equal(star.positionEstimate.method,'individual-period-Wesenheit');assert.ok(ExtendedCatalog.background(star));}`);
 }
 const psr=JSON.parse(fs.readFileSync('data-tools/pulsar-distance-audit.json','utf8')).rows;
 const extragalactic=psr.filter(r=>r.method.includes('индивидуальную глубину пульсара'));

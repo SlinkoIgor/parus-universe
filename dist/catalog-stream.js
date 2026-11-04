@@ -142,7 +142,6 @@ const ExtendedCatalog={
   if(this.manifest&&(globalThis.MapSlice?.mode!=='slice'||MapSlice.manifest)&&(!globalThis.MapRadial?.active()||MapRadial.manifest)){this.wanted=this.nodesForView(cam,width,height);for(const file of this.wanted)if(!this.cache.has(file)&&this.inflight.size+(globalThis.MapLayers?.inflight.size||0)<4&&now-(this.errors.get(file)||-Infinity)>3000)this.tile(file).then(()=>{this.lastUpdate=-Infinity;}).catch(()=>{});
    if(this.wanted.every(file=>this.cache.has(file))){const key=(MapSlice.mode==='slice'?MapSlice.centerZ+':'+MapSlice.halfThicknessAt().toPrecision(5)+':':'')+this.wanted.join('|');if(key!==this.cutKey){this.cutKey=key;this.adoptCut(this.wanted.flatMap(file=>this.cache.get(file)),now);}}
   }
-  if(cam.span<200000)for(const g of GALAXIES){if(g.id==='milkyway')continue;const p=MapLayout.project(g);if(Math.hypot(cam.x-p.x,cam.y-p.y)<cam.span)this.ensureGalaxy(OBJECTS.find(o=>o.id===g.id)||this.get(g.id));}
  },
  pin(o){
   if(!o)return o;const core=OBJECTS.find(q=>q.id===o.id);if(core)return core;
@@ -172,13 +171,13 @@ const ExtendedCatalog={
   const file=entry.tile||EXTENDED_BOOT.systemTiles?.[entry.id];if(!file)throw Error('Нет адреса записи каталога');
   const rows=await this.tile(file),o=rows.find(o=>o.id===entry.id);if(!o)throw Error('Запись не найдена в каталоге');return this.pin(o);
  },
- focus(o){if(o.cosmicEpoch){UniverseMap.focus(o);return;}globalThis.MapSlice?.focus(o);if(o.nuclearStar){NuclearStars.focus(o.orbit);return;}if(o.atlasOnly){toast(o.positionReason||'Для этого объекта недостаточно точное положение. Он доступен только в атласе.');return;}if(o.region){RegionMap.focus(o);this.ensureGalaxy(o);return;}const p=MapLayout.project(o),span=o.positionEstimate?Math.max(24,4*o.positionEstimate.localEnvelopeLy,4*(o.diameterLy||0)):o.kind==='galaxy'?(o.galaxy?.diameterLy||30000)*2.8:o.positionQuality==='unknown'?Math.max(400,Math.hypot(p.x,p.y)*.04):o.synthetic?2:o.kind==='star'?24:Math.max(24,Math.min(20000,(o.d||100)*.03));const system=this.systemByMember.get(o.id),viewSpan=system?.separationLy?Math.max(.00006,system.separationLy*6):span;goCamera(p.x,p.y,globalThis.MapVisibility?.active?MapVisibility.focusSpan(o,viewSpan):viewSpan);this.ensureGalaxy(o);},
+ focus(o){if(o.cosmicEpoch){UniverseMap.focus(o);return;}globalThis.MapSlice?.focus(o);if(o.nuclearStar){NuclearStars.focus(o.orbit);return;}if(o.atlasOnly){toast(o.positionReason||'Для этого объекта недостаточно точное положение. Он доступен только в атласе.');return;}if(o.region){RegionMap.focus(o);return;}const p=MapLayout.project(o),span=o.positionEstimate?Math.max(24,4*o.positionEstimate.localEnvelopeLy,4*(o.diameterLy||0)):o.kind==='galaxy'?(o.galaxy?.diameterLy||30000)*2.8:o.positionQuality==='unknown'?Math.max(400,Math.hypot(p.x,p.y)*.04):o.synthetic?2:o.kind==='star'?24:Math.max(24,Math.min(20000,(o.d||100)*.03));const system=this.systemByMember.get(o.id),viewSpan=system?.separationLy?Math.max(.00006,system.separationLy*6):span;goCamera(p.x,p.y,globalThis.MapVisibility?.active?MapVisibility.focusSpan(o,viewSpan):viewSpan);},
  capture(saved){
   saved.catalogGeometry=MapLayout.version;
   saved.catalogRevision=EXTENDED_BOOT.revision;
   const ids=new Set([saved.current,saved.selected,saved.flight?.target,saved.flight?.fromId,...(saved.visited||[]),...(saved.destroyed||[]),...(saved.flightHistory||[]).flatMap(h=>[h.fromId,h.target]),...(saved.itinerary||[]).map(n=>n.id),...(saved.flight?.route||[]).map(n=>n.id)]);
   // Include the parent galaxy so a generated star can still be identified on reload.
-  for(const id of ids){const o=this.get(id);if(o?.parentGalaxy)ids.add(o.parentGalaxy);if(o?.parentObject)ids.add(o.parentObject);const anchor=o&&MapLayout.anchorId(o);if(anchor)ids.add(anchor);if(o?.departureStar)ids.add(o.departureStar);}
+  for(const id of ids){const o=this.get(id);if(o?.parentGalaxy)ids.add(o.parentGalaxy);if(o?.parentObject)ids.add(o.parentObject);const anchor=o&&MapLayout.anchorId(o);if(anchor)ids.add(anchor);}
   saved.catalogObjects=[...ids].map(id=>this.pinned.get(id)).filter(Boolean);
   for(const id of this.pinned.keys())if(!ids.has(id))this.pinned.delete(id);
  },
@@ -204,20 +203,18 @@ const ExtendedCatalog={
    saved.catalogRevision=EXTENDED_BOOT.revision;
   }
  },
- ensureGalaxy(g){
-  if(!g||!g.p3||g.atlasOnly&&g.id!==state.current)return null;
-  // An unspent star is already a sail source; don't point its arrival button at itself.
-  if(g.kind==='star'&&!state.destroyed.includes(g.id))return null;
-  this.prepareGalaxy(g);
-  const candidates=[...OBJECTS,...this.pinned.values(),...this.visible].filter(o=>o.id!==g.id&&o.kind==='star'&&!o.synthetic&&!o.atlasOnly&&o.p3&&!state.destroyed.includes(o.id));
-  const radius=g.kind==='home'?10:g.kind==='galaxy'?Math.max(1,(g.galaxy?.diameterLy||30000)*.6):g.region&&!g.region.mapSizeDerived?Math.max(1,Math.min(10000,g.region.major*.5)):Math.max(1,g.diameterLy||0);
-  const real=candidates.filter(o=>o.parentGalaxy===g.id||Space.distance(o,g)<radius).sort((a,b)=>Space.distance(a,g)-Space.distance(b,g))[0];
-  if(real){g.departureStar=real.id;return real;}
-  let n=1;while(state.destroyed.includes('game-star:'+g.id+':'+n))n++;
-  const id='game-star:'+g.id+':'+n;if(this.pinned.has(id)){g.departureStar=id;return this.pinned.get(id);}
-  const a=n*2.399963,offset=[.12*Math.cos(a),.12*Math.sin(a),.025],p=MapLayout.baseProject(g);
-  const o={id,name:'Неизвестная звезда · '+g.name+(n>1?' · '+n:''),aliases:[g.name,'Игровая звезда'],kind:'star',type:'УСЛОВНАЯ ИГРОВАЯ ЗВЕЗДА',synthetic:true,parentObject:g.id,...(g.kind==='galaxy'?{parentGalaxy:g.id}:{}),p3:g.p3.map((v,i)=>v+offset[i]),mapPosition:{x:p.x+offset[0],y:p.y-offset[1]},navigable:true,positionQuality:'fictional',desc:'Игровая звезда рядом с точкой прибытия: '+g.name+'. Индивидуальная реальная звезда в этой позиции не известна; положение создано для продолжения игры.',coordinateNote:'Условная игровая позиция рядом с точкой прибытия; не астрономическое измерение.',facts:{class:'Условная игровая звезда',mass:'Не задана.',lumUnknown:'Использует игровую модель звёздного импульса.',note:'Доступна для парусного разгона; отдельная звезда в этой позиции не измерена.',refs:[]}};
-  Object.assign(o,Space.point(o.p3));o.d=Math.hypot(...o.p3);this.pin(o);g.departureStar=id;return o;
+ arrivalStar(host,destroyed=state.destroyed){
+  // A pure destination preview: no catalog mutation, nearest-star search or
+  // visible object until the ship actually reaches this non-stellar target.
+  if(!host?.navigable||host.atlasOnly||!host.p3?.every(Number.isFinite)||host.rangeProbe||['home','star'].includes(host.kind))return null;
+  let n=1;while(destroyed.includes('arrival-star:'+host.id+':'+n))n++;
+  const id='arrival-star:'+host.id+':'+n,existing=this.get(id);if(existing)return existing;
+  const p=MapLayout.ordinaryProject(host),o={id,name:'Неизвестная звезда · '+host.name+(n>1?' · '+n:''),aliases:[host.name,'Игровая звезда'],kind:'star',type:'УСЛОВНАЯ ИГРОВАЯ ЗВЕЗДА',synthetic:true,arrivalHost:host.id,parentObject:host.id,...(host.kind==='galaxy'?{parentGalaxy:host.id}:{}),...Space.point([...host.p3]),mapPosition:{...p},d:Math.hypot(...host.p3),navigable:true,positionQuality:'fictional',desc:'Условная звезда в точке прибытия: '+host.name+'. Создана для продолжения экспедиции; отдельная реальная звезда в этой позиции не известна.',coordinateNote:'Игровая позиция в выбранной области; не астрономическое измерение.',facts:{class:'Условная игровая звезда',mass:'Индивидуальная масса неизвестна.',lumUnknown:'Для разгона используется игровая оценка светимости.',note:'Появляется при прибытии корабля. Положение и параметры не являются измерением реальной звезды.',refs:[]}};
+  return o;
+ },
+ revealArrival(host,star=this.arrivalStar(host)){
+  if(!star)return host;
+  return this.pin(star);
  },
  draw(){
   const points=[...(globalThis.MapLayers?.visible||[]),...this.visible,...this.pinned.values(),...OBJECTS.filter(o=>this.background(o))],seen=new Set(),protectedPoints=OBJECTS.filter(o=>this.matchesMap(o)&&!this.background(o)&&!o.region&&MapDetails.visible(o,cam.span)).map(o=>({...screen(o),level:MapDetails.level(o)})).filter(p=>p.x>-30&&p.x<width+30&&p.y>-30&&p.y<height+30);

@@ -13,7 +13,7 @@ const run=s=>vm.runInContext(s,context);
 run(`
 resize();
 assert.equal(MapDetails.visible(object('alpha'),130000),false);
-assert.equal(MapDetails.visible(object('sol'),130000),false);
+assert.equal(MapDetails.visible(object('sol'),130000),true,'home remains a navigation landmark');
 assert.equal(MapDetails.visible(object('alpha'),24),true);
 for(const o of OBJECTS.filter(o=>o.ngc))assert.ok(!/\\b(?:NGC|IC)\\s*\\d/.test(o.name),'catalog code on map: '+o.name);
 assert.ok(object('andromeda').name.includes('M31'));
@@ -23,7 +23,7 @@ const before=JSON.stringify(object('alpha').p3);
 for(const span of [24,200,1000,130000,7e6,5e8,5e9,3e10,1.15e11]){
  cam={x:0,y:0,span};MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawObjects();drawShip(0);MapLabels.draw();
  for(let i=0;i<MapLabels.placed.length;i++)for(let j=0;j<i;j++)assert.ok(!MapLabels.overlaps(MapLabels.placed[i],MapLabels.placed[j]),'overlap at '+span);
- if(span>=130000)assert.ok(!hitObjects.some(h=>h.o.id==='alpha'||h.o.id==='sol'));
+ if(span>=130000){assert.ok(!hitObjects.some(h=>h.o.id==='alpha'));assert.ok(hitObjects.some(h=>h.o.id==='sol'));}
  assert.ok(galaxyProjection(object('andromeda').galaxy).r>galaxyProjection(object('triangulum').galaxy).r);
 }
 assert.equal(JSON.stringify(object('alpha').p3),before);
