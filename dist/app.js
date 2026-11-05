@@ -211,7 +211,8 @@ $('catalogFilter').addEventListener('change', (e) => {
   RegionMap.hits = [];
   ExtendedCatalog.searchLimit = 100;
   const name = e.target.selectedOptions?.[0]?.textContent || filter;
-  $('catalogBtn').title = filter === 'all' ? 'Атлас' : 'На карте: ' + name;
+  $('catalogBtn').title =
+    (filter === 'all' ? 'Атлас' : 'Атлас · на карте: ' + name) + ' · ⌘F / Ctrl+F';
   $('catalogBtn').setAttribute(
     'aria-label',
     filter === 'all' ? 'Атлас' : 'Атлас. На карте: ' + name,
@@ -300,12 +301,23 @@ $('resetBtn').onclick = () => {
   };
 };
 window.addEventListener('keydown', (e) => {
+  if ($('infoDialog').open || $('flightBuilder').open) return;
   if (
-    e.target.closest('input,textarea,select,button,summary') ||
-    $('infoDialog').open ||
-    $('flightBuilder').open
-  )
+    (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey &&
+    (e.code === 'KeyF' || e.key.toLowerCase() === 'f')
+  ) {
+    e.preventDefault();
+    openCatalog();
+    $('search').select();
     return;
+  }
+  if (e.key === 'Escape' && !$('catalog').hidden) {
+    if (CSS.supports('selector(:open)') && $('catalogFilter').matches(':open')) return;
+    e.preventDefault();
+    closeCatalog();
+    return;
+  }
+  if (e.target.closest('input,textarea,select,button,summary,[contenteditable]')) return;
   if (e.code === 'Space') {
     e.preventDefault();
     syncClock();

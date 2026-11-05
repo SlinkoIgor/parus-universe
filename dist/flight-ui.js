@@ -207,20 +207,24 @@ function renderUI() {
   $('targetType').textContent = objectTypeText(target);
   $('targetVisited').hidden = !state.visited.includes(target.id);
   $('flightCard').classList.toggle('in-flight', active);
-  $('shipLocation').textContent = current
-    ? 'Стоянка · ' + current.name
-    : active
-      ? 'В пути · ' + (object(f.fromId)?.name || 'Межзвёздное пространство')
-      : 'Межзвёздное пространство';
-  $('shipLocationType').textContent =
-    objectTypeText(current) +
-    (state.orbit && current
+  const locationFrom = active
+    ? object(f.fromId)?.name || f.from?.name || 'Межзвёздное пространство'
+    : current ? 'Стоянка · ' + current.name : 'Межзвёздное пространство';
+  $('shipLocationFrom').textContent = locationFrom;
+  $('shipLocationTo').textContent = active ? target.name : '';
+  $('shipLocationArrow').hidden = !active;
+  $('shipLocationTo').hidden = !active;
+  $('shipLocationIcon').setAttribute('href', active ? '#ship-icon' : '#station-icon');
+  $('shipLocationType').textContent = objectTypeText(active ? null : current) +
+    (state.orbit && current && !active
       ? ' · орбита ' + fmt(state.orbit.radius / Stellar.r0, 2) + ' а.е.'
       : '');
-  $('shipLocationType').hidden = !current;
-  $('shipLocation').title = current
-    ? current.name + ' · ' + objectTypeText(current)
-    : $('shipLocation').textContent;
+  $('shipLocationType').hidden = active || !current;
+  $('shipLocation').title = active
+    ? locationFrom + ' → ' + target.name
+    : current
+      ? current.name + ' · ' + objectTypeText(current)
+      : locationFrom;
   const d = target.navigable
     ? (f?.summary?.distance ?? f?.distance ?? Cosmology.physicalDistance(state.ship, target))
     : NaN;

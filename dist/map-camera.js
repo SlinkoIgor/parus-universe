@@ -304,6 +304,5 @@ function updateMapHeading() {
     [title, sub, sheet] = mapContext(view);
   $('mapTitle').textContent = title;
   $('mapSubtitle').textContent = sub;
-  $('mapSubtitle').hidden = !sub;
   $('mapSheet').textContent = '/ ' + sheet;
 }

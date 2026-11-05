@@ -60,8 +60,8 @@ const MapSlice={
   status.textContent=index.error?'Не удалось загрузить карту. Нажмите «'+label+'» ещё раз.':index.loading?'Загрузка карты…':'';
   status.title=index.error||'';
   // The complete atlas stays searchable. Only its map is sliced.
-  $('mapModeNotice').hidden=this.mode==='full';
-  $('mapModeNotice').textContent=this.mode==='radial'?'Звёзды до 1000 св. лет размещаются от Солнца, галактики до 15 млн св. лет — от центра Млечного Пути. Орбитальные системы сохраняют форму в проекции XY. Полёты рассчитаны в 3D.':'Срез параллелен плоскости Млечного Пути. Толщина везде одинакова — половина ширины карты. При фокусировке срез проходит через выбранный объект; перемещение карты его высоту не меняет. Атлас показывает весь каталог.';
+  $('mapModeNotice').hidden=this.mode!=='slice';
+  $('mapModeNotice').textContent=this.mode==='slice'?'Срез параллелен плоскости Млечного Пути. Толщина везде одинакова — половина ширины карты. При фокусировке срез проходит через выбранный объект; перемещение карты его высоту не меняет. Атлас показывает весь каталог.':'';
  },
  setup(){
   let mode='full';try{mode=localStorage.getItem('parus-map-mode');}catch{}

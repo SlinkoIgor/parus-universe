@@ -161,11 +161,15 @@ function closeMenu() {
 function openCatalog() {
   closeMenu();
   $('catalog').hidden = false;
+  $('catalogBtn').setAttribute('aria-expanded', 'true');
   renderCatalog();
   $('search').focus();
 }
 function closeCatalog() {
+  const restoreFocus = document.activeElement?.closest('#catalog');
   $('catalog').hidden = true;
+  $('catalogBtn').setAttribute('aria-expanded', 'false');
+  if (restoreFocus) $('catalogBtn').focus();
   Route.picking = false;
 }
 function showDialog(html) {
