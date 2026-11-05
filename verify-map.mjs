@@ -35,12 +35,12 @@ assert.ok(object('boss-wall').region);assert.ok(object('eridanus-supervoid').reg
 assert.equal(object('local-void').navigable,true);
 assert.equal(new Set(OBJECTS.map(o=>o.id)).size,OBJECTS.length);
 assert.equal(new Set(OBJECTS.flatMap(o=>o.iauNames||[])).size,652);
-assert.equal(CATALOG_COUNTS.all,1066+EXTENDED_BOOT.members.length+NuclearStars.rows.length);
+assert.equal(CATALOG_COUNTS.all,1066+EXTENDED_BOOT.members.length+NuclearStars.rows.length+ExtendedCatalog.stellarAddedCount);
 
 // Sample actual animation frames with a fixed camera. Moving ship/flight labels
 // must never move stars, displace an atlas label or introduce a trajectory caption.
 state=initial();state.selected='alpha';launch(true);cam={x:0,y:0,span:24};cameraGoal=null;
-function chartFrame(){MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawRoute();drawObjects();drawShip(0);MapLabels.draw();return{symbols:JSON.stringify(hitObjects.filter(h=>!['alpha','hyg-71453','proxima'].includes(h.o.id)&&!h.o.nuclearStar).map(h=>[h.o.id,h.p])),labels:JSON.stringify(MapLabels.placed.filter(q=>!MapLabels.dynamic(q.key)&&!['object-alpha','object-hyg-71453','object-proxima'].includes(q.key)))};}
+function chartFrame(){MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawRoute();drawObjects();drawShip(0);MapLabels.draw();return{symbols:JSON.stringify(hitObjects.filter(h=>!OrbitalMotion.isOrbiting(h.o)).map(h=>[h.o.id,h.p])),labels:JSON.stringify(MapLabels.placed.filter(q=>!MapLabels.dynamic(q.key)&&!OrbitalMotion.isOrbiting(object(q.key.replace(/^object-/,''))))) };}
 const fixed=chartFrame();for(let i=0;i<1500&&state.flight;i++){Simulation.advance(1/60);if(!state.flight)break;const current=chartFrame();assert.equal(current.symbols,fixed.symbols,'star symbols remain fixed');assert.equal(current.labels,fixed.labels,'atlas labels remain fixed throughout flight');assert.ok(!MapLabels.queue.some(q=>q.key==='course'));}
 // Changing card height when engines switch off must not reflow the atlas.
 // Restore the same flight view for the independent card-height regression.

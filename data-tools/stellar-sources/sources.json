@@ -1,0 +1,41 @@
+{
+  "retrieved": "2026-11-05",
+  "sources": {
+    "identities": {
+      "url": "https://simbad.harvard.edu/simbad/sim-tap",
+      "query": "Exact HIP/HD/GJ identifiers; basic joined with ident and ids. No angular-neighbour name assignment."
+    },
+    "hierarchy": {
+      "url": "https://simbad.harvard.edu/simbad/sim-tap",
+      "query": "h_link for the target object identifiers; moving groups, planets and unconfirmed sources are not treated as stellar companions."
+    },
+    "orb6": {
+      "url": "https://www.astro.gsu.edu/wds/orb6/orb6orbits.txt",
+      "format": "https://www.astro.gsu.edu/wds/orb6/orb6format.txt",
+      "sha256": "ac7db7711d638f4d8bc47f9a876fb7294f25436d36942d74eb023aa42325824c"
+    },
+    "msc": {
+      "url": "https://vizier.cfa.harvard.edu/viz-bin/asu-tsv?-source=J/ApJS/235/6&-out.max=unlimited&-out.all",
+      "reference": "https://doi.org/10.3847/1538-4365/aaa1a5",
+      "sha256": "fcb51689b2ff0f5a7623f8bb328368beb328b71b2f6a107255b16136e4015446"
+    },
+    "photos": {
+      "url": "https://archive.stsci.edu/cgi-bin/dss_search",
+      "survey": "Digitized Sky Survey, POSS-II/UKST red; 10 arcmin field. Original survey plates, not an image resolving all companions.",
+      "testRaDeg": 114.825,
+      "testDecDeg": 5.225,
+      "contentType": "image/gif",
+      "bytes": 335210
+    },
+    "sb9": {
+      "url": "https://vizier.cfa.harvard.edu/viz-bin/asu-tsv?-source=B/sb9&-out.max=unlimited&-out.all",
+      "reference": "https://doi.org/10.1051/0004-6361:20041213",
+      "sha256": "e0d235125dd8c0272662f425340c7db723a38cb7ac2f727ca4e41b294d148ebc",
+      "usage": "Confirmed spectroscopic pairs with exact source identifiers; spectroscopic elements alone do not define a spatial orbit."
+    },
+    "orbitalMasses": {
+      "06451-1643": "https://arxiv.org/abs/1703.10625",
+      "07393+0514": "https://arxiv.org/abs/1510.00485"
+    }
+  }
+}

@@ -1,0 +1,2 @@
+# Preserve the original whitespace and checksum of this frozen upstream table.
+data-tools/sky-sources/constellation-names.dat whitespace=-blank-at-eol

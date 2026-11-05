@@ -63,7 +63,7 @@ console.log('PASS every source spine crossing viewport, including offscreen anch
 run(`
 // All stellar clusters/nebulae load before ordinary stars, and all spines and
 // galaxy clusters load before ordinary galaxies. Filters have their own files.
-MapLayers.ready.clear();MapLayers.admitted.clear();filter='all';cam={x:0,y:0,span:1000};assert.equal(MapLayers.admits(object('alpha')),true,'known orbit remains visible without streaming context');assert.equal(MapLayers.admits(object('sirius')),false);assert.equal(MapLayers.admits(object('andromeda')),false);
+MapLayers.ready.clear();MapLayers.admitted.clear();filter='all';cam={x:0,y:0,span:1000};assert.equal(MapLayers.admits(object('alpha')),true,'known orbit remains visible without streaming context');assert.equal(MapLayers.admits(object('sirius')),true,'published Sirius orbit remains visible without streaming context');assert.equal(MapLayers.admits({id:'hierarchy-context-star',kind:'star'}),false,'ordinary stars still wait for streaming context');assert.equal(MapLayers.admits(object('andromeda')),false);
 MapLayers.ready.set('stellar-cluster',true);MapLayers.ready.set('nebula',true);assert.equal(MapLayers.admits(object('alpha')),true);
 MapLayers.ready.set('filament',true);MapLayers.ready.set('galaxy-cluster',true);assert.equal(MapLayers.admits(object('andromeda')),true);
 filter='galaxy';assert.equal(MapLayers.admits(object('andromeda')),true,'explicit class filter has no hidden competitors');

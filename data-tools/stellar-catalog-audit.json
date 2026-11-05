@@ -1,0 +1,674 @@
+{
+  "revision": "01e9aaefe7b4",
+  "names": 977,
+  "originalTargets": 929,
+  "localTargets": 99,
+  "systems": 37,
+  "systemComponents": 93,
+  "promotedOrNew": 46,
+  "fullRelativeOrbits": 31,
+  "incompletePairs": [
+    {
+      "system": "Titawin",
+      "pair": "A,B",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "268 G. Кита",
+      "pair": "AB,C",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Dalim",
+      "pair": "Ba,Bb",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Кейд",
+      "pair": "A,BC",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Капелла",
+      "pair": "AB,HL",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Гамма Зайца",
+      "pair": "A,B",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Copernicus",
+      "pair": "A,B",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Тета Большой Медведицы",
+      "pair": "A,B",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Алула Южная",
+      "pair": "AB,D",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Алула Южная",
+      "pair": "Aa,Ab",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Алула Южная",
+      "pair": "Ba,Bb",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Quadrans",
+      "pair": "Ba,Bb",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Вольф 630",
+      "pair": "AC,F",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Вольф 630",
+      "pair": "AB,C",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Вольф 630",
+      "pair": "Ba,Bb",
+      "missing": [
+        "aArcsec",
+        "node"
+      ]
+    },
+    {
+      "system": "Guniibuu",
+      "pair": "AB,C",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Мю Геркулеса",
+      "pair": "A,BC",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Alshain",
+      "pair": "A,B",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Эпсилон Индейца",
+      "pair": "A,B",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Эпсилон Индейца",
+      "pair": "Ba,Bb",
+      "missing": [
+        "node",
+        "omega"
+      ]
+    },
+    {
+      "system": "EZ Водолея",
+      "pair": "Aa,Ab",
+      "missing": [
+        "aArcsec",
+        "node",
+        "omega"
+      ]
+    },
+    {
+      "system": "Фомальгаут",
+      "pair": "AB,C",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Фомальгаут",
+      "pair": "A,B",
+      "missing": [
+        "published-relative-orbit"
+      ]
+    },
+    {
+      "system": "Deneb Algedi",
+      "pair": "A,B",
+      "missing": [
+        "aArcsec",
+        "inclination",
+        "node"
+      ]
+    },
+    {
+      "system": "Muphrid",
+      "pair": "A,B",
+      "missing": [
+        "aArcsec",
+        "inclination",
+        "node"
+      ]
+    }
+  ],
+  "singles": [
+    {
+      "id": "barnard",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "wolf",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "lalande",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "ross",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "epsilon",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "tau",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "trappist",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "vega",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-119585",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-113687",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-57375",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-118541",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-5632",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-82472",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-36107",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-69451",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-97338",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-37718",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-57459",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-104861",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-2016",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-77716",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-22396",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-102091",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-17336",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-98924",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-57584",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-28032",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-77836",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-3759",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-3820",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-15471",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-24129",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-47645",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-53565",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-56916",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-57767",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-59020",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-61124",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-62257",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-79191",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-80579",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-95799",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-104751",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-119137",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-116405",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "hyg-29198",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    },
+    {
+      "id": "iau-orkaria",
+      "status": "no-confirmed-stellar-companion-in-screened-sources",
+      "sources": [
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6",
+        "https://www.astro.gsu.edu/wds/orb6.html",
+        "https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9"
+      ]
+    }
+  ],
+  "rejected": [
+    {
+      "wds": "00491+5749",
+      "pair": "A,B",
+      "type": "V,s,a?",
+      "reason": "STF_60AB DR2-HIP?"
+    },
+    {
+      "wds": "01368+4124",
+      "pair": "Aa,Ab",
+      "type": "a?",
+      "reason": "RUWE=7.2"
+    },
+    {
+      "wds": "05445-2227",
+      "pair": "Aa,Ab",
+      "type": "a",
+      "reason": "DR2-HIP, RUWE=3.2"
+    },
+    {
+      "wds": "08592+4803",
+      "pair": "Aa,Ab",
+      "type": "S1?,a",
+      "reason": "SB9_543"
+    },
+    {
+      "wds": "16555-0820",
+      "pair": "AC,D",
+      "type": "X",
+      "reason": "LDS_573 AB,D WDS:N=1, no PM"
+    },
+    {
+      "wds": "19553+0624",
+      "pair": "Ba,Bb",
+      "type": "s2,a",
+      "reason": "2005A&A.442.635 DR2-HIP"
+    },
+    {
+      "wds": "23393+7738",
+      "pair": "Aa,Ab",
+      "type": "S1,A",
+      "reason": "planet"
+    }
+  ],
+  "limitations": "Сопоставление имён охватывает исходные звёзды основного набора. Проверка кратности ограничена ближайшим набором и Gl 644; MSC/ORB6 не гарантируют отсутствие неизвестных компаньонов. Пустые элементы и параметры фотометрического центра не превращаются в относительные орбиты. Для широких пар индивидуальные глубины и орбиты часто неизвестны."
+}

@@ -1,0 +1,102 @@
+[
+  {
+    "id": "hubble-sirius",
+    "objects": [
+      "sirius",
+      "hyg-118441"
+    ],
+    "title": "Сириус A и B",
+    "instrument": "Hubble · STIS",
+    "band": "Оптический снимок",
+    "date": "публикация 2005",
+    "url": "https://cdn.esahubble.org/archives/images/screen/heic0516a.jpg",
+    "source": "https://esahubble.org/images/heic0516a/",
+    "credit": "NASA, ESA, H. Bond (STScI), M. Barstow (University of Leicester)",
+    "description": "Сириус B — маленькая точка слева снизу от Сириуса A. Главная звезда пересвечена, чтобы показать компаньона; лучи и кольца создаёт оптика телескопа."
+  },
+  {
+    "id": "hubble-alpha",
+    "objects": [
+      "alpha",
+      "hyg-71453"
+    ],
+    "title": "Альфа Центавра A и B",
+    "instrument": "Hubble · WFPC2",
+    "band": "Оптический снимок",
+    "date": "публикация 2016",
+    "url": "https://cdn.esahubble.org/archives/images/screen/potw1635a.jpg",
+    "source": "https://esahubble.org/images/potw1635a/",
+    "credit": "ESA/Hubble & NASA",
+    "description": "Две главные звезды системы Альфы Центавра. Проксима находится далеко за пределами этого кадра. Лучи вокруг звёзд — дифракция в телескопе."
+  },
+  {
+    "id": "hubble-proxima",
+    "objects": [
+      "proxima"
+    ],
+    "title": "Проксима Центавра",
+    "instrument": "Hubble · WFPC2",
+    "band": "Оптический снимок",
+    "date": "публикация 2013",
+    "url": "https://cdn.esahubble.org/archives/images/screen/potw1343a.jpg",
+    "source": "https://esahubble.org/images/potw1343a/",
+    "credit": "ESA/Hubble & NASA",
+    "description": "Ближайшая к Солнцу звезда на снимке телескопа Hubble. Глазом она не видна: видимая яркость значительно ниже предела человеческого зрения."
+  },
+  {
+    "id": "webb-fomalhaut",
+    "objects": [
+      "hyg-113008"
+    ],
+    "title": "Пылевые пояса Фомальгаута",
+    "instrument": "James Webb · MIRI",
+    "band": "Инфракрасное наблюдение · условные цвета",
+    "date": "публикация 2023",
+    "url": "https://cdn.esawebb.org/archives/images/screen/weic2312a.jpg",
+    "source": "https://esawebb.org/images/weic2312a/",
+    "credit": "NASA, ESA, CSA, A. Pagan (STScI), A. Gáspár (University of Arizona)",
+    "description": "Тепловое излучение пыли вокруг Фомальгаута A. Это обработанное инфракрасное изображение; глазом такие пояса и цвета не видны. Саму звезду скрывает маска."
+  },
+  {
+    "id": "eso-betelgeuse",
+    "objects": [
+      "betelgeuse"
+    ],
+    "title": "Поверхность Бетельгейзе",
+    "instrument": "ESO · VLT/SPHERE",
+    "band": "Наблюдение с высоким угловым разрешением",
+    "date": "2019 · публикация 2020",
+    "url": "https://cdn.eso.org/images/screen/eso2003a.jpg",
+    "source": "https://www.eso.org/public/images/eso2003a/",
+    "credit": "ESO/M. Montargès et al.",
+    "description": "Бетельгейзе в декабре 2019 года, во время заметного потускнения. Телескоп различает поверхность сверхгиганта; на обычном небе звезда выглядит точкой."
+  },
+  {
+    "id": "spitzer-vega",
+    "objects": [
+      "vega"
+    ],
+    "title": "Пылевой диск Веги",
+    "instrument": "Spitzer · MIPS",
+    "band": "Инфракрасные наблюдения · 24 и 70 мкм",
+    "date": "публикация 2005",
+    "url": "https://images-assets.nasa.gov/image/PIA07218/PIA07218~orig.jpg",
+    "source": "https://images.nasa.gov/details/PIA07218",
+    "credit": "NASA/JPL-Caltech/University of Arizona",
+    "description": "Два изображения теплового излучения пыли вокруг Веги, в условных цветах. Каждое поле имеет размер 3′ × 3′; это наблюдения Spitzer, а не вид звезды невооружённым глазом."
+  },
+  {
+    "id": "hubble-polaris",
+    "objects": [
+      "polaris"
+    ],
+    "title": "Компаньоны Полярной звезды",
+    "instrument": "Hubble · ACS",
+    "band": "Ультрафиолетовое наблюдение · коллаж масштабов",
+    "date": "публикация 2006",
+    "url": "https://cdn.esahubble.org/archives/images/screen/opo0602a.jpg",
+    "source": "https://esahubble.org/images/opo0602a/",
+    "credit": "NASA, ESA, N. Evans (Harvard-Smithsonian CfA), H. Bond (STScI)",
+    "description": "Коллаж показывает систему Полярной звезды на разных масштабах, включая тесного компаньона на снимке Hubble. Ультрафиолет преобразован в видимые цвета; компоненты тесной пары глазом не разделяются."
+  }
+]

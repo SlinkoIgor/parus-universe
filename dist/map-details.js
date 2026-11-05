@@ -59,9 +59,14 @@ const MapDetails = {
           .replace(/^Реальный объект:\s*[^.]+\.\s*/, '');
   },
   component(o) {
-    return { alpha: 'A', 'hyg-71453': 'B', proxima: 'C' }[o.id];
+    return o.stellarComponent || { alpha: 'A', 'hyg-71453': 'B', proxima: 'C' }[o.id];
   },
   componentNote(o) {
+    if (o.stellarSystem) {
+      const s = ExtendedCatalog.systemByMember.get(o.id);
+      return 'Компонент ' + o.stellarComponent + ' системы «' + s.name + '». В опубликованной иерархии ' + s.members.length +
+        ' компонентов. ' + (s.pairs.some(p => !p.orbit) ? 'Для части пар полного набора орбитальных элементов нет; их связь не изображается прямой линией.' : 'На карте показаны опубликованные относительные орбиты.');
+    }
     const c = this.component(o);
     return c
       ? 'Компонент ' +
@@ -198,6 +203,10 @@ const MapDetails = {
     return o.kind;
   },
   mapLabelName(o) {
+    // Sourced stellar names include surname numbers (Wolf 359), Flamsteed
+    // numbers (61 Cygni) and explicit component suffixes. Other classes keep
+    // their proper-name rule, including the black-hole catalogue.
+    if (o.kind === 'star' && o.stellarLabel && !o.synthetic) return o.stellarLabel;
     const group = this.group(o),
       key = [o.name, o.aliases, o.synthetic, o.galaxyMember, o.bulkGalaxyMember, group],
       cached = this.nameCache.get(o);

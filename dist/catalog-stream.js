@@ -16,6 +16,17 @@ const ExtendedCatalog = {
   errors: new Map(),
   foreground: new Set(EXTENDED_BOOT.foreground),
   systemByMember: new Map(),
+  stellarAddedCount: 0,
+  get systems() {
+    if (!this.systemList) {
+      const added = EXTENDED_BOOT.stellarCatalog?.systems || [],
+        replaced = new Set(added.flatMap(s => s.originalSystemIds)),
+        audited = new Set(EXTENDED_BOOT.stellarCatalog?.auditTargets || []);
+      this.systemList = [...EXTENDED_BOOT.systems.filter(s => !replaced.has(s.id) &&
+        !(s.source?.includes('HYG-Database') && s.members.some(id=>audited.has(id)))), ...added];
+    }
+    return this.systemList;
+  },
   transitions: new Map(),
   cutKey: null,
   matchesMap(o, categoryOnly = false) {
@@ -141,6 +152,7 @@ const ExtendedCatalog = {
   get total() {
     return (
       EXTENDED_BOOT.total +
+      (EXTENDED_BOOT.stellarCatalog?.newObjectCount || 0) +
       (globalThis.DistantCatalog?.objects.length || 0) +
       (globalThis.UniverseMap?.areas.length || 0) +
       OBJECTS.filter((o) => o.nuclearStar).length +
@@ -148,6 +160,8 @@ const ExtendedCatalog = {
     );
   },
   get(id) {
+    const historical=this.pinned.get(id);
+    if(historical?.historicalStellarNavigation)return historical;
     return (
       this.coreIndex?.get(id) ||
       this.pinned.get(id) ||
@@ -157,6 +171,7 @@ const ExtendedCatalog = {
   },
   background(o) {
     return (
+      !o.stellarSystem &&
       MapDetails.mass(o) === null &&
       !o.synthetic &&
       !o.messier &&
@@ -210,6 +225,31 @@ const ExtendedCatalog = {
     return o;
   },
   stellarProperties(o) {
+    const data = EXTENDED_BOOT.stellarCatalog, entry = data?.names[o.id];
+    if (entry && o.kind === 'star' && !o.synthetic) {
+      o.aliases = [...new Set([o.name, ...(o.aliases || []), ...entry.aliases, entry.name])];
+      o.name = entry.name;
+      o.stellarLabel = /^(?:HIP|HYG|HD|HR|Gl|GJ)\s*\d/.test(entry.name) ? null : entry.name;
+      o.stellarNameBasis = entry.basis;
+      o.stellarNameSource = entry.source;
+      o.stellarRevision = data.revision;
+    }
+    if (data && !o.historicalStellarNavigation) {
+      this.stellarObjectIndex ??= new Map(data.objects.map(q => [q.id, q]));
+      const q = this.stellarObjectIndex.get(o.id);
+      if (q) {
+        Object.assign(o, q, Space.point(q.p3), {mapPosition:null, mapOffset:null, mapGeometry:MapLayout.version});
+        if (q.unresolvedSourcePhotometry && o.facts) {
+          o.unresolvedSourceFacts ??= {...o.facts};
+          o.facts = {...o.facts, class:q.type, mass:'Индивидуальная масса не указана.', lum:null, visual:null,
+            lumUnknown:'Исходная фотометрия относится к неразрешённой паре; индивидуальная светимость неизвестна.',
+            radius:'Индивидуальный радиус неизвестен.', note:q.coordinateNote};
+          o.massSolar=null;o.radiusSolar=null;o.temperatureK=null;o.bolometricLuminositySolar=null;
+        }
+        if (o.facts && !o.facts.refs.some(r => r[0] === q.source))
+          o.facts.refs.push([q.source, 'Компоненты и относительные орбиты системы']);
+      }
+    }
     // GJ 887 = Lacaille 9352 = HIP 114046; Mann et al. (2015), as
     // tabulated by Hartogh et al. (2026), A&A 707 A93, Table 1.
     if (o.id !== 'hyg-113687') return;
@@ -459,7 +499,17 @@ const ExtendedCatalog = {
           ' M☉ · ' +
           patch.massBasis;
     }
-    for (const s of EXTENDED_BOOT.systems)
+    for (const q of EXTENDED_BOOT.stellarCatalog?.objects || []) {
+      if (this.coreIndex.has(q.id)) continue;
+      const o = {...q, facts:{class:q.type, mass:'Индивидуальная масса в этом дополнении не назначена.',
+        lumUnknown:'Индивидуальная болометрическая светимость не указана.', note:q.coordinateNote,
+        refs:[[q.source, 'Опубликованные компоненты и орбиты системы']]}};
+      this.stellarProperties(o);
+      OBJECTS.push(o);
+      this.coreIndex.set(o.id,o);
+      this.stellarAddedCount++;
+    }
+    for (const s of this.systems)
       for (const id of s.members) {
         this.systemByMember.set(id, s);
         const o = this.coreIndex.get(id);
@@ -488,7 +538,7 @@ const ExtendedCatalog = {
   async refreshSaved() {
     const ids = new Set(
       [...this.pinned.values()]
-        .filter((o) => !o.synthetic && o.catalogRevision !== EXTENDED_BOOT.revision)
+        .filter((o) => !o.synthetic && !o.historicalStellarNavigation && o.catalogRevision !== EXTENDED_BOOT.revision)
         .map((o) => o.id),
     );
     if (!ids.size) return;
@@ -650,6 +700,7 @@ const ExtendedCatalog = {
   },
   pin(o) {
     if (!o) return o;
+    if (o.historicalStellarNavigation) {this.pinned.set(o.id,o);return o;}
     const core = OBJECTS.find((q) => q.id === o.id);
     if (core) return core;
     globalThis.StellarClusters?.prepare(o);
@@ -780,27 +831,60 @@ const ExtendedCatalog = {
       const anchor = o && MapLayout.anchorId(o);
       if (anchor) ids.add(anchor);
     }
-    saved.catalogObjects = [...ids].map((id) => this.pinned.get(id)).filter(Boolean);
+    saved.catalogObjects = [...ids].map((id) => this.pinned.get(id) ||
+      (this.coreIndex.get(id)?.stellarSystem ? this.coreIndex.get(id) : null)).filter(Boolean);
     for (const id of this.pinned.keys()) if (!ids.has(id)) this.pinned.delete(id);
   },
   restore(saved) {
+    // Older versions did not serialize core-star records. Active endpoints
+    // still carry their original physical coordinates in the frozen plan.
+    saved.catalogObjects ??= [];
+    for (const [id,point] of [[saved.flight?.target,saved.flight?.aim],[saved.flight?.fromId,saved.flight?.from],
+      [!saved.flight&&!saved.orbit?saved.current:null,saved.ship]]) {
+      const current=this.coreIndex.get(id);
+      if(current?.stellarSystem&&point?.p3?.every(Number.isFinite)&&!saved.catalogObjects.some(o=>o.id===id))
+        saved.catalogObjects.push({...current,...Space.point(point.p3)});
+    }
+    const restoring = new Map((saved?.catalogObjects || []).filter(o => o?.id).map(o => [o.id, o]));
+    const navigationIds = new Set([
+      saved?.current, saved?.flight?.target, saved?.flight?.fromId,
+      ...(saved?.flight?.route || []).map(n => n.id),
+      ...(saved?.flightHistory || []).flatMap(h => [h.fromId, h.target]),
+      ...(saved?.itinerary || []).map(n => n.id),
+      ...(saved?.nextTargets || []).map(n => n.id),
+    ]);
+    // Saved arrival stars and local systems also need their original hosts.
+    // Set iteration includes newly discovered ancestors and terminates on cycles.
+    for (const id of navigationIds) {
+      const o = restoring.get(id) || this.coreIndex.get(id), anchor = o && MapLayout.anchorId(o);
+      if (anchor) navigationIds.add(anchor);
+    }
     const oldGeometry =
         saved &&
         (saved.catalogGeometry !== MapLayout.version ||
           saved.catalogRevision !== EXTENDED_BOOT.revision),
-      oldCoordinates = (saved?.catalogGeometry ?? 1) < 2,
-      restoring = new Map((saved?.catalogObjects || []).filter((o) => o?.id).map((o) => [o.id, o]));
+      oldCoordinates = (saved?.catalogGeometry ?? 1) < 2;
     for (const o of saved?.catalogObjects || []) {
       if (!o || typeof o.id !== 'string') continue;
       const authoritative = this.coreIndex.get(o.id);
-      if (authoritative?.coordinateModel) this.adopt(o, authoritative, saved);
+      const stellarNavigation = authoritative?.stellarSystem && navigationIds.has(o.id) && o.p3?.every(Number.isFinite) &&
+        (o.historicalStellarNavigation || Math.hypot(...o.p3.map((v,i)=>v-authoritative.p3[i]))>1e-12);
+      if (stellarNavigation) {
+        // An existing flight/parking keeps its exact physical endpoint. Names
+        // and source metadata may be refreshed without moving that endpoint.
+        o.historicalStellarNavigation = true;
+        if(o.kind!==authoritative.kind)o.facts=JSON.parse(JSON.stringify(authoritative.facts));
+        Object.assign(o,{kind:authoritative.kind,type:authoritative.type,
+          stellarSystem:authoritative.stellarSystem,stellarComponent:authoritative.stellarComponent});
+        this.stellarProperties(o);
+      } else if (authoritative?.coordinateModel) this.adopt(o, authoritative, saved);
       const correction = (
         EXTENDED_BOOT.coordinateCorrections ||
         EXTENDED_BOOT.pulsarCorrections ||
         []
       ).find((r) => r[0] === o.id);
-      if (correction) this.adopt(o, this.decode(correction), saved);
-      if (o.mapGeometry !== MapLayout.version && o.p3?.every(Number.isFinite)) {
+      if (correction && !stellarNavigation) this.adopt(o, this.decode(correction), saved);
+      if ((o.mapGeometry !== MapLayout.version || !Number.isFinite(o.mapPosition?.x) || !Number.isFinite(o.mapPosition?.y)) && o.p3?.every(Number.isFinite)) {
         const previous = o.mapGeometry ?? saved?.catalogGeometry ?? 1,
           host = o.galaxyMember && this.coreIndex.get(o.parentGalaxy);
         let raw = o.mapPosition || MapLayout.base(o.p3);
@@ -1018,7 +1102,9 @@ const ExtendedCatalog = {
       const o = this.get(id);
       return o?.atlasOnly || !this.matchesMap(o) ? null : o;
     };
-    for (const s of EXTENDED_BOOT.systems) {
+    for (const s of this.systems) {
+      this.stellarTargets ??= new Set(EXTENDED_BOOT.stellarCatalog?.auditTargets || []);
+      if (s.stellarEnriched || s.members.some(id => this.stellarTargets.has(id))) continue;
       if (s.id === 'system-alpha-centauri') continue;
       const members = s.members.map(get).filter(Boolean);
       if (members.length < 2 || (cam.span > 2000 && members.every((o) => o.kind === 'star')))
@@ -1069,6 +1155,17 @@ const ExtendedCatalog = {
   async showSystem(id) {
     const s = this.systemByMember.get(id);
     if (!s) return;
+    if (s.stellarEnriched) {
+      const members = s.members.map(id => this.get(id));
+      showDialog('<div class="modal-eyebrow">ЗВЁЗДНАЯ СИСТЕМА</div><h2>' + s.name + '</h2><p>' + s.note + '</p>' +
+        '<div class="stellar-system-members">' + members.map((o,i) => '<button class="map-size-action" data-stellar-member="' + i + '">' + o.name + ' ↗</button>').join('') + '</div>' +
+        stellarOrbitFacts(s) + '<p class="object-sources"><a href="' + s.source + '" target="_blank" rel="noopener">Каталог компонентов ↗</a><a href="https://www.astro.gsu.edu/wds/orb6.html" target="_blank" rel="noopener">ORB6 · орбитальные решения ↗</a></p>');
+      for (let i=0;i<members.length;i++) {
+        const button=document.querySelector('[data-stellar-member="'+i+'"]');
+        if(button)button.onclick=()=>showObject(members[i].id);
+      }
+      return;
+    }
     try {
       const members = await Promise.all(s.members.map((id) => this.resolve({ id })));
       const labels = members

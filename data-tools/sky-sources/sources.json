@@ -1,0 +1,88 @@
+{
+  "retrieved": "2026-11-06",
+  "files": {
+    "roman87.dat": {
+      "url": "https://raw.githubusercontent.com/astropy/astropy/main/astropy/coordinates/data/constellation_data_roman87.dat",
+      "sha256": "17407174f8d1e2771e4e693bc007d542b69ae0b604cec311774c7e91e146f196"
+    },
+    "constellation-names.dat": {
+      "url": "https://raw.githubusercontent.com/astropy/astropy/main/astropy/coordinates/data/constellation_names.dat",
+      "sha256": "905b9005b4fe86c81140dbb818c186b96cc7f6c1bebce75113434466b35f28b2"
+    },
+    "stars.6.json": {
+      "url": "https://raw.githubusercontent.com/ofrohn/d3-celestial/master/data/stars.6.json",
+      "sha256": "0297b8fa3adfbce1dc26566f61c4abcc1df4f29c6a28729ca06b56d1c6d25602"
+    },
+    "constellations.lines.json": {
+      "url": "https://raw.githubusercontent.com/ofrohn/d3-celestial/master/data/constellations.lines.json",
+      "sha256": "294f66bef5d5cf50b1e17f16d2efa1d97a15131612c68dd935adef6e7373e13c"
+    },
+    "constellations.json": {
+      "url": "https://raw.githubusercontent.com/ofrohn/d3-celestial/master/data/constellations.json",
+      "sha256": "ab4ae692027cbc042c0d6791a84456a65eb7c55656107fd00c58ff6e55d4d8b2"
+    },
+    "starnames.json": {
+      "url": "https://raw.githubusercontent.com/ofrohn/d3-celestial/master/data/starnames.json",
+      "sha256": "19c84bc885f8a97c3b8e1f6a380084c575a9758dedfe35256e911a823ec3a695"
+    }
+  },
+  "mediaChecks": [
+    {
+      "id": "hubble-sirius",
+      "source": "https://esahubble.org/images/heic0516a/",
+      "pageSha256": "8d2607a5cc5189116137538d0317b331f53ec4556200000057e8935a0c4c8e1f",
+      "title": "The Dog Star, Sirius A, and its tiny companion | ESA/Hubble",
+      "imageType": "Observation",
+      "identification": "Official source caption identifies this object; no nearest-neighbour or keyword-only assignment."
+    },
+    {
+      "id": "hubble-alpha",
+      "source": "https://esahubble.org/images/potw1635a/",
+      "pageSha256": "b32e61710c98f9f3857530b9f416f74c84781c753371d62919472a819a9055f8",
+      "title": "Best image of Alpha Centauri A and B | ESA/Hubble",
+      "imageType": "Observation",
+      "identification": "Official source caption identifies this object; no nearest-neighbour or keyword-only assignment."
+    },
+    {
+      "id": "hubble-proxima",
+      "source": "https://esahubble.org/images/potw1343a/",
+      "pageSha256": "2b63ffee4bfe74a4c6f70996aa9d6246f40afd154b5ace3bf9399a3c9e83db9f",
+      "title": "New shot of Proxima Centauri, our nearest neighbour | ESA/Hubble",
+      "imageType": "Observation",
+      "identification": "Official source caption identifies this object; no nearest-neighbour or keyword-only assignment."
+    },
+    {
+      "id": "webb-fomalhaut",
+      "source": "https://esawebb.org/images/weic2312a/",
+      "pageSha256": "0d77566a47d3fced637813fecaf479756f27d574eb1ace094e7dd7140919e368",
+      "title": "Webb inspects dusty debris disc around Fomalhaut | ESA/Webb",
+      "imageType": "Observation",
+      "identification": "Official source caption identifies this object; no nearest-neighbour or keyword-only assignment."
+    },
+    {
+      "id": "eso-betelgeuse",
+      "source": "https://www.eso.org/public/images/eso2003a/",
+      "pageSha256": "9f64f3d28120d2a0049b1f6e5c71af6ada0ad5c2f9898f209bd025109d119791",
+      "title": "SPHERE's view of Betelgeuse in December 2019 | ESO",
+      "imageType": "Observation",
+      "identification": "Official source caption identifies this object; no nearest-neighbour or keyword-only assignment."
+    },
+    {
+      "id": "spitzer-vega",
+      "source": "https://images.nasa.gov/details/PIA07218",
+      "pageSha256": "44ec284b37c7fbcf884dcb0979972f61cfefb8a6cfda63d559474c828207d5f7",
+      "imageType": "Observation",
+      "identification": "Official source metadata identifies the target and instrument; illustrative concepts excluded."
+    },
+    {
+      "id": "hubble-polaris",
+      "source": "https://esahubble.org/images/opo0602a/",
+      "pageSha256": "0ff6dd143b8a72066fd9886ae608f064d17a6fa2f3bbe395a8bd5d5377de5c2d",
+      "imageType": "Collage with observation",
+      "identification": "Official source metadata identifies the target and instrument; illustrative concepts excluded."
+    }
+  ],
+  "stars": "XHIP (Anderson & Francis 2012), via d3-celestial. J2000 positions; apparent V; HIP identifiers.",
+  "constellations": "Roman 1987 VI/42 B1875 boundaries via Astropy; names and conventional line figures via d3-celestial.",
+  "images": "Remote official observatory images, lazy loaded; no image files redistributed."
+}

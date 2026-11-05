@@ -32,8 +32,8 @@ run(`{
 run(`{
   state=initial();state.expansion=false;paused=true;Cosmology.sync(state);
   width=1440;height=1000;cam={x:0,y:0,span:24};MapSlice.mode='full';filter='all';
-  const sol=object('sol'),base=object('proxima');
-  const bg={...base,id:'background-performance',name:'HYG 123456',aliases:[],p3:[0,0,0],mapPosition:{x:0,y:0},
+  const sol=object('sol');
+  const bg={id:'background-performance',kind:'star',name:'HYG 123456',aliases:[],p3:[0,0,0],mapPosition:{x:0,y:0},
     streamed:true,bulkGalaxyMember:true,galaxyMember:false,massSolar:null,gravity:null,facts:{mass:'Нет индивидуальной оценки.'}};
   const scientific=JSON.stringify(bg);
   OBJECTS.splice(0,OBJECTS.length,sol);ExtendedCatalog.visible=[bg,bg];ExtendedCatalog.pinned.clear();

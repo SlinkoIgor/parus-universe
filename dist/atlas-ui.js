@@ -229,10 +229,77 @@ function showModel() {
       fmt(c.maxAccelerationG, 2) +
       ' g, торможение ' +
       fmt(c.maxBrakingG, 2) +
-      ' g. Переработка газа и охлаждение идеализированы. Все эти значения меняются в параметрах среды и корабля.</p><h3>Орбитальное движение</h3><p>Планеты, связанные S-звёзды и Альфа Центавра движутся по кеплеровым орбитам по часам внешнего наблюдателя. Гиперболическая S111 неподвижна. Взаимные возмущения, прецессия и перехват движущейся цели не рассчитываются: навигация использует опорные каталожные координаты.</p>',
+      ' g. Переработка газа и охлаждение идеализированы. Все эти значения меняются в параметрах среды и корабля.</p><h3>Орбитальное движение</h3><p>Планеты, связанные S-звёзды, Альфа Центавра и ближайшие кратные звёзды с опубликованными орбитами движутся по кеплеровым орбитам по часам внешнего наблюдателя. Гиперболическая S111 неподвижна. Взаимные возмущения, прецессия и перехват движущейся цели не рассчитываются: навигация использует опорные каталожные координаты.</p>',
   );
 }
 
+function stellarOrbitBounds(o) {
+  if (!o || o.historicalStellarNavigation || !globalThis.OrbitalMotion) return null;
+  const curves = [];
+  for (const track of OrbitalMotion.stellarOrbits) {
+    if (track.system !== o.stellarSystem) continue;
+    for (const branch of track.branches) {
+      if (!branch.factor) continue;
+      const id = branch.ids[0], curve = OrbitalMotion.stellarCurve(track, id, branch.factor);
+      if (curve) curves.push({id, curve});
+    }
+  }
+  if (['alpha','hyg-71453','proxima'].includes(o.id))
+    for (const id of o.id === 'proxima' ? ['proxima'] : ['alpha','hyg-71453']) {
+      const curve = OrbitalMotion.alphaCurve(id);
+      if (curve) curves.push({id, curve});
+    }
+  if (!curves.length) return null;
+  const box = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const {curve} of curves) {
+    // Both map modes use an affine local orbital frame. Recover the exact
+    // projected ellipse from three eccentric anomalies, including its offset.
+    const a = curve.pointAt(0), b = curve.pointAt(Math.PI), d = curve.pointAt(Math.PI / 2),
+      c = {x:(a.x+b.x)/2, y:(a.y+b.y)/2},
+      rx = Math.hypot((a.x-b.x)/2, d.x-c.x), ry = Math.hypot((a.y-b.y)/2, d.y-c.y);
+    box[0] = Math.min(box[0], c.x-rx);box[1] = Math.min(box[1], c.y-ry);
+    box[2] = Math.max(box[2], c.x+rx);box[3] = Math.max(box[3], c.y+ry);
+  }
+  return {box, anchor:object(curves[0].id)};
+}
+function focusStellarOrbits(id) {
+  const o = object(id), bounds = stellarOrbitBounds(o);
+  if (!bounds) return;
+  $('infoDialog').close();
+  MapSlice.focus(OrbitalMotion.isOrbiting(o) ? o : bounds.anchor);
+  const controls = document.querySelector('.map-controls');
+  if (width < 700 && controls) controls.open = false;
+  const b = bounds.box, v = routeViewport(), panel = controls?.getBoundingClientRect(),
+    card = $('flightCard').getBoundingClientRect();
+  // The mobile sidebar is a transparent full-width wrapper. Reserve only the
+  // visible control panel, and keep the ellipse above the actual target card.
+  if (width < 700 && card.top > v.top + 24) v.bottom = Math.min(v.bottom, card.top - 12);
+  if (panel?.bottom > v.top && panel.top < v.bottom)
+    v.left = Math.min(v.right-100, Math.max(v.left, panel.right+16));
+  const span = Math.max(.00006, (b[2]-b[0])*width/(v.right-v.left)*1.25,
+    (b[3]-b[1])*width/(v.bottom-v.top)*1.25);
+  goCamera((b[0]+b[2])/2-((v.left+v.right)/2-width*.43)*span/width,
+    (b[1]+b[3])/2-((v.top+v.bottom)/2-height*(width<700?.39:.5))*span/width, span);
+}
+function stellarSkyPhoto(o) {
+  return SkyGuide.gallery(o);
+}
+
+function stellarOrbitFacts(system) {
+  if (!system?.stellarEnriched) return '';
+  const number = n => Number(n.toPrecision(6)).toLocaleString('ru-RU'),
+    missingName = {aArcsec:'большая полуось',node:'долгота узла',omega:'аргумент периастра',peri:'эпоха периастра',inclination:'наклонение',e:'эксцентриситет',period:'период'};
+  return '<div class="stellar-orbit-facts"><h3>Компоненты и орбиты</h3>' + system.pairs.map(p => {
+    const q = p.orbit, partial = p.partialOrbit,
+      period = q ? q.period : partial?.period ? Number(partial.period) * (partial.periodUnit === 'd' ? 1/365.25 : 1) : partial?.Per ? Number(partial.Per) * (partial.x_Per === 'd' ? 1/365.25 : 1) : null;
+    let value = q ? 'P = ' + number(q.period) + ' лет · e = ' + number(q.e) + ' · a = ' + number(q.a) + ' а.е.' :
+      (period ? 'P = ' + number(period) + ' лет. ' : '') + 'Полная пространственная орбита не определена' +
+      (p.missingElements.some(k => missingName[k]) ? ': отсутствует ' + p.missingElements.map(k => missingName[k]).filter(Boolean).join(', ') : '') + '.';
+    if(q)value += '<small>ORB6 · ' + q.reference + ' · ' + (q.grade <= 5 ? 'класс качества ' + q.grade + '/5 (1 — лучший)' : 'интерферометрическое решение') + '. ' +
+      (p.massFraction === 0 ? 'Показана относительная орбита компаньона; движение главной звезды вокруг барицентра не вычисляется без отношения масс.' : 'Движение относительно общего центра масс; отношение масс взято из опубликованной модели.') + '</small>';
+    return '<div class="stellar-orbit-row"><strong>' + p.primary + ' — ' + p.secondary + '</strong><span>' + value + '</span></div>';
+  }).join('') + '<p class="object-note">Звёзды с известными орбитами движутся по времени внешнего наблюдателя; пауза останавливает движение. Периоды сохраняют опубликованные значения. Неизвестные элементы не заменяются нулевым эксцентриситетом или прямой линией.</p></div>';
+}
 function showObject(id = state.selected) {
   const o = object(id);
   if (!o) return;
@@ -241,7 +308,7 @@ function showObject(id = state.selected) {
   const row = (label, value) =>
     '<div class="fact-row"><dt>' + label + '</dt><dd>' + value + '</dd></div>';
   let luminosity =
-    f.lum !== undefined
+    Number.isFinite(f.lum)
       ? '≈ ' +
         quantity(f.lum) +
         ' L☉<small>Болометрическая мощность: ≈ ' +
@@ -274,6 +341,8 @@ function showObject(id = state.selected) {
     MapDetails.description(o) +
     '</p>' +
     (MapDetails.componentNote(o) ? '<p>' + MapDetails.componentNote(o) + '</p>' : '') +
+    SkyGuide.finder(o) +
+    stellarSkyPhoto(o) +
     sizeButton +
     '<dl class="object-facts">' +
     row('Класс', f.class) +
@@ -323,7 +392,8 @@ function showObject(id = state.selected) {
         ' mag<small>Яркость с Земли: чем меньше число, тем ярче. Не абсолютная светимость.</small>',
     );
   if (o.iauNames?.length) html += row('Имена IAU', o.iauNames.join(', '));
-  if (o.aliases?.length) html += row('Другие обозначения', o.aliases.join(' · '));
+  if (o.aliases?.length) html += row('Другие обозначения', o.aliases.length>8 ?
+    o.aliases.slice(0,5).join(' · ')+'<details><summary>Все обозначения ('+o.aliases.length+')</summary>'+o.aliases.join(' · ')+'</details>' : o.aliases.join(' · '));
   if (g)
     html += row(
       'Оптический размер',
@@ -414,6 +484,9 @@ function showObject(id = state.selected) {
   if (system) html += row('Связанная система', system.name + '<small>' + system.note + '</small>');
   html +=
     row('От Солнца', o.atlasOnly ? 'Надёжная дальность неизвестна' : distanceText(o.d)) + '</dl>';
+  html += stellarOrbitFacts(system);
+  if (stellarOrbitBounds(o)) html += '<button class="map-size-action" id="viewStellarOrbits">Показать орбиты на карте ↗</button>';
+  if(o.stellarNameSource)html += '<p class="object-sources"><a href="'+o.stellarNameSource+'" target="_blank" rel="noopener">Источник имени и обозначений ↗</a></p>';
   if (ExtendedCatalog.systemByMember.has(o.id))
     html +=
       '<button class="map-size-action" id="viewSystem">Показать связанную систему ↗</button>';
@@ -428,7 +501,7 @@ function showObject(id = state.selected) {
   if (f.visual)
     html +=
       '<p class="object-note">Полосовая светимость рассчитана из каталожной фотометрии и расстояния атласа: M = m − 5 log₁₀(d/10 пк), L/L☉ = 10⁰·⁴⁽ᴹ☉⁻ᴹ⁾. Без поправки на поглощение пылью; это приблизительная оценка, не полная болометрическая мощность.</p>';
-  if (MapDetails.component(o))
+  if (['alpha','hyg-71453','proxima'].includes(o.id))
     html +=
       '<p class="object-sources"><a href="https://www.nasa.gov/universe/chandra-scouts-nearest-star-system-for-possible-hazards/" target="_blank" rel="noopener">NASA · компоненты Альфы Центавра ↗</a></p>';
   if (f.note) html += '<p class="object-note">' + f.note + '</p>';
@@ -442,6 +515,8 @@ function showObject(id = state.selected) {
       .join('') +
     '</p>';
   showDialog(html);
+  SkyGuide.mount(o);
+  if (stellarOrbitBounds(o)) $('viewStellarOrbits').onclick = () => focusStellarOrbits(o.id);
   if (o.id === 'sgr' || o.nuclearStar)
     $('viewNuclearCluster').onclick = () => {
       $('infoDialog').close();

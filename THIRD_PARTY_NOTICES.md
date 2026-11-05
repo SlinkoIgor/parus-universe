@@ -87,3 +87,61 @@ Access via CDS/VizieR IDIA mirror. Acknowledgment: This research has made use of
 Восемь планет: NASA/JPL Solar System Dynamics, *Approximate Positions of the Planets*, Table1, J2000 elements, https://ssd.jpl.nasa.gov/planets/approx_pos.html. Двухтельная экстраполяция элементов, а не воспроизведение точных JPL DE эфемерид. Земля использует EM Bary.
 
 Alpha Centauri AB: Kervella, Mignard, Mérand & Thévenin (2016), A&A594,A107, Table1 K16, https://arxiv.org/abs/1610.06079. Внешняя орбита Proxima: Kervella et al. (2017), A&A598,L7, Table3, https://arxiv.org/abs/1611.03495. Использованы численные орбитальные элементы и опубликованные неопределённости; рисунки и тексты статей не копируются. Атрибуция существующих GRAVITY2021/Gillessen2017 S-звёзд сохранена.
+
+## Nearby stellar identities, multiplicity, orbits and sky fields (2026-11-05)
+
+Names and aliases: [SIMBAD, CDS / Strasbourg Observatory](https://simbad.cds.unistra.fr/), accessed through the Harvard TAP mirror; Wenger et al. (2000).
+Component hierarchies: Tokovinin (2018), **The Updated Multiple Star Catalog**,
+[MSC J/ApJS/235/6](https://cdsarc.cds.unistra.fr/viz-bin/cat/J/ApJS/235/6),
+[doi:10.3847/1538-4365/aaa1a5](https://doi.org/10.3847/1538-4365/aaa1a5),
+December 2023 source version. Visual orbits: Hartkopf, Mason and collaborators,
+[Sixth Catalog of Orbits of Visual Binary Stars (ORB6)](https://www.astro.gsu.edu/wds/orb6.html),
+USNO / Washington Double Star Catalog, current GSU mirror. Spectroscopic pairs:
+Pourbaix et al., [SB9](https://cdsarc.cds.unistra.fr/viz-bin/cat/B/sb9).
+Barycentric ratios for Sirius and Procyon: Bond et al.
+[2017](https://arxiv.org/abs/1703.10625) and
+[2015](https://arxiv.org/abs/1510.00485).
+
+Only selected factual catalogue rows and identifiers are bundled, with original
+units, uncertainty fields, source references and full-download SHA-256 values
+in `data-tools/stellar-sources/`. Changes: exact identity joins, Russian name
+expansions, conservative confirmation selection, unit/epoch conversion and
+Galactic-coordinate Kepler models. Source-specific data rights are retained;
+the game's code license does not relicense these catalogues.
+
+Online photographs are served by [STScI Digitized Sky Survey](https://archive.stsci.edu/dss/),
+POSS-II / UK Schmidt Telescope red plates. DSS was produced at STScI under
+US Government grant NAG W-2166; the survey material is based on photographic
+data obtained with the Oschin Schmidt Telescope and the UK Schmidt Telescope.
+Original plates were processed into compressed digital form with permission
+of their institutions. Images are fetched directly for individual sky fields;
+no survey image collection is redistributed in this repository.
+See `docs/nearby-stellar-systems.md` for coverage and scientific limitations.
+
+### Earth sky finding charts and selected observations
+
+Finding-chart stars are XHIP, Anderson & Francis (2012), CDS V/137D,
+distributed as J2000 GeoJSON by [d3-celestial](https://github.com/ofrohn/d3-celestial).
+Constellation figures, positions and translated names are from d3-celestial;
+its upstream credits include IAU, Wikipedia and Stellarium name translations.
+The d3-celestial BSD 3-Clause license, Copyright (c) 2015 Olaf Frohn, is retained
+in `data-tools/sky-sources/LICENSE-d3-celestial.txt` and the generated JS header.
+Constellation membership boundaries are Roman (1987), CDS VI/42, through
+[Astropy](https://www.astropy.org/); its BSD 3-Clause license is retained in
+`data-tools/sky-sources/LICENSE-astropy.txt` and the generated JS header.
+
+Selected photographs are fetched from official observatory servers. Every
+displayed image has a visible full credit, observation/band description and
+link to its original page. No observatory image collection is redistributed.
+The initial selected images and required credits are:
+
+- Sirius A/B, Hubble heic0516a: NASA, ESA, H. Bond (STScI), M. Barstow (University of Leicester).
+- Alpha Centauri A/B, Hubble potw1635a: ESA/Hubble & NASA.
+- Proxima Centauri, Hubble potw1343a: ESA/Hubble & NASA.
+- Fomalhaut A dust disc, Webb weic2312a: NASA, ESA, CSA, A. Pagan (STScI), A. Gáspár (University of Arizona).
+- Betelgeuse, VLT/SPHERE eso2003a: ESO/M. Montargès et al.
+- Vega dust disc, Spitzer PIA07218: NASA/JPL-Caltech/University of Arizona.
+- Polaris observational collage, Hubble opo0602a: NASA, ESA, N. Evans (Harvard-Smithsonian CfA), H. Bond (STScI).
+
+The exact URLs, identities, captions and source checks are recorded in
+`data-tools/sky-sources/media.json` and `sources.json`. See `docs/sky-guide.md`.

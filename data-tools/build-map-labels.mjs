@@ -33,7 +33,7 @@ for(const mode of ['full','radial']){
  }
 }
 const radialRevision=JSON.parse(fs.readFileSync('dist/map-radial/current.json')).revision;
-const dependencies=['data-tools/build-map-labels.mjs','data-tools/map-radial-catalog.mjs','dist/map-layout.js','dist/map-details.js','dist/catalog-extended.js','dist/regions.js','dist/map-visibility.js','dist/map-visibility-data.js','dist/map-radial.js','dist/map-radial-data.js','dist/distant-catalog.js','dist/distant-catalog-data.js'];
+const dependencies=['data-tools/build-map-labels.mjs','data-tools/map-radial-catalog.mjs','dist/map-layout.js','dist/map-details.js','dist/catalog-extended.js','dist/catalog-stream.js','dist/regions.js','dist/map-visibility.js','dist/map-visibility-data.js','dist/map-radial.js','dist/map-radial-data.js','dist/distant-catalog.js','dist/distant-catalog-data.js'];
 const revision=crypto.createHash('sha256').update(manifest.revision+radialRevision+dependencies.map(p=>fs.readFileSync(p)).join('')).digest('hex').slice(0,12);
 const boot={version:1,revision,catalogRevision:manifest.revision,geometryVersion:c.MapLayout.version,radialRevision,entries};
 const path='dist/map-label-data.js',temp=path+'.'+process.pid+'.tmp';fs.writeFileSync(temp,"'use strict';\n// Fixed per-name upper scales in ly/CSSpx; independent of viewport and panels.\nconst MAP_LABEL_BOOT="+JSON.stringify(boot)+';\n');fs.renameSync(temp,path);

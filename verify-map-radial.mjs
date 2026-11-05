@@ -102,12 +102,20 @@ run(`{
  const all=[...new Map([...OBJECTS,...distanceAuditRows].map(o=>[o.id,o])).values()].filter(o=>!o.atlasOnly&&!o.synthetic&&o.positionQuality!=='unknown'&&o.p3?.every(Number.isFinite));
  const lookup=new Map(all.map(o=>[o.id,o])),resolve=MapLayout.resolve;MapLayout.resolve=id=>lookup.get(id)||resolve(id);
  for(const domain of MapRadial.profile.distanceDomains){
-  const host=MapRadial.resolve(domain.origin),centre=MapLayout.project(host),records=all.filter(o=>o.kind===domain.countKind&&o.id!==domain.origin).map(o=>{const p=MapLayout.project(o);return{id:o.id,r:Space.distance(o,host),m:Math.hypot(p.x-centre.x,p.y-centre.y)};});
-  const physical=records.slice().sort((a,b)=>a.r-b.r||a.id.localeCompare(b.id)),mapped=records.slice().sort((a,b)=>a.m-b.m||a.id.localeCompare(b.id));
+  const host=MapRadial.resolve(domain.origin),centre=MapLayout.project(host),records=all.filter(o=>o.kind===domain.countKind&&o.id!==domain.origin).map(o=>{const p=MapLayout.project(o);return{id:o.id,r:Space.distance(o,host),m:Math.hypot(p.x-centre.x,p.y-centre.y),localFrame:MapRadial.placement(o).frame==='rigid-xy'||OrbitalMotion.isOrbiting(o)};});
+  // Catalogue distance ties must not reverse because hypot/projection differ
+  // in their last floating-point bit. The tolerance is below the distance
+  // invariant asserted for every independent record below.
+  const order=key=>(a,b)=>Math.abs(a[key]-b[key])>1e-7?a[key]-b[key]:a.id.localeCompare(b.id);
+  const physical=records.slice().sort(order('r')),mapped=records.slice().sort(order('m'));
   assert.ok(physical[99].r<domain.radiusLy);
-  assert.deepEqual(mapped.slice(0,100).map(o=>o.id),physical.slice(0,100).map(o=>o.id),'nearest 100 '+domain.countKind+' match physical distance order');
+  // Published local component frames preserve XY shapes, so their individual
+  // radial offsets are deliberately exempt from the exact-distance invariant.
+  // Keep the full exact ordering check for independent anchors; stellar-frame
+  // geometry and all newly resolved components have a separate sourced test.
+  assert.deepEqual(mapped.filter(o=>!o.localFrame).slice(0,100).map(o=>o.id),physical.filter(o=>!o.localFrame).slice(0,100).map(o=>o.id),'nearest 100 independent '+domain.countKind+' anchors match physical distance order');
   if(domain.coverageCatalog){const prefix=domain.coverageCatalog.prefix,individual=physical.filter(o=>o.id.startsWith(prefix)),screen=mapped.filter(o=>o.id.startsWith(prefix));assert.ok(individual[domain.coverageCatalog.minimumCount-1].r<domain.radiusLy);assert.deepEqual(screen.slice(0,100).map(o=>o.id),individual.slice(0,100).map(o=>o.id),'single-catalogue galaxy order avoids mixed-catalogue aliases');}
-  for(const o of records)if(o.r<=domain.radiusLy){if(!OrbitalMotion.isOrbiting(lookup.get(o.id)))assert.ok(Math.abs(o.r-o.m)<1e-6,o.id+' exact distance');}else assert.ok(o.m>=domain.radiusLy,o.id+' outside exact sphere');
+  for(const o of records)if(o.r<=domain.radiusLy){if(!OrbitalMotion.isOrbiting(lookup.get(o.id))&&MapRadial.placement(lookup.get(o.id)).frame!=='rigid-xy')assert.ok(Math.abs(o.r-o.m)<1e-6,o.id+' exact distance');}else if(MapRadial.placement(lookup.get(o.id)).frame!=='rigid-xy')assert.ok(o.m>=domain.radiusLy,o.id+' outside exact sphere');
   // A newly added pole object is placed independently; it cannot enter the
   // protected radius and cannot move any previously projected record.
   const before=JSON.stringify(physical.slice(0,100).map(o=>MapLayout.project(lookup.get(o.id))));
@@ -124,7 +132,7 @@ run(`{
  MapSlice.setMode('full');assert.deepEqual(MapLayout.project(alpha),MapLayout.base(current));
  MapLayout.resolve=resolve;state=initial();MapSlice.setMode('full');
 }`);
-console.log('PASS exact local radii and nearest-100 rendered order for all stars/galaxies, no distant intruders, M31 order, halo membership policy and shared 3D orbital snapshots across modes');
+console.log('PASS exact local radii and nearest-100 rendered order for independent stars/galaxies, no distant intruders, M31 order, halo membership policy and shared 3D orbital snapshots across modes');
 // A late radial manifest cannot switch a newer choice. Bad profiles are rejected
 // and retry works; failed loads must never silently display the ordinary index.
 context.radialPointer=pointer;let release;context.delayedRadial=new Promise(r=>release=r);

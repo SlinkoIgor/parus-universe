@@ -38,10 +38,11 @@ const MapRadial={
  },
  groupKeys(o){return [...new Set([o.catalogData,...(o.catalogMeasurements||[]).map(m=>m.data)].filter(d=>d?.groupPGC>0).map(d=>String(d.groupPGC)))].sort();},
  decision(o){
-  const hostId=this.hostId(o),host=hostId&&(this.data.anchors[hostId]||(o.synthetic&&this.resolve(hostId)));
+  const hostId=this.hostId(o),host=hostId&&(this.data.anchors[hostId]||((o.synthetic||o.stellarSystem)&&this.resolve(hostId)));
   // Static catalogue hosts are admitted by the frozen registry. Generated game
   // stars may reference a newly pinned object without changing any old record.
   // Priority is data, not the accidental order of catalogue imports.
+  if(o.stellarSystem&&hostId&&hostId!==o.id&&host?.p3)return{rule:'declared-host',frame:'rigid-xy',parent:hostId};
   for(const rule of this.profile.rules){
    if(rule==='protected-anchor'&&this.profile.protected.includes(o.id))return{rule,frame:'fixed',parent:null};
    if(rule==='distance-domain'){const domain=this.distanceDomain(o);if(domain&&this.exactDistance(o))return{rule,frame:'radial',parent:domain.origin,domain:domain.id};}
@@ -68,9 +69,9 @@ const MapRadial={
   if(d.frame==='fixed')position=MapLayout.ordinaryProject(o);
   else if(d.parent){
    const host=this.resolve(d.parent),base=this.placement(host,seen).position;
-   const v=this.vector(o.p3.map((n,i)=>n-host.p3[i]));position={x:base.x+v.x,y:base.y+v.y};
+   const delta=o.p3.map((n,i)=>n-host.p3[i]),v=d.frame==='rigid-xy'?{x:delta[0],y:-delta[1]}:this.vector(delta);position={x:base.x+v.x,y:base.y+v.y};
   }else position=this.vector(o.p3);
-  const value={...d,...this.constrainDistance(o,position),profile:this.key};this.cache.set(o,{p3:o.p3,value});return value;
+  const value={...d,...(d.frame==='rigid-xy'?{position}:this.constrainDistance(o,position)),profile:this.key};this.cache.set(o,{p3:o.p3,value});return value;
  },
  project(o){
   // Already laid-out contour/route vertices have no 3D object identity.

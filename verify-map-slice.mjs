@@ -10,7 +10,9 @@ run(`state=initial();state.expansion=false;Cosmology.sync(state);MapSlice.manife
 const digest=row=>crypto.createHash('sha256').update(JSON.stringify(row)).digest('hex'),original=new Map(),leaves=new Map(),heights=new Map();
 for(const n of full.nodes.filter(n=>!n.children.length)){
  const rows=read(catalogPath(n.file));leaves.set(n.file,rows);for(const r of rows)original.set(r[0],digest(r));
- context.auditRows=rows;for(const [id,z] of run('auditRows.map(r=>{const o=ExtendedCatalog.decode(r);return[o.id,o.p3?.every(Number.isFinite)&&!o.atlasOnly&&o.positionQuality!=="unknown"?Math.abs(o.p3[2]):Infinity]})'))heights.set(id,z);
+ // This immutable index covers scientific leaf rows. Promoted stellar
+ // components are always in the core and use their enriched physical slab.
+ context.auditRows=rows;for(const [id,z] of run('auditRows.map(r=>{const p=r[11].p3||(r[3]>0&&Number.isFinite(r[4])&&Number.isFinite(r[5])?Space.fromSky(r[4],r[5],r[3]):null);return[r[0],p?.every(Number.isFinite)&&!r[11].atlasOnly&&r[6]!=="unknown"?Math.abs(p[2]):Infinity]})'))heights.set(id,z);
 }
 assert.equal(slice.version,3);assert.equal(slice.catalogRevision,full.revision);
 for(const n of slice.nodes){
@@ -32,6 +34,12 @@ run(`{
   const tree=MapSlice.treeForView(cam);assert.ok(tree.band>=half&&tree.band<half*2.01);
   assert.ok(ExtendedCatalog.nodesForView(cam,900,620).length<=32);
  }
+ for(const q of EXTENDED_BOOT.stellarCatalog.objects){
+  const o=object(q.id);assert.equal(ExtendedCatalog.coreIndex.get(q.id),o);
+  MapSlice.focus(o);cam={...MapLayout.project(o),span:.00006};
+  assert.ok(MapSlice.includes(o),'enriched core component is available independently of source leaf indexes: '+q.id);
+ }
+ MapSlice.centerZ=0;
  cam={x:0,y:0,span:24};const o={id:'probe',kind:'star',p3:[1,0,5.9]};assert.equal(MapSlice.includes(o),true);assert.ok(MapSlice.opacity(o)>0&&MapSlice.opacity(o)<1);cam.span=20;assert.equal(MapSlice.includes(o),false);cam.span=24;assert.equal(MapSlice.includes(o),true);
  const outside={id:'outside',p3:[0,0,7],kind:'star'};assert.equal(MapSlice.includes(outside),false);
  for(const q of [{},{p3:[0,0,NaN]},{p3:[0,0,0],atlasOnly:true},{p3:[0,0,0],positionQuality:'unknown'},{p3:[0,0,0],arrivalAnchor:true}])assert.equal(MapSlice.includes(q),false);

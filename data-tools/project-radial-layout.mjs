@@ -18,8 +18,14 @@ for(const d of profile.distanceDomains||[]){
  const radii=members.map(o=>({id:o.id,kind:o.kind,r:Math.hypot(...o.p3.map((v,i)=>v-host.p3[i])),m:Math.hypot(placements[o.id].position.x-centre.x,placements[o.id].position.y-centre.y)}));
  const nearest=radii.filter(o=>o.kind===d.countKind).sort((a,b)=>a.r-b.r||a.id.localeCompare(b.id));
  if(nearest.length<d.minimumCount||nearest[d.minimumCount-1].r>d.radiusLy)throw Error('Nearest '+d.minimumCount+' no longer fit fixed distance domain '+d.id+'; review a new profile, do not refit automatically');
- for(const o of radii)if(o.r<=d.radiusLy?Math.abs(o.r-o.m)>Math.max(1e-6,o.r*1e-12):o.m<d.radiusLy)throw Error('Distance invariant failed for '+o.id);
- domains[d.id]={origin:d.origin,radiusLy:d.radiusLy,exactRecords:radii.filter(o=>o.r<=d.radiusLy).length,nearestCount:d.minimumCount,lastNearestRadiusLy:nearest[d.minimumCount-1].r,violations:0};
+ const rigidStellarComponents=radii.filter(o=>byid.get(o.id).stellarSystem&&placements[o.id].frame==='rigid-xy');
+ const rigidIds=new Set(rigidStellarComponents.map(o=>o.id));
+ for(const row of rigidStellarComponents){
+  const o=byid.get(row.id),parent=byid.get(placements[o.id].parent),a=placements[o.id].position,b=placements[parent.id].position;
+  if(Math.abs(a.x-b.x-o.p3[0]+parent.p3[0])>1e-9||Math.abs(a.y-b.y+o.p3[1]-parent.p3[1])>1e-9)throw Error('Stellar local frame invariant failed for '+o.id);
+ }
+ for(const o of radii)if(!rigidIds.has(o.id)&&(o.r<=d.radiusLy?Math.abs(o.r-o.m)>Math.max(1e-6,o.r*1e-12):o.m<d.radiusLy))throw Error('Distance invariant failed for '+o.id);
+ domains[d.id]={origin:d.origin,radiusLy:d.radiusLy,exactRecords:radii.filter(o=>!rigidIds.has(o.id)&&o.r<=d.radiusLy).length,rigidStellarComponents:rigidStellarComponents.length,nearestCount:d.minimumCount,lastNearestRadiusLy:nearest[d.minimumCount-1].r,violations:0};
  if(d.coverageCatalog){
   const coverage=nearest.filter(o=>o.id.startsWith(d.coverageCatalog.prefix)),n=d.coverageCatalog.minimumCount;
   if(coverage.length<n||coverage[n-1].r>d.radiusLy)throw Error('Independent single-catalogue coverage no longer fits '+d.id+'; review a new profile');

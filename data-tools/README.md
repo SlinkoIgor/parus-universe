@@ -20,3 +20,22 @@ Offline geometry audit: `python3 data-tools/audit-map-geometry.py` (Node.js requ
 
 
 Geometry fixes (policy v4, map version2): shared orthographic Galactic XY for core/stream/free points, bounded compact GC models and coherent host distances, NGC4676 shared published distance and cosmological binding. import-geometry-sources.py reads HIP2007 and authors' GC compilation raw snapshots; compact inputs hipparcos-2007.json / globular-cluster-models.json. import-low-z-distances.py selects explicit independent methods for all 152 low-z targets in the stored SIMBAD ADQL snapshot: 122 independent measurements, one documented system-distance exception (NGC3690A), 29 atlas-only. No invented depth or unrecognized method. Regenerate build-full-catalog.py, run audit-map-geometry.py, then verify-geometry-fixes.mjs. Historical audit retained as map-geometry-audit-before-fixes.json / docs/map-geometry-audit-before-fixes.md. Catalog geometry2 migrates map coordinates and refreshes referenced rows without resetting historical clocks or travelled path.
+
+`python3 data-tools/build-stellar-catalog.py` rebuilds the additive stellar
+identity/multiplicity layer entirely offline from `stellar-sources/`, rejecting
+an incompatible scientific base revision. It runs before map metadata in the
+full builder. After a standalone rebuild, regenerate `build-map-radial.py`
+when positions or enrichment code change, then `build-map-visibility.mjs`
+and `build-map-labels.mjs`, and refresh touched asset cache keys. Coverage,
+source limitations and saved-navigation policy: [nearby-stellar-systems.md](../docs/nearby-stellar-systems.md).
+Regression: `node verify-stellar-catalog.mjs`.
+
+## Поисковая схема земного неба и фотографии
+
+`python3 data-tools/build-sky-guide.py` собирает отдельный UI-набор
+`dist/sky-guide-data.js` из замороженных `sky-sources/`: XHIP до V=6,
+линии/названия созвездий d3-celestial, границы Roman B1875 и проверенные
+наблюдения обсерваторий с полными кредитами. Сеть и пересборка научного
+каталога не требуются. Полные источники, условия наблюдения, ограничения,
+сверка 935 созвездий с Astropy и описание горизонтальной галереи —
+[docs/sky-guide.md](../docs/sky-guide.md). Регрессия: `node verify-sky-guide.mjs`.

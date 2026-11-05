@@ -60,7 +60,11 @@ nearDrive(Gravity.deflection(.99,10)*180/Math.PI,12.84017946,1e-7);assert.equal(
 resetDrive();state.current='proxima';state.ship=Space.point(object('proxima').p3);state.current='proxima';state.ship=Space.point(object('proxima').p3);state.departureMode='burst';state.itinerary=[{id:'sgr',mode:'flyby'},{id:'m87',mode:'stop'}];assert.ok(Route.analyze().valid);Route.start();let turns=0;while(state.phase!=='flyby'&&state.flight&&turns++<12)Simulation.step(1e9);assert.equal(state.phase,'flyby');completeDrive();assert.equal(object(state.current).kind,'star');assert.equal(object(state.current).parentObject,'m87');assert.ok(state.visited.includes('m87'));assert.ok(state.visited.includes('sgr'));
 console.log('PASS frame-independent trajectories and accounting, pause/coast replay, and black-hole route continuation');
 `);
-const html=fs.readFileSync('dist/index.html','utf8'),ids=new Set([...html.matchAll(/id="([^" ]+)"/g)].map(m=>m[1]));for(const [,id]of [...html.matchAll(/<script src="([^"]+)" data-app><\/script>/g)].map(m=>fs.readFileSync('dist/'+m[1].split('?')[0],'utf8')).join('\n').matchAll(/\$\('([^']+)'\)/g))assert.ok(ids.has(id)||['startExploring','confirmReset','viewGalaxy','viewRegion','viewSystem','viewLocalStar','viewUnknown','viewNuclearCluster'].includes(id),'missing '+id);
+const html=fs.readFileSync('dist/index.html','utf8');
+const appSource=[...html.matchAll(/<script src="([^"]+)" data-app><\/script>/g)].map(m=>fs.readFileSync('dist/'+m[1].split('?')[0],'utf8')).join('\n');
+// Dialogs also define elements when their template is opened.
+const ids=new Set([...(html+'\n'+appSource).matchAll(/id="([^" ]+)"/g)].map(m=>m[1]));
+for(const [,id]of appSource.matchAll(/\$\('([^']+)'\)/g))assert.ok(ids.has(id)||['startExploring','confirmReset','viewGalaxy','viewRegion','viewSystem','viewLocalStar','viewUnknown','viewNuclearCluster'].includes(id),'missing '+id);
 assert.deepEqual([...html.matchAll(/data-departure="([^"]+)"/g)].map(m=>m[1]),['engine','beam','burst']);assert.ok(!html.includes('data-sail='));
 console.log('PASS three-mode UI and every application element ID');
 

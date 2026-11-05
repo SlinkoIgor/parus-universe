@@ -9,6 +9,10 @@ export async function readMapCatalog({supplement=false}={}){
  const leaves=manifest.nodes.filter(n=>!n.children.length),parts=new Array(leaves.length);let cursor=0;
  await Promise.all(Array.from({length:16},async()=>{for(;;){const i=cursor++;if(i>=leaves.length)return;parts[i]=JSON.parse(await fs.promises.readFile('dist/'+pointer.dataRoot+'/'+leaves[i].file,'utf8'));}}));
  const rows=parts.flat();
- const objects=[...core,...rows.map(r=>({id:r[0],name:r[1],kind:r[2],d:r[3],aliases:r[8],distanceMethod:r[7],positionQuality:r[6],source:r[10],...r[11],p3:r[11].p3||sky(r[4],r[5],r[3]),mapPosition:{x:r[12],y:r[13]}}))];
+ const streamed=rows.map(r=>({id:r[0],name:r[1],kind:r[2],d:r[3],raDeg:r[4],decDeg:r[5],aliases:r[8],distanceMethod:r[7],positionQuality:r[6],source:r[10],...r[11],p3:r[11].p3||sky(r[4],r[5],r[3]),mapPosition:{x:r[12],y:r[13]}}));
+ const stellarProperties=vm.runInContext('ExtendedCatalog.stellarProperties.bind(ExtendedCatalog)',c);
+ for(const o of streamed)if(o.kind==='star')stellarProperties(o);
+ // A promoted stellar component and its immutable HYG leaf are one identity.
+ const objects=[...new Map([...streamed,...core].map(o=>[o.id,o])).values()];
  return{c,core,rows,objects,manifest,pointer};
 }

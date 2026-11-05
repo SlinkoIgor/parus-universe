@@ -603,11 +603,29 @@ OUT=FINAL_OUT
 dump(ROOT/'dist/catalog-data/current.json',{'revision':revision,'dataRoot':DATA_ROOT,'total':summary['total'],'manifest':DATA_ROOT+'/manifest.json'})
 boot={'dataRoot':DATA_ROOT,'cosmicPatches':cosmic_patches,'geometryVersion':geometry_version,'coordinateCorrections':[r for r in records if (not r[11].get('cosmicCatalog') or r[11].get('catalogPositionUpdated')) and (r[11].get('boundSystemPrimary') or r[11].get('redshiftIndependent') or r[11].get('distanceHost') or r[11].get('catalogDistanceLy') is not None or r[10]=='GlobularModels')],'revision':revision,'members':member_rows,'policies':policies,'hiddenIds':[r[0] for r in atlas_only+member_rows if r[11].get('atlasOnly')],'total':summary['total'],'patches':patches,'foreground':foreground,'systems':systems,'renames':renames,'sourceCoverage':coverage,'pulsarCorrections':[r for r in records if r[10]=='ATNF' and (r[11].get('distanceHost') or 'параллакс' in r[7]) and not r[11].get('atlasOnly')],'systemTiles':{i:locations[i] for s in systems for i in s['members'] if i in locations},'rawMap':{k:v for k,v in rawmap.items() if k.startswith('atnf:') and v in byid}}
 (ROOT/'dist/catalog-extended.js').write_text('// Generated from complete local source snapshots.\nconst EXTENDED_BOOT='+json.dumps(boot,ensure_ascii=False,separators=(',',':'),allow_nan=False)+';\n')
+# The revision also hashes implementation code. Permit a new revision only
+# after checking exact stellar identities and all astrometry used by this layer.
+stellar_selection=json.loads((ROOT/'data-tools/stellar-sources/catalog-selection.json').read_text())
+stellar_ids={o['id'] for o in stellar_selection['targets']}|{r[0] for r in stellar_selection['catalogRows']}
+stellar_fresh={}
+for original in core:
+    if original['id'] not in stellar_ids:continue
+    o={**original,**patches.get(original['id'],{})}
+    if original['id'] in patches and o.get('d') and o.get('raDeg') is not None:
+        o['p3']=patches[original['id']].get('p3') or sky(o['raDeg'],o['decDeg'],o['d'])
+    stellar_fresh[o['id']]=o
+for r in member_rows+records:
+    if r[0] in stellar_ids and r[0] not in stellar_fresh:
+        stellar_fresh[r[0]]={'id':r[0],'name':r[1],'kind':r[2],'d':r[3],'raDeg':r[4],'decDeg':r[5],'aliases':r[8],**r[11],'p3':r[11].get('p3') or sky(r[4],r[5],r[3])}
+with tempfile.TemporaryDirectory(prefix='parus-stellar-base-') as stellar_tmp:
+    candidate=Path(stellar_tmp)/'base.json'
+    dump(candidate,{'revision':revision,'objects':stellar_fresh})
+    subprocess.run([sys.executable,str(ROOT/'data-tools/build-stellar-catalog.py'),'--validate-base',str(candidate)],cwd=ROOT,check=True)
 dump(ROOT/'data-tools/full-catalog-audit.json',{'total':summary['total'],'core':len(core)+len(member_rows),'extra':len(records),'sourceCoverage':coverage,'mappedRows':summary['mapRows'],'atlasOnlyRows':summary['atlasOnlyRows'],'leafRecords':len(locations),'foreground':foreground,'systems':len(systems),'unknownExtra':summary['unknownExtra'],'approximateExtra':summary['approximateExtra'],'sourceSHA256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in [RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path]}})
 subprocess.run([sys.executable,str(ROOT/'data-tools/build-map-layers.py')],check=True)
 subprocess.run([sys.executable,str(ROOT/'data-tools/build-map-slice.py')],check=True)
 layer_revision=json.loads((ROOT/'dist/map-layers/current.json').read_text())['revision']
-html=ROOT/'dist/index.html';html.write_text(re.sub(r'(catalog-extended\.js\?v=)[^\"]+',lambda m:m[1]+revision,html.read_text()))
+html=ROOT/'dist/index.html';html.write_text(re.sub(r'(catalog-extended\.js\?v=)[^\"]+',lambda m:m[1]+hashlib.sha256((ROOT/'dist/catalog-extended.js').read_bytes()).hexdigest()[:12],html.read_text()))
 html.write_text(re.sub(r'(map-layer-data\.js\?v=)[^"]+',lambda m:m[1]+layer_revision,html.read_text()))
 # Keep the public provenance index in sync with the actual generated catalog.
 source_path=ROOT/'dist/catalog-sources.json';source_info=json.loads(source_path.read_text());full=source_info.setdefault('fullCatalog',{})
