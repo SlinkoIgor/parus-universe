@@ -1,0 +1,57 @@
+{
+  "catalogRevision": "c240a9fdd8f7",
+  "geometryVersion": 4,
+  "shapeGeometryVersion": 2,
+  "radialProfile": "rigid-shapes-radial-v4:274f7ee7a9c9e658:3a5f2c160f016850",
+  "mappedRows": 229630,
+  "models": {
+    "sphere": 8887,
+    "disk": 4,
+    "footprint": 10178,
+    "spine": 15421
+  },
+  "families": {
+    "nebula": {
+      "sphere": 220,
+      "footprint": 3
+    },
+    "stellar-cluster": {
+      "sphere": 4114
+    },
+    "galaxy": {
+      "disk": 4,
+      "footprint": 10175,
+      "sphere": 431
+    },
+    "galaxy-cluster": {
+      "sphere": 2163
+    },
+    "void": {
+      "sphere": 638
+    },
+    "structure": {
+      "sphere": 8
+    },
+    "supercluster": {
+      "sphere": 1313
+    },
+    "filament": {
+      "spine": 15421
+    }
+  },
+  "measuredPositionAngles": 10180,
+  "filaments": 15421,
+  "sourceSpineVertices": 275599,
+  "galaxyMembersChecked": 11050,
+  "rigidMembersChecked": 11433,
+  "orbitalSamples": 384,
+  "unlocatedWithoutMeasuredContours": [
+    "laniakea",
+    "cfa",
+    "sloan",
+    "ring",
+    "arc",
+    "horizon"
+  ],
+  "missingGeometry": []
+}

@@ -1,0 +1,22 @@
+{
+  "revision": "9e4164e34316",
+  "baseCatalogRevision": "c240a9fdd8f7",
+  "objects": 133,
+  "mapped": 88,
+  "atlasOnly": 45,
+  "populations": {
+    "stellar": 62,
+    "supermassive": 71
+  },
+  "unmatchedHosts": [
+    "A1836-BCG",
+    "A3565-BCG"
+  ],
+  "incompatibleMassSolutions": [
+    "N1399"
+  ],
+  "sourceEstimates": 73,
+  "uniqueSupermassiveHosts": 72,
+  "existingSgrPreserved": true,
+  "filamentsUnchanged": true
+}

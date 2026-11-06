@@ -85,101 +85,21 @@ function galaxyProjection(g) {
   return { center, r: (g.diameterLy * 0.5 * width) / cam.span };
 }
 function drawGalaxyBackground() {
-  if (!ExtendedCatalog.matchesMap({ kind: 'galaxy' })) return;
+  if (!ExtendedCatalog.matchesMap({kind:'galaxy'})) return;
   for (const g of GALAXIES) {
-    const { center, r } = galaxyProjection(g);
-    if (
-      r < 1.2 ||
-      r > 12000 ||
-      center.x + r < 0 ||
-      center.x - r > width ||
-      center.y + r < 0 ||
-      center.y - r > height
-    )
-      continue;
-    const body = object(g.id) || { ...g, kind: 'galaxy', d: 0, galaxy: g };
-    if ((globalThis.MapSlice && !MapSlice.includes(body)) || !MapDetails.visible(body, cam.span))
-      continue;
-    const selected = g.id === state.selected || (g.id === 'milkyway' && state.selected === 'sgr');
-    ctx.save();
-    ctx.globalAlpha = MapDetails.opacity(body, cam.span);
-    ctx.translate(center.x, center.y);
-    ctx.rotate(g.rotation);
-    ctx.scale(1, g.axisRatio);
-    circle(0, 0, r, selected ? '#555555' : '#777777', 1.1, [3, 5]);
-    if (g.shape === 'spiral') {
-      circle(0, 0, r * 0.17, '#c3c3c3', 0.6);
-      circle(0, 0, r * 0.06, '#bababa', 0.65);
-      for (let arm = 0; arm < (g.id === 'milkyway' ? 4 : 2); arm++) {
-        ctx.beginPath();
-        ctx.strokeStyle = paint(selected ? '#969696' : '#b6b6b6');
-        ctx.lineWidth = 0.85;
-        for (let i = 0; i <= 200; i++) {
-          const t = i / 200,
-            rr = r * (0.1 + t * 0.9),
-            a = t * 5 + arm * Math.PI * (g.id === 'milkyway' ? 0.5 : 1),
-            x = Math.cos(a) * rr,
-            y = Math.sin(a) * rr;
-          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-        }
-        ctx.stroke();
-      }
-    } else if (g.shape === 'elliptical') {
-      for (const f of [0.1, 0.22, 0.4, 0.65, 0.84]) circle(0, 0, r * f, '#bcbcbc', 0.6);
-      if (g.id === 'centaurus') {
-        line(-r * 0.8, -r * 0.08, r * 0.8, -r * 0.08, '#8d8d8d', 1);
-        line(-r * 0.8, r * 0.04, r * 0.8, r * 0.04, '#8d8d8d', 1);
-      }
-    } else {
-      for (let ring = 0; ring < 3; ring++) {
-        ctx.beginPath();
-        ctx.strokeStyle = paint('#b3b3b3');
-        ctx.lineWidth = 0.7;
-        for (let i = 0; i <= 120; i++) {
-          const a = (i / 120) * Math.PI * 2,
-            rr =
-              r *
-              (0.35 + ring * 0.2) *
-              (1 + 0.13 * Math.sin(a * 3 + ring) + 0.09 * Math.cos(a * 5)),
-            x = Math.cos(a) * rr,
-            y = Math.sin(a) * rr;
-          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-        }
-        ctx.closePath();
-        ctx.stroke();
-      }
-      line(-r * 0.45, 0, r * 0.35, 0, '#9c9c9c', 2);
-    }
-    ctx.restore();
-    const points = Array.from({ length: 33 }, (_, i) => {
-      const a = (i / 32) * Math.PI * 2,
-        x = Math.cos(a) * r,
-        y = Math.sin(a) * r * g.axisRatio;
-      return {
-        x: center.x + x * Math.cos(g.rotation) - y * Math.sin(g.rotation),
-        y: center.y + x * Math.sin(g.rotation) + y * Math.cos(g.rotation),
-      };
-    });
-    MapLabels.contours.push({ id: g.id, points, closed: true, container: true });
-    if (r > 18 && r < Math.max(width, height) * 3) {
-      const yy = center.y + Math.min(r * g.axisRatio + 22, height * 0.42);
-      MapLabels.add({
-        key: 'galaxy-' + g.id,
-        object: body,
-        name: g.name.toUpperCase(),
-        detail: 'ОПТИЧЕСКИЙ ДИАМЕТР · ' + distanceText(g.diameterLy),
-        mass: MapDetails.mass(body),
-        level: 2,
-        priority: selected ? 100 : 55,
-        size: 9,
-        opacity: MapDetails.opacity(body, cam.span),
-        color: selected ? '#454545' : '#747474',
-        candidates: [
-          { x: center.x, y: yy, align: 'center' },
-          { x: center.x, y: center.y - r * g.axisRatio - 24, align: 'center' },
-          { x: center.x - r - 18, y: center.y, align: 'right' },
-        ],
-      });
+    const body=object(g.id);if(!body||!MapDetails.visible(body,cam.span)||!ExtendedCatalog.matchesMap(body,true)||!MapGeometry.intersectsView(body,0,2))continue;
+    const geometry=MapGeometry.view(body),center=screen(body),scale=width/cam.span*Cosmology.regionScale(body);
+    if(!geometry.points.length)continue;
+    const points=geometry.points.map(p=>({x:center.x+p.x*scale,y:center.y+p.y*scale}));
+    const box=MapLandmarks.box(points);if(box.w<2&&box.h<2||box.x+box.w<0||box.x>width||box.y+box.h<0||box.y>height)continue;
+    const selected=g.id===state.selected||(g.id==='milkyway'&&state.selected==='sgr'),opacity=MapDetails.opacity(body,cam.span);
+    ctx.save();ctx.globalAlpha=opacity;ctx.strokeStyle=paint(selected?'#555555':'#777777');ctx.lineWidth=1.1;ctx.setLineDash([3,5]);ctx.beginPath();
+    const paths=geometry.paths.map(path=>({...path,points:path.points.map(p=>({x:center.x+p.x*scale,y:center.y+p.y*scale}))}));
+    RegionMap.strokePaths(ctx,RegionMap.clipPaths(paths,2).runs);ctx.restore();
+    MapLabels.contours.push({id:g.id,object:body,points,paths,closed:true,container:true});
+    if(Math.max(box.w,box.h)>36&&Math.max(box.w,box.h)<Math.max(width,height)*6){
+      const anchor=geometry.points.reduce((a,p)=>p.y>a.y?p:a,geometry.points[0]);
+      MapLabels.add({key:'galaxy-'+g.id,object:body,name:g.name.toUpperCase(),detail:geometry.model.kind==='disk'?'МОДЕЛЬ ДИСКА':'ОБЛАСТЬ КАТАЛОЖНОГО РАЗМЕРА',mass:MapDetails.mass(body),level:2,priority:selected?100:55,size:9,opacity,color:selected?'#454545':'#747474',candidates:[{x:center.x+anchor.x*scale,y:center.y+anchor.y*scale+22,align:'center'}]});
     }
   }
 }
@@ -206,11 +126,10 @@ function renderReachability() {
   if (!out.hidden) {
     const ship = shipReachability(),
       light = lightReachability();
-    out.textContent =
-      'Полёт · ' +
+    UIContent.text(out, 'Полёт · ' +
       (ship.radius > 0 ? distanceText(ship.radius) : '0 св. лет') +
       '\nСвет · ' +
-      distanceText(light.radius);
+      distanceText(light.radius));
   }
   out.title =
     state.expansion !== false
@@ -283,7 +202,7 @@ function drawHorizonBoundary() {
 }
 function drawSymbol(o, p, selected = false) {
   const destroyed = state.destroyed.includes(o.id) && o.kind === 'star';
-  const ink = selected ? '#171717' : '#424242';
+  const ink = selected || o.notableLandmark ? '#171717' : '#424242';
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.strokeStyle = paint(ink);
@@ -459,10 +378,17 @@ function drawObjects() {
   // Classify each point once. Contours cannot become glyphs, and sorting
   // compares precomputed ranks rather than repeatedly parsing catalogue fields.
   const pointView = (o) => {
-    const sparse = MapDetails.sparse(o, cam.span);
+    // Complete filament contours already have their own pass. Reject them
+    // before point metadata/mass/opacity work, retaining legacy sparse points.
+    if (o.region?.shape === 'polyline' && !MapDetails.sparse(o, cam.span) && !RegionMap.asPoint(o))
+      return null;
+    const sparse = MapDetails.sparse(o, cam.span), bg = ExtendedCatalog.background(o);
+    // Background points have their own pass. Do not prepare their foreground
+    // geometry, except when the station/selection or legacy sparse mode needs it.
+    if (bg && !sparse && o.id !== state.selected && o.id !== state.current) return null;
     if (!(sparse || MapDetails.visible(o, cam.span)) || (!sparse && !RegionMap.asPoint(o)))
       return null;
-    return { o, sparse, bg: ExtendedCatalog.background(o) };
+    return { o, sparse, bg };
   };
   const candidates = new Map(
     [...OBJECTS, ...ExtendedCatalog.pinned.values()].map((o) => [o.id, { o }]),
@@ -497,6 +423,8 @@ function drawObjects() {
   }
   visible.sort(
     (a, b) =>
+      Number(!!b.o.notableLandmark) - Number(!!a.o.notableLandmark) ||
+      (b.o.landmarkPriority||0) - (a.o.landmarkPriority||0) ||
       b.level - a.level ||
       (a.mass !== null && b.mass !== null
         ? b.mass - a.mass
@@ -509,7 +437,17 @@ function drawObjects() {
       (a.o.apparentV ?? 20) - (b.o.apparentV ?? 20) ||
       a.o.id.localeCompare(b.o.id),
   );
+  // Keep the host's resolved contour, but let its nucleus own the coincident
+  // point and click target. No anonymous galaxy dot covers the black-hole ring.
+  const nuclearHosts=new Set(visible.filter(q=>q.o.blackHoleCatalog&&q.o.parentGalaxy).map(q=>q.o.parentGalaxy));
+  if(globalThis.BlackHoleCatalog)BlackHoleCatalog.renderedHosts=nuclearHosts;
   for (const { o, p, sparse, bg, mass, level, rank } of visible) {
+    if(nuclearHosts.has(o.id)){
+      // One shared centre glyph represents both identities. Retain the host's
+      // spatial hit record through zoom; the preceding nucleus wins a tie.
+      hitObjects.push({o,p,r:7,background:bg,coincidentNucleus:true});
+      queueLabel(o,p,ExtendedCatalog.opacity(o));continue;
+    }
     if (sparse) {
       if (nearby(p)) continue;
       const selected = o.id === state.selected,
@@ -752,8 +690,9 @@ function drawEffects(dt) {
   }
 }
 function drawHover() {
-  if (hover?.cosmicEpoch) return;
+  if (hover?.cosmicEpoch || hover?.traffic) return;
   if (!hover || !ExtendedCatalog.matchesMap(hover)) return;
+  if (hover.kind === 'blackhole' && !MapDetails.visible(hover, cam.span)) return;
   const p = screen(hover);
   if (MapSymbols.handles(hover) && RegionMap.asPoint(hover)) {
     circle(p.x, p.y, 7, '#969696', 0.6, [2, 4]);

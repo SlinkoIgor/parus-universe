@@ -20,7 +20,7 @@ assert.ok(object('jades-z14').catalogMeasurements.some(m=>m.catalog==='JADES DR4
 assert.ok(!object(DISTANT_CATALOG_DATA.matches[0].sourceId),'no duplicate of the existing JADES galaxy');
 for(const o of DistantCatalog.objects){
  if(o.atlasOnly){assert.equal(o.p3,null);assert.equal(o.navigable,false);assert.equal(MapDetails.visible(o,1),false);}
- else{assert.equal(o.p3.length,3);assert.ok(o.p3.every(Number.isFinite));assert.ok(Math.abs(Math.hypot(...o.p3)/o.d-1)<1e-12);
+ else{assert.equal(MapGeometry.unlocated(o),false,'sourced survey centres retain their coordinates even without an extent');assert.equal(o.p3.length,3);assert.ok(o.p3.every(Number.isFinite));assert.ok(Math.abs(Math.hypot(...o.p3)/o.d-1)<1e-12);
  assert.ok(Math.hypot(...Space.fromSky(o.raDeg,o.decDeg,o.d).map((v,i)=>v-o.p3[i]))/o.d<1e-12,'map directions preserve the source sky coordinates');
  assert.equal(o.cosmology.H0,70);}
  assert.ok(o.source.startsWith('https://'));assert.ok(o.facts.refs.length);assert.equal(o.cosmicLandmark,undefined,'survey membership does not confer landmark rank');
@@ -61,7 +61,7 @@ for(const mode of ['full','radial']){
  const ids=shown.map(o=>o.id);cam.x+=cam.span*.001;MapLabels.begin();drawObjects();for(const id of ids){const p=screen(object(id));if(p.x>50&&p.x<width-50&&p.y>50&&p.y<height-50)assert.ok(hitObjects.some(h=>h.o.id===id),'pan retains catalogue representatives');}
 }
 state=initial();Cosmology.sync(state);width=1440;height=855;const overview=UniverseMap.overview();goCamera(overview.x,overview.y,overview.span,true);
-assert.ok(mapContext(overview)[1].includes(distanceText(2*UniverseMap.radius)),'heading and boundary share the same reference horizon');
+assert.ok(mapContext(overview)[1].includes(distanceText(UniverseMap.radius)),'heading and ruler share the same radius');
 const g=UniverseMap.geometry();assert.ok(g.y-g.r>80);assert.ok(g.y+g.r<height-20);assert.equal(UniverseMap.hit(g.x,g.y),null,'no inner galaxies-and-clusters region');
 for(const area of UniverseMap.areas){assert.equal(area.navigable,false);assert.equal(area.p3,undefined);}
 for(const q of UniverseMap.areas.slice(0,3))for(let i=0;i<12;i++){UniverseMap.labels=[];const r=(q.r0+q.r1)/2*g.k,a=i*Math.PI/6;assert.equal(UniverseMap.hit(g.x+r*Math.cos(a),g.y+r*Math.sin(a)).id,q.id);}
@@ -75,9 +75,27 @@ for(const [i,q] of UniverseMap.areas.slice(0,3).entries()){
  for(const f of fills)for(const arc of f.path)assert.ok(Math.abs(Math.abs(arc[4]-arc[3])-2*Math.PI)<1e-12,'all highlighted paths cover complete rings');
 }
 Object.assign(ctx,originalCanvas);hover=null;
-cam.span=24;assert.equal(UniverseMap.active(),false);assert.equal(UniverseMap.hit(0,0),null);
+// The ruler spans the projected diameter with a radius on each half, and its reading measures the same expanding
+// reference sphere as the outline. Disabling expansion freezes its reached size.
+for(const size of [[1440,855],[900,620],[390,562]])for(const mode of ['full','slice','radial']){
+ [width,height]=size;MapSlice.mode=mode;state=initial();Cosmology.sync(state);
+ const originalState=JSON.stringify(state);cam=UniverseMap.overview();cameraGoal=null;UniverseMap.draw();
+ const first=UniverseMap.ruler;assert.ok(first,'ruler fits overview '+size+'/'+mode);
+ assert.equal(first.radius,UniverseMap.radius);assert.ok(first.label.includes('46,1 млрд св. лет'));assert.equal(first.center.x,(first.from.x+first.to.x)/2);
+ assert.ok(Math.abs(first.to.x-first.from.x-2*UniverseMap.geometry().r)<1e-10,'dimension line spans the full diameter');
+ assert.equal(first.labels.length,2);assert.equal(first.labels[0].text,first.labels[1].text);
+ assert.ok(first.box.y>UniverseMap.geometry().y+UniverseMap.geometry().r,'ruler below circle');
+ assert.ok(first.box.y+first.box.h<=height-8);assert.equal(JSON.stringify(state),originalState,'drawing never edits the expedition');
+ Cosmology.elapse(state,15e9);cam=UniverseMap.overview();UniverseMap.draw();const later=UniverseMap.ruler;
+ assert.ok(later.radius>first.radius);assert.ok(Math.abs(later.radius/first.radius/Cosmology.scale()-1)<1e-14);
+ assert.ok(Math.abs(later.to.x-later.from.x-first.to.x+first.from.x)<1e-10,'overview fitting keeps the same visual ruler length');
+ state.expansion=false;Cosmology.elapse(state,15e9);cam=UniverseMap.overview();UniverseMap.draw();assert.equal(UniverseMap.ruler.label,later.label);assert.equal(UniverseMap.ruler.radius,later.radius);
+ state.expansion=true;Cosmology.elapse(state,15e9);cam=UniverseMap.overview();UniverseMap.draw();assert.ok(UniverseMap.ruler.radius>later.radius);
+ cam.span=24;UniverseMap.draw();assert.equal(UniverseMap.active(),false);assert.equal(UniverseMap.hit(0,0),null);assert.equal(UniverseMap.ruler,null);
+}
 `);
 assert.equal(run('OBJECTS.length'),counts.core+5289);
 assert.equal(run('ExtendedCatalog.total'),counts.total+5289);
 console.log('PASS universe epochs: whole-ring selection at every angle, retained selection during hover, reference light cone, exterior, viewport fit and no navigation coordinates');
+console.log('PASS universe radius ruler: exact projected diameter with two radius captions below the circle, three viewport sizes and map modes, live expansion, frozen/resumed size and unchanged expedition');
 console.log('PASS distant sources: all 5190 JADES observations, 5095 targets, 173 CCPC candidates +15 OOIs (17 source rows), 3409 mapped, 1873 Atlas-only, source positions/units/quality and existing IDs preserved');

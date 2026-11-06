@@ -170,8 +170,8 @@
       "rows": 869,
       "represented": 869,
       "selection": "All objects searchable. Membership-only, Hubble-only and untyped txt distances atlas-only; individual measured/model distances eligible. Holmberg angular sizes retained.",
-      "added": 679,
-      "merged": 190,
+      "added": 672,
+      "merged": 197,
       "promotedFromAtlas": 13
     },
     "GLADE+": {
@@ -192,8 +192,8 @@
     }
   },
   "inputObjects": 126163,
-  "added": 108888,
-  "merged": 17275,
+  "added": 108881,
+  "merged": 17282,
   "promotedFromAtlas": 379,
   "matches": [
     [
@@ -38744,6 +38744,41 @@
     [
       "ungc-lmc",
       "lmc",
+      "identifier+direction"
+    ],
+    [
+      "ungc-messier031",
+      "andromeda",
+      "identifier+direction"
+    ],
+    [
+      "ungc-messier032",
+      "opengc-ngc0221",
+      "identifier+direction"
+    ],
+    [
+      "ungc-messier033",
+      "triangulum",
+      "identifier+direction"
+    ],
+    [
+      "ungc-messier081",
+      "bode",
+      "identifier+direction"
+    ],
+    [
+      "ungc-messier082",
+      "opengc-ngc3034",
+      "identifier+direction"
+    ],
+    [
+      "ungc-messier101",
+      "opengc-ngc5457",
+      "identifier+direction"
+    ],
+    [
+      "ungc-milkyway",
+      "milkyway",
       "identifier+direction"
     ],
     [
@@ -86862,6 +86897,18 @@
       "reason": "multiple identity candidates; kept separate"
     },
     {
+      "sourceId": "hunt-reffert-4300",
+      "candidate": "phat-ap-15",
+      "reason": "same alias but incompatible direction",
+      "separationDeg": 104.80624937710753
+    },
+    {
+      "sourceId": "hunt-reffert-4423",
+      "candidate": "phat-ap-133",
+      "reason": "same alias but incompatible direction",
+      "separationDeg": 41.4627041209473
+    },
+    {
       "sourceId": "hunt-reffert-4488",
       "candidate": "opengc-ngc1746",
       "reason": "same alias but incompatible direction",
@@ -86910,6 +86957,12 @@
       "candidate": "phat-ap-480",
       "reason": "same alias but incompatible direction",
       "separationDeg": 128.35006583653552
+    },
+    {
+      "sourceId": "hunt-reffert-4598",
+      "candidate": "phat-ap-1429",
+      "reason": "same alias but incompatible direction",
+      "separationDeg": 96.85015512977135
     },
     {
       "sourceId": "hunt-reffert-4646",

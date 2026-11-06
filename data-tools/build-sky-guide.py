@@ -7,6 +7,8 @@ membership uses Roman (1987) B1875 boundaries, not the star's traditional name.
 """
 import hashlib
 import json
+import math
+from bisect import bisect_left
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,6 +36,56 @@ for line in (SRC / 'roman87.dat').read_text().splitlines():
     boundaries.append([float(lo), float(hi), float(dec), con])
 assert len(constellations) == 88 and len(boundaries) == 357
 assert len(stars) == 5044 and all(s[3] <= 6 for s in stars)
+
+# Recover the full sky regions from Roman's ordered decision table, rather
+# than using the much smaller stick figures or just their labelled stars.
+# On each RA/Dec cell the first matching row is constant. Rotate its extrema
+# from B1875 to J2000 with the same IAU 1976 frame convention as the finder.
+ra_edges = sorted({q[i] for q in boundaries for i in [0, 1]})
+dec_edges = sorted({-90., 90., *(q[2] for q in boundaries)})
+t = (2415020.31352 - 25 * 365.242198781 - 2451545) / 36525
+z = math.radians((2306.2181*t + 1.09468*t*t + .018203*t*t*t) / 3600)
+theta = math.radians((2004.3109*t - .42665*t*t - .041833*t*t*t) / 3600)
+# J2000 declination is the projection onto its pole, expressed in B1875.
+pole = [-math.sin(theta)*math.cos(z), -math.sin(theta)*math.sin(z), math.cos(theta)]
+ranges = {key: [90., -90.] for key in constellations}
+
+def rectangle_declinations(ra_lo, ra_hi, dec_lo, dec_hi):
+    a, b = math.radians(ra_lo*15), math.radians(ra_hi*15)
+    d0, d1 = math.radians(dec_lo), math.radians(dec_hi)
+    critical_ra = math.atan2(pole[1], pole[0])
+    angles = [a, b] + [critical_ra + k*math.pi for k in range(-2, 4)
+                       if a <= critical_ra + k*math.pi <= b]
+    values = []
+    for angle in angles:
+        horizontal = pole[0]*math.cos(angle) + pole[1]*math.sin(angle)
+        critical_dec = math.atan2(pole[2], horizontal)
+        declinations = [d0, d1] + [critical_dec + k*math.pi for k in range(-2, 3)
+                                   if d0 <= critical_dec + k*math.pi <= d1]
+        for dec in declinations:
+            v = horizontal*math.cos(dec) + pole[2]*math.sin(dec)
+            values.append(math.degrees(math.asin(max(-1., min(1., v)))))
+    return min(values), max(values)
+
+for dec_lo, dec_hi in zip(dec_edges, dec_edges[1:]):
+    assigned = [None] * (len(ra_edges)-1)
+    for lo, hi, dec, con in boundaries:
+        if (dec_lo+dec_hi)/2 < dec:
+            continue
+        for i in range(bisect_left(ra_edges, lo), bisect_left(ra_edges, hi)):
+            if assigned[i] is None:
+                assigned[i] = con
+    assert all(assigned), 'Roman must cover the entire sky'
+    start = 0
+    for end in range(1, len(assigned)+1):
+        if end == len(assigned) or assigned[end] != assigned[start]:
+            low, high = rectangle_declinations(ra_edges[start], ra_edges[end], dec_lo, dec_hi)
+            limits = ranges[assigned[start]]
+            limits[0], limits[1] = min(limits[0], low), max(limits[1], high)
+            start = end
+for con, limits in ranges.items():
+    assert -90 <= limits[0] < limits[1] <= 90, con
+    constellations[con]['decRangeDeg'] = [round(v, 6) for v in limits]
 media = read('media.json')
 ids = set()
 for photo in media:
@@ -41,7 +93,8 @@ for photo in media:
     ids.add(photo['id'])
     assert photo['objects'] and photo['credit'] and photo['description']
     assert photo['url'].startswith('https://') and photo['source'].startswith('https://')
-data = dict(version=1, epoch='J2000', magnitudeLimit=6, stars=stars,
+data = dict(version=2, epoch='J2000', magnitudeLimit=6, stars=stars,
+            declinationRangeSource='Roman 1987 VI/42 B1875 regions; IAU 1976 to J2000; degrees',
             constellations=constellations, boundaries=boundaries, media=media)
 encode = lambda d: json.dumps(d, ensure_ascii=False, separators=(',', ':'))
 data['revision'] = hashlib.sha256(encode(data).encode()).hexdigest()[:12]

@@ -88,6 +88,30 @@ Access via CDS/VizieR IDIA mirror. Acknowledgment: This research has made use of
 
 Alpha Centauri AB: Kervella, Mignard, Mérand & Thévenin (2016), A&A594,A107, Table1 K16, https://arxiv.org/abs/1610.06079. Внешняя орбита Proxima: Kervella et al. (2017), A&A598,L7, Table3, https://arxiv.org/abs/1611.03495. Использованы численные орбитальные элементы и опубликованные неопределённости; рисунки и тексты статей не копируются. Атрибуция существующих GRAVITY2021/Gillessen2017 S-звёзд сохранена.
 
+
+## Compact-object supplement · 2026-11-05
+
+Factual catalogue subsets retain their original authors and source references:
+Corral-Santana et al., **BlackCAT**, A&A 587 A61 (2016),
+[arXiv:1510.08869v1](https://arxiv.org/abs/1510.08869v1), 59 historical transients
+and the corresponding individual mass rows; McConnell & Ma (2013),
+**Revisiting the Scaling Relations of Black Hole Masses and Host Galaxy
+Properties**, ApJ 764 184, [arXiv:1211.2816](https://arxiv.org/abs/1211.2816),
+Table 2; El-Badry et al. **Gaia BH1/BH2**,
+[2209.06833](https://arxiv.org/abs/2209.06833),
+[2302.07880](https://arxiv.org/abs/2302.07880); Gaia Collaboration et al.,
+**Gaia BH3**, [2404.10486](https://arxiv.org/abs/2404.10486);
+[EHT/NASA M87* factual mass and first-image identification](https://science.nasa.gov/resource/first-image-of-a-black-hole/).
+No paper prose, spectra or images are redistributed. Extracted factual rows,
+source hashes where available and URLs are in `data-tools/black-hole-sources/`.
+Changes: conservative distance/confirmation selection, Russian descriptions,
+ICRS-to-Galactic conversion, host identity joins, linear dynamical-mass scaling
+to adopted host distance, and separate nuclear identities. No source-specific
+rights are replaced by the repository's code license; inherited OpenNGC/SIMBAD
+host-coordinate portions retain the terms above. Coverage and uncertainties:
+`docs/atlas-expansion.md`.
+
+
 ## Nearby stellar identities, multiplicity, orbits and sky fields (2026-11-05)
 
 Names and aliases: [SIMBAD, CDS / Strasbourg Observatory](https://simbad.cds.unistra.fr/), accessed through the Harvard TAP mirror; Wenger et al. (2000).
@@ -145,3 +169,14 @@ The initial selected images and required credits are:
 
 The exact URLs, identities, captions and source checks are recorded in
 `data-tools/sky-sources/media.json` and `sources.json`. See `docs/sky-guide.md`.
+
+
+DSS photographic preparation also uses the factual plate-centre/epoch list
+from NASA [SkyView DSS2 Red](https://skyview.gsfc.nasa.gov/current/jar/surveys/xml/dss2r.xml.gz),
+frozen with source SHA-256 in `data-tools/sky-sources/`. It describes POSS-II /
+UK Schmidt red plates; original institutional data rights and DSS credits above
+apply. Selected per-object photographic astrometry is from CDS SIMBAD through
+its CfA mirror (Wenger et al. 2000), with bibliographic provenance and available
+uncertainties retained. Full HYG 4.1 proper motions are used under the existing
+HYG attribution/license. These presentation data do not replace the scientific
+catalogue and are not relicensed as game code. No DSS pixels are redistributed.

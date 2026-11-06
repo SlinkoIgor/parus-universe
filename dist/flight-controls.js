@@ -3,22 +3,22 @@
 function coastSetup() {
   /* Cruise speed now converts proper years directly in Simulation. */
 }
-function launch(forceEngine = false) {
+function launch(forceEngine = false, {focusRoute = true} = {}) {
   if (!forceEngine) FlightSetup.sync();
   if (!forceEngine && MissionPlanner.enabledIdle()) {
-    MissionPlanner.launch();
+    MissionPlanner.launch(null, null, {focusRoute});
     return;
   }
   if (state.flight) return;
   const target = object(state.selected);
   if (!target || target.id === state.current || !target.navigable) return;
+  if (!forceEngine && state.departureMode === 'burst') {
+    const issue = FlightSetup.burstIssue(object(state.current));
+    if (issue) { toast(issue); return; }
+  }
   state.controlG = 10;
   state.auto = true;
   const boost = !forceEngine && wantsBoost();
-  if (!forceEngine && state.current === 'sol' && state.departureMode === 'burst') {
-    toast('Вспышка Солнца запрещена. Выберите собственную тягу или постоянный свет.');
-    return;
-  }
   if (!boost && !Rocket.usableFuel(state.matter)) {
     toast('Нет рабочего вещества для тяги.');
     return;
@@ -101,7 +101,7 @@ function launch(forceEngine = false) {
   state.current = null;
   FlightMarks.plan();
   renderUI();
-  fitRoute(target);
+  if (focusRoute) fitRoute(target);
   persist();
 }
 function cutEngine() {
@@ -256,7 +256,10 @@ function finishFlight(arrived) {
   renderUI();
   renderCatalog();
   persist();
-  if (arrived) Route.afterStop(f);
+  if (arrived) {
+    Route.afterStop(f);
+    if (!state.flight && (!f.route?.length || f.legIndex >= f.route.length - 1)) FlightQueue.depart({focusRoute:false});
+  }
 }
 function autoFraction(predict) {
   const f = state.flight,

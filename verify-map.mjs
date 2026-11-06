@@ -9,7 +9,7 @@ const context=vm.createContext({console,performance,Math,JSON,Number,Array,Strin
 
 // Use the browser's application module order so extracted code is tested too.
 const appFiles=[...fs.readFileSync('dist/index.html','utf8').matchAll(/<script src="([^"]+)" data-app><\/script>/g)].map(m=>'dist/'+m[1].split('?')[0]);
-vm.runInContext(['dist/catalog.js' ,'dist/astronomy.js','dist/catalog-import.js','dist/catalog-retired.js','dist/coordinates.js','dist/cosmic-catalog.js','dist/layout-data.js','dist/map-layout.js','dist/map-radial-data.js','dist/map-radial.js','dist/map-slice.js','dist/cosmology.js','dist/map-details.js','dist/catalog-extended.js','dist/catalog-stream.js','dist/map-layer-data.js','dist/map-layers.js','dist/nuclear-stars-data.js','dist/nuclear-stars.js','dist/regions.js','dist/flight-view.js','dist/flight-marks.js','dist/beam-spectra.js','dist/beam-optics.js','dist/physics.js','dist/orbital-motion.js','dist/flyby.js','dist/navigation.js','dist/simulation.js',...appFiles].map(p=>fs.readFileSync(p,'utf8')).join('\n'),context);
+vm.runInContext(['dist/catalog.js' ,'dist/astronomy.js','dist/catalog-import.js','dist/catalog-retired.js','dist/coordinates.js','dist/cosmic-catalog.js','dist/layout-data.js','dist/map-layout.js','dist/map-radial-data.js','dist/map-radial.js','dist/map-slice.js','dist/cosmology.js','dist/map-details.js','dist/catalog-extended.js','dist/catalog-stream.js','dist/black-hole-catalog-data.js','dist/black-hole-catalog.js','dist/map-layer-data.js','dist/map-layers.js','dist/nuclear-stars-data.js','dist/nuclear-stars.js','dist/regions.js','dist/flight-view.js','dist/flight-marks.js','dist/beam-spectra.js','dist/beam-optics.js','dist/physics.js','dist/orbital-motion.js','dist/flyby.js','dist/navigation.js','dist/simulation.js',...appFiles].map(p=>fs.readFileSync(p,'utf8')).join('\n'),context);
 context.CATALOG_AUDIT=JSON.parse(fs.readFileSync('data-tools/selection-audit.json','utf8'));
 const run=s=>vm.runInContext(s,context);
 run(`
@@ -35,7 +35,7 @@ assert.ok(object('boss-wall').region);assert.ok(object('eridanus-supervoid').reg
 assert.equal(object('local-void').navigable,true);
 assert.equal(new Set(OBJECTS.map(o=>o.id)).size,OBJECTS.length);
 assert.equal(new Set(OBJECTS.flatMap(o=>o.iauNames||[])).size,652);
-assert.equal(CATALOG_COUNTS.all,1066+EXTENDED_BOOT.members.length+NuclearStars.rows.length+ExtendedCatalog.stellarAddedCount);
+assert.equal(CATALOG_COUNTS.all,1067+EXTENDED_BOOT.members.length+NuclearStars.rows.length+BlackHoleCatalog.objects.length+ExtendedCatalog.stellarAddedCount);
 
 // Sample actual animation frames with a fixed camera. Moving ship/flight labels
 // must never move stars, displace an atlas label or introduce a trajectory caption.
@@ -51,12 +51,12 @@ const rect=$('flightCard').getBoundingClientRect;$('flightCard').getBoundingClie
 state=initial();state.selected='andromeda';launch(true);tickPhysics(state.flight.engine.burnProper*1.01);paused=true;
 const expedition=JSON.stringify({flight:state.flight,ship:state.ship,beta:state.beta,matter:state.matter,phase:state.phase,proper:state.proper,earth:state.earth}),course=state.flight.target;
 for(const id of ['sirius','laniakea',OBJECTS.find(o=>!o.p3).id]){
- select(id);assert.equal(state.selected,id);assert.ok($('infoDialog').open);assert.ok($('dialogContent').innerHTML.includes('<h2>'+object(id).name+'</h2>'));
- assert.equal($('targetName').textContent,object(course).name);assert.equal(state.flight.target,course);
+ select(id);assert.equal(state.selected,id);assert.ok(!$('infoDialog').open);assert.equal($('targetName').textContent,object(id).name);
+ assert.equal(state.flight.target,course);
  assert.equal(JSON.stringify({flight:state.flight,ship:state.ship,beta:state.beta,matter:state.matter,phase:state.phase,proper:state.proper,earth:state.earth}),expedition);
  $('infoDialog').close();
 }
-$('objectInfo').onclick();assert.ok($('dialogContent').innerHTML.includes('<h2>'+object(course).name+'</h2>'));$('infoDialog').close();
+FlightQueue.dismiss();assert.equal($('targetName').textContent,object(course).name);$('objectInfo').onclick();assert.ok($('dialogContent').innerHTML.includes('<h2>'+object(course).name+'</h2>'));$('infoDialog').close();
 // Hover follows a region's true outline; no unrelated circle at its catalog centre.
 const originalCircle=circle;let hoverRings=0;circle=()=>hoverRings++;
 for(const id of ['laniakea','sloan','bootes','ring']){hover=object(id);drawHover();}assert.equal(hoverRings,0);

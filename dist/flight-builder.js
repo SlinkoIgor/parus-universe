@@ -31,13 +31,24 @@ const FlightBuilder = {
     else if (!this.starAvailable)
       Object.assign(this.draft, { sail: false, collector: false, burst: false });
   },
-  open() {
+  context: null,
+  run(fn) {
+    if (!this.context) return fn();
+    const live = state;
+    state = this.context;
+    try { return fn(); } finally { state = live; }
+  },
+  open(context = null) {
+    this.context = context;
+    return this.run(() => this.openInContext());
+  },
+  openInContext() {
     this.readOnly = !!state.flight;
     this.preferred = OrbitalArrival.enabled ? FlightSetup.preferred() : FlightSetup.read();
     this.changedKeys = new Set();
     this.draft = FlightSetup.read();
     this.fuelBounds = null;
-    this.source = object(state.current || state.flight?.fromId);
+    this.source = state.planningSource || object(state.current || state.flight?.fromId);
     this.light = Stellar.stellarLight(this.source);
     this.starAvailable =
       !!this.source &&
@@ -65,6 +76,7 @@ const FlightBuilder = {
       $(id).value = this.draft[key];
     $('applyFlightSetup').hidden = this.readOnly;
     $('launchConfigured').hidden = this.readOnly;
+    $('launchConfigured').querySelector('span').textContent = this.context ? 'Сохранить цель' : 'Лететь';
     $('builderReadOnly').hidden = !this.readOnly;
     if (!this.readOnly && this.draft.arrivalFuelPercent === null) {
       const old = MissionPlanner.preview(this.draft);
@@ -113,7 +125,8 @@ const FlightBuilder = {
     this.draft = FlightSetup.normalize(this.draft);
     this.render();
   },
-  render() {
+  render() { return this.run(() => this.renderInContext()); },
+  renderInContext() {
     this.sanitizeDraft();
     $('setupBurstSpectrum').value = this.draft.burstSpectrum;
     $('setupBurstSpectrum').disabled = this.readOnly || !this.draft.burst;
@@ -147,8 +160,8 @@ const FlightBuilder = {
         ? 'Только заданная расходимость · ' + angleText(c.divergenceDeg) + '°'
         : 'Идеальный пучок без расширения';
     $('burstHelp').textContent =
-      this.source?.id === 'sol'
-        ? 'Для Солнца недоступно'
+      !this.readOnly && FlightSetup.burstIssue(this.source)
+        ? FlightSetup.burstIssue(this.source)
         : (c.burst && (!this.readOnly || (state.flight?.mission?.model || 0) >= 3)
             ? (BeamSpectra.profiles[c.burstSpectrum] || BeamSpectra.profiles.iip).label + ' · '
             : '') +
@@ -823,6 +836,20 @@ const FlightBuilder = {
   apply(fly = false) {
     if (this.readOnly) return;
     this.sanitizeDraft();
+    if (this.context) {
+      FlightQueue.setSetup(this.context.selected, this.draft);
+      $('flightBuilder').close();
+      // The live flight can arrive while a future plan's dialog is open.
+      if (!state.flight && !state.nextTargets.some(n => n.id === this.context.selected)) {
+        state.selected = this.context.selected;
+        state.flightSetup = FlightSetup.normalize(this.draft);
+        FlightSetup.sync();
+        if (fly) launch();
+        else { persist(); renderUI(); }
+      } else if (fly) FlightQueue.add(this.context.selected);
+      else renderUI();
+      return;
+    }
     state.flightSetup = FlightSetup.storeDraft(
       this.draft,
       this.preferred || FlightSetup.preferred(),
@@ -838,6 +865,11 @@ const FlightBuilder = {
     persist();
     if (fly) launch();
   },
+  reserveNote(p) {
+    if (!p?.valid || !p.reserveLimited) return '';
+    const actual = p.arrivalFuelKg / p.setup.capacityKg * 100;
+    return 'Для этого перелёта доступно ' + fmt(actual, 1) + '% бака вместо ' + fmt(p.requestedArrivalFuelPercent, 0) + '%.';
+  },
   renderCard(target, arrived, eta) {
     const f = state.flight,
       c = FlightSetup.read();
@@ -845,55 +877,51 @@ const FlightBuilder = {
     $('configureFlight').hidden = arrived || !target.navigable;
     if (!OrbitalArrival.enabled && !f && !canBoost('beam'))
       Object.assign(c, { sail: false, collector: false, burst: false });
-    $('setupAccelerationSummary').textContent = FlightSetup.acceleration(c);
-    $('setupBrakingSummary').textContent = FlightSetup.braking(c);
+    UIContent.text($('setupAccelerationSummary'), FlightSetup.acceleration(c));
+    UIContent.text($('setupBrakingSummary'), FlightSetup.braking(c));
     $('configureFlight').setAttribute(
       'aria-label',
       f ? 'Посмотреть план полёта' : 'Настроить разгон и торможение',
     );
     $('flightDetails').hidden = true;
-    $('configureFlightLabel').textContent = f ? 'План ↗' : 'Изменить ↗';
+    UIContent.text($('configureFlightLabel'), f ? 'План ↗' : 'Изменить ↗');
     $('arrivalFuelRow').hidden = true;
     if (!f && !arrived && target.navigable) {
-      $('launchBtn').querySelector('span').textContent = 'Лететь';
+      UIContent.text($('launchBtn').querySelector('span'), 'Лететь');
       if (MissionPlanner.enabledIdle()) {
         const p = MissionPlanner.preview();
         $('launchBtn').disabled = !p.valid;
-        $('flightHint').textContent = p.valid
-          ? p.reserveLimited
-            ? 'Для этого перелёта запас ограничен доступным топливом.'
-            : ''
-          : p.reason;
+        UIContent.text($('flightHint'), p.valid ? this.reserveNote(p) : p.reason);
         if (!p.valid) {
-          $('arrivalProper').textContent = '—';
-          $('arrivalEarth').textContent = '—';
+          UIContent.text($('arrivalProper'), '—');
+          UIContent.text($('arrivalEarth'), '—');
         }
-      } else $('flightHint').textContent = '';
+      } else UIContent.text($('flightHint'), '');
     }
     const collector = CollectorSurvival.status(f);
     if (collector?.phase === 'preboost')
-      $('flightHint').textContent = 'Предразгон обычным светом до 0,97 c. Топливо сохраняется.';
+      UIContent.text($('flightHint'), 'Предразгон обычным светом до 0,97 c. Топливо сохраняется.');
     else if (collector?.phase === 'waiting')
-      $('flightHint').textContent = collector.scheduled
+      UIContent.text($('flightHint'), collector.scheduled
         ? 'Парус сложен; корабль ожидает свет вспышки.' +
           (collector.destroyed
             ? ' Коллектор уже разрушен, отправленные фотоны продолжают путь.'
             : '')
-        : 'Разгон обычным светом завершён; вспышка на этом маршруте не запускается.';
+        : 'Разгон обычным светом завершён; вспышка на этом маршруте не запускается.');
     else if (collector && !collector.scheduled && f?.mission?.acceleration.preboost)
-      $('flightHint').textContent = 'Полёт без вспышки; звезда сохранена.';
+      UIContent.text($('flightHint'), 'Полёт без вспышки; звезда сохранена.');
     else if (collector)
-      $('flightHint').textContent = collector.destroyed
+      UIContent.text($('flightHint'), collector.destroyed
         ? 'Коллектор разрушен.' +
           (collector.receiving
             ? ' Отправленный ранее свет ещё разгоняет корабль.'
             : ' Приём света завершён.')
         : collector.receiving
           ? 'Коллектор направляет свет вспышки.'
-          : 'Приём света завершён; выброс ещё не достиг коллектора.';
+          : 'Приём света завершён; выброс ещё не достиг коллектора.');
     $('flightHint').hidden = !$('flightHint').textContent || (!!f && !collector);
     if (f?.mission) {
-      $('phaseTag').textContent = paused
+      UIContent.text($('phaseTag'), paused
         ? 'ПАУЗА'
         : state.phase === 'launch'
           ? 'РАЗГОН'
@@ -903,12 +931,12 @@ const FlightBuilder = {
               ? 'РАЗГОН'
               : state.phase === 'flyby'
                 ? 'ПРОЛЁТ'
-                : 'СВОБОДНЫЙ ПОЛЁТ';
+                : 'СВОБОДНЫЙ ПОЛЁТ');
       $('departureDiagram').hidden = true;
       $('sailSection').hidden = true;
       $('engineSection').hidden = true;
-      if (!paused && collector?.phase === 'preboost') $('phaseTag').textContent = 'ПРЕДРАЗГОН';
-      if (!paused && collector?.phase === 'waiting') $('phaseTag').textContent = 'ОЖИДАНИЕ СВЕТА';
+      if (!paused && collector?.phase === 'preboost') UIContent.text($('phaseTag'), 'ПРЕДРАЗГОН');
+      if (!paused && collector?.phase === 'waiting') UIContent.text($('phaseTag'), 'ОЖИДАНИЕ СВЕТА');
     }
   },
   setup() {
@@ -942,7 +970,7 @@ const FlightBuilder = {
         $(group).append(row);
       }
     $('cancelFlight').onclick = () => FlightHistory.cancel();
-    $('configureFlight').onclick = () => this.open();
+    $('configureFlight').onclick = () => this.open(FlightQueue.browsing() ? FlightQueue.context() : null);
     $('closeBuilder').onclick = () => $('flightBuilder').close();
     document.querySelectorAll('#flightBuilder [data-setup]').forEach((e) => {
       e.addEventListener('change', () => this.changed(e));
@@ -958,7 +986,7 @@ const FlightBuilder = {
     };
     $('applyFlightSetup').onclick = () => this.apply();
     $('launchConfigured').onclick = () => {
-      if (!MissionPlanner.preview(this.draft).valid) return;
+      if (!this.run(() => MissionPlanner.preview(this.draft)).valid) return;
       this.apply(true);
     };
   },

@@ -5,12 +5,12 @@ import crypto from 'node:crypto';
 import {readMapCatalog} from './map-radial-catalog.mjs';
 const {c,objects:catalog,manifest}=await readMapCatalog({supplement:true});
 console.log('Read immutable catalogue');
-vm.runInContext(['map-radial-data','map-radial','map-visibility-data','map-visibility','regions'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
+vm.runInContext(['map-radial-data','map-radial','map-visibility-data','map-visibility','regions','map-geometry-data','map-geometry'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
 c.MapSlice={mode:'full'};
-const details=vm.runInContext('MapDetails',c),byId=new Map(catalog.map(o=>[o.id,o]));c.MapLayout.resolve=id=>byId.get(id);
+const details=vm.runInContext('MapDetails',c),region=vm.runInContext('RegionMap',c),byId=new Map(catalog.map(o=>[o.id,o]));c.MapLayout.resolve=id=>byId.get(id);
 // Apply the same proper-name rule to every class, including distant points.
 const mapName=o=>details.mapLabelName(o);
-const named=[...new Map(catalog.filter(o=>!o.atlasOnly&&o.kind!=='horizon'&&o.p3?.every(Number.isFinite)&&mapName(o)).reverse().map(o=>[o.id,o])).values()];
+const named=[...new Map(catalog.filter(o=>!o.atlasOnly&&!c.MapGeometry.unlocated(o)&&o.kind!=='horizon'&&o.p3?.every(Number.isFinite)&&mapName(o)).reverse().map(o=>[o.id,o])).values()];
 for(const o of named){o.region??=o.regionData;c.StellarClusters.prepare(o);c.Nebulae.prepare(o);}
 const rank=o=>[details.level(o),details.mass(o)??-1,Number(!!o.cosmicLandmark),Number(!!o.messier),-(o.apparentV??99)];
 const ranks=new Map(named.map(o=>[o.id,rank(o)]));
@@ -20,7 +20,8 @@ for(const mode of ['full','radial']){
  c.MapSlice.mode=mode;
  const accepted=[];
  for(let i=0;i<named.length;i++){
-  const o=named[i],entry=entries[i],p=mode==='radial'?c.MapRadial.placement(o).position:c.MapLayout.ordinaryProject(o);
+  const o=named[i],entry=entries[i],structural=o.region&&!o.cosmicCatalog&&['structure','wall','void','ring','arc'].includes(o.kind);
+  const center=structural?region.referenceCenter(o):mode==='radial'?c.MapRadial.placement(o).position:c.MapLayout.ordinaryProject(o),anchor=structural?region.nameAnchor(o):{x:0,y:0},p={x:center.x+anchor.x,y:center.y+anchor.y};
   // Generous fixed footprints keep adjacent names apart in world space.
   // A higher-priority name blocks a lower one only while it is itself eligible.
   const captionW=[...entry.name].length*7.5+24,w=Math.max(120,captionW+2)*1.8,point=c.MapVisibility.overviewPoint(o);
@@ -33,7 +34,7 @@ for(const mode of ['full','radial']){
  }
 }
 const radialRevision=JSON.parse(fs.readFileSync('dist/map-radial/current.json')).revision;
-const dependencies=['data-tools/build-map-labels.mjs','data-tools/map-radial-catalog.mjs','dist/map-layout.js','dist/map-details.js','dist/catalog-extended.js','dist/catalog-stream.js','dist/regions.js','dist/map-visibility.js','dist/map-visibility-data.js','dist/map-radial.js','dist/map-radial-data.js','dist/distant-catalog.js','dist/distant-catalog-data.js'];
+const dependencies=['data-tools/build-map-labels.mjs','data-tools/map-radial-catalog.mjs','dist/map-layout.js','dist/map-details.js','dist/catalog-extended.js','dist/catalog-stream.js','dist/regions.js','dist/map-geometry.js','dist/map-geometry-data.js','dist/map-visibility.js','dist/map-visibility-data.js','dist/map-radial.js','dist/map-radial-data.js','dist/distant-catalog.js','dist/distant-catalog-data.js'];
 const revision=crypto.createHash('sha256').update(manifest.revision+radialRevision+dependencies.map(p=>fs.readFileSync(p)).join('')).digest('hex').slice(0,12);
 const boot={version:1,revision,catalogRevision:manifest.revision,geometryVersion:c.MapLayout.version,radialRevision,entries};
 const path='dist/map-label-data.js',temp=path+'.'+process.pid+'.tmp';fs.writeFileSync(temp,"'use strict';\n// Fixed per-name upper scales in ly/CSSpx; independent of viewport and panels.\nconst MAP_LABEL_BOOT="+JSON.stringify(boot)+';\n');fs.renameSync(temp,path);

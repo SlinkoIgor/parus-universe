@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "baseCatalogRevision": "47ba380fdce5",
+  "baseCatalogRevision": "c240a9fdd8f7",
   "epoch": 2026.81,
   "names": {
     "proxima": {
@@ -55423,10 +55423,5 @@
   },
   "limitations": "Сопоставление имён охватывает исходные звёзды основного набора. Проверка кратности ограничена ближайшим набором и Gl 644; MSC/ORB6 не гарантируют отсутствие неизвестных компаньонов. Пустые элементы и параметры фотометрического центра не превращаются в относительные орбиты. Для широких пар индивидуальные глубины и орбиты часто неизвестны.",
   "newObjectCount": 23,
-  "baseValidation": {
-    "revision": "47ba380fdce5",
-    "selectionSha256": "7c754fc59a67ebe0459b107e59a595b8c12c473e8636a0a4158e20f3275e66c0",
-    "policy": "Exact source identities and unchanged adopted astrometry of all modelled systems"
-  },
-  "revision": "01e9aaefe7b4"
+  "revision": "f7107d1f227c"
 }

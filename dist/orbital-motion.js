@@ -118,7 +118,7 @@ const OrbitalMotion={
  },
  position(o){
   if(o?.stellarSystem&&!o.historicalStellarNavigation){const p3=this.stellarPositions().get(o.id);return p3?this.projectSnapshot(o,p3):null;}
-  if(o?.nuclearStar&&o.orbit.e<1)return NuclearStars.map(o.orbit,NuclearStars.phase(o.orbit,NuclearStars.epoch+this.elapsed()));
+  if(o?.nuclearStar)return NuclearStars.map(o.orbit,NuclearStars.phase(o.orbit,NuclearStars.epoch+(o.orbit.e<1?this.elapsed():0)));
   if(['alpha','hyg-71453','proxima'].includes(o?.id)){
    const p3=this.alphaPositions3D()?.[o.id];if(!p3)return null;
    return this.projectSnapshot(o,p3);

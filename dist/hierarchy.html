@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ru">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="color-scheme" content="light">
+ <title>Вложенность объектов · ПАРУС</title>
+ <link rel="stylesheet" href="hierarchy.css?v=2">
+ <script src="hierarchy.js?v=2" defer></script>
+</head>
+<body>
+ <div class="toolbar"><span>Вложенность объектов</span><div><button id="reset" title="Свернуть все ветки">Свернуть</button><button id="fit">Уместить</button></div></div>
+ <svg id="tree" xmlns="http://www.w3.org/2000/svg" aria-label="Дерево объектов. Нажмите на узел, чтобы раскрыть его."><g id="scene"></g></svg>
+ <p id="status" role="status">Загрузка объектов…</p>
+ <p class="hint">Нажмите на объект, чтобы раскрыть или свернуть ветку. Поле можно двигать и приближать.</p>
+</body>
+</html>

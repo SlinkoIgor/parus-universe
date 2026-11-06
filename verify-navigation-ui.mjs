@@ -5,8 +5,9 @@ const {run}=await import('data:text/javascript,'+encodeURIComponent(harness));
 run(`
 // Exercise the pre-orbital/save-compatible branch; verify-orbits covers new captures.
 OrbitalArrival.enabled=false;
-resize();state=initial();Cosmology.sync(state);cam={x:0,y:0,span:24};followShip=false;shipFocusArmed=false;
-focusShip();const centreIcon=$('shipBtn').innerHTML;focusShip();assert.equal(followShip,true);assert.notEqual($('shipBtn').innerHTML,centreIcon);
+resize();state=initial();Cosmology.sync(state);cam={x:0,y:0,span:24};followShip=false;updateShipButton();
+const centreIcon=$('shipBtn').innerHTML;focusShip();assert.equal(followShip,true);assert.notEqual($('shipBtn').innerHTML,centreIcon);
+focusShip();assert.equal(followShip,false);assert.equal($('shipBtn').innerHTML,centreIcon);focusShip();assert.equal(followShip,true);
 zoomAtPointer({preventDefault(){},deltaY:100,clientX:120,clientY:150});assert.equal(followShip,true);assert.ok(cam.span>24);
 let p=screen(state.ship);assert.ok(Math.abs(p.x-width/2)<1e-8&&Math.abs(p.y-height/2)<1e-8);
 zoomAtPointer({preventDefault(){},deltaY:-100,clientX:800,clientY:500});assert.equal(followShip,true);assert.ok(Math.abs(cam.span-24)<1e-10);

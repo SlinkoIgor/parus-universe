@@ -16,6 +16,23 @@ __pycache__/
 *.pyc
 work/
 
+# Browser catalogue tiles are installed from the pinned release artifact.
+# Keep the small version pointers with the application code.
+dist/catalog-data/*
+!dist/catalog-data/current.json
+dist/map-radial/*
+!dist/map-radial/current.json
+dist/map-slices/*
+!dist/map-slices/current.json
+dist/map-visibility/*
+!dist/map-visibility/current.json
+dist/map-layers/*
+!dist/map-layers/current.json
+dist/sky-dss-data/
+dist/hierarchy-data/
+dist/.catalog-artifact.json
+dist/.catalog-artifact.tmp
+
 # Numbered iCloud synchronization copies (canonical files have no numeric suffix).
 * [0-9].*
 * [0-9][0-9].*

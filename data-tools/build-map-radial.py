@@ -10,18 +10,19 @@ import collections, gzip, hashlib, json, math, os, shutil, subprocess, tempfile
 ROOT=Path(__file__).resolve().parent.parent
 os.chdir(ROOT)
 DIST=ROOT/'dist'
+node='/opt/homebrew/bin/node' if Path('/opt/homebrew/bin/node').exists() else 'node'
+subprocess.run([node,str(ROOT/'data-tools/build-map-geometry-data.mjs')],cwd=ROOT,check=True)
 def read(p): return json.loads(p.read_text())
 def text(v): return json.dumps(v,ensure_ascii=False,separators=(',', ':'),allow_nan=False)+'\n'
 source=DIST/read(DIST/'catalog-data/current.json')['dataRoot']
 original=read(source/'manifest.json')
 current=read(ROOT/'data-tools/map-radial-current.json')
-dependencies=['data-tools/build-map-radial.py','data-tools/project-radial-layout.mjs','data-tools/map-radial-catalog.mjs','data-tools/map-radial-current.json',current['profile'],current['anchors'],'dist/map-radial.js','dist/map-layout.js']
+dependencies=['data-tools/build-map-radial.py','data-tools/project-radial-layout.mjs','data-tools/map-radial-catalog.mjs','data-tools/map-radial-current.json',current['profile'],current['anchors'],'dist/map-radial.js','dist/map-layout.js','dist/map-geometry.js','dist/map-geometry-data.js','dist/regions.js','dist/catalog-extended.js','dist/catalog-stream.js']
 revision=hashlib.sha256(original['revision'].encode()+b''.join((ROOT/p).read_bytes() for p in dependencies)).hexdigest()[:12]
 root='map-radial/'+revision
 final=DIST/root
 with tempfile.TemporaryDirectory(prefix='parus-radial-') as tmp:
     placement=Path(tmp)/'positions.json'
-    node='/opt/homebrew/bin/node' if Path('/opt/homebrew/bin/node').exists() else 'node'
     subprocess.run([node,'data-tools/project-radial-layout.mjs',str(placement)],check=True)
     result=read(placement)
 positions=result['placements']
@@ -50,7 +51,8 @@ footprints={r[0]:extent(r) for r in rows}
 def tree(batch,nodes,structural=False):
     ident=len(nodes);points=[coords[r[0]] for r in batch]
     if structural:
-        boxes=[(x-footprints[r[0]],y-footprints[r[0]],x+footprints[r[0]],y+footprints[r[0]]) for r,(x,y) in zip(batch,points)]
+        boxes=[result['geometryBounds'].get(r[0],(x-footprints[r[0]],y-footprints[r[0]],x+footprints[r[0]],y+footprints[r[0]])) for r,(x,y) in zip(batch,points)]
+        boxes=[[b[0]-.01,b[1]-.01,b[2]+.01,b[3]+.01] for b in boxes]
         box=[min(b[0] for b in boxes),min(b[1] for b in boxes),max(b[2] for b in boxes),max(b[3] for b in boxes)]
     else:box=[min(p[0] for p in points),min(p[1] for p in points),max(p[0] for p in points),max(p[1] for p in points)]
     n={'box':box,'count':len(batch),'children':[]};nodes.append(n)
@@ -59,7 +61,7 @@ def tree(batch,nodes,structural=False):
         for r,(x,y) in zip(batch,points):
             radius=footprints[r[0]]
             if not radius:continue
-            size=2**math.floor(math.log2(max(1,2*radius)));b=[x-radius,y-radius,x+radius,y+radius]
+            size=2**math.floor(math.log2(max(1,2*radius)));b=result['geometryBounds'].get(r[0],[x-radius,y-radius,x+radius,y+radius])
             if size in envelopes:
                 a=envelopes[size];b=[min(a[0],b[0]),min(a[1],b[1]),max(a[2],b[2]),max(a[3],b[3])]
             envelopes[size]=b
@@ -80,7 +82,7 @@ groups=collections.defaultdict(list)
 for r in rows:
     category=r[11].get('cosmicSubtype') or r[11].get('catalogClass') or r[2]
     if category=='cluster':category='stellar-cluster'
-    if category in ['filament','galaxy-cluster','stellar-cluster','nebula','supercluster','void']:groups[category].append(r)
+    if category in ['filament','galaxy-cluster','stellar-cluster','nebula','supercluster','void'] or (category=='galaxy' and r[0] in result['geometryBounds']):groups[category].append(r)
 layers=[];layerroots={k:tree(v,layers,True) for k,v in sorted(groups.items())}
 write('layers.json',{**base,'nodes':layers,'roots':layerroots,'counts':{k:len(v) for k,v in sorted(groups.items())}})
 write('audit-summary.json',{**base,'rules':result['counts'],'warnings':result['warnings'],'anchorChildren':result['parents'],'distanceDomains':result.get('domains',{}),'sourceSHA256':{p:hashlib.sha256((ROOT/p).read_bytes()).hexdigest() for p in dependencies}})

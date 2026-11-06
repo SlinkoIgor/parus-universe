@@ -37,6 +37,7 @@ js="""const fs=require('fs'),vm=require('vm'),c=vm.createContext({console});vm.r
 node='/opt/homebrew/bin/node' if Path('/opt/homebrew/bin/node').exists() else 'node'
 exported=json.loads(subprocess.check_output([node,'-e',js],cwd=ROOT))
 core=exported['core'];joint=exported['joint']
+galaxy_hosts={o['id'] for o in core if o.get('kind')=='galaxy' and o.get('galaxy')}
 byid={o['id']:o for o in core}
 byhyg={str(o['hygId']):o for o in core if o.get('hygId') is not None}
 byngc={o['ngc']:o for o in core if o.get('ngc')}
@@ -119,7 +120,7 @@ for q in ngc:
         d=hubble(z);quality='approximate';method='Приблизительное сопутствующее расстояние по z в ΛCDM (H₀=70, Ωm=0,3). Пекулярные скорости не учтены; для близких галактик ошибка может быть большой.'
     elif not d and kind=='star' and px and px>0:
         d=1000/px*PC;quality='approximate';method='Приблизительно: положительный параллакс OpenNGC без индивидуальной оценки ошибки.'
-    major=number(q['MajAx']);minor=number(q['MinAx']);ext={'ngc':q['Name'],'messier':q['M'],'angularMajorArcmin':major,'angularMinorArcmin':minor,'hubbleType':q['Hubble'],'catalogType':q['Type']}
+    major=number(q['MajAx']);minor=number(q['MinAx']);ext={'ngc':q['Name'],'messier':q['M'],'angularMajorArcmin':major,'angularMinorArcmin':minor,'positionAngleDeg':number(q['PosAng']),'hubbleType':q['Hubble'],'catalogType':q['Type']}
     if extraDist.get('distanceMpc'):
         method='Независимая опубликованная дальность SIMBAD mesDistance; метод '+str(extraDist.get('method','catalog'))+', '+str(extraDist.get('reference',''))+'.'
         ext.update(referenceURL=extraDist.get('referenceUrl','https://simbad.cds.unistra.fr/'),distanceReference=extraDist.get('reference'),distanceErrorMinusLy=extraDist.get('errorMinusMpc')*1e6*PC if extraDist.get('errorMinusMpc') is not None else None,distanceErrorPlusLy=extraDist.get('errorPlusMpc')*1e6*PC if extraDist.get('errorPlusMpc') is not None else None,redshiftIndependent=True)
@@ -129,6 +130,7 @@ for q in ngc:
     if kind=='galaxy' and d:ext['diameterLy']=d*major*math.pi/10800 if major else 30000;ext['sizeEstimated']=not bool(major)
     if ident in byid:
         o=byid[ident]
+        policies.setdefault(ident,{}).update({k:ext[k] for k in ('angularMajorArcmin','angularMinorArcmin','positionAngleDeg') if ext[k] is not None})
         if ext.get('atlasOnly'):policies[ident]={'atlasOnly':True,'positionReason':ext['positionReason']}
         if not o.get('p3') or q['Name'] in lowz['objects'] and extraDist.get('distanceMpc'):
             patches[ident]={'d':d,'raDeg':ra,'decDeg':dec,'positionQuality':quality,'distanceMethod':method,'display':projection(ra,dec,d,kind,ident),**ext}
@@ -275,7 +277,7 @@ for member in json.loads((ROOT/'data-tools/nearby-galaxy-stars.json').read_text(
         if position and position['accepted']:
             row[3]=position['distance'];note='Измеренное направление звезды; глубина оценена пересечением луча с наклонным диском '+host['name']+'. '+model['note'];row[7]=note
             row[11].update(placementNote=note,geometrySource=model['reference'],positionEstimate={'method':'host-disk','anchor':host['id'],'localEnvelopeLy':position['localEnvelopeLy'],'referenceScaleLy':position['referenceScaleLy'],'localEnvelopeFraction':position['localEnvelopeLy']/position['referenceScaleLy'],'sharedDistanceErrorLy':None,'envelopeMeaning':'Модельный диапазон глубины и чувствительности к углам; не индивидуальный параллакс.','inclinationDeg':model['inclinationDeg'],'positionAngleDeg':model['positionAngleDeg'],'nearSideKnown':True})
-            g=host['galaxy'];angle=g['rotation'];u,v=position['major'],position['minor']*g['axisRatio'];row[12]=host['display']['x']+u*math.cos(angle)-v*math.sin(angle);row[13]=host['display']['y']+u*math.sin(angle)+v*math.cos(angle)
+            row[12],row[13]=projection(member['raDeg'],member['decDeg'],position['distance'],'star',row[0])
     if not row[11].get('positionEstimate'):
         row[11].update(atlasOnly=True,positionReason='Принадлежность галактике известна, индивидуальная глубина не измерена и обоснованной дисковой модели для этой звезды нет. Только атлас.')
         row[12]=row[13]=None
@@ -303,9 +305,6 @@ for member in disk_rows:
     if member.get('crowding'):extra['crowding']=member['crowding']
     if not valid:extra.update(atlasOnly=True,positionReason='Нет модели индивидуальной глубины: известна только принадлежность хозяину. Только атлас.' if mode=='host-envelope' else 'Модель выходит за принятый радиус галактики либо локальный диапазон превышает половину модельного диаметра. Только атлас.')
     row=add(member['id'],member['name'],member['kind'],position['distance'],member['raDeg'],member['decDeg'],'approximate',note,member['aliases']+[host['name']],member.get('magV'),'GalaxyDisks',extra)
-    # Rotate the host-local inferred disk coordinates into its existing schematic optical outline.
-    g=host.get('galaxy',{});angle=g.get('rotation',0);u,v=position['major'],position['minor']*g.get('axisRatio',math.cos(math.radians(model['inclinationDeg'])))
-    row[12]=host['display']['x']+u*math.cos(angle)-v*math.sin(angle);row[13]=host['display']['y']+u*math.sin(angle)+v*math.cos(angle)
     disk_audit.append({'id':member['id'],'host':host['id'],'action':'map' if valid else 'atlas-only','method':mode,'radiusLy':position['radius'],'localEnvelopeLy':local,'localEnvelopeFraction':local/position['referenceScaleLy']})
 coverage['GalaxyDisks']={'rows':len(disk_rows),'represented':len(disk_rows),'added':sum(q['action'] in ('map','atlas-only') for q in disk_audit),'mapped':sum(q['action']=='map' for q in disk_audit),'merged':sum(q['action']=='alias-of-existing-member' for q in disk_audit)}
 dump(ROOT/'data-tools/galaxy-disk-audit.json',{'policy':COORDINATE_POLICY,'rows':disk_audit})
@@ -320,18 +319,6 @@ for location in ('LMC','SMC','MBR'):
     center=[sum(p[i] for p in points)/len(points) for i in range(3)]
     radii=sorted(math.dist(p,center) for p in points)
     population_scales[location]=2*radii[min(len(radii)-1,int(.95*len(radii))) ]
-# The map looks at each resolved galaxy along its line of sight, as a sky image.
-# Infer only a 2D position angle from the observed population to align that image
-# with the existing schematic outline. This angle never supplies physical depth.
-population_frames={}
-for host_id in ('lmc','smc'):
-    host=byid[host_id];u,east,north=sky_basis(host['raDeg'],host['decDeg'],90)
-    directions=[sky_unit(m['raDeg'],m['decDeg']) for m in ogle['objects'] if m['host']==host_id]
-    xy=[(sky_dot(v,east),-sky_dot(v,north)) for v in directions]
-    mx=sum(x for x,y in xy)/len(xy);my=sum(y for x,y in xy)/len(xy)
-    xx=sum((x-mx)**2 for x,y in xy);yy=sum((y-my)**2 for x,y in xy);cross=sum((x-mx)*(y-my) for x,y in xy)
-    theta=.5*math.atan2(2*cross,xx-yy)
-    population_frames[host_id]=(u,east,north,host['galaxy']['rotation']-theta)
 ogle_audit=[];ogle_rows=[]
 for member in ogle['objects']:
     host=byid.get(member['host']);d=member['distanceKpc']*1000*PC;error=member['distanceErrorKpc']*1000*PC
@@ -345,13 +332,6 @@ for member in ogle['objects']:
     else:aliases+=['Магелланов мост','Magellanic Bridge']
     if not valid:extra.update(atlasOnly=True,positionReason='Индивидуальная погрешность превышает допустимую долю размера популяции. Только атлас.')
     row=add(member['id'],member['name'],'star',d,member['raDeg'],member['decDeg'],'approximate',note,aliases,member['magV'],'OGLE',extra)
-    if host and valid:
-        # Orthographic sky view of the true 3D point; depth is preserved in p3
-        # and flight distances, not turned into spurious transverse displacement.
-        u,east,north,angle=population_frames[host['id']]
-        ray=sky_unit(member['raDeg'],member['decDeg']);x=d*sky_dot(ray,east);y=-d*sky_dot(ray,north)
-        row[12]=host['display']['x']+x*math.cos(angle)-y*math.sin(angle)
-        row[13]=host['display']['y']+x*math.sin(angle)+y*math.cos(angle)
     ogle_rows.append(row)
     ogle_audit.append({'id':row[0],'host':member['host'],'action':'map' if valid else 'atlas-only','distanceLy':d,'errorLy':error,'referenceScaleLy':scale})
 # Keep a few real departure candidates in the small bootstrap, so arriving before
@@ -399,7 +379,7 @@ for base,rows in sorted(groups.items()):
     if len(rows)<2:continue
     rows.sort(key=lambda q:(int(q['comp'] or '1'),int(q['id'])))
     ids=[rawmap['hyg:'+q['id']] for q in rows]
-    systems.append({'id':'system-'+norm(base),'name':base,'members':ids,'primary':ids[0],'links':[[ids[0],s] for s in ids[1:]],'schematic':True,'source':'https://github.com/astronexus/HYG-Database/blob/main/hyg/README.md','note':'Компоненты системы указаны в HYG. Эллипсы показывают связь; размеры, ориентация и иерархия условные, движение не моделируется.'})
+    systems.append({'id':'system-'+norm(base),'name':base,'members':ids,'primary':ids[0],'links':[[ids[0],s] for s in ids[1:]],'schematic':True,'source':'https://github.com/astronexus/HYG-Database/blob/main/hyg/README.md','note':'Компоненты системы указаны в HYG. Пунктирные отрезки показывают каталожную связь; орбитальные элементы и движение не восстановлены.'})
 alpha=[rawmap['hyg:'+s] for s in ('71456','71453','70666')]
 systems=[s for s in systems if not any(i in alpha for i in s['members'])]
 systems.append({'id':'system-alpha-centauri','name':'Альфа Центавра','confirmed':True,'relationship':'bound','members':alpha,'primary':alpha[0],'links':[[alpha[0],alpha[1]],[alpha[0],alpha[2]]],'schematic':True,'source':'https://doi.org/10.1051/0004-6361/201629930','note':'A–B: около 80 лет; Проксима (C) обращается вокруг пары AB примерно за 550 000 лет. Внешний эллипс относится к барицентру AB. Контуры на карте — схема связи, не орбитальный расчёт.'})
@@ -408,8 +388,8 @@ for q in ngc:
     if q['Type']=='GPair':
         ids=[rawmap.get('ngc:'+q['Name']+suffix) for suffix in ('A','B','C')]
         ids=[i for i in ids if i]
-        if len(ids)>1:systems.append({'id':'system-'+norm(q['Name']),'name':q['Name'],'members':ids,'primary':ids[0],'links':[[ids[0],s] for s in ids[1:]],'schematic':True,'source':'https://github.com/mattiaverga/OpenNGC','note':'OpenNGC обозначает эту группу как пару галактик (GPair). Эллипсы показывают связь компонентов, а не вычисленные орбиты.'})
-systems.append({'id':'system-antennae','name':'Антенны','confirmed':True,'relationship':'interacting','members':[rawmap['ngc:NGC4038'],rawmap['ngc:NGC4039']],'primary':rawmap['ngc:NGC4038'],'links':[[rawmap['ngc:NGC4038'],rawmap['ngc:NGC4039']]],'schematic':True,'source':'https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-caldwell-catalog/caldwell-60-61/','note':'NGC 4038 и NGC 4039 — взаимодействующие галактики Антенны. Эллипс обозначает взаимодействие, не измеренную орбиту.'})
+        if len(ids)>1:systems.append({'id':'system-'+norm(q['Name']),'name':q['Name'],'members':ids,'primary':ids[0],'links':[[ids[0],s] for s in ids[1:]],'schematic':True,'source':'https://github.com/mattiaverga/OpenNGC','note':'OpenNGC обозначает эту группу как пару галактик (GPair). Пунктирные отрезки показывают связь компонентов; орбиты не восстановлены.'})
+systems.append({'id':'system-antennae','name':'Антенны','confirmed':True,'relationship':'interacting','members':[rawmap['ngc:NGC4038'],rawmap['ngc:NGC4039']],'primary':rawmap['ngc:NGC4038'],'links':[[rawmap['ngc:NGC4038'],rawmap['ngc:NGC4039']]],'schematic':True,'source':'https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-caldwell-catalog/caldwell-60-61/','note':'NGC 4038 и NGC 4039 — взаимодействующие галактики Антенны. Пунктирный отрезок обозначает взаимодействие; орбита не восстановлена.'})
 systems.append({'id':'system-cygnus-x1','name':'Лебедь X-1','members':['cygnus',rawmap['hyg:97987']],'primary':'cygnus','links':[['cygnus',rawmap['hyg:97987']]],'schematic':True,'source':'https://imagine.gsfc.nasa.gov/features/yba/CygX1_mass/cygX1_more.html','note':'Чёрная дыра Лебедь X-1 и звезда-сверхгигант HDE 226868 — компоненты двойной системы. Эллипс схематический; аккреция и движение не моделируются.'})
 renames={rawmap['hyg:97987']:'HDE 226868 · звезда Лебедя X-1',alpha[0]:'Альфа Центавра A',alpha[1]:'Альфа Центавра B',alpha[2]:'Альфа Центавра C · Проксима'}
 
@@ -589,7 +569,7 @@ for r in records:
     index.append([r[0],r[1],r[2],r[3],r[6],locations[r[0]],key,bool(r[11].get('atlasOnly'))]+([r[11]['catalogClass']] if r[11].get('catalogClass') else []))
 dump(OUT/'search.json',index)
 
-summary={'version':2,'mapProjection':'galactic-xy-milkyway-lift-v3','geometryVersion':geometry_version,'sampling':'weighted-stable-exponential-v1','dataRoot':DATA_ROOT,'revision':revision,'total':len(core)+len(member_rows)+len(records),'core':len(core)+len(member_rows),'extra':len(records),'sourceCoverage':coverage,'mapRows':len(records)-len(atlas_only),'atlasOnlyRows':len(atlas_only),'unknownExtra':sum(r[6]=='unknown' for r in records),'approximateExtra':sum(r[6]=='approximate' for r in records),'nodes':nodes,'roots':roots,'search':'search.json','systems':len(systems),'foregroundWithin50':len(foreground)}
+summary={'version':2,'mapProjection':'galactic-xy-physical-shapes-v4','geometryVersion':geometry_version,'sampling':'weighted-stable-exponential-v1','dataRoot':DATA_ROOT,'revision':revision,'total':len(core)+len(member_rows)+len(records),'core':len(core)+len(member_rows),'extra':len(records),'sourceCoverage':coverage,'mapRows':len(records)-len(atlas_only),'atlasOnlyRows':len(atlas_only),'unknownExtra':sum(r[6]=='unknown' for r in records),'approximateExtra':sum(r[6]=='approximate' for r in records),'nodes':nodes,'roots':roots,'search':'search.json','systems':len(systems),'foregroundWithin50':len(foreground)}
 dump(OUT/'manifest.json',summary)
 # Publish a complete immutable snapshot. Rebuilding the same revision may reuse
 # identical bytes, but must never delete files under already-open clients.
@@ -602,6 +582,12 @@ else:os.replace(OUT,FINAL_OUT)
 OUT=FINAL_OUT
 dump(ROOT/'dist/catalog-data/current.json',{'revision':revision,'dataRoot':DATA_ROOT,'total':summary['total'],'manifest':DATA_ROOT+'/manifest.json'})
 boot={'dataRoot':DATA_ROOT,'cosmicPatches':cosmic_patches,'geometryVersion':geometry_version,'coordinateCorrections':[r for r in records if (not r[11].get('cosmicCatalog') or r[11].get('catalogPositionUpdated')) and (r[11].get('boundSystemPrimary') or r[11].get('redshiftIndependent') or r[11].get('distanceHost') or r[11].get('catalogDistanceLy') is not None or r[10]=='GlobularModels')],'revision':revision,'members':member_rows,'policies':policies,'hiddenIds':[r[0] for r in atlas_only+member_rows if r[11].get('atlasOnly')],'total':summary['total'],'patches':patches,'foreground':foreground,'systems':systems,'renames':renames,'sourceCoverage':coverage,'pulsarCorrections':[r for r in records if r[10]=='ATNF' and (r[11].get('distanceHost') or 'параллакс' in r[7]) and not r[11].get('atlasOnly')],'systemTiles':{i:locations[i] for s in systems for i in s['members'] if i in locations},'rawMap':{k:v for k,v in rawmap.items() if k.startswith('atnf:') and v in byid}}
+boot['identityRedirects']={source:target for source,target,_ in cosmic_audit['matches'] if target in galaxy_hosts or re.fullmatch(r'ungc-messier\d+',source)}
+# Keep lazy canonical identities available for old named selections even when
+# their target is a streamed row. They remain ordinary catalogue rows, not new
+# objects or additional entries in the census.
+identity_targets=set(boot['identityRedirects'].values())-galaxy_hosts
+boot['identityTargetRows']=[r for r in records if r[0] in identity_targets]
 (ROOT/'dist/catalog-extended.js').write_text('// Generated from complete local source snapshots.\nconst EXTENDED_BOOT='+json.dumps(boot,ensure_ascii=False,separators=(',',':'),allow_nan=False)+';\n')
 # The revision also hashes implementation code. Permit a new revision only
 # after checking exact stellar identities and all astrometry used by this layer.
@@ -625,7 +611,8 @@ dump(ROOT/'data-tools/full-catalog-audit.json',{'total':summary['total'],'core':
 subprocess.run([sys.executable,str(ROOT/'data-tools/build-map-layers.py')],check=True)
 subprocess.run([sys.executable,str(ROOT/'data-tools/build-map-slice.py')],check=True)
 layer_revision=json.loads((ROOT/'dist/map-layers/current.json').read_text())['revision']
-html=ROOT/'dist/index.html';html.write_text(re.sub(r'(catalog-extended\.js\?v=)[^\"]+',lambda m:m[1]+hashlib.sha256((ROOT/'dist/catalog-extended.js').read_bytes()).hexdigest()[:12],html.read_text()))
+extended_revision=hashlib.sha256((ROOT/'dist/catalog-extended.js').read_bytes()).hexdigest()[:12]
+html=ROOT/'dist/index.html';html.write_text(re.sub(r'(catalog-extended\.js\?v=)[^\"]+',lambda m:m[1]+extended_revision,html.read_text()))
 html.write_text(re.sub(r'(map-layer-data\.js\?v=)[^"]+',lambda m:m[1]+layer_revision,html.read_text()))
 # Keep the public provenance index in sync with the actual generated catalog.
 source_path=ROOT/'dist/catalog-sources.json';source_info=json.loads(source_path.read_text());full=source_info.setdefault('fullCatalog',{})
@@ -640,11 +627,11 @@ full['cosmicImportAudit']='data-tools/cosmic-catalog-audit.json'
 source_info['provenance']=[q for q in source_info['provenance'] if not q.get('cosmicImport')]
 for name,meta in cosmic_audit['sources'].items():source_info['provenance'].append({'name':name,'url':meta['url'],'retrieved':meta['retrieved'],'sha256':meta['sha256'],'query':meta['query'],'cosmicImport':True,'access':'Official CDS/VizieR mirror; credit CDS and the original authors, original data rights apply.'})
 full['search']='Lazy '+str(round((OUT/'search.json').stat().st_size/1e6,1))+' MB compact worker index; 100 results initially'
-full['map']='Orthographic Galactic XY plus explicit host-local views; one spatial binary tree (no radial bands); max256 leaf rows, 48 cached tiles, 32 view nodes, 4 concurrent loads, 8000 target streamed objects plus fading union <=16000; weighted stable representatives; observed filament polylines; immutable versioned data root'
+full['map']='Physical Galactic XY with documented Milky Way cartographic displacement; source XYZ contours and measured sky footprints; one spatial binary tree (no radial bands); max256 leaf rows, 48 cached tiles, 32 view nodes, 4 concurrent loads, 8000 target streamed objects plus fading union <=16000; weighted stable representatives; observed filament polylines; immutable versioned data root'
 full['uncertainty']='Formal policy v4: HYG sigma is attached only to the matching HIP2007/HIP1997 solution; unmatched adopted distances retain unknown sigma. Bounded compact GC hosts use published distance/error and tidal radius; galaxy membership alone never supplies depth.  bounded point estimates only; no sentinels or model bounds. Field reported relative error <=0.5, ATNF PX significance >3 and DM-model ratio <=2. Host-local model envelope <=0.5 of its reference diameter; common host-distance error is correlated, not independent scatter. Full definitions in docs/catalog.md.'
 full['nearbyGalaxyStars']['distance']='M31 V1/AF and LMC R136a1: justified inclined-disk model. HD5980: atlas-only, unresolved depth. OGLE Clouds: individual period-Wesenheit distances.'
 full['galaxyMembers']={'inputRows':len(disk_rows),'added':coverage['GalaxyDisks']['added'],'selection':'LGGS Mm=1; PHAT main table2 only; M33 SNR Conf=yes','model':'Measured directions; disk-ray intersections for massive stars/gas; unaged PHAT clusters atlas-only, no individual depth; M33 mirror ambiguity included.'}
-full['magellanicCepheids']={'inputRows':len(ogle_rows),'mapped':coverage['OGLE']['mapped'],'counts':ogle['counts'],'method':'Individual published period-Wesenheit distances and errors; no common host shell or disk approximation. Host-local display uses an orthographic sky view of true 3D coordinates, rotated to align the observed population with its schematic outline; physical depth remains in p3.'}
+full['magellanicCepheids']={'inputRows':len(ogle_rows),'mapped':coverage['OGLE']['mapped'],'counts':ogle['counts'],'method':'Individual published period-Wesenheit distances and errors; no common host shell or disk approximation. Display uses Galactic XY of the individual physical coordinates in the same frame as the host geometry; no population rotation or compression.'}
 full['galaxyPopulationCoverage']='data-tools/galaxy-population-coverage.json'
 source_info['provenance']=[q for q in source_info['provenance'] if q.get('url')!=ogle['source']]
 source_info['provenance'].append({'name':'OGLE, Jacyszyn-Dobrzeniecka et al. 2016, Acta Astronomica 66,149, Table 3','url':ogle['source'],'paper':ogle['paper'],'changes':'All 8885 published individual distances, reported errors and measured RA/Dec. Original magnitudes, periods and pulsation modes retained.','access':'Public author table; credited to OGLE and authors. Original data rights are not relicensed under the game code license.'})
@@ -664,3 +651,7 @@ subprocess.run([sys.executable,str(ROOT/'data-tools/build-map-radial.py')],check
 subprocess.run([node,str(ROOT/'data-tools/build-map-visibility.mjs')],check=True)
 
 subprocess.run([node,str(ROOT/'data-tools/build-map-labels.mjs')],check=True)
+
+# Nuclear identities reuse the final adopted host positions and distances.
+# Rebuild this small additive layer too, or its base revision would be stale.
+subprocess.run([node,str(ROOT/'data-tools/build-black-hole-catalog.mjs')],cwd=ROOT,check=True)

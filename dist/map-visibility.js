@@ -1,7 +1,7 @@
 'use strict';
 // A camera only asks for spatial coverage. It never chooses representatives.
 const MapVisibility = {
-  classSpans: { galaxy: 3e8, quasar: 3e8, 'galaxy-cluster': 1.2e9, filament: 1.8e9 },
+  classSpans: { galaxy: 3e8, quasar: 3e8, 'galaxy-cluster': 1.8e9, filament: 2.7e9 },
   // Individually sourced cosmological landmarks remain useful on the overview.
   // Their scientific catalogue class and the fixed density hierarchy stay intact.
   overviewPoint(o) {
@@ -18,11 +18,22 @@ const MapVisibility = {
   },
   limit(o) {
     if (!this.active || o.synthetic || o.nuclearStar) return Infinity;
+    if (o.kind === 'blackhole') {
+      const host = MapDetails.blackHoleHost(o), limit = MapDetails.maxSpan(o) / 1440;
+      // Apply the host's fixed density cutoff too. The nucleus disappears while
+      // its galaxy is still fully visible, independent of tile loading or pan.
+      return host ? Math.min(limit, this.limit(host) * 0.7) : limit;
+    }
     const p = MAP_VISIBILITY_BOOT.pixels[o.id]?.[MapSlice.mode === 'radial' ? 1 : 0];
     const density = p === undefined || p < 0 ? Infinity : p,
       group = MapDetails.group(o),
       classSpan = this.overviewPoint(o) ? Infinity : (this.classSpans[group] ?? Infinity);
-    return Math.min(density, classSpan / 1440);
+    const limit = Math.min(density, classSpan / 1440);
+    // A named extended structure must survive the point-density cutoff once
+    // its outline is resolved. Use reference geometry, independent of camera.
+    return o.region && !o.cosmicCatalog && ['structure', 'wall', 'void', 'ring', 'arc'].includes(o.kind)
+      ? Math.max(limit, Math.max(o.region.major, o.region.minor) / 48)
+      : limit;
   },
   focusSpan(o, span, viewportWidth = width) {
     return Math.min(span, this.limit(o) * Math.max(1, viewportWidth) * 0.7);

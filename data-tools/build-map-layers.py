@@ -9,13 +9,23 @@ import collections
 import hashlib
 import json
 import math
+import subprocess
+import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 DIST = ROOT / 'dist'
+node='/opt/homebrew/bin/node' if Path('/opt/homebrew/bin/node').exists() else 'node'
+# Refresh contour models from the same disk source used for member placement.
+subprocess.run([node,str(ROOT/'data-tools/build-map-geometry-data.mjs')],cwd=ROOT,check=True)
 catalog = json.loads((DIST / 'catalog-data/current.json').read_text())
 source = DIST / catalog['dataRoot']
 manifest = json.loads((source / 'manifest.json').read_text())
-revision = hashlib.sha256(Path(__file__).read_bytes() + manifest['revision'].encode()).hexdigest()[:12]
+geometry_dependencies = ['dist/map-geometry.js','dist/map-geometry-data.js','dist/regions.js','data-tools/project-geometry-bounds.mjs']
+revision = hashlib.sha256(Path(__file__).read_bytes() + manifest['revision'].encode() + b''.join((ROOT/p).read_bytes() for p in geometry_dependencies)).hexdigest()[:12]
+with tempfile.TemporaryDirectory(prefix='parus-geometry-bounds-') as tmp:
+    target=Path(tmp)/'bounds.json'
+    subprocess.run([node,str(ROOT/'data-tools/project-geometry-bounds.mjs'),str(target)],cwd=ROOT,check=True)
+    geometry_bounds=json.loads(target.read_text())
 data_root = 'map-layers/' + revision
 out = DIST / data_root
 out.mkdir(parents=True, exist_ok=True)
@@ -39,13 +49,15 @@ for node in manifest['nodes']:
         category = extra.get('cosmicSubtype') or extra.get('catalogClass') or row[2]
         if category == 'cluster':
             category = 'stellar-cluster'
-        if category in ('filament', 'galaxy-cluster', 'stellar-cluster', 'nebula', 'supercluster', 'void'):
+        if category in ('filament', 'galaxy-cluster', 'stellar-cluster', 'nebula', 'supercluster', 'void') or (category == 'galaxy' and row[0] in geometry_bounds):
             groups[category].append(row)
 
 nodes = []
 
 
 def bounds(row):
+    if row[0] in geometry_bounds:
+        return [v+(-.01 if i<2 else .01) for i,v in enumerate(geometry_bounds[row[0]])]
     region = row[11].get('regionData')
     rx = region['major'] / 2 if region else 0
     ry = region['minor'] / 2 if region else 0

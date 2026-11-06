@@ -4,6 +4,7 @@ const ExtendedCatalog = {
   manifest: null,
   cache: new Map(),
   inflight: new Map(),
+  viewLoads: new Map(),
   pinned: new Map(),
   visibleMap: new Map(),
   visible: [],
@@ -16,6 +17,11 @@ const ExtendedCatalog = {
   errors: new Map(),
   foreground: new Set(EXTENDED_BOOT.foreground),
   systemByMember: new Map(),
+  systemViewRequest: 0,
+  systemView: null,
+  isSystemMember(o) {
+    return !!this.systemView && this.systemView.selected === state.selected && this.systemView.members.has(o?.id);
+  },
   stellarAddedCount: 0,
   get systems() {
     if (!this.systemList) {
@@ -30,7 +36,7 @@ const ExtendedCatalog = {
   transitions: new Map(),
   cutKey: null,
   matchesMap(o, categoryOnly = false) {
-    if (!o) return false;
+    if (!o || o.supersededBy || globalThis.MapGeometry?.unlocated(o)) return false;
     const selected = typeof filter === 'string' ? filter : 'all';
     // Keep bulk survey envelopes out of the overview, including pinned/saved
     // targets. Atlas search and explicit class filters retain the full catalog.
@@ -43,14 +49,15 @@ const ExtendedCatalog = {
       return false;
     return (
       this.matches(o.kind, selected, o) &&
+      (!globalThis.MapFilters || MapFilters.matches(o)) &&
       (categoryOnly || !o.id || !globalThis.MapSlice || MapSlice.includes(o)) &&
-      (categoryOnly || !globalThis.MapLayers || MapLayers.admits(o))
+      (categoryOnly || this.isSystemMember(o) || !globalThis.MapLayers || MapLayers.admits(o))
     );
   },
-  opacity(o, detail = true) {
+  opacity(o, detail = true, geometry = false) {
     return (
       (detail ? MapDetails.opacity(o, cam.span) : 1) *
-      (globalThis.MapSlice?.opacity(o) ?? 1) *
+      (geometry ? 1 : (globalThis.MapSlice?.opacity(o) ?? 1)) *
       (this.coreIndex?.has(o.id) ||
       this.pinned.has(o.id) ||
       globalThis.MapLayers?.visibleMap.has(o.id)
@@ -120,7 +127,7 @@ const ExtendedCatalog = {
   retainInView(o) {
     if (
       o.atlasOnly ||
-      !this.matches(o.kind, typeof filter === 'string' ? filter : 'all', o) ||
+      !this.matchesMap(o, true) ||
       !MapSlice.includes(o) ||
       (!MapDetails.visible(o, cam.span) && !MapDetails.sparse(o, cam.span))
     )
@@ -154,6 +161,7 @@ const ExtendedCatalog = {
       EXTENDED_BOOT.total +
       (EXTENDED_BOOT.stellarCatalog?.newObjectCount || 0) +
       (globalThis.DistantCatalog?.objects.length || 0) +
+      (globalThis.BlackHoleCatalog?.objects.length || 0) +
       (globalThis.UniverseMap?.areas.length || 0) +
       OBJECTS.filter((o) => o.nuclearStar).length +
       [...this.pinned.values()].filter((o) => o.synthetic).length
@@ -161,15 +169,24 @@ const ExtendedCatalog = {
   },
   get(id) {
     const historical=this.pinned.get(id);
-    if(historical?.historicalStellarNavigation)return historical;
+    if(historical?.supersededBy || historical?.historicalStellarNavigation)return historical;
+    id=EXTENDED_BOOT.identityRedirects?.[id]||id;
     return (
       this.coreIndex?.get(id) ||
       this.pinned.get(id) ||
       globalThis.MapLayers?.get(id) ||
-      this.visibleMap.get(id)
+      this.visibleMap.get(id) ||
+      this.identityTarget(id)
     );
   },
+  identityTarget(id) {
+    this.identityCache ??= new Map();
+    if(this.identityCache.has(id))return this.identityCache.get(id);
+    const row=EXTENDED_BOOT.identityTargetRows?.find(r=>r[0]===id);if(!row)return;
+    const o=this.decode(row);this.identityCache.set(id,o);this.prepareGalaxy(o);return o;
+  },
   background(o) {
+    if (this.isSystemMember(o)) return false;
     return (
       !o.stellarSystem &&
       MapDetails.mass(o) === null &&
@@ -181,7 +198,7 @@ const ExtendedCatalog = {
         (o.kind === 'star' && o.d > 0 && o.d <= 50 && !this.foreground.has(o.id)))
     );
   },
-  readJSON(path) {
+  readJSON(path, options) {
     if (globalThis.PARUS_CATALOG_FILES?.[path])
       return Promise.resolve().then(() => {
         const v = globalThis.PARUS_CATALOG_FILES[path];
@@ -195,7 +212,7 @@ const ExtendedCatalog = {
         const v = globalThis.PARUS_CATALOG_FILES[url];
         return typeof v === 'string' ? JSON.parse(v) : v;
       });
-    return fetch(url + '?v=' + EXTENDED_BOOT.revision).then((r) => {
+    return fetch(url + '?v=' + EXTENDED_BOOT.revision, options).then((r) => {
       if (!r.ok) throw Error('Не удалось загрузить ' + path);
       return r.json();
     });
@@ -560,18 +577,35 @@ const ExtendedCatalog = {
       this.migrationError = e.message;
     }
   },
-  tile(file) {
+  cancelViewLoads(wanted) {
+    const keep = new Set(wanted);
+    for (const [file, load] of this.viewLoads) {
+      // Search, linked systems and restored navigation may share this request.
+      if (keep.has(file) || load.retained) continue;
+      load.controller.abort();
+      this.viewLoads.delete(file);
+      if (this.inflight.get(file) === load.promise) this.inflight.delete(file);
+    }
+  },
+  tile(file, { view = false } = {}) {
     if (this.cache.has(file)) {
       const r = this.cache.get(file);
       this.cache.delete(file);
       this.cache.set(file, r);
       return Promise.resolve(r);
     }
-    if (this.inflight.has(file)) return this.inflight.get(file);
+    if (this.inflight.has(file)) {
+      if (!view && this.viewLoads.has(file)) this.viewLoads.get(file).retained = true;
+      return this.inflight.get(file);
+    }
+    const load = view && typeof AbortController === 'function'
+      ? { controller: new AbortController(), retained: false } : null;
     const promise = this.readJSON(
       /^(map-slices|map-radial|map-visibility)\//.test(file) ? file : 'catalog-data/' + file,
+      load ? { signal: load.controller.signal } : undefined,
     )
       .then((rows) => {
+        if(load?.controller.signal.aborted)throw Object.assign(new Error('Cancelled map request'),{name:'AbortError'});
         const objects = rows.map((r) => this.decode(r));
         this.cache.set(file, objects);
         while (this.cache.size > 48) {
@@ -583,10 +617,14 @@ const ExtendedCatalog = {
         return objects;
       })
       .catch((e) => {
-        this.errors.set(file, performance.now());
+        if (e.name !== 'AbortError') this.errors.set(file, performance.now());
         throw e;
       })
-      .finally(() => this.inflight.delete(file));
+      .finally(() => {
+        if (this.inflight.get(file) === promise) this.inflight.delete(file);
+        if (this.viewLoads.get(file) === load) this.viewLoads.delete(file);
+      });
+    if (load) { load.promise = promise; this.viewLoads.set(file, load); }
     this.inflight.set(file, promise);
     return promise;
   },
@@ -672,13 +710,14 @@ const ExtendedCatalog = {
       (!globalThis.MapRadial?.active() || MapRadial.manifest)
     ) {
       this.wanted = this.nodesForView(cam, width, height);
+      this.cancelViewLoads(this.wanted);
       for (const file of this.wanted)
         if (
           !this.cache.has(file) &&
           this.inflight.size + (globalThis.MapLayers?.inflight.size || 0) < 4 &&
           now - (this.errors.get(file) || -Infinity) > 3000
         )
-          this.tile(file)
+          this.tile(file, { view: true })
             .then(() => {
               this.lastUpdate = -Infinity;
             })
@@ -725,16 +764,25 @@ const ExtendedCatalog = {
     Cosmology.cache.delete(o.id);
   },
   prepareGalaxy(o) {
-    if (o.kind !== 'galaxy' || !o.p3) return;
+    if (o.kind !== 'galaxy' || !o.p3 || o.supersededBy) return;
+    const angular=o.angularMajorArcmin>0&&o.d>0;
+    const diameter=angular?2*o.d*Math.tan(o.angularMajorArcmin*Math.PI/21600):o.diameterLy;
+    const derived=!o.galaxy || o.galaxy.catalogGeometry || o.streamed&&!this.coreIndex?.has(o.id);
     // A missing angular size supplies no measured galaxy outline. Keep a point.
-    if (!o.galaxy && (!(o.diameterLy > 0) || o.sizeEstimated || o.sizeUnknown)) return;
+    if (derived && (!(diameter > 0) || !angular&&(o.sizeEstimated || o.sizeUnknown))) {
+      delete o.galaxy;
+      const index=GALAXIES.findIndex(g=>g.id===o.id);
+      if(index>=0)GALAXIES.splice(index,1);
+      return;
+    }
     if (o.galaxy) {
       Object.assign(o.galaxy, {
         x: o.x,
         y: o.y,
         p3: o.p3,
         mapPosition: o.mapPosition,
-        diameterLy: o.diameterLy || o.galaxy.diameterLy,
+        diameterLy: derived ? diameter : o.galaxy.diameterLy || o.diameterLy,
+        ...(derived ? {catalogGeometry:true} : {}),
       });
       if (!GALAXIES.some((g) => g.id === o.id)) GALAXIES.push(o.galaxy);
       return;
@@ -746,7 +794,8 @@ const ExtendedCatalog = {
       y: o.y,
       p3: o.p3,
       mapPosition: o.mapPosition,
-      diameterLy: o.diameterLy || 30000,
+      diameterLy: diameter,
+      catalogGeometry: true,
       axisRatio: (o.angularMinorArcmin || o.angularMajorArcmin || 1) / (o.angularMajorArcmin || 1),
       shape: /^(?:d?E|d?Sph|S0)/i.test(o.hubbleType || '')
         ? 'elliptical'
@@ -821,6 +870,7 @@ const ExtendedCatalog = {
       ...(saved.destroyed || []),
       ...(saved.flightHistory || []).flatMap((h) => [h.fromId, h.target]),
       ...(saved.itinerary || []).map((n) => n.id),
+      ...(saved.nextTargets || []).map((n) => n.id),
       ...(saved.flight?.route || []).map((n) => n.id),
     ]);
     // Include the parent galaxy so a generated star can still be identified on reload.
@@ -833,9 +883,11 @@ const ExtendedCatalog = {
     }
     saved.catalogObjects = [...ids].map((id) => this.pinned.get(id) ||
       (this.coreIndex.get(id)?.stellarSystem ? this.coreIndex.get(id) : null)).filter(Boolean);
-    for (const id of this.pinned.keys()) if (!ids.has(id)) this.pinned.delete(id);
+    for (const [id, o] of this.pinned) if (!ids.has(id) && !this.isSystemMember(o)) this.pinned.delete(id);
   },
   restore(saved) {
+    this.systemView = null;
+    this.systemViewRequest++;
     // Older versions did not serialize core-star records. Active endpoints
     // still carry their original physical coordinates in the frozen plan.
     saved.catalogObjects ??= [];
@@ -859,6 +911,9 @@ const ExtendedCatalog = {
       const o = restoring.get(id) || this.coreIndex.get(id), anchor = o && MapLayout.anchorId(o);
       if (anchor) navigationIds.add(anchor);
     }
+    const privateSelection = navigationIds.has(saved?.selected) &&
+      restoring.has(saved?.selected);
+    if(saved?.selected && !privateSelection)saved.selected=EXTENDED_BOOT.identityRedirects?.[saved.selected]||saved.selected;
     const oldGeometry =
         saved &&
         (saved.catalogGeometry !== MapLayout.version ||
@@ -866,6 +921,15 @@ const ExtendedCatalog = {
       oldCoordinates = (saved?.catalogGeometry ?? 1) < 2;
     for (const o of saved?.catalogObjects || []) {
       if (!o || typeof o.id !== 'string') continue;
+      const successor=EXTENDED_BOOT.identityRedirects?.[o.id];
+      if(successor){
+        // Old active navigation keeps its exact physical estimate and frozen
+        // plan. This private compatibility record never becomes a second map
+        // object or search result. Ordinary selection uses the canonical host.
+        if(!navigationIds.has(o.id))continue;
+        const canonical=this.coreIndex.get(successor);
+        Object.assign(o,{supersededBy:successor,historicalNavigation:true,name:canonical?.name||o.name});
+      }
       const authoritative = this.coreIndex.get(o.id);
       const stellarNavigation = authoritative?.stellarSystem && navigationIds.has(o.id) && o.p3?.every(Number.isFinite) &&
         (o.historicalStellarNavigation || Math.hypot(...o.p3.map((v,i)=>v-authoritative.p3[i]))>1e-12);
@@ -887,8 +951,8 @@ const ExtendedCatalog = {
       if ((o.mapGeometry !== MapLayout.version || !Number.isFinite(o.mapPosition?.x) || !Number.isFinite(o.mapPosition?.y)) && o.p3?.every(Number.isFinite)) {
         const previous = o.mapGeometry ?? saved?.catalogGeometry ?? 1,
           host = o.galaxyMember && this.coreIndex.get(o.parentGalaxy);
-        let raw = o.mapPosition || MapLayout.base(o.p3);
-        if (previous < 2) {
+        let raw = MapLayout.base(o.p3);
+        if (previous < 2 && MapLayout.version < 4) {
           if (host && o.mapPosition) {
             const before = MapLayout.legacy(host.p3, host.id),
               after = MapLayout.rawProject(host);
@@ -1051,10 +1115,11 @@ const ExtendedCatalog = {
           seen.has(o.id) ||
           o.id === state.selected ||
           o.id === state.current ||
+          (o.region?.shape === 'polyline' && !RegionMap.asPoint(o)) ||
           !this.background(o) ||
-          !RegionMap.asPoint(o) ||
           MapDetails.sparse(o, cam.span) ||
           !MapDetails.visible(o, cam.span) ||
+          !RegionMap.asPoint(o) ||
           !this.matchesMap(o)
         )
           continue;
@@ -1073,7 +1138,10 @@ const ExtendedCatalog = {
           continue;
         const opacity = alpha * RegionMap.pointOpacity(o);
         ctx.save();
-        ctx.globalAlpha = (o.kind === 'star' ? 0.65 : 0.9) * opacity;
+        // Its visible nucleus already paints this exact centre. Keep the host
+        // identity/hit record below without overpainting the compact-object ink.
+        ctx.globalAlpha = globalThis.BlackHoleCatalog?.renderedHosts?.has(o.id)
+          ? 0 : (o.kind === 'star' ? 0.65 : 0.9) * opacity;
         if (MapSymbols.handles(o)) MapSymbols.draw(o, p, '#555555');
         else {
           ctx.fillStyle = paint(o.kind === 'star' ? '#858585' : '#555555');
@@ -1105,7 +1173,7 @@ const ExtendedCatalog = {
     for (const s of this.systems) {
       this.stellarTargets ??= new Set(EXTENDED_BOOT.stellarCatalog?.auditTargets || []);
       if (s.stellarEnriched || s.members.some(id => this.stellarTargets.has(id))) continue;
-      if (s.id === 'system-alpha-centauri') continue;
+      if (s.id === 'system-alpha-centauri' || /ориентация и фаза.*условны/i.test(s.note||'')) continue;
       const members = s.members.map(get).filter(Boolean);
       if (members.length < 2 || (cam.span > 2000 && members.every((o) => o.kind === 'star')))
         continue;
@@ -1138,93 +1206,32 @@ const ExtendedCatalog = {
         ctx.lineWidth = 0.6;
         ctx.setLineDash([3, 5]);
         ctx.beginPath();
-        ctx.ellipse(
-          (pa.x + pb.x) / 2,
-          (pa.y + pb.y) / 2,
-          Math.max(11, d / 2 + 6),
-          Math.max(5, Math.min(30, d * 0.12)),
-          Math.atan2(pb.y - pa.y, pb.x - pa.x),
-          0,
-          Math.PI * 2,
-        );
+        // An association has no measured orbital elements. A straight link
+        // identifies components without inventing an orbital ellipse.
+        ctx.moveTo(pa.x, pa.y);
+        ctx.lineTo(pb.x, pb.y);
         ctx.stroke();
         ctx.restore();
       }
     }
   },
   async showSystem(id) {
-    const s = this.systemByMember.get(id);
-    if (!s) return;
-    if (s.stellarEnriched) {
-      const members = s.members.map(id => this.get(id));
-      showDialog('<div class="modal-eyebrow">ЗВЁЗДНАЯ СИСТЕМА</div><h2>' + s.name + '</h2><p>' + s.note + '</p>' +
-        '<div class="stellar-system-members">' + members.map((o,i) => '<button class="map-size-action" data-stellar-member="' + i + '">' + o.name + ' ↗</button>').join('') + '</div>' +
-        stellarOrbitFacts(s) + '<p class="object-sources"><a href="' + s.source + '" target="_blank" rel="noopener">Каталог компонентов ↗</a><a href="https://www.astro.gsu.edu/wds/orb6.html" target="_blank" rel="noopener">ORB6 · орбитальные решения ↗</a></p>');
-      for (let i=0;i<members.length;i++) {
-        const button=document.querySelector('[data-stellar-member="'+i+'"]');
-        if(button)button.onclick=()=>showObject(members[i].id);
-      }
+    const system = this.systemByMember.get(id);
+    if (!system) return;
+    const selected = state.selected, dialogOpen = $('infoDialog').open,
+      request = ++this.systemViewRequest;
+    const results = await Promise.allSettled(system.members.map(id => this.resolve({id})));
+    // Ignore a slow catalogue response after the user opens another card.
+    if (request !== this.systemViewRequest || selected !== state.selected || dialogOpen && !$('infoDialog').open) return;
+    const members = results.filter(r => r.status === 'fulfilled').map(r => this.pin(r.value)),
+      bounds = focusRelatedSystem(members);
+    if (!bounds) {
+      toast('Для компонентов системы нет доступных положений на карте.');
       return;
     }
-    try {
-      const members = await Promise.all(s.members.map((id) => this.resolve({ id })));
-      const labels = members
-        .map(
-          (o, i) =>
-            '<button class="map-size-action" data-system-member="' +
-            i +
-            '">' +
-            o.name +
-            ' ↗</button>',
-        )
-        .join('');
-      const tertiary =
-        members.length > 2
-          ? '<ellipse cx="180" cy="95" rx="158" ry="72"/><circle cx="320" cy="62" r="4"/>'
-          : '';
-      showDialog(
-        '<div class="modal-eyebrow">' +
-          (s.associationOnly
-            ? 'КАТАЛОЖНАЯ ГРУППА · СВЯЗЬ НЕ ПОДТВЕРЖДЕНА'
-            : s.relationship === 'interacting'
-              ? 'ВЗАИМОДЕЙСТВУЮЩАЯ СИСТЕМА · СХЕМА СВЯЗИ'
-              : 'СВЯЗАННАЯ СИСТЕМА · УСЛОВНАЯ СХЕМА') +
-          '</div><h2>' +
-          s.name +
-          '</h2>' +
-          (s.associationOnly
-            ? ''
-            : '<svg class="system-diagram" viewBox="0 0 360 190" role="img" aria-label="Схема связи компонентов: ' +
-              s.name +
-              '"><g fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 5">' +
-              tertiary +
-              '<ellipse cx="160" cy="95" rx="68" ry="28"/></g><g fill="currentColor"><circle cx="148" cy="95" r="5"/><circle cx="218" cy="81" r="4"/></g><text x="140" y="120">A</text><text x="220" y="70">B</text>' +
-              (members.length > 2 ? '<text x="325" y="53">C</text>' : '') +
-              '</svg>') +
-          '<p>' +
-          s.note +
-          '</p>' +
-          (s.id === 'system-alpha-centauri'
-            ? '<p>На карте компоненты движутся по кеплеровым орбитам: AB — 79,929 года, Проксима — около 547 тысяч лет по часам внешнего наблюдателя. Здесь показана условная схема иерархии. <a href="https://arxiv.org/abs/1610.06079" target="_blank" rel="noopener">Орбита AB</a> · <a href="https://arxiv.org/abs/1611.03495" target="_blank" rel="noopener">Орбита C</a>.</p>'
-            : '') +
-          labels +
-          '<p class="object-sources"><a href="' +
-          s.source +
-          '" target="_blank" rel="noopener">Источник связи ↗</a></p>',
-      );
-      for (let i = 0; i < members.length; i++) {
-        const b = document.querySelector('[data-system-member="' + i + '"]');
-        if (b)
-          b.onclick = () => {
-            $('infoDialog').close();
-            this.pin(members[i]);
-            select(members[i].id);
-            this.focus(members[i]);
-          };
-      }
-    } catch (e) {
-      toast(e.message);
-    }
+    if (bounds.members.length < system.members.length)
+      toast('На карте ' + bounds.members.length + ' из ' + system.members.length + ' компонентов: остальные положения неизвестны или не загрузились.');
+    return bounds;
   },
   async search(term, filter, limit) {
     if (globalThis.PARUS_CATALOG_FILES || typeof Worker !== 'function') {

@@ -2,17 +2,26 @@
 // Coarser structures are complete spatial layers, never point-LOD samples.
 const MapLayers={
  active:false,boot:MAP_LAYER_BOOT,categories:Object.keys(MAP_LAYER_BOOT.roots),cache:new Map(),inflight:new Map(),errors:new Map(),slices:new Map(),ready:new Map(),admitted:new Set(),visible:[],visibleMap:new Map(),wanted:new Set(),lastUpdate:-Infinity,
+ loads:new Map(),
+ cancelLoads(wanted){
+  const keep=new Set(wanted);
+  for(const [key,load] of this.loads)if(!keep.has(key)){
+   load.controller.abort();this.loads.delete(key);
+   if(this.inflight.get(key)===load.promise)this.inflight.delete(key);
+  }
+ },
  setGeometry(boot){
+  this.cancelLoads([]);
   this.boot=boot||MAP_LAYER_BOOT;this.waitingGeometry=globalThis.MapSlice?.mode==='radial'&&!boot;
   this.cache.clear();this.errors.clear();this.slices.clear();this.ready.clear();this.admitted.clear();
   this.visible=[];this.visibleMap.clear();this.wanted.clear();this.landmarkContext=null;this.lastUpdate=-Infinity;
  },
  category(o){return MapDetails.group(o);},
- manages(o){return Object.hasOwn(this.boot.roots,this.category(o));},
+ manages(o){const category=this.category(o);return Object.hasOwn(this.boot.roots,category)&&(category!=='galaxy'||!!MapGeometry.model(o));},
  get(id){return this.visibleMap.get(id);},
  start(){if(this.boot.catalogRevision!==EXTENDED_BOOT.revision){this.error='Версии слоёв карты и каталога различаются';return;}if(typeof fetch==='function'||globalThis.PARUS_CATALOG_FILES)this.active=true;},
  sample(category){return{kind:category==='filament'||category==='supercluster'?'structure':category==='stellar-cluster'||category==='galaxy-cluster'?'cluster':category,cosmicSubtype:category,catalogClass:category,cosmicCatalog:true,type:category==='galaxy-cluster'?'Скопление галактик':''};},
- enabled(category,view=cam,viewportWidth=width){const o=this.sample(category);return ExtendedCatalog.matchesMap(o,true)&&MapDetails.visible(o,view.span,viewportWidth);},
+ enabled(category,view=cam,viewportWidth=width){const o=this.sample(category);return (!globalThis.MapFilters||MapFilters.allowsCategory(category))&&ExtendedCatalog.matchesMap(o,true)&&MapDetails.visible(o,view.span,viewportWidth);},
  filesForView(view,w,h){
   const v=Cosmology.referenceView(view),pixel=v.span/Math.max(1,w),cy=h*(w<700?.39:.5),box=[v.x-.43*w*pixel,v.y-cy*pixel,v.x+.57*w*pixel,v.y+(h-cy)*pixel],result=new Map();
   const intersects=b=>b[0]<=box[2]&&b[2]>=box[0]&&b[1]<=box[3]&&b[3]>=box[1];
@@ -24,15 +33,18 @@ const MapLayers={
   if(this.cache.has(file)){const rows=this.cache.get(file);this.cache.delete(file);this.cache.set(file,rows);return Promise.resolve(rows);}
   const boot=this.boot,key=boot.dataRoot+'/'+file;
   if(this.inflight.has(key))return this.inflight.get(key);
-  const promise=ExtendedCatalog.readJSON(boot.dataRoot+'/'+file).then(rows=>{if(this.boot!==boot)return [];const objects=rows.map(r=>ExtendedCatalog.decode(r));this.cache.set(file,objects);this.errors.delete(file);return objects;}).catch(e=>{if(this.boot===boot){this.errors.set(file,performance.now());this.error=e.message;}throw e;}).finally(()=>{if(this.inflight.get(key)===promise)this.inflight.delete(key);this.lastUpdate=-Infinity;});
+  const load=typeof AbortController==='function'?{controller:new AbortController()}:null;
+  const promise=ExtendedCatalog.readJSON(boot.dataRoot+'/'+file,load?{signal:load.controller.signal}:undefined).then(rows=>{if(load?.controller.signal.aborted)throw Object.assign(new Error('Cancelled map request'),{name:'AbortError'});if(this.boot!==boot)return [];const objects=rows.map(r=>ExtendedCatalog.decode(r));for(const o of objects)ExtendedCatalog.prepareGalaxy(o);this.cache.set(file,objects);this.errors.delete(file);return objects;}).catch(e=>{if(this.boot===boot&&e.name!=='AbortError'){this.errors.set(file,performance.now());this.error=e.message;}throw e;}).finally(()=>{if(this.inflight.get(key)===promise)this.inflight.delete(key);if(this.loads.get(key)===load)this.loads.delete(key);this.lastUpdate=-Infinity;});
+  if(load){load.promise=promise;this.loads.set(key,load);}
   this.inflight.set(key,promise);return promise;
  },
  update(now){
   if(!this.active||this.waitingGeometry||now-this.lastUpdate<180)return;this.lastUpdate=now;
   const groups=this.filesForView(cam,width,height);this.wanted=new Set([...groups.values()].flat());
+  this.cancelLoads([...this.wanted].map(file=>this.boot.dataRoot+'/'+file));
   // Load the structural context before its smaller objects. A pending larger
   // cut keeps the previous complete one, while newly exposed detail waits.
-  const ordered=['filament','galaxy-cluster','stellar-cluster','nebula','supercluster','void'];
+  const ordered=['filament','galaxy-cluster','galaxy','stellar-cluster','nebula','supercluster','void'];
   for(const category of ordered)for(const file of groups.get(category)||[])if(!this.cache.has(file)&&this.inflight.size+ExtendedCatalog.inflight.size<4&&now-(this.errors.get(file)??-Infinity)>3000)this.load(file).catch(()=>{});
   let changed=false;
   for(const [category,files] of groups){
@@ -47,12 +59,15 @@ const MapLayers={
   // Readiness and filters are shared by every landmark in the same view.
   // Include the ready bits so a completed download (or retry) invalidates it.
   let mask=0;for(let i=0;i<this.categories.length;i++)if(this.ready.get(this.categories[i])===true)mask|=1<<i;
-  const chosen=typeof filter==='string'?filter:'all',cached=this.landmarkContext;
+  const chosen=globalThis.MapFilters?.key||(typeof filter==='string'?filter:'all'),cached=this.landmarkContext;
   if(!cached||cached.span!==cam.span||cached.width!==width||cached.filter!==chosen||cached.mask!==mask){let blocked=-1;for(const category of this.categories)if(this.ready.get(category)!==true&&this.enabled(category))blocked=Math.max(blocked,MapDetails.level(this.sample(category)));this.landmarkContext={span:cam.span,width,filter:chosen,mask,blocked};}
   return this.landmarkContext.blocked<=level;
  },
  admits(o){
   if(!this.active)return true;
+  // A loaded complete-layer member already passed the coverage gate. In the
+  // fixed hierarchy it needs no repeated category sample/visibility lookup.
+  if(globalThis.MapVisibility?.active&&this.visibleMap.has(o.id))return true;
   // Beyond a complete layer's range, the bounded point catalogue may still
   // supply host-scale members or isolated representatives of that category.
   if(this.manages(o)&&this.enabled(this.category(o))&&!MapDetails.sparse(o,cam.span)&&!ExtendedCatalog.coreIndex?.has(o.id)&&!ExtendedCatalog.pinned.has(o.id)&&!this.visibleMap.has(o.id))return false;

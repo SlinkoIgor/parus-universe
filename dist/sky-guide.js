@@ -29,6 +29,21 @@ const SkyGuide = {
     const r = this.rad, x = a[1]*r, y = b[1]*r, d = (a[0]-b[0])*r;
     return 2*Math.asin(Math.min(1,Math.sqrt(Math.sin((x-y)/2)**2 + Math.cos(x)*Math.cos(y)*Math.sin(d/2)**2)))/r;
   },
+  latitudeLimits(decMin, decMax = decMin) {
+    if (![decMin,decMax].every(Number.isFinite) || decMin < -90 || decMax > 90 || decMin > decMax) return null;
+    // At upper culmination h = 90° - |latitude - declination|. "Whole"
+    // means every part can rise, each at its own sidereal time, not all at once.
+    return {whole:[Math.max(-90,decMax-90),Math.min(90,decMin+90)],
+      partial:[Math.max(-90,decMin-90),Math.min(90,decMax+90)]};
+  },
+  latitudeText(range) {
+    if (!range) return 'Диапазон пока неизвестен';
+    const [south,north]=range, latitude=n=>n===0?'экватора':'≈ '+Math.abs(n).toLocaleString('ru-RU',{maximumFractionDigits:0})+'° '+(n>0?'с. ш.':'ю. ш.');
+    if (south===-90 && north===90) return 'С любых широт';
+    if (south===-90) return 'Южнее '+latitude(north);
+    if (north===90) return 'Севернее '+latitude(south);
+    return 'От '+latitude(south)+' до '+latitude(north);
+  },
   magnitude(o) {
     if (Number.isFinite(o.apparentV)) return o.apparentV;
     if (o.unresolvedSourcePhotometry) return null;
@@ -46,7 +61,8 @@ const SkyGuide = {
   chart(o, close = false) {
     const con = this.constellation(o.raDeg,o.decDeg), c = SKY_GUIDE_DATA.constellations[con];
     if (!c) return '';
-    const esc = this.escape, r = this.rad, compact = typeof width === 'number' && width < 700,
+    const esc = this.escape, r = this.rad,
+      compact = window.matchMedia ? window.matchMedia('(max-width: 700px)').matches : typeof width === 'number' && width < 700,
       center = close ? [o.raDeg,o.decDeg] : c.centers.slice().sort((a,b) => this.separation(a,[o.raDeg,o.decDeg])-this.separation(b,[o.raDeg,o.decDeg]))[0],
       a = center[0]*r, d = center[1]*r,
       project = (ra,dec) => {
@@ -101,67 +117,80 @@ const SkyGuide = {
       if(s[4]&&s[3]<=3.5&&Math.hypot(p[0]-pos[0],p[1]-pos[1])>22&&labels.length<(compact?8:15)) addLabel(p,s[4]);
     }
     for (const q of neighbours.slice(0,4)) addLabel(q.p,q.name);
-    const span = 4*Math.atan(510/(4*scale))/r;
+    const span = 4*Math.atan(510/(4*scale))/r,
+      clipId = 'skyChartClip-'+(close?'close-':'wide-')+String(o.id||'star').replace(/[^\w-]/g,'-');
     return '<svg class="sky-finding-chart'+(compact?' compact':'')+'" viewBox="0 0 600 390" role="img" aria-label="'+esc('Поисковая карта: '+o.name+', '+c.name)+'">'+
-      '<defs><clipPath id="skyChartClip"><rect x="24" y="42" width="552" height="313" rx="2"/></clipPath></defs>'+
+      '<defs><clipPath id="'+clipId+'"><rect x="24" y="42" width="552" height="313" rx="2"/></clipPath></defs>'+
       '<text x="30" y="26" class="sky-chart-heading">'+esc(c.name)+'</text><text x="570" y="26" text-anchor="end" class="sky-orientation">СЕВЕР ↑ · ВОСТОК ←</text>'+
-      '<g clip-path="url(#skyChartClip)">'+shapes.join('')+labels.join('')+
+      '<g clip-path="url(#'+clipId+')">'+shapes.join('')+labels.join('')+
       '<g class="sky-target" transform="translate('+pos[0].toFixed(2)+' '+pos[1].toFixed(2)+')"><circle r="9"/><path d="M-15 0h4m22 0h4M0-15v4m0 22v4"/></g></g>'+
       '<text x="30" y="376" class="sky-orientation">ЗВЁЗДЫ ДО V = 6 · ШИРИНА ПОЛЯ ≈ '+Math.round(span)+'°</text><text x="570" y="376" text-anchor="end" class="sky-orientation">ВИД С ЗЕМЛИ</text></svg>';
   },
   finder(o) {
     if (!this.eligible(o)) return '';
     const esc=this.escape, con=this.constellation(o.raDeg,o.decDeg), c=SKY_GUIDE_DATA.constellations[con], v=this.visibility(o),
+      latitudes=this.latitudeLimits(...(c.decRangeDeg||[])), starLatitudes=this.latitudeLimits(o.decDeg),
       near=this.near(o).map(q=>esc(q.star[4])+' — '+q.angle.toLocaleString('ru-RU',{maximumFractionDigits:1})+'°').join('; '),
       system=ExtendedCatalog.systemByMember.get(o.id),
       close=system?.members.some(id=>{const p=object(id);return id!==o.id&&p&&this.eligible(p)&&this.separation([o.raDeg,o.decDeg],[p.raDeg,p.decDeg])<1/60;});
     return '<section class="sky-guide" id="stellarSkyGuide" aria-labelledby="skyGuideTitle"><h3 id="skyGuideTitle">Где искать на небе</h3>'+
       '<div class="sky-guide-facts"><div><span>Созвездие</span><strong>'+esc(c.name)+'</strong><small>'+esc(c.latin)+' · '+con+'</small></div>'+
       '<div><span>Наблюдение с Земли</span><strong>'+v.text+'</strong><small>'+(v.v===null?'В каталоге нет видимой звёздной величины':'Видимая величина V = '+v.v.toLocaleString('ru-RU',{maximumFractionDigits:2})+' · меньше — ярче')+'</small></div></div>'+
-      '<div class="sky-chart-controls" role="group" aria-label="Масштаб поисковой карты"><button data-sky-view="wide" aria-pressed="true">Созвездие целиком</button><button data-sky-view="close" aria-pressed="false">Ближе к звезде</button></div>'+
-      '<div id="skyChart">'+this.chart(o)+'</div>'+
+      '<div class="sky-guide-facts sky-guide-latitudes"><div><span>Все области созвездия</span><strong>'+this.latitudeText(latitudes?.whole)+'</strong><small>Хотя бы часть: '+this.latitudeText(latitudes?.partial).toLocaleLowerCase('ru-RU')+'</small></div>'+
+      '<div><span>Выбранная звезда — широты</span><strong>'+this.latitudeText(starLatitudes.whole)+'</strong><small>с. ш. — северная широта · ю. ш. — южная</small></div></div>'+
+      '<p class="sky-guide-note">Широты показывают, где каждая область может подниматься над горизонтом в течение суток. У границы диапазона объекты едва достигают горизонта. Для наблюдения нужны подходящие сезон, время ночи и открытый горизонт.</p>'+
       (near?'<p class="sky-guide-landmarks">Яркие ориентиры: '+near+'. Указаны угловые расстояния на небе.</p>':'')+
       (close?'<p class="sky-guide-note">Тесные компоненты этой системы глазом сливаются в одну точку. Яркость компонента сама по себе не означает, что его можно различить отдельно.</p>':'')+
       '<p class="sky-guide-note">На схеме — взаимное положение звёзд. Высота над горизонтом и поворот созвездия зависят от места, даты и времени. Предел видимости глазом около V = 6 относится к тёмному небу.</p>'+
-      '<details class="sky-guide-source"><summary>Координаты и данные</summary><p>J2000 · RA '+o.raDeg.toFixed(5)+'° · Dec '+o.decDeg.toFixed(5)+'°. Звёзды: <a href="https://cdsarc.cds.unistra.fr/viz-bin/cat/V/137D" target="_blank" rel="noopener">XHIP</a>; границы созвездий: <a href="https://cdsarc.cds.unistra.fr/viz-bin/cat/VI/42" target="_blank" rel="noopener">IAU / Roman 1987</a>. Соединительные линии — традиционная схема созвездия.</p></details></section>';
+      '<details class="sky-guide-source"><summary>Координаты и данные</summary><p>J2000 · RA '+o.raDeg.toFixed(5)+'° · Dec '+o.decDeg.toFixed(5)+'°. Звёзды: <a href="https://cdsarc.cds.unistra.fr/viz-bin/cat/V/137D" target="_blank" rel="noopener">XHIP</a>; названия и линии: <a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noopener">d3-celestial</a>; границы созвездий: <a href="https://cdsarc.cds.unistra.fr/viz-bin/cat/VI/42" target="_blank" rel="noopener">IAU / Roman 1987</a>. Соединительные линии — традиционная схема созвездия.</p></details></section>';
   },
   photos(o) {
     if (!this.eligible(o)) return [];
-    const query='v=poss2ukstu_red&r='+encodeURIComponent(o.raDeg)+'&d='+encodeURIComponent(o.decDeg)+'&e=J2000&h=10&w=10&f=gif&c=none',
-      url='https://archive.stsci.edu/cgi-bin/dss_search?'+query;
+    const url=SkyDSS.preview(o);
     return [...SKY_GUIDE_DATA.media.filter(p=>p.objects.includes(o.id)),{
       id:'dss',title:'Звёздное поле вокруг '+o.name,instrument:'DSS / STScI',band:'Красная полоса · 10′ × 10′',date:'Архивный снимок',url,source:url,credit:'Digitized Sky Survey · POSS-II / UK Schmidt Telescope',
-      description:'Отметка — каталожное направление J2000. Собственное движение может сместить звезду. Яркие звёзды бывают пересвечены, тесные и далёкие объекты могут сливаться.'}];
+      description:'Звёздное поле из архива DSS. Яркие звёзды бывают пересвечены, тесные и далёкие объекты могут сливаться.'}];
   },
   gallery(o) {
     const photos=this.photos(o);if(!photos.length)return '';
-    const esc=this.escape;
-    return '<section class="stellar-gallery" aria-labelledby="stellarGalleryTitle"><div class="stellar-gallery-heading"><h3 id="stellarGalleryTitle">Снимки и наблюдения</h3>'+
-      '<div class="stellar-gallery-nav"><span id="stellarGalleryPosition" aria-live="polite">1 / '+photos.length+'</span><button id="stellarGalleryPrev" aria-label="Предыдущий снимок" disabled>←</button><button id="stellarGalleryNext" aria-label="Следующий снимок"'+(photos.length<2?' disabled':'')+'>→</button></div></div>'+
-      '<div class="stellar-gallery-track" id="stellarGallery" tabindex="0" role="region" aria-label="Галерея снимков. Листайте горизонтально">'+photos.map((p,i)=>
-        '<figure class="stellar-photo" data-photo="'+esc(p.id)+'"><div class="stellar-photo-field"><img '+(p.id==='dss'?'id="stellarSkyImage" ':'')+'src="'+esc(p.url)+'" alt="'+esc(p.title)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer">'+
-        '<p class="stellar-photo-loading" role="status">Загрузка снимка…</p>'+(p.id==='dss'?'<span class="stellar-photo-center" aria-hidden="true"></span><span class="stellar-photo-north" aria-hidden="true">N ↑</span>':'')+
+    const esc=this.escape, charts=[false,true].map(close=>
+      '<figure class="stellar-photo stellar-chart" data-photo="'+(close?'chart-close':'chart-wide')+'"><div class="stellar-photo-field stellar-chart-field">'+this.chart(o,close)+'</div>'+
+      '<figcaption><strong>'+(close?'Ближе к звезде':'Созвездие целиком')+'</strong><span>Поисковая схема · вид с Земли · J2000</span><p>'+
+      (close?'Выбранная звезда в центре поля. Сопоставьте ближайшие звёзды со снимком DSS.':'Найдите созвездие по ярким звёздам и проследите линии до отмеченной звезды.')+
+      '</p><small>Звёзды: XHIP · названия и линии: d3-celestial</small></figcaption></figure>').join('');
+    return '<section class="stellar-gallery" id="stellarMedia" aria-label="Небо и снимки" aria-roledescription="карусель">'+
+      '<div class="stellar-gallery-viewport"><div class="stellar-gallery-track" id="stellarGallery" tabindex="0" role="region" aria-label="Карты неба и фотографии. Листайте горизонтально">'+charts+photos.map(p=>
+        '<figure class="stellar-photo" data-photo="'+esc(p.id)+'"><div class="stellar-photo-field"><img '+(p.id==='dss'?'id="stellarSkyImage" data-dss-src="':'src="')+esc(p.url)+'" alt="'+esc(p.title)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer">'+
+        '<p class="stellar-photo-loading" role="status">Загрузка снимка…</p>'+
         '<p class="stellar-photo-error" hidden>Снимок сейчас недоступен. Его можно открыть в архиве по ссылке ниже.</p></div>'+
-        '<figcaption><strong>'+esc(p.title)+'</strong><span>'+esc(p.instrument)+' · '+esc(p.band)+' · '+esc(p.date)+'</span><p>'+esc(p.description)+'</p>'+
-        '<a href="'+esc(p.source)+'" target="_blank" rel="noopener">Источник и полный снимок ↗</a><small>Фото: '+esc(p.credit)+'</small></figcaption></figure>').join('')+'</div></section>';
+        '<figcaption><strong>'+esc(p.title)+'</strong><span>'+esc(p.instrument)+' · '+esc(p.band)+' · <span class="stellar-photo-date">'+esc(p.date)+'</span></span><p'+(p.id==='dss'?' class="stellar-dss-description"':'')+'>'+esc(p.description)+'</p>'+
+        '<a class="stellar-photo-source" href="'+esc(p.source)+'" target="_blank" rel="noopener">Источник и полный снимок ↗</a><small>Фото: '+esc(p.credit)+'</small></figcaption></figure>').join('')+'</div>'+
+      '<div class="stellar-gallery-nav"><button id="stellarGalleryPrev" aria-label="Предыдущий кадр" aria-controls="stellarGallery" disabled>←</button><button id="stellarGalleryNext" aria-label="Следующий кадр" aria-controls="stellarGallery">→</button></div></div><div class="stellar-gallery-heading"><h3 id="stellarGalleryTitle">Небо и снимки</h3><span id="stellarGalleryPosition" aria-live="polite" aria-atomic="true">1 / '+(photos.length+2)+'</span></div></section>';
   },
   mount(o) {
-    const guide=document.getElementById('stellarSkyGuide');
-    if(guide) for(const button of guide.querySelectorAll('[data-sky-view]')) button.onclick=()=>{
-      for(const b of guide.querySelectorAll('[data-sky-view]')) b.setAttribute('aria-pressed',String(b===button));
-      document.getElementById('skyChart').innerHTML=this.chart(o,button.dataset.skyView==='close');
-    };
+    this.photoAbort?.abort();
     const track=document.getElementById('stellarGallery');
     if(!track)return;
+    let active=-1;
     const cards=[...track.querySelectorAll('figure')],prev=document.getElementById('stellarGalleryPrev'),next=document.getElementById('stellarGalleryNext'),
       current=()=>cards.reduce((best,c,i)=>Math.abs(c.offsetLeft-track.scrollLeft)<Math.abs(cards[best].offsetLeft-track.scrollLeft)?i:best,0),
-      update=()=>{const i=current();prev.disabled=i===0;next.disabled=i===cards.length-1;document.getElementById('stellarGalleryPosition').textContent=(i+1)+' / '+cards.length;},
+      update=()=>{const i=current();if(i===active)return;active=i;prev.disabled=i===0;next.disabled=i===cards.length-1;document.getElementById('stellarGalleryPosition').textContent=(i+1)+' / '+cards.length;
+        for(const [j,card] of cards.entries()){card.inert=j!==i;card.setAttribute('aria-hidden',String(j!==i));card.setAttribute('aria-label',(j+1)+' из '+cards.length);card.querySelector('figcaption').hidden=j!==i;}},
       move=delta=>{const i=Math.max(0,Math.min(cards.length-1,current()+delta));track.scrollTo({left:cards[i].offsetLeft,behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});};
     prev.onclick=()=>move(-1);next.onclick=()=>move(1);track.addEventListener('scroll',update,{passive:true});
-    track.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();move(e.key==='ArrowRight'?1:-1);}});
+    document.getElementById('stellarMedia').addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();move(e.key==='ArrowRight'?1:-1);}});
     for(const photo of track.querySelectorAll('img')) {
       const settled=failed=>{photo.hidden=failed;const p=photo.parentElement;p.querySelector('.stellar-photo-loading').hidden=true;p.querySelector('.stellar-photo-error').hidden=!failed;p.classList.toggle('unavailable',failed);};
-      photo.onload=()=>settled(false);photo.onerror=()=>settled(true);if(photo.complete)settled(!photo.naturalWidth);
+      photo.onload=()=>settled(false);photo.onerror=()=>settled(true);if(photo.getAttribute?.('src')&&photo.complete)settled(!photo.naturalWidth);
+    }
+    if(typeof fetch==='function'&&typeof AbortController==='function') {
+      this.photoAbort=new AbortController();
+      const signal=this.photoAbort.signal,dss=track.querySelector('figure[data-photo="dss"]');
+      if(!this.photoDialogClose) {
+        this.photoDialogClose=()=>this.photoAbort?.abort();
+        document.getElementById('infoDialog').addEventListener('close',this.photoDialogClose);
+      }
+      if(dss)SkyDSS.mount(o,dss,signal);
     }
     if(cards.length)update();
   },

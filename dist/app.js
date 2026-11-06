@@ -18,6 +18,9 @@ function frame(now) {
   Simulation.advance(realDt);
   if (!document.hidden) {
     if (cameraGoal) {
+      // The endpoint of a zoom follows the live ship too. A fixed world-space
+      // endpoint can never settle once the ship has moved during the zoom.
+      if (followShip) Object.assign(cameraGoal, shipCamera(cameraGoal.span));
       const a = 1 - Math.exp(-Math.min(realDt, 0.1) * 8);
       cam.x += (cameraGoal.x - cam.x) * a;
       cam.y += (cameraGoal.y - cam.y) * a;
@@ -32,7 +35,7 @@ function frame(now) {
         cameraGoal = null;
       }
     }
-    if (followShip || shipFocusArmed) {
+    if (followShip) {
       const c = shipCamera(cam.span);
       cam.x = c.x;
       cam.y = c.y;
@@ -40,25 +43,32 @@ function frame(now) {
     updateZoomControl();
     MapLayers.update(now);
     ExtendedCatalog.update(now);
-    drawGrid();
-    MapLabels.begin();
-    drawGalaxyBackground();
-    RegionMap.draw();
-    drawHorizonBoundary();
-    drawReachability();
-    Route.draw();
-    drawRoute();
-    drawEffects(Math.min(realDt, 0.1));
-    ExtendedCatalog.drawSystems();
-    OrbitalMotion.draw();
-    NuclearStars.draw();
-    drawObjects();
-    ExtendedCatalog.draw();
-    drawShip(now);
-    MapLabels.draw();
-    Route.drawEncounter();
-    drawHover();
+    MapDetails.beginFrame();
+    try {
+      drawGrid();
+      MapLabels.begin();
+      drawGalaxyBackground();
+      RegionMap.draw();
+      drawHorizonBoundary();
+      drawReachability();
+      Route.draw();
+      drawRoute();
+      drawEffects(Math.min(realDt, 0.1));
+      ExtendedCatalog.drawSystems();
+      OrbitalMotion.draw();
+      NuclearStars.draw();
+      drawObjects();
+      ExtendedCatalog.draw();
+      GalacticTraffic.draw();
+      drawShip(now);
+      MapLabels.draw();
+      Route.drawEncounter();
+      drawHover();
+    } finally {
+      MapDetails.endFrame();
+    }
     if (now - lastUI > 100) {
+      if (globalThis.UniverseMap?.active()) updateMapHeading();
       renderUI();
       lastUI = now;
     }
@@ -75,7 +85,7 @@ function zoomAtPointer(e) {
   cameraGoal = null;
   const factor = Math.exp(clamp(e.deltaY, -220, 220) * 0.006),
     span = clamp(cam.span * factor, 0.00006, MAX_CAMERA_SPAN);
-  if (followShip || shipFocusArmed) cam = shipCamera(span);
+  if (followShip) cam = shipCamera(span);
   else {
     const r = canvas.getBoundingClientRect(),
       x = e.clientX - r.left,
@@ -90,9 +100,24 @@ function zoomAtPointer(e) {
   updateZoomControl();
 }
 canvas.addEventListener('wheel', zoomAtPointer, { passive: false });
+let clickedMapTarget = null, doubleClickTarget = null;
+function pickMapTarget(e) {
+  const r = canvas.getBoundingClientRect(),
+    x = e.clientX - r.left,
+    y = e.clientY - r.top;
+  const traffic = GalacticTraffic.hit(x, y);
+  if (traffic) return { traffic };
+  const annotation = globalThis.MapAnnotations?.active && MapAnnotations.hit(x, y);
+  const hit = hitObjects
+    .map((h) => ({ ...h, d: Math.hypot(x - h.p.x, y - h.p.y) }))
+    .filter((h) => h.d < (h.r || 28))
+    .sort((a, b) => Number(!!a.background) - Number(!!b.background) || a.d - b.d)[0];
+  const target = annotation || hit?.o || RegionMap.hit(x, y) ||
+    MapLabels.areaHit(x, y) || globalThis.UniverseMap?.hit(x, y);
+  return { id: target?.navigationId || target?.id };
+}
 canvas.addEventListener('pointerdown', (e) => {
   if (e.button !== 0) return;
-  releaseShipCamera();
   pointer = {
     down: true,
     x: e.clientX,
@@ -112,8 +137,13 @@ canvas.addEventListener('pointermove', (e) => {
   if (pointer.down && e.pointerId === pointer.id) {
     const dx = e.clientX - pointer.x,
       dy = e.clientY - pointer.y;
-    if (Math.hypot(e.clientX - pointer.startX, e.clientY - pointer.startY) > 5)
+    if (!pointer.moved && Math.hypot(e.clientX - pointer.startX, e.clientY - pointer.startY) > 5) {
       pointer.moved = true;
+      clickedMapTarget = doubleClickTarget = null;
+      // Inspecting or dismissing a card is still compatible with ship focus.
+      // Only an actual map drag releases the anchor before changing the scale.
+      releaseShipCamera();
+    }
     if (pointer.moved) {
       cam.x -= (dx * cam.span) / width;
       cam.y -= (dy * cam.span) / width;
@@ -124,9 +154,11 @@ canvas.addEventListener('pointermove', (e) => {
     pointer.y = e.clientY;
   } else {
     hover =
+      GalacticTraffic.hit(x,y) ||
       (globalThis.MapAnnotations?.active && MapAnnotations.hit(x, y)) ||
       hitObjects.find(({ p, r = 23 }) => Math.hypot(x - p.x, y - p.y) < r)?.o ||
       RegionMap.hit(x, y) ||
+      MapLabels.areaHit(x, y) ||
       globalThis.UniverseMap?.hit(x, y);
     canvas.style.cursor = hover ? 'pointer' : 'crosshair';
   }
@@ -134,31 +166,33 @@ canvas.addEventListener('pointermove', (e) => {
 canvas.addEventListener('pointerup', (e) => {
   if (!pointer.down || e.pointerId !== pointer.id) return;
   if (!pointer.moved) {
-    const r = canvas.getBoundingClientRect(),
-      x = e.clientX - r.left,
-      y = e.clientY - r.top;
-    const hit = hitObjects
-      .map((h) => ({ ...h, d: Math.hypot(x - h.p.x, y - h.p.y) }))
-      .filter((h) => h.d < (h.r || 28))
-      .sort((a, b) => Number(!!a.background) - Number(!!b.background) || a.d - b.d)[0];
-    const annotation = globalThis.MapAnnotations?.active && MapAnnotations.hit(x, y);
-    if (annotation) select(annotation.id);
-    else if (hit) select(hit.o.id);
-    else {
-      const region = RegionMap.hit(x, y) || globalThis.UniverseMap?.hit(x, y);
-      if (region) select(region.id);
-    }
+    const { id, traffic } = pickMapTarget(e);
+    doubleClickTarget = id && id === clickedMapTarget ? id : null;
+    clickedMapTarget = id || null;
+    if (traffic) { if (!zenMode) GalacticTraffic.show(traffic); }
+    else if (id) select(id);
+    else FlightQueue.dismiss();
   }
   pointer.down = false;
   canvas.style.cursor = 'crosshair';
 });
 canvas.addEventListener('pointercancel', () => {
   pointer.down = false;
+  clickedMapTarget = doubleClickTarget = null;
   canvas.style.cursor = 'crosshair';
 });
 canvas.addEventListener('pointerleave', () => (hover = null));
+canvas.addEventListener('dblclick', (e) => {
+  if (e.button !== 0 || pointer.moved || !doubleClickTarget) return;
+  const { id } = pickMapTarget(e), target = object(id);
+  if (id !== doubleClickTarget || !target?.navigable || id === state.current) return;
+  e.preventDefault();
+  select(id);
+  launchSelectedTarget();
+});
 
 $('shipBtn').onclick = focusShip;
+$('zenBtn').onclick = () => setZenMode(!zenMode);
 document.querySelectorAll('[data-zoom]').forEach(
   (b) =>
     (b.onclick = () => {
@@ -180,7 +214,7 @@ $('expansionToggle').addEventListener('change', (e) => {
 $('zoomSlider').addEventListener('input', (e) => {
   cameraGoal = null;
   const span = zoomInterpolate(Number(e.target.value), 'value', 'span');
-  if (followShip || shipFocusArmed) cam = shipCamera(span);
+  if (followShip) cam = shipCamera(span);
   else cam.span = span;
   updateMapHeading();
   updateZoomControl();
@@ -195,28 +229,58 @@ $('search').oninput = () => {
   clearTimeout(catalogTimer);
   catalogTimer = setTimeout(renderCatalog, 160);
 };
-$('themeBtn').onclick = () => applyTheme(theme === 'dark' ? 'light' : 'dark');
+$('themeBtn').onclick = () => {
+  MapFilters.close();
+  closeMenu();
+  $('themePicker').hidden = !$('themePicker').hidden;
+  $('themeBtn').setAttribute('aria-expanded', String(!$('themePicker').hidden));
+};
+$('themePicker').onclick = e => {
+  const button = e.target.closest('[data-color-theme]');
+  if (button) applyTheme(button.dataset.colorTheme);
+};
+$('multiplayerToggle').onchange = e => {
+  state.multiplayer = e.target.checked;
+  persist(); renderUI();
+};
 $('menuBtn').onclick = () => {
-  const open = $('menu').hidden;
-  $('menu').hidden = !open;
-  $('menuBtn').setAttribute('aria-expanded', String(open));
+  if (!$('menu').hidden) return closeMenu();
+  MapFilters.close();
+  $('themePicker').hidden = true;
+  $('themeBtn').setAttribute('aria-expanded', 'false');
+  showMenuPage();
+  $('menu').hidden = false;
+  $('menuBtn').setAttribute('aria-expanded', 'true');
+};
+$('libraryBtn').onclick = () => showMenuPage('library', true);
+$('settingsBtn').onclick = () => showMenuPage('settings', true);
+document.querySelectorAll('[data-menu-back]').forEach((button) => {
+  button.onclick = () => {
+    const opener = button.closest('[data-menu-page]').dataset.menuPage === 'library'
+      ? $('libraryBtn') : $('settingsBtn');
+    showMenuPage();
+    opener.focus();
+  };
+});
+$('menu').onkeydown = (event) => {
+  if (event.key !== 'Escape') return;
+  event.preventDefault();
+  event.stopPropagation();
+  const back = event.target.closest('[data-menu-page]')?.querySelector('[data-menu-back]');
+  if (back) back.click();
+  else closeMenu();
 };
 document.addEventListener('pointerdown', (e) => {
+  if (!e.target.closest('#mapFilters,#mapFilterBtn')) MapFilters.close();
   if (!e.target.closest('.menu-popover,.menu-button')) closeMenu();
+  if (!e.target.closest('#themePicker,#themeBtn')) {
+    $('themePicker').hidden = true;
+    $('themeBtn').setAttribute('aria-expanded', 'false');
+  }
 });
 $('catalogFilter').addEventListener('change', (e) => {
-  filter = e.target.value;
-  hover = null;
-  hitObjects = [];
-  RegionMap.hits = [];
+  searchFilter = e.target.value;
   ExtendedCatalog.searchLimit = 100;
-  const name = e.target.selectedOptions?.[0]?.textContent || filter;
-  $('catalogBtn').title =
-    (filter === 'all' ? 'Атлас' : 'Атлас · на карте: ' + name) + ' · ⌘F / Ctrl+F';
-  $('catalogBtn').setAttribute(
-    'aria-label',
-    filter === 'all' ? 'Атлас' : 'Атлас. На карте: ' + name,
-  );
   renderCatalog();
 });
 $('flightDetails').addEventListener('toggle', () => {
@@ -262,16 +326,20 @@ $('timeSlider').addEventListener('input', (event) =>
 document
   .querySelectorAll('[data-time]')
   .forEach((button) => (button.onclick = () => setTimeRate(button.dataset.time)));
-$('launchBtn').onclick = () => {
+function launchSelectedTarget() {
   syncClock();
-  if (state.current === state.selected) {
+  if (FlightQueue.browsing()) {
+    FlightQueue.add(state.selected);
+  } else if (state.current === state.selected) {
     openCatalog();
   } else launch();
-};
+}
+$('launchBtn').onclick = launchSelectedTarget;
 $('helpBtn').onclick = showHelp;
 $('modelBtn').onclick = showModel;
+$('pulsarResearchBtn').onclick = () => PulsarResearch.show();
 $('journalBtn').onclick = showJournal;
-$('objectInfo').onclick = () => showObject(state.flight?.target || state.selected);
+$('objectInfo').onclick = () => showObject(FlightQueue.browsing() ? state.selected : state.flight?.target || state.selected);
 $('closeDialog').onclick = () => $('infoDialog').close();
 $('infoDialog').addEventListener('click', (e) => {
   if (e.target === $('infoDialog')) {
@@ -286,6 +354,7 @@ $('resetBtn').onclick = () => {
   );
   $('confirmReset').onclick = () => {
     state = initial();
+    FlightQueue.reset();
     paused = false;
     speed = 1;
     Simulation.debt = 0;
@@ -307,14 +376,32 @@ window.addEventListener('keydown', (e) => {
     (e.code === 'KeyF' || e.key.toLowerCase() === 'f')
   ) {
     e.preventDefault();
+    setZenMode(false);
     openCatalog();
     $('search').select();
+    return;
+  }
+  if (e.key === 'Escape' && zenMode) {
+    e.preventDefault();
+    setZenMode(false);
+    return;
+  }
+  if (e.key === 'Escape' && !$('mapFilters').hidden) {
+    if (MapFilters.pickerOpen()) return;
+    e.preventDefault();
+    MapFilters.close();
     return;
   }
   if (e.key === 'Escape' && !$('catalog').hidden) {
     if (CSS.supports('selector(:open)') && $('catalogFilter').matches(':open')) return;
     e.preventDefault();
     closeCatalog();
+    return;
+  }
+  if (e.key === 'Escape' && !$('menu').hidden) {
+    e.preventDefault();
+    closeMenu();
+    $('menuBtn').focus();
     return;
   }
   if (e.target.closest('input,textarea,select,button,summary,[contenteditable]')) return;
@@ -328,6 +415,8 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeCatalog();
     closeMenu();
+    $('themePicker').hidden = true;
+    FlightQueue.dismiss();
   }
   if (e.key === '+' || e.key === '=') goCamera(cam.x, cam.y, cam.span / 2, false, true);
   if (e.key === '-') goCamera(cam.x, cam.y, cam.span * 2, false, true);
@@ -341,6 +430,7 @@ document.addEventListener('visibilitychange', () => {
   syncClock();
   persist();
 });
+document.addEventListener('selectionchange', () => UIContent.flush());
 window.addEventListener('pagehide', persist);
 resize();
 if (state.flight) fitRoute(object(state.flight.target));
@@ -352,8 +442,11 @@ else if (state.current && state.current !== 'sol')
     true,
   );
 globalThis.MapSlice?.setup();
+MapFilters.setup();
 FlightBuilder.setup();
 Route.setup();
+FlightQueue.setup();
+QuickFlight.setup();
 applyTheme(theme);
 updateShipButton();
 resize();

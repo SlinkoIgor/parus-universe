@@ -128,7 +128,7 @@ for q in filaments:
  'p3':center,'cosmicSubtype':'filament','catalogTypeLabel':'ГАЛАКТИЧЕСКИЙ ФИЛАМЕНТ · SDSS','referenceURL':source_url('J/MNRAS/438/3465'),
  'distanceMethod':'Ось Bisous по наблюдаемым галактикам SDSS: система survey XYZ → ICRS → Galactic XYZ. Мпк/h, h=0,7; радиальный пересчёт Ωm=0,27 → Ωm=0,3. Подавление «пальцев Бога» исходного каталога сохранено.',
  'positionQuality':'approximate','arrivalAnchor':True,'filamentLengthLy':length,'catalogData':{'ID':ident,'Npts':int(q['Npts']),'LenMpcH':float(q['Len']),'Ng1':int(q['Ng1'])},
- 'regionData':{'shape':'polyline','major':max(1,major),'minor':max(1,minor),'points':relative,'illustrative':False,'note':'Опубликованная последовательность точек оси филамента; толщина линии условная. Точка прибытия — средний узел оси, не компактное тело.','url':source_url('J/MNRAS/438/3465')}})
+ 'regionData':{'shape':'polyline','major':max(1,major),'minor':max(1,minor),'points':relative,'offsets3':[[round(p[j]-center[j],3) for j in range(3)] for p in curve],'coordinateFrame':'heliocentric Galactic XYZ / ly','illustrative':False,'note':'Опубликованная последовательность 3D-точек оси филамента; толщина линии условная. Точка прибытия — средний узел оси, не компактное тело.','url':source_url('J/MNRAS/438/3465')}})
 coverage['SDSS-Filaments']={'rows':15421,'represented':15421,'spinePoints':len(pts),'selection':'All observed filaments and all source spine points; no mock galaxies/fictional geometry. Independent sky-coordinate validation stored in audit.'}
 # Public archived DR7 fallback: DR11 author's old host no longer resolves.
 void_tables=tables('void-dr7');shells={'dim1t1v':(0,.05),'dim2t1v':(.05,.1),'bri1t1v':(.1,.15),'bri2t1v':(.15,.2),'lrgdt1v':(.2,.36),'lrgbt1v':(.36,.45)};void_raw=0;void_added=0

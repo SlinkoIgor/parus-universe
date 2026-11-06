@@ -18,7 +18,7 @@ for(const mode of ['full','slice','radial']){
   for(const id of ['andromeda','triangulum','3c273']){
    state.selected=id;assert.equal(MapVisibility.overviewPoint(object(id)),false);assert.equal(MapDetails.opacity(object(id),cam.span),0,'ordinary galaxies and quasars keep their class cutoff');
   }
-  for(const kind of ['galaxy-cluster','filament'])assert.equal(MapDetails.opacity(MapLayers.sample(kind),2e9),0);
+  for(const kind of ['galaxy-cluster','filament'])assert.equal(MapDetails.opacity(MapLayers.sample(kind),3e9),0);
   for(const id of ['hyperion','shapley','bootes'])assert.equal(RegionMap.asPoint(object(id)),false,'native region must not become an icon');
   drawObjects();MapLabels.begin();MapAnnotations.draw();
   for(const id of ['mom-z14','jades-z14']){
@@ -43,4 +43,4 @@ for(const mode of ['full','slice','radial']){
 }
 run(`assert.equal(MapVisibility.overviewPoint({kind:'galaxy',cosmicLandmark:true,atlasOnly:true,cosmology:{distanceLy:3e10},p3:[3e10,0,0]}),false);`);
 assert.equal(run('JSON.stringify(OBJECTS.map(o=>[o.id,o.p3,o.mapPosition,o.redshift,o.cosmology,o.source,o.navigable,o.region]))'),science);
-console.log('PASS sourced cosmic points follow common density in all modes/mobile and remain discoverable by focus; generated names exclude numeric captions, class cutoffs and science are unchanged');
+console.log('PASS sourced cosmic points follow common density in all modes/mobile and remain discoverable by focus; generated names exclude numeric captions, class cutoffs are respected and science is unchanged');

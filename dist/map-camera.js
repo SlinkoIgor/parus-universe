@@ -8,26 +8,54 @@ let width = 0,
   cam = { x: 0, y: 0, span: 24 },
   cameraGoal = null,
   effects = [];
-let followShip = false,
-  shipFocusArmed = false;
+let followShip = false;
+let zenMode = false;
+let hudHeight = 0;
 let pointer = { down: false, x: 0, y: 0, startX: 0, startY: 0, moved: false, id: null };
+function setZenMode(enabled) {
+  enabled = !!enabled;
+  if (zenMode === enabled) return;
+  zenMode = enabled;
+  if (enabled) {
+    closeCatalog();
+    MapFilters.close();
+    closeMenu();
+    $('themePicker').hidden = true;
+    $('themeBtn').setAttribute('aria-expanded', 'false');
+    $('infoDialog').close();
+    $('flightBuilder').close();
+  }
+  document.documentElement.classList.toggle('zen-mode', enabled);
+  $('zenBtn').setAttribute('aria-pressed', String(enabled));
+  $('zenBtn').setAttribute('aria-label', enabled ? 'Показать интерфейс' : 'Режим дзен');
+  $('zenBtn').title = enabled ? 'Показать интерфейс' : 'Режим дзен · скрыть интерфейс';
+  $('zenIcon').setAttribute('href', enabled ? '#zen-exit-icon' : '#zen-icon');
+  $('zenBtn').focus({ preventScroll: true });
+}
+// The canvas always covers the window; Zen only removes its clipping and the UI.
+function cameraViewportHeight() {
+  return height - hudHeight;
+}
+function mapOriginY() {
+  return cameraViewportHeight() * (width < 700 ? 0.39 : 0.5);
+}
 function screen(p) {
   p = p === state.ship ? FlightView.ship() : MapLayout.project(p);
   return {
     x: width * 0.43 + ((p.x - cam.x) * width) / cam.span,
-    y: height * (width < 700 ? 0.39 : 0.5) + ((p.y - cam.y) * width) / cam.span,
+    y: mapOriginY() + ((p.y - cam.y) * width) / cam.span,
   };
 }
 function world(x, y) {
   return {
     x: cam.x + ((x - width * 0.43) * cam.span) / width,
-    y: cam.y + ((y - height * (width < 700 ? 0.39 : 0.5)) * cam.span) / width,
+    y: cam.y + ((y - mapOriginY()) * cam.span) / width,
   };
 }
 function goCamera(x, y, span, instant = false, keepFollow = false) {
-  if (!keepFollow && (followShip || shipFocusArmed)) releaseShipCamera();
+  if (!keepFollow && followShip) releaseShipCamera();
   cameraGoal =
-    keepFollow && (followShip || shipFocusArmed)
+    keepFollow && followShip
       ? shipCamera(clamp(span, 0.00006, MAX_CAMERA_SPAN))
       : { x, y, span: clamp(span, 0.00006, MAX_CAMERA_SPAN) };
   if (instant) {
@@ -38,7 +66,9 @@ function goCamera(x, y, span, instant = false, keepFollow = false) {
 }
 function routeViewport() {
   const pad = Math.max(24, Math.min(54, width * 0.055)),
-    card = $('flightCard').getBoundingClientRect();
+    card = $('flightCard').getBoundingClientRect(),
+    viewportHeight = cameraViewportHeight();
+  if (zenMode) return { left: pad, top: Math.max(72, pad), right: width - pad, bottom: height - pad };
   // Keep the route clear of the HUD, target card, heading and map buttons.
   const right =
     width >= 700
@@ -46,37 +76,33 @@ function routeViewport() {
       : width - pad;
   const bottom =
     width < 700
-      ? Math.min(height - pad, card.top > 100 ? card.top - pad : height * 0.43)
-      : height - pad;
+      ? Math.min(viewportHeight - pad, card.top > 100 ? card.top - pad : viewportHeight * 0.43)
+      : viewportHeight - pad;
   return { left: pad, top: 112, right: Math.max(pad + 100, right), bottom: Math.max(180, bottom) };
 }
 function shipCamera(span = cam.span) {
   const p = FlightView.ship();
   return {
     x: p.x + ((width * 0.43 - width / 2) * span) / width,
-    y: p.y + ((height * (width < 700 ? 0.39 : 0.5) - height / 2) * span) / width,
+    y: p.y + ((mapOriginY() - cameraViewportHeight() / 2) * span) / width,
     span,
   };
 }
 function focusShip() {
+  if (followShip) { releaseShipCamera(); cameraGoal=null; return; }
+  followShip=true;
   globalThis.MapSlice?.focus(state.ship);
-  if (followShip) {
-    followShip = false;
-    shipFocusArmed = false;
-  } else if (shipFocusArmed) {
-    followShip = true;
-  } else shipFocusArmed = true;
   const c = shipCamera();
   goCamera(c.x, c.y, c.span, true, true);
   updateShipButton();
 }
 function updateShipButton() {
-  $('shipBtn').innerHTML = followShip
+  UIContent.html($('shipBtn'), followShip
     ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8V3h5m8 0h5v5m0 8v5h-5M8 21H3v-5M12 6l5 12-5-3-5 3Z"/></svg>'
-    : '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>';
+    : '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>');
   $('shipBtn').setAttribute(
     'aria-label',
-    followShip ? 'Отключить слежение: ' + SHIP_NAME : 'Центрировать: ' + SHIP_NAME,
+    followShip ? 'Отключить слежение: ' + SHIP_NAME : 'Центрировать и следовать: ' + SHIP_NAME,
   );
   $('shipBtn').classList.toggle('active', followShip);
   $('shipBtn').setAttribute('aria-pressed', String(followShip));
@@ -84,13 +110,10 @@ function updateShipButton() {
     SHIP_NAME +
     (followShip
       ? ' · отключить слежение'
-      : shipFocusArmed
-        ? ' · нажмите ещё раз для слежения'
-        : ' · центрировать');
+      : ' · центрировать и следовать');
 }
 function releaseShipCamera() {
   followShip = false;
-  shipFocusArmed = false;
   updateShipButton();
 }
 // Numerical guard only: far beyond the atlas even at Cosmology's maximum a(t).
@@ -146,7 +169,7 @@ function updateZoomControl() {
   $('zoomSlider').setAttribute('aria-valuetext', 'Ширина карты: ' + distanceText(span));
 
   const measure = gridMetrics();
-  $('zoomDivision').textContent = scaleDistanceText(measure.unit);
+  UIContent.text($('zoomDivision'), scaleDistanceText(measure.unit));
   $('mapScaleLine').style.width = measure.majorPixels + 'px';
   $('mapScale').setAttribute(
     'aria-label',
@@ -205,7 +228,7 @@ function fitRoute(target) {
     v = routeViewport(),
     current = cameraGoal || cam;
   const sx = (p) => width * 0.43 + ((p.x - current.x) * width) / current.span,
-    sy = (p) => height * (width < 700 ? 0.39 : 0.5) + ((p.y - current.y) * width) / current.span;
+    sy = (p) => mapOriginY() + ((p.y - current.y) * width) / current.span;
   if (
     [a, b].every((p) => sx(p) >= v.left && sx(p) <= v.right && sy(p) >= v.top && sy(p) <= v.bottom)
   )
@@ -218,7 +241,7 @@ function fitRoute(target) {
   goCamera(
     (a.x + b.x) / 2 - (((v.left + v.right) / 2 - width * 0.43) * span) / width,
     (a.y + b.y) / 2 -
-      (((v.top + v.bottom) / 2 - height * (width < 700 ? 0.39 : 0.5)) * span) / width,
+      (((v.top + v.bottom) / 2 - mapOriginY()) * span) / width,
     span,
   );
 }
@@ -226,21 +249,26 @@ function select(id, fit = false) {
   const o = object(id);
   if (!o) return;
   ExtendedCatalog.pin(o);
+  if (ExtendedCatalog.systemView) {
+    if (ExtendedCatalog.systemView.members.has(id)) ExtendedCatalog.systemView.selected = id;
+    else ExtendedCatalog.systemView = null;
+  }
   state.selected = id;
   renderUI();
   if (fit) fitRoute(o);
   renderCatalog();
   persist();
-  if (state.flight && !Route.picking) showObject(id);
 }
 let compactMapControls = null;
 function resize() {
   const r = canvas.getBoundingClientRect();
   width = r.width;
   height = r.height;
+  hudHeight = document.querySelector('.telemetry')?.getBoundingClientRect().height || 0;
   dpr = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = Math.round(width * dpr);
-  canvas.height = Math.round(height * dpr);
+  // Assigning either bitmap dimension clears the canvas, even when unchanged.
+  if (canvas.width !== Math.round(width * dpr)) canvas.width = Math.round(width * dpr);
+  if (canvas.height !== Math.round(height * dpr)) canvas.height = Math.round(height * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const controls = document.querySelector('.map-controls'),
     compact = width < 700;
@@ -252,30 +280,24 @@ function resize() {
 new ResizeObserver(resize).observe(canvas);
 function mapContext(view) {
   const span = view.span;
-  // Match the same projected optical ellipse that the map draws. Zoom never enlarges its boundary.
-  const localGalaxy = GALAXIES.filter((g) => {
-    if (globalThis.MapSlice && !MapSlice.includes(object(g.id) || g)) return false;
-    const p = MapLayout.project(g),
-      dx = view.x - p.x,
-      dy = view.y - p.y,
-      c = Math.cos(g.rotation),
-      s = Math.sin(g.rotation),
-      a = g.diameterLy / 2;
-    return (
-      span < g.diameterLy * 4 &&
-      ((dx * c + dy * s) / a) ** 2 + ((-dx * s + dy * c) / (a * g.axisRatio)) ** 2 <= 1
-    );
-  }).sort((a, b) => a.diameterLy - b.diameterLy)[0];
   const nearSun = Math.hypot(view.x, view.y);
   if (span < 0.01 && nearSun < 0.1)
     return ['Солнечная система', 'Земля и Солнце. Нулевая точка экспедиции.', '00'];
   if (span < 180 && nearSun < 100)
     return ['Солнечная окрестность', 'В галактике «Млечный Путь».', '01'];
+  // The registry also retains metadata for evicted tiles. Such a helper is
+  // neither a live outline nor a full galaxy identity for Cosmology.group.
+  // Check smaller live galaxies first and tessellate only a containing bound.
+  let localGalaxy;
+  for (const g of GALAXIES.filter(g => span < g.diameterLy * 4).sort((a,b) => a.diameterLy-b.diameterLy)) {
+    const body=object(g.id);
+    if(body&&MapGeometry.contains(body,view)){localGalaxy=g;break;}
+  }
   if (localGalaxy)
     return [
       'Галактика «' + localGalaxy.name + '»',
       span < 10000
-        ? 'Звёздный масштаб · область на схематической карте.'
+        ? 'Звёздный масштаб · проекция в галактических осях.'
         : 'Оптический контур · ' + distanceText(localGalaxy.diameterLy),
       'Г',
     ];
@@ -294,15 +316,15 @@ function mapContext(view) {
     return ['Космическая паутина', 'Стены, войды и крупномасштабные структуры.', '06'];
   return [
     'Обозримая Вселенная',
-    'Исходная наблюдаемая область атласа · размер ' +
-      distanceText((globalThis.UniverseMap ? 2 * UniverseMap.radius : 93e9) * Cosmology.scale()),
+    'Наблюдаемая область атласа · радиус ' +
+      distanceText((globalThis.UniverseMap ? UniverseMap.radius : 46.5e9) * Cosmology.scale()),
     '∞',
   ];
 }
 function updateMapHeading() {
   const view = cameraGoal || cam,
     [title, sub, sheet] = mapContext(view);
-  $('mapTitle').textContent = title;
-  $('mapSubtitle').textContent = sub;
-  $('mapSheet').textContent = '/ ' + sheet;
+  UIContent.text($('mapTitle'), title);
+  UIContent.text($('mapSubtitle'), sub);
+  UIContent.text($('mapSheet'), '/ ' + sheet);
 }

@@ -1,0 +1,41 @@
+{
+  "retrieved": "2026-11-05",
+  "records": [
+    {
+      "id": "gaia-bh1",
+      "name": "Gaia BH1",
+      "raDeg": 262.17120816,
+      "decDeg": -0.58109202,
+      "parallaxMasRaw": "2.09\\pm 0.02",
+      "massSolarRaw": "9.62\\pm 0.18",
+      "source": "https://arxiv.org/abs/2209.06833",
+      "coordinateEpoch": "J2016.0",
+      "solution": "adopted source table; first black-hole mass is joint Gaia + RV, alternatives retained in the publication",
+      "table": 3
+    },
+    {
+      "id": "gaia-bh2",
+      "name": "Gaia BH2",
+      "raDeg": 207.56971624,
+      "decDeg": -59.239005,
+      "parallaxMasRaw": "0.859\\pm 0.018",
+      "massSolarRaw": "8.94\\pm 0.34",
+      "source": "https://arxiv.org/abs/2302.07880",
+      "coordinateEpoch": "J2016.0",
+      "solution": "adopted source table; first black-hole mass is joint Gaia + RV, alternatives retained in the publication",
+      "table": 1
+    },
+    {
+      "id": "gaia-bh3",
+      "name": "Gaia BH3",
+      "raDeg": 294.8278502301,
+      "decDeg": 14.9309190869,
+      "parallaxMasRaw": "1.6933\\pm 0.0164",
+      "massSolarRaw": "32.70\\pm 0.82",
+      "source": "https://arxiv.org/abs/2404.10486",
+      "coordinateEpoch": "J2017.5",
+      "solution": "joint astrometry + spectroscopy solution, Table 2 right column, Eq.5; not the DR3 single-source parallax",
+      "table": 3
+    }
+  ]
+}

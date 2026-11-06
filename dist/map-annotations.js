@@ -35,20 +35,37 @@ const MapAnnotations = {
   flightLabel(q) {
     return q.key === 'ship' || q.key.startsWith('flight-mark-');
   },
+  structural(o) {
+    return !!o?.region && !o.cosmicCatalog && ['structure','wall','void','ring','arc'].includes(o.kind);
+  },
+  structureAnchor(o) {
+    const center=screen(RegionMap.center(o)),local=RegionMap.nameAnchor(o),scale=width/cam.span*Cosmology.regionScale(o);
+    return {point:{x:center.x+local.x*scale,y:center.y+local.y*scale},extent:Math.max(o.region.major,o.region.minor)*scale/2,left:local.x<0};
+  },
   place(q, obstacles) {
     const p = q.p || q.candidates?.[0];
     if (!p) return;
     const size = q.size || 10;
     const w = MapLabels.measure(q.name, size + 'px "Golos Text",Arial,sans-serif'),
       moving = this.flightLabel(q),
-      y = q.p ? p.y + (moving ? 18 : -8) : p.y;
+      stage = q.key.startsWith('flight-mark-'),
+      y = q.p ? p.y + (q.labelBelow ? 22 : moving ? 18 : -8) : p.y;
     let x = q.p ? p.x + 16 : p.x - (p.align === 'center' ? w / 2 : p.align === 'right' ? w : 0);
     const boxAt = (offset) => ({ x: x - 4, y: y + offset - size - 4, w: w + 8, h: size + 10 });
     let offset = 0,
       box = boxAt(0);
+    if (!moving && !q.object?.notableLandmark && (!q.object||MapDetails.level(q.object)<3) && this.notableBoxes?.some(b=>MapLabels.overlaps(box,b))) return;
+    if (q.object?.notableLandmark && MapLabels.boxes.some(b=>MapLabels.overlaps(box,b))) return;
     const origin = q.object && MapDetails.origin(q.object);
     if (!moving && !origin && this.originBox && MapLabels.overlaps(box, this.originBox)) return;
-    if (moving) {
+    if (stage) {
+      // Route events keep one anchor. Passing ships or crowded names may hide
+      // the caption, but must never move it to another column or row.
+      if (
+        box.x < 8 || box.x + box.w > width - 8 || box.y < 8 || box.y + box.h > height - 8 ||
+        [...MapLabels.boxes, ...obstacles].some(other => MapLabels.overlaps(box, other))
+      ) return;
+    } else if (moving) {
       // Prefer the right edge of a nearby sail before moving text far below it.
       for (const obstacle of obstacles)
         if (MapLabels.overlaps(box, obstacle)) {
@@ -58,8 +75,7 @@ const MapAnnotations = {
             box = boxAt(0);
           }
         }
-      // Keep the atlas fixed. Nearby flight events share a column below their
-      // anchors; retain a free row across frames instead of jumping back up.
+      // Keep the atlas fixed and retain the ship name's free row across frames.
       const previous = MapLabels.slots.get(q.key) ?? 0,
         rows = [...new Set([previous, 0, 1, 2, 3, 4, 5, 6, 7])];
       const row = rows.find((row) => {
@@ -80,10 +96,14 @@ const MapAnnotations = {
     if (origin) this.originBox = box;
     if (q.object) this.hits.push({ object: q.object, box });
     MapLabels.boxes.push(box);
+    if(q.object?.notableLandmark)this.notableBoxes.push(box);
     MapLabels.placed.push({ key: q.key, ...box });
+    const active = MapLabels.emphasized(q.object), alpha = active ? 1 : q.alpha;
+    const leader=q.leaderAnchor?MapLabels.leader(box,q.leaderAnchor,alpha,active):null;
+    if(q.structure)this.structureLabels.push({object:q.object,box,leader,anchor:q.leaderAnchor});
     ctx.save();
-    ctx.globalAlpha = q.alpha;
-    text(q.name, x, y + offset, size, q.color || '#454545', 'left', 'sans');
+    ctx.globalAlpha = alpha;
+    text(q.name, x, y + offset, size, active ? '#171717' : q.color || '#454545', 'left', 'sans');
     ctx.restore();
     q.onPlace?.(box);
   },
@@ -98,37 +118,51 @@ const MapAnnotations = {
         )
         .map((q) =>
           q.object
-            ? { ...q, name: MapDetails.mapLabelName(q.object).toUpperCase(), object: null }
+            ? { ...q, name: MapDetails.mapLabelName(q.object).toUpperCase() }
             : q,
         ),
       items = [];
     for (const [id, entry] of this.entries) {
       const o = ExtendedCatalog.get(id);
       if (!o || !MapDetails.visible(o, cam.span) || !ExtendedCatalog.matchesMap(o)) continue;
+      if (o.notableLandmark) continue;
       const name = MapDetails.mapLabelName(o);
       if (!name) continue;
-      const alpha = this.opacity(o) * ExtendedCatalog.opacity(o);
+      const structure=this.structural(o)?this.structureAnchor(o):null;
+      const alpha = Math.max(this.opacity(o),structure?clamp((structure.extent-18)/6,0,1):0) * ExtendedCatalog.opacity(o);
       if (alpha <= 0.03) continue;
-      const p = screen(o);
+      const p=structure?.point||screen(o);
       if (p.x < 0 || p.x > width || p.y < 0 || p.y > height) continue;
       items.push({
         key: 'object-' + id,
         name: MapDetails.origin(o) ? entry.name : name,
         object: o,
-        p,
+        ...(structure?{candidates:[{x:p.x+(structure.left?-18:18),y:p.y+28,align:structure.left?'right':'left'}],structure:true,leaderAnchor:structure.extent>=24?p:null}:{p}),
         rank: entry.rank,
         alpha,
       });
     }
+    for (const o of OBJECTS) {
+      if (!o.notableLandmark || !MapDetails.visible(o,cam.span) || !ExtendedCatalog.matchesMap(o)) continue;
+      const p=screen(o),name=MapDetails.mapLabelName(o, o.id === state.selected),alpha=ExtendedCatalog.opacity(o);
+      if(!name||alpha<=.03||p.x<0||p.x>width||p.y<0||p.y>height)continue;
+      items.push({key:'object-'+o.id,name,object:o,p,alpha,rank:0,labelBelow:true});
+    }
     items.sort(
       (a, b) =>
         Number(MapDetails.origin(b.object)) - Number(MapDetails.origin(a.object)) ||
+        Number(MapDetails.level(b.object)>=3) - Number(MapDetails.level(a.object)>=3) ||
+        Number(!!b.object.notableLandmark) - Number(!!a.object.notableLandmark) ||
+        (b.object.landmarkPriority||0) - (a.object.landmarkPriority||0) ||
+        (a.object.notableLandmark&&b.object.notableLandmark?MapDetails.massOrder(a.object,b.object):0) ||
         a.rank - b.rank,
     );
     this.admitted = items.map((q) => q.object.id);
+    this.structureLabels=[];
     this.overflow = [];
     this.hits = [];
     this.originBox = null;
+    this.notableBoxes=[];
     MapLabels.boxes = [];
     MapLabels.uiCount = 0;
     MapLabels.placed = [];

@@ -3,7 +3,8 @@
 let state,
   paused = false,
   speed = 1,
-  filter = 'all',
+  filter = 'all', // Map object class; independent of the atlas search.
+  searchFilter = 'all',
   toastTimer,
   hover = null,
   hitObjects = [],
@@ -12,6 +13,7 @@ let state,
 const initial = () => ({
   version: 13,
   flightDefaultsVersion: 2,
+  reserveDefaultsVersion: 1,
   orbit: null,
   tankCapacityKg: 1,
   flightSetup: null,
@@ -37,6 +39,9 @@ const initial = () => ({
   totalDistance: 0,
   ship: Space.point([0, 0, 0]),
   itinerary: [],
+  nextTargets: [],
+  multiplayer: false,
+  trafficSeed: Math.floor(Math.random() * 100),
   visited: ['sol'],
   destroyed: [],
   phase: 'idle',
@@ -60,6 +65,7 @@ function restore(saved) {
   )
     return initial();
   saved = JSON.parse(JSON.stringify(saved));
+  if (!Array.isArray(saved.nextTargets)) saved.nextTargets = [];
   ExtendedCatalog.restore(saved);
   for (const id of new Set([
     saved.current,
@@ -68,6 +74,7 @@ function restore(saved) {
     saved.flight?.fromId,
     ...(saved.flight?.route || []).map((n) => n.id),
     ...(saved.itinerary || []).map((n) => n.id),
+    ...(saved.nextTargets || []).map((n) => n?.id),
   ]))
     if (id && !object(id)) {
       const old = RETIRED_OBJECTS.find((o) => o.id === id);
@@ -78,6 +85,7 @@ function restore(saved) {
     ...saved,
     version: 13,
     flightDefaultsVersion: 2,
+    reserveDefaultsVersion: 1,
     lightModel: 5,
     sail: 0,
     controlG: 10,
@@ -249,6 +257,12 @@ function restore(saved) {
     }
     if (!upgraded.flight && upgraded.departureMode === 'burst') upgraded.departureMode = 'beam';
   }
+  // Retire the old quick-menu zero-reserve preset for future starts only.
+  // Executing plans, queued stops, fuel and clocks keep their saved values.
+  if ((saved.reserveDefaultsVersion || 0) < 1 && upgraded.flightSetup?.arrivalFuelPercent === 0) {
+    upgraded.flightSetup.arrivalFuelPercent = 50;
+    upgraded.flightSetup.fill = true;
+  }
   if (!upgraded.flight) {
     const host = object(upgraded.current),
       star = ExtendedCatalog.arrivalStar(host, upgraded.destroyed);
@@ -277,6 +291,11 @@ function restore(saved) {
       object(upgraded.flight.fromId) || upgraded.flight.from,
       object(upgraded.flight.target),
     );
+  upgraded.nextTargets = (Array.isArray(saved.nextTargets) ? saved.nextTargets : [])
+    .filter(n => n && object(n.id)?.navigable).slice(0, 10)
+    .map(n => ({id: n.id, setup: FlightSetup.normalize(n.setup || upgraded.flightSetup || FlightSetup.defaults(upgraded))}));
+  upgraded.multiplayer = saved.multiplayer === true;
+  upgraded.trafficSeed = Number.isInteger(saved.trafficSeed) ? ((saved.trafficSeed % 100) + 100) % 100 : upgraded.trafficSeed;
   return Route.sanitize(upgraded);
 }
 
@@ -319,6 +338,7 @@ const FlightHistory = {
     const saved = state.flight?.rollback;
     if (!saved) return;
     state = restore(saved);
+    FlightQueue.reset();
     paused = !!saved.paused;
     speed = saved.timeScale || 1;
     Simulation.debt = Simulation.wallDebt = 0;

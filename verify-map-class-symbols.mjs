@@ -44,19 +44,22 @@ console.log('PASS adopted-distance duplicate imports, scaled contours, continuou
 run(`{
 state=initial();state.expansion=false;Cosmology.sync(state);MapLayers.active=true;for(const c of MapLayers.categories)MapLayers.ready.set(c,true);filter='all';width=1440;height=1000;cam={x:1e14,y:1e14,span:1000};
 const fixtures=[{kind:'cluster',catalogClass:'stellar-cluster'},{kind:'cluster',catalogClass:'galaxy-cluster'},{kind:'nebula'}].map((fields,i)=>({...fields,id:'symbol-fixture-'+i,name:'CLASS '+i,p3:[100+i,0,0],d:100+i,mapPosition:{x:cam.x+(i-1)*100,y:cam.y},facts:{mass:'Не измерена',class:'Test'},navigable:true}));
+// Position glyph fixtures through their physical Galactic coordinates. An
+// arbitrary saved mapPosition no longer overrides XYZ in layout version 4.
+function fixturePosition(o,x,y){o.p3=[x,-y,0];o.d=Math.hypot(x,y);o.mapPosition={x,y};}
 const before=OBJECTS.length;OBJECTS.push(...fixtures);for(const o of fixtures)ExtendedCatalog.coreIndex.set(o.id,o);RegionMap.hits=[];const original=MapSymbols.draw,calls=[];MapSymbols.draw=function(o,p,ink){if(o.id.startsWith('symbol-fixture'))calls.push(MapDetails.group(o));return original.call(this,o,p,ink);};
 const expected=['galaxy-cluster','nebula','stellar-cluster'].sort();function assertClasses(){assert.deepEqual([...new Set(calls)].sort(),expected);calls.length=0;}
 for(const mode of ['dark','light']){
- theme=mode;fixtures.forEach((o,i)=>{o.streamed=false;delete o.messier;o.mapPosition={x:cam.x+(i-1)*100,y:cam.y};});MapLabels.begin();drawObjects();assertClasses();
+ theme=mode;fixtures.forEach((o,i)=>{o.streamed=false;delete o.messier;fixturePosition(o,cam.x+(i-1)*100,cam.y);});MapLabels.begin();drawObjects();assertClasses();
  // Crowding uses the same glyph, never a generic dot for another class.
- for(const o of fixtures)o.mapPosition={x:cam.x,y:cam.y};MapLabels.begin();drawObjects();assertClasses();
+ for(const o of fixtures)fixturePosition(o,cam.x,cam.y);MapLabels.begin();drawObjects();assertClasses();
  // Selected streamed objects return through the foreground path.
- fixtures.forEach((o,i)=>{o.streamed=true;o.mapPosition={x:cam.x+(i-1)*100,y:cam.y};});for(const o of fixtures){state.selected=o.id;MapLabels.begin();drawObjects();assert.ok(calls.includes(MapDetails.group(o)));calls.length=0;}
+ fixtures.forEach((o,i)=>{o.streamed=true;fixturePosition(o,cam.x+(i-1)*100,cam.y);});for(const o of fixtures){state.selected=o.id;MapLabels.begin();drawObjects();assert.ok(calls.includes(MapDetails.group(o)));calls.length=0;}
  state.selected='alpha';MapLayers.visible=fixtures;MapLayers.visibleMap=new Map(fixtures.map(o=>[o.id,o]));ExtendedCatalog.draw();assertClasses();
  // Explicit class filters retain the same icon in the background path.
  for(const o of fixtures){filter=MapDetails.group(o);ExtendedCatalog.draw();assert.deepEqual([...new Set(calls)],[filter]);calls.length=0;}filter='all';
  // Known sparse objects beyond each class cutoff use the common glyph too.
- cam.span=3e9;fixtures.forEach((o,i)=>{o.streamed=false;o.messier='test';o.mapPosition={x:cam.x+(i-1)*cam.span*.2,y:cam.y};});MapLayers.visible=[];MapLayers.visibleMap.clear();MapLabels.begin();drawObjects();MapLabels.draw();assertClasses();cam.span=1000;
+ cam.span=3e9;fixtures.forEach((o,i)=>{o.streamed=false;o.messier='test';fixturePosition(o,cam.x+(i-1)*cam.span*.2,cam.y);});MapLayers.visible=[];MapLayers.visibleMap.clear();MapLabels.begin();drawObjects();MapLabels.draw();assertClasses();cam.span=1000;
 }
 MapSymbols.draw=original;OBJECTS.length=before;for(const o of fixtures)ExtendedCatalog.coreIndex.delete(o.id);
 // Compare actual vector output in each theme. The three classes have distinct

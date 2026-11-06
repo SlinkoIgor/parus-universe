@@ -38,6 +38,11 @@ run(`{
  for(const themeName of ['dark','light'])for(const w of [1440,390])for(const o of samples){
   theme=themeName;filter='all';width=w;height=1000;const p=MapLayout.project(o);cam={x:p.x,y:p.y,span:MapDetails.maxSpan(o)*2};
   assert.ok(MapDetails.discoverable(o),o.id+' has usable source coordinates');assert.equal(MapDetails.visible(o,cam.span),false);
+  if(o.kind==='blackhole'){
+   assert.equal(MapDetails.sparse(o,cam.span),false,'black holes retain their scale cutoff in the fallback');
+   assert.equal(chart([o]).length,0,'a free area must not reveal a hidden black hole');
+   assert.equal(hitObjects.length,0);continue;
+  }
   const hits=chart([o]);assert.equal(hits.length,1,o.id+' remains discoverable in a free area');assert.equal(hits[0].o.id,o.id);
   assert.equal(hitObjects.length,1,'no duplicate primary/background point');
   assert.ok(hits[0].r<=7||!ExtendedCatalog.background(o),'background objects retain compact click targets');
@@ -45,7 +50,7 @@ run(`{
   assert.equal(chart([o],()=>hitObjects.push({o:{kind:'galaxy'},p:point,r:23})).length,0,'larger primary object wins');
   filter=o.kind==='star'?'nebula':'star';assert.equal(chart([o]).length,0,'category filter is respected');filter='all';
  }
- console.log('PASS real stars in LMC/SMC/M31/M33 and Milky Way, nebulae, both cluster classes, galaxies, pulsars and black holes fill free areas beyond class limits; both themes/viewport widths, filters and compact unique hit targets');
+ console.log('PASS real stars in LMC/SMC/M31/M33 and Milky Way, nebulae, both cluster classes, galaxies and pulsars fill free areas beyond class limits; black holes retain their cutoff; both themes/viewport widths, filters and compact unique hit targets');
 
  width=1440;height=1000;filter='all';const star=samples.find(o=>o.bulkGalaxyMember&&o.kind==='star'),p=MapLayout.project(star);
  cam={x:p.x,y:p.y,span:MapDetails.maxSpan(star)*2};let point=chart([star])[0].p;

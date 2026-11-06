@@ -1,0 +1,570 @@
+{
+  "retrieved": "2026-11-06",
+  "reference": "Astropy 8.0.2 SkyCoord.apply_space_motion + TAN WCS.all_world2pix; source ICRS epoch J2000, pmRA*cosDec/pmDec mas/yr; DATE-OBS is exposure epoch, DATE is retrieval date.",
+  "cases": [
+    {
+      "id": "alpha",
+      "identifier": "HIP 71683",
+      "astrometryURL": "https://simbad.cfa.harvard.edu/simbad/sim-tap/sync?request=doQuery&lang=adql&format=json&query=SELECT+b.main_id%2Cb.ra%2Cb.dec%2Cb.pmra%2Cb.pmdec%2Cb.plx_value%2Cb.rvz_radvel%2Cb.coo_bibcode%2Cb.pm_bibcode%2Cb.pm_err_maj%2Cb.pm_err_min%2Cb.coo_err_maj%2Cb.coo_err_min%2Cb.plx_err%2Cb.rvz_err%2Cb.plx_bibcode%2Cb.rvz_bibcode+FROM+basic+b+JOIN+ident+i+ON+i.oidref%3Db.oid+WHERE+i.id%3D%27HIP+71683%27",
+      "astrometrySHA256": "32f3c6e8618c0e92b841b1df78ea922dddd48371ab157bca3a420f95b739a03e",
+      "astrometry": {
+        "metadata": [
+          {
+            "name": "main_id",
+            "description": "Main identifier for an object",
+            "datatype": "CHAR",
+            "arraysize": "*",
+            "ucd": "meta.id;meta.main",
+            "utype": "mango:MangoObject.identifier"
+          },
+          {
+            "name": "ra",
+            "description": "Right ascension",
+            "datatype": "DOUBLE",
+            "unit": "deg",
+            "ucd": "pos.eq.ra;meta.main",
+            "utype": "mango:EpochPosition.longitude[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "dec",
+            "description": "Declination",
+            "datatype": "DOUBLE",
+            "unit": "deg",
+            "ucd": "pos.eq.dec;meta.main",
+            "utype": "mango:EpochPosition.latitude[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "pmra",
+            "description": "Proper motion in RA",
+            "datatype": "DOUBLE",
+            "unit": "mas.yr-1",
+            "ucd": "pos.pm;pos.eq.ra",
+            "utype": "mango:EpochPosition.pmLongitude[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "pmdec",
+            "description": "Proper motion in DEC",
+            "datatype": "DOUBLE",
+            "unit": "mas.yr-1",
+            "ucd": "pos.pm;pos.eq.dec",
+            "utype": "mango:EpochPosition.pmLatitude[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "plx_value",
+            "description": "Parallax",
+            "datatype": "DOUBLE",
+            "unit": "mas",
+            "ucd": "pos.parallax.trig",
+            "utype": "mango:EpochPosition.parallax[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "rvz_radvel",
+            "description": "Radial Velocity",
+            "datatype": "DOUBLE",
+            "unit": "km.s-1",
+            "ucd": "spect.dopplerVeloc.opt",
+            "utype": "mango:EpochPosition.radialVelocity[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "coo_bibcode",
+            "description": "Coordinate reference",
+            "datatype": "CHAR",
+            "arraysize": "19",
+            "ucd": "meta.bib.bibcode;pos.eq"
+          },
+          {
+            "name": "pm_bibcode",
+            "description": "Proper motion reference",
+            "datatype": "CHAR",
+            "arraysize": "19",
+            "ucd": "meta.bib.bibcode;pos.pm"
+          },
+          {
+            "name": "pm_err_maj",
+            "description": "Proper motion error major axis",
+            "datatype": "FLOAT",
+            "unit": "mas.yr-1",
+            "ucd": "phys.angSize.smajAxis;pos.errorEllipse;pos.pm",
+            "utype": "mango:EpochPosition.errors.properMotion/mango:error.PErrorEllipse.semiMajorAxis[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "pm_err_min",
+            "description": "Proper motion error minor axis",
+            "datatype": "FLOAT",
+            "unit": "mas.yr-1",
+            "ucd": "phys.angSize.sminAxis;pos.errorEllipse;pos.pm",
+            "utype": "mango:EpochPosition.errors.properMotion/mango:error.PErrorEllipse.semiMinorAxis[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "coo_err_maj",
+            "description": "Coordinate error major axis",
+            "datatype": "FLOAT",
+            "unit": "mas",
+            "ucd": "phys.angSize.smajAxis;pos.errorEllipse;pos.eq",
+            "utype": "mango:EpochPosition.errors.position/mango:error.PErrorEllipse.semiMajorAxis[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "coo_err_min",
+            "description": "Coordinate error minor axis",
+            "datatype": "FLOAT",
+            "unit": "mas",
+            "ucd": "phys.angSize.sminAxis;pos.errorEllipse;pos.eq",
+            "utype": "mango:EpochPosition.errors.position/mango:error.PErrorEllipse.semiMinorAxis[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "plx_err",
+            "description": "Parallax error",
+            "datatype": "FLOAT",
+            "unit": "mas",
+            "ucd": "stat.error;pos.parallax.trig"
+          },
+          {
+            "name": "rvz_err",
+            "description": "Radial velocity / redshift error",
+            "datatype": "FLOAT",
+            "unit": "km.s-1",
+            "ucd": "stat.error;spect.dopplerVeloc"
+          },
+          {
+            "name": "plx_bibcode",
+            "description": "Parallax reference",
+            "datatype": "CHAR",
+            "arraysize": "19",
+            "ucd": "meta.bib.bibcode;pos.parallax.trig"
+          },
+          {
+            "name": "rvz_bibcode",
+            "description": "Radial velocity / redshift reference",
+            "datatype": "CHAR",
+            "arraysize": "19",
+            "ucd": "meta.bib.bibcode;spect.dopplerVeloc"
+          }
+        ],
+        "data": [
+          [
+            "* alf Cen A",
+            219.90205833170774,
+            -60.83399268831004,
+            -3679.25,
+            473.67,
+            742.12,
+            -15.252,
+            "2007A&A...474..653V",
+            "2007A&A...474..653V",
+            3.89,
+            3.24,
+            34.17567,
+            28.45653,
+            1.4,
+            0.167,
+            "1997A&A...323L..49P",
+            "2021MNRAS.506..150B"
+          ]
+        ]
+      },
+      "fitsURL": "https://archive.stsci.edu/cgi-bin/dss_search?v=poss2ukstu_red&r=219.90205833170774&d=-60.83399268831004&e=J2000&h=10&w=10&f=fits&c=none",
+      "fitsSHA256": "cf790070a422f94be9108610a481596666b4823bf1139bf019802c225155dfef",
+      "header": {
+        "NAXIS1": 594,
+        "NAXIS2": 595,
+        "PLATEID": "A29M",
+        "DATE-OBS": "1997-03-11T17:19:00",
+        "DATE": "2026-11-06",
+        "EQUINOX": 2000.0,
+        "CTYPE1": "RA---TAN",
+        "CTYPE2": "DEC--TAN",
+        "CRPIX1": 297.5,
+        "CRPIX2": 298.0,
+        "CRVAL1": 219.902196,
+        "CRVAL2": -60.834093,
+        "CD1_1": -0.0002803299,
+        "CD1_2": -2.8843e-06,
+        "CD2_1": -2.8599e-06,
+        "CD2_2": 0.0002798023
+      },
+      "expected": {
+        "obstimeUsed": "1997-03-11T17:19:00.000",
+        "raDeg": 219.90794781492528,
+        "decDeg": -60.834362066193705,
+        "x": 287.01177746367017,
+        "y": 298.5641598380774
+      }
+    },
+    {
+      "id": "proxima",
+      "identifier": "HIP 70890",
+      "astrometryURL": "https://simbad.cfa.harvard.edu/simbad/sim-tap/sync?request=doQuery&lang=adql&format=json&query=SELECT+b.main_id%2Cb.ra%2Cb.dec%2Cb.pmra%2Cb.pmdec%2Cb.plx_value%2Cb.rvz_radvel%2Cb.coo_bibcode%2Cb.pm_bibcode%2Cb.pm_err_maj%2Cb.pm_err_min%2Cb.coo_err_maj%2Cb.coo_err_min%2Cb.plx_err%2Cb.rvz_err%2Cb.plx_bibcode%2Cb.rvz_bibcode+FROM+basic+b+JOIN+ident+i+ON+i.oidref%3Db.oid+WHERE+i.id%3D%27HIP+70890%27",
+      "astrometrySHA256": "6c350231fc78e71cb1fd4cfaba771f47ad3e8d81a56156cc685a87ee59fe91b9",
+      "astrometry": {
+        "metadata": [
+          {
+            "name": "main_id",
+            "description": "Main identifier for an object",
+            "datatype": "CHAR",
+            "arraysize": "*",
+            "ucd": "meta.id;meta.main",
+            "utype": "mango:MangoObject.identifier"
+          },
+          {
+            "name": "ra",
+            "description": "Right ascension",
+            "datatype": "DOUBLE",
+            "unit": "deg",
+            "ucd": "pos.eq.ra;meta.main",
+            "utype": "mango:EpochPosition.longitude[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "dec",
+            "description": "Declination",
+            "datatype": "DOUBLE",
+            "unit": "deg",
+            "ucd": "pos.eq.dec;meta.main",
+            "utype": "mango:EpochPosition.latitude[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "pmra",
+            "description": "Proper motion in RA",
+            "datatype": "DOUBLE",
+            "unit": "mas.yr-1",
+            "ucd": "pos.pm;pos.eq.ra",
+            "utype": "mango:EpochPosition.pmLongitude[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "pmdec",
+            "description": "Proper motion in DEC",
+            "datatype": "DOUBLE",
+            "unit": "mas.yr-1",
+            "ucd": "pos.pm;pos.eq.dec",
+            "utype": "mango:EpochPosition.pmLatitude[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "plx_value",
+            "description": "Parallax",
+            "datatype": "DOUBLE",
+            "unit": "mas",
+            "ucd": "pos.parallax.trig",
+            "utype": "mango:EpochPosition.parallax[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "rvz_radvel",
+            "description": "Radial Velocity",
+            "datatype": "DOUBLE",
+            "unit": "km.s-1",
+            "ucd": "spect.dopplerVeloc.opt",
+            "utype": "mango:EpochPosition.radialVelocity[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "coo_bibcode",
+            "description": "Coordinate reference",
+            "datatype": "CHAR",
+            "arraysize": "19",
+            "ucd": "meta.bib.bibcode;pos.eq"
+          },
+          {
+            "name": "pm_bibcode",
+            "description": "Proper motion reference",
+            "datatype": "CHAR",
+            "arraysize": "19",
+            "ucd": "meta.bib.bibcode;pos.pm"
+          },
+          {
+            "name": "pm_err_maj",
+            "description": "Proper motion error major axis",
+            "datatype": "FLOAT",
+            "unit": "mas.yr-1",
+            "ucd": "phys.angSize.smajAxis;pos.errorEllipse;pos.pm",
+            "utype": "mango:EpochPosition.errors.properMotion/mango:error.PErrorEllipse.semiMajorAxis[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "pm_err_min",
+            "description": "Proper motion error minor axis",
+            "datatype": "FLOAT",
+            "unit": "mas.yr-1",
+            "ucd": "phys.angSize.sminAxis;pos.errorEllipse;pos.pm",
+            "utype": "mango:EpochPosition.errors.properMotion/mango:error.PErrorEllipse.semiMinorAxis[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "coo_err_maj",
+            "description": "Coordinate error major axis",
+            "datatype": "FLOAT",
+            "unit": "mas",
+            "ucd": "phys.angSize.smajAxis;pos.errorEllipse;pos.eq",
+            "utype": "mango:EpochPosition.errors.position/mango:error.PErrorEllipse.semiMajorAxis[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "coo_err_min",
+            "description": "Coordinate error minor axis",
+            "datatype": "FLOAT",
+            "unit": "mas",
+            "ucd": "phys.angSize.sminAxis;pos.errorEllipse;pos.eq",
+            "utype": "mango:EpochPosition.errors.position/mango:error.PErrorEllipse.semiMinorAxis[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "plx_err",
+            "description": "Parallax error",
+            "datatype": "FLOAT",
+            "unit": "mas",
+            "ucd": "stat.error;pos.parallax.trig"
+          },
+          {
+            "name": "rvz_err",
+            "description": "Radial velocity / redshift error",
+            "datatype": "FLOAT",
+            "unit": "km.s-1",
+            "ucd": "stat.error;spect.dopplerVeloc"
+          },
+          {
+            "name": "plx_bibcode",
+            "description": "Parallax reference",
+            "datatype": "CHAR",
+            "arraysize": "19",
+            "ucd": "meta.bib.bibcode;pos.parallax.trig"
+          },
+          {
+            "name": "rvz_bibcode",
+            "description": "Radial velocity / redshift reference",
+            "datatype": "CHAR",
+            "arraysize": "19",
+            "ucd": "meta.bib.bibcode;spect.dopplerVeloc"
+          }
+        ],
+        "data": [
+          [
+            "NAME Proxima Centauri",
+            217.42894222160578,
+            -62.67949018907555,
+            -3781.741,
+            769.465,
+            768.0665,
+            -20.578199,
+            "2020yCat.1350....0G",
+            "2020yCat.1350....0G",
+            0.031,
+            0.051,
+            0.024,
+            0.0344,
+            0.0499,
+            0.004684,
+            "2020yCat.1350....0G",
+            "2020AJ....160..120J"
+          ]
+        ]
+      },
+      "fitsURL": "https://archive.stsci.edu/cgi-bin/dss_search?v=poss2ukstu_red&r=217.42894222160578&d=-62.67949018907555&e=J2000&h=10&w=10&f=fits&c=none",
+      "fitsSHA256": "b5b75d2d9e8548aa9cb9326674a8c03a4db7dda8540c12f6291f29599a6dcb66",
+      "header": {
+        "NAXIS1": 594,
+        "NAXIS2": 595,
+        "PLATEID": "A29M",
+        "DATE-OBS": "1997-03-11T17:19:00",
+        "DATE": "2026-11-06",
+        "EQUINOX": 2000.0,
+        "CTYPE1": "RA---TAN",
+        "CTYPE2": "DEC--TAN",
+        "CRPIX1": 297.5,
+        "CRPIX2": 298.0,
+        "CRVAL1": 217.429171,
+        "CRVAL2": -62.679413,
+        "CD1_1": -0.0002801603,
+        "CD1_2": 7.6904e-06,
+        "CD2_1": 7.7708e-06,
+        "CD2_2": 0.0002797046
+      },
+      "expected": {
+        "obstimeUsed": "1997-03-11T17:19:00.000",
+        "raDeg": 217.43536997752474,
+        "decDeg": -62.680090288650206,
+        "x": 286.786148739083,
+        "y": 299.63816860882963
+      }
+    },
+    {
+      "id": "barnard",
+      "identifier": "HIP 87937",
+      "astrometryURL": "https://simbad.cfa.harvard.edu/simbad/sim-tap/sync?request=doQuery&lang=adql&format=json&query=SELECT+b.main_id%2Cb.ra%2Cb.dec%2Cb.pmra%2Cb.pmdec%2Cb.plx_value%2Cb.rvz_radvel%2Cb.coo_bibcode%2Cb.pm_bibcode%2Cb.pm_err_maj%2Cb.pm_err_min%2Cb.coo_err_maj%2Cb.coo_err_min%2Cb.plx_err%2Cb.rvz_err%2Cb.plx_bibcode%2Cb.rvz_bibcode+FROM+basic+b+JOIN+ident+i+ON+i.oidref%3Db.oid+WHERE+i.id%3D%27HIP+87937%27",
+      "astrometrySHA256": "3567076f413a110f70277abbd5d4b6c71098fbd30cf7229cb6d3da529cf1937a",
+      "astrometry": {
+        "metadata": [
+          {
+            "name": "main_id",
+            "description": "Main identifier for an object",
+            "datatype": "CHAR",
+            "arraysize": "*",
+            "ucd": "meta.id;meta.main",
+            "utype": "mango:MangoObject.identifier"
+          },
+          {
+            "name": "ra",
+            "description": "Right ascension",
+            "datatype": "DOUBLE",
+            "unit": "deg",
+            "ucd": "pos.eq.ra;meta.main",
+            "utype": "mango:EpochPosition.longitude[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "dec",
+            "description": "Declination",
+            "datatype": "DOUBLE",
+            "unit": "deg",
+            "ucd": "pos.eq.dec;meta.main",
+            "utype": "mango:EpochPosition.latitude[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "pmra",
+            "description": "Proper motion in RA",
+            "datatype": "DOUBLE",
+            "unit": "mas.yr-1",
+            "ucd": "pos.pm;pos.eq.ra",
+            "utype": "mango:EpochPosition.pmLongitude[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "pmdec",
+            "description": "Proper motion in DEC",
+            "datatype": "DOUBLE",
+            "unit": "mas.yr-1",
+            "ucd": "pos.pm;pos.eq.dec",
+            "utype": "mango:EpochPosition.pmLatitude[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "plx_value",
+            "description": "Parallax",
+            "datatype": "DOUBLE",
+            "unit": "mas",
+            "ucd": "pos.parallax.trig",
+            "utype": "mango:EpochPosition.parallax[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "rvz_radvel",
+            "description": "Radial Velocity",
+            "datatype": "DOUBLE",
+            "unit": "km.s-1",
+            "ucd": "spect.dopplerVeloc.opt",
+            "utype": "mango:EpochPosition.radialVelocity[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "coo_bibcode",
+            "description": "Coordinate reference",
+            "datatype": "CHAR",
+            "arraysize": "19",
+            "ucd": "meta.bib.bibcode;pos.eq"
+          },
+          {
+            "name": "pm_bibcode",
+            "description": "Proper motion reference",
+            "datatype": "CHAR",
+            "arraysize": "19",
+            "ucd": "meta.bib.bibcode;pos.pm"
+          },
+          {
+            "name": "pm_err_maj",
+            "description": "Proper motion error major axis",
+            "datatype": "FLOAT",
+            "unit": "mas.yr-1",
+            "ucd": "phys.angSize.smajAxis;pos.errorEllipse;pos.pm",
+            "utype": "mango:EpochPosition.errors.properMotion/mango:error.PErrorEllipse.semiMajorAxis[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "pm_err_min",
+            "description": "Proper motion error minor axis",
+            "datatype": "FLOAT",
+            "unit": "mas.yr-1",
+            "ucd": "phys.angSize.sminAxis;pos.errorEllipse;pos.pm",
+            "utype": "mango:EpochPosition.errors.properMotion/mango:error.PErrorEllipse.semiMinorAxis[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "coo_err_maj",
+            "description": "Coordinate error major axis",
+            "datatype": "FLOAT",
+            "unit": "mas",
+            "ucd": "phys.angSize.smajAxis;pos.errorEllipse;pos.eq",
+            "utype": "mango:EpochPosition.errors.position/mango:error.PErrorEllipse.semiMajorAxis[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "coo_err_min",
+            "description": "Coordinate error minor axis",
+            "datatype": "FLOAT",
+            "unit": "mas",
+            "ucd": "phys.angSize.sminAxis;pos.errorEllipse;pos.eq",
+            "utype": "mango:EpochPosition.errors.position/mango:error.PErrorEllipse.semiMinorAxis[CS.spaceSys=ICRS CT.epoch=J2000]"
+          },
+          {
+            "name": "plx_err",
+            "description": "Parallax error",
+            "datatype": "FLOAT",
+            "unit": "mas",
+            "ucd": "stat.error;pos.parallax.trig"
+          },
+          {
+            "name": "rvz_err",
+            "description": "Radial velocity / redshift error",
+            "datatype": "FLOAT",
+            "unit": "km.s-1",
+            "ucd": "stat.error;spect.dopplerVeloc"
+          },
+          {
+            "name": "plx_bibcode",
+            "description": "Parallax reference",
+            "datatype": "CHAR",
+            "arraysize": "19",
+            "ucd": "meta.bib.bibcode;pos.parallax.trig"
+          },
+          {
+            "name": "rvz_bibcode",
+            "description": "Radial velocity / redshift reference",
+            "datatype": "CHAR",
+            "arraysize": "19",
+            "ucd": "meta.bib.bibcode;spect.dopplerVeloc"
+          }
+        ],
+        "data": [
+          [
+            "NAME Barnard's star",
+            269.4520769586187,
+            4.693364966576667,
+            -801.551,
+            10362.394,
+            546.9759,
+            -110.11,
+            "2020yCat.1350....0G",
+            "2020yCat.1350....0G",
+            0.032,
+            0.036,
+            0.0262,
+            0.029,
+            0.0401,
+            0.0002,
+            "2020yCat.1350....0G",
+            "2018MNRAS.475.1960F"
+          ]
+        ]
+      },
+      "fitsURL": "https://archive.stsci.edu/cgi-bin/dss_search?v=poss2ukstu_red&r=269.4520769586187&d=4.693364966576667&e=J2000&h=10&w=10&f=fits&c=none",
+      "fitsSHA256": "fae13ceb078acb94cba1b709dfd6f6885e4d3cfb177cc382696f9f74c709abd1",
+      "header": {
+        "NAXIS1": 588,
+        "NAXIS2": 588,
+        "PLATEID": "A0BG",
+        "DATE-OBS": "1991-06-16T07:80:00",
+        "DATE": "2026-11-06",
+        "EQUINOX": 2000.0,
+        "CTYPE1": "RA---TAN",
+        "CTYPE2": "DEC--TAN",
+        "CRPIX1": 294.5,
+        "CRPIX2": 294.5,
+        "CRVAL1": 269.452369,
+        "CRVAL2": 4.693279,
+        "CD1_1": -0.0002832099,
+        "CD1_2": -1.0939e-06,
+        "CD2_1": -1.0384e-06,
+        "CD2_2": 0.0002832008
+      },
+      "expected": {
+        "obstimeUsed": "1991-06-16T12:00:00.000",
+        "raDeg": 269.4539848205605,
+        "decDeg": 4.668782100863417,
+        "x": 288.6477319638139,
+        "y": 380.51972937944754
+      }
+    }
+  ]
+}

@@ -26,8 +26,8 @@ assert.ok(halfNumber>4000&&optical>10&&halfLight>0);
 // All spatial leaves contain the complete displayed footprint, not only its
 // center. This independently checks the Python index against runtime sizes.
 for(const node of boot.nodes.filter(n=>n.category==='stellar-cluster'&&n.file))for(const row of files.get(node.file)){
- context.rowToCheck=row;const o=run('ExtendedCatalog.decode(rowToCheck)'),rx=o.region.major/2,ry=o.region.minor/2;
- assert.ok(node.box[0]<=row[12]-rx+1e-8&&node.box[2]>=row[12]+rx-1e-8&&node.box[1]<=row[13]-ry+1e-8&&node.box[3]>=row[13]+ry-1e-8,row[0]+' footprint outside its leaf');
+ context.rowToCheck=row;const bounds=run('MapGeometry.projected(ExtendedCatalog.decode(rowToCheck),{mode:"full",slice:false}).bounds');
+ assert.ok(node.box[0]<=row[12]+bounds[0]+1e-8&&node.box[2]>=row[12]+bounds[2]-1e-8&&node.box[1]<=row[13]+bounds[1]+1e-8&&node.box[3]>=row[13]+bounds[3]-1e-8,row[0]+' projected footprint outside its leaf');
 }
 console.log('PASS all 4094 structural cluster footprints from individual source sizes:',{halfNumber,optical,halfLight},'; 3D/IDs retained; every spatial leaf bounds actual extents');
 run(`{
@@ -38,7 +38,7 @@ const originalPositions=JSON.stringify(OBJECTS.map(o=>[o.id,o.p3,o.mapPosition])
 // Large and small nearby clusters differ by physical size; zooming halves the
 // on-screen footprint instead of leaving a fixed 36 px decoration.
 for(const id of ['omega','opengc-ngc2632']){const o=object(id),p=MapLayout.project(o);let previous;
- for(const span of [1000,2000]){cam={x:p.x,y:p.y,span};settleClusterView();clusterFrame();const hit=RegionMap.hits.find(h=>h.o.id===id);assert.ok(hit,id+' contour');const xs=hit.points.map(p=>p.x),diameter=Math.max(...xs)-Math.min(...xs);assert.ok(Math.abs(diameter/(o.region.major*width/span)-1)<1e-12);if(previous)assert.ok(Math.abs(diameter/previous-.5)<1e-12);previous=diameter;}
+ for(const span of [1000,2000]){cam={x:p.x,y:p.y,span};settleClusterView();clusterFrame();const hit=RegionMap.hits.find(h=>h.o.id===id);assert.ok(hit,id+' contour');const xs=hit.points.map(p=>p.x),diameter=Math.max(...xs)-Math.min(...xs);const bounds=MapGeometry.view(o).bounds;assert.ok(Math.abs(diameter/((bounds[2]-bounds[0])*width/span)-1)<1e-12);if(previous)assert.ok(Math.abs(diameter/previous-.5)<1e-12);previous=diameter;}
 }
 // No gap between the contour and point during either transition.
 const omega=object('omega'),center=MapLayout.project(omega);

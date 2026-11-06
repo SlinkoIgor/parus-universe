@@ -56,3 +56,38 @@ run(`{
  assert.equal(JSON.stringify(nameSourceRows),snapshot,'caption policy never changes catalogue source rows');
  console.log('PASS name-only fallback, fixed anchor and collision protection; catalogue and selected Pegasus physical coordinates survive unchanged');
 }`);
+
+// Metadata rendering has its own environment; the shared legacy harness is also
+// used by unrelated contour/cache regressions and must retain its renderer.
+const {run:runHoleNames}=await import('data:text/javascript,'+encodeURIComponent(harness)+'#black-hole-names');
+runHoleNames(['map-visibility-data','map-visibility','map-label-data','map-annotations'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'));
+runHoleNames(`{
+ const holes=OBJECTS.filter(o=>o.kind==='blackhole'),snapshot=JSON.stringify(holes),originals=[...OBJECTS],
+  proper=new Map([['sgr','Стрелец A*'],['bh-m87','Powehi']]);
+ assert.equal(holes.length,135);
+ for(const o of holes){
+  assert.equal(MapDetails.mapLabelName(o),proper.get(o.id)||null,'all black holes follow the proper-name rule: '+o.id);
+  assert.equal(MapDetails.mapLabelName(o,true),o.mapLabel||o.name,'selection reveals the full designation: '+o.id);
+  assert.equal(MapDetails.mapLabelName(o),proper.get(o.id)||null,'selection does not contaminate the name cache: '+o.id);
+ }
+ const examples=['cygnus','gaia-bh1','gaia-bh2','gaia-bh3','blackcat-gs2000+251','blackcat-xtej1118+480','bh-opengc-ngc1399','bh-ungc-circinus','bh-andromeda','bh-m87','sgr'];
+ state=initial();state.expansion=false;state.current=null;Cosmology.sync(state);filter='all';MapLayers.active=false;
+ ExtendedCatalog.pinned.clear();ExtendedCatalog.visible=[];ExtendedCatalog.visibleMap.clear();MapLayers.visible=[];MapLayers.visibleMap.clear();
+ const textCalls=[],fill=ctx.fillText;ctx.fillText=value=>textCalls.push(String(value));width=1440;height=1000;
+ for(const mode of ['full','slice','radial'])for(const palette of ['dark','light'])for(const id of examples){
+  const o=holes.find(o=>o.id===id);OBJECTS.splice(0,OBJECTS.length,o);MapSlice.mode=mode;theme=palette;
+  MapSlice.focus(o);cam={...MapLayout.project(o),span:Math.min(1000,MapVisibility.limit(o)*width*.5)};cameraGoal=null;
+  for(const draw of [()=>MapLabels.legacyDraw(),()=>MapAnnotations.draw()]){
+   const render=()=>{textCalls.length=0;MapLabels.begin();RegionMap.hits=[];drawObjects();draw();return MapLabels.placed.some(q=>q.key==='object-'+id);};
+   state.selected=null;hover=null;assert.equal(render(),proper.has(id),'idle label: '+mode+'/'+palette+'/'+id);
+   assert.ok(hitObjects.some(q=>q.o.id===id),'unlabelled marker remains clickable: '+id);
+   hover=o;assert.equal(render(),proper.has(id),'hover cannot reveal a numbered label: '+id);
+   state.selected=id;assert.ok(render(),'click selection reveals designation: '+id);
+   assert.ok(textCalls.includes(o.mapLabel||o.name),'selected caption text: '+id);
+   state.selected=null;hover=null;assert.equal(render(),proper.has(id),'deselection removes numbered label: '+id);
+  }
+ }
+ ctx.fillText=fill;OBJECTS.splice(0,OBJECTS.length,...originals);hover=null;
+ assert.equal(JSON.stringify(holes),snapshot,'names, aliases, scientific values and source records are unchanged');
+ console.log('PASS all 135 BH names: catalogue/variable/host/descriptive aliases stay hidden until selection; genuine names retained, hover/deselect/cache, clickable glyphs, both renderers, themes and three map modes; immutable source records');
+}`);

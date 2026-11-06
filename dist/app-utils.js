@@ -1,6 +1,41 @@
 'use strict';
 // Shared formatting and theme helpers. No simulation or startup work.
 const $ = (id) => document.getElementById(id);
+// Replacing a text node also removes the browser's selection. Reuse unchanged
+// content and defer changes to selected fragments until the selection moves.
+const UIContent = {
+  pending: new Map(),
+  htmlValues: new WeakMap(),
+  text(node, value) { this.write(node, 'textContent', value); },
+  html(node, value) { this.write(node, 'innerHTML', value); },
+  write(node, property, value) {
+    value = String(value ?? '');
+    const current = node[property], cached = this.htmlValues.get(node);
+    if (current === value || (property === 'innerHTML' && cached?.value === value && cached.dom === current)) {
+      this.pending.delete(node);
+      return;
+    }
+    const selection = document.getSelection?.();
+    if (selection && !selection.isCollapsed) {
+      for (let i = 0; i < selection.rangeCount; i++) {
+        if (selection.getRangeAt(i).intersectsNode(node)) {
+          this.pending.set(node, { property, value });
+          return;
+        }
+      }
+    }
+    node[property] = value;
+    if (property === 'innerHTML') this.htmlValues.set(node, { value, dom: node.innerHTML });
+    else this.htmlValues.delete(node);
+    this.pending.delete(node);
+  },
+  flush() {
+    for (const [node, { property, value }] of this.pending) {
+      if (node.isConnected === false) this.pending.delete(node);
+      else this.write(node, property, value);
+    }
+  },
+};
 // Intl setup is much more expensive than formatting a value. There are only
 // a handful of precisions in the UI; reuse the formatter for each precision.
 const numberFormats = new Map();
@@ -42,7 +77,11 @@ const scaleDistanceText = (n) =>
       ? fmt(n, n < 1 ? 2 : 0) + ' св. лет'
       : distanceText(n);
 const object = (id) => ExtendedCatalog.pinned.get(id)?.historicalStellarNavigation
-  ? ExtendedCatalog.get(id) : OBJECTS.find((o) => o.id === id) || ExtendedCatalog.get(id);
+  ? ExtendedCatalog.get(id)
+  : MapDetails.frameObjects
+    ? MapDetails.frameObjects.get(id) || ExtendedCatalog.get(id)
+    : OBJECTS.find((o) => o.id === id) || ExtendedCatalog.get(id);
+
 function objectTypeText(o) {
   return !o
     ? ''
@@ -80,7 +119,7 @@ function clockRate() {
   return Math.sqrt((1 - beta) * (1 + beta));
 }
 function renderVelocity() {
-  $('velocity').innerHTML = speedNumber(state.beta) + '<small>% c</small>';
+  UIContent.html($('velocity'), speedNumber(state.beta) + '<small>% c</small>');
   $('velocity').title =
     fmt((state.beta * Rocket.c) / 1000, state.beta < 0.01 ? 3 : 1) +
     ' км/с относительно неподвижного наблюдателя';
@@ -88,15 +127,15 @@ function renderVelocity() {
   $('velocityBar').setAttribute('aria-valuenow', String(state.beta * 100));
   $('velocityBar').setAttribute('aria-valuetext', percentC(state.beta));
 }
-const DILATION_MAX = 1e8;
+const DILATION_MAX = 1e6;
 function dilationScale(ratio) {
   return Math.log10(clamp(ratio, 1, DILATION_MAX)) / Math.log10(DILATION_MAX);
 }
 function renderClockRatio() {
   const ratio = 1 / Math.max(Number.EPSILON, clockRate()),
     value = ratio === 1 ? '1' : compact(ratio);
-  $('timeDilation').textContent = value;
-  $('dilationUnit').textContent = ratio === 1 ? 'год наблюдателя' : 'лет наблюдателя';
+  UIContent.text($('timeDilation'), value);
+  UIContent.text($('dilationUnit'), ratio === 1 ? 'год наблюдателя' : 'лет наблюдателя');
   const position = dilationScale(ratio) * 100;
   $('dilationFill').style.width = position + '%';
   $('dilationMarker').style.left = position + '%';
@@ -138,40 +177,72 @@ const massText = (tonnes) => {
       ? fmt(kg * 1e3, 3) + ' г'
       : fmt(kg * 1e6, 3) + ' мг';
 };
+const COLOR_THEMES = {
+  dark: {name:'Чёрная', bg:'#000000', ink:'#ededed', accent:'#ededed'},
+  light: {name:'Белая', bg:'#f8f8f8', ink:'#252620', accent:'#252620'},
+  blueprint: {name:'Blueprint', bg:'#081e39', ink:'#d2eaff', accent:'#76c9ff'},
+  radar: {name:'Радар', bg:'#06100b', ink:'#bcf5c7', accent:'#63ec91'},
+  amber: {name:'Янтарь', bg:'#161006', ink:'#f8ddb0', accent:'#ffb84d'},
+  monokai: {name:'Monokai', bg:'#272822', ink:'#f8f8f2', accent:'#a6e22e'},
+  dracula: {name:'Dracula', bg:'#282a36', ink:'#f8f8f2', accent:'#bd93f9'},
+  nord: {name:'Nord', bg:'#2e3440', ink:'#eceff4', accent:'#88c0d0'},
+  solarized: {name:'Solarized', bg:'#002b36', ink:'#eee8d5', accent:'#2aa198'},
+};
 let theme = document.documentElement.dataset.theme || 'dark';
-function applyTheme(value) {
-  theme = value;
-  document.documentElement.dataset.theme = value;
-  const label = value === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему';
-  $('themeBtn').setAttribute('aria-label', label);
-  $('themeBtn').title = label;
-  $('themeBtn').innerHTML =
-    '<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#theme-' +
-    (value === 'dark' ? 'light' : 'dark') +
-    '-icon"/></svg>';
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = value === 'dark' ? '#000000' : '#f6f6f6';
-  try {
-    localStorage.setItem('parus-theme', value);
-  } catch {}
+// Include the critical colors installed in <head> before the stylesheet loads.
+const darkInk = new Map(), themeProperties = new Set(['--paper', '--ink', 'color-scheme']);
+function blendInk(a, b, fraction) {
+  return '#' + [1,3,5].map(i => Math.round(parseInt(a.slice(i,i+2),16) * (1-fraction) + parseInt(b.slice(i,i+2),16) * fraction).toString(16).padStart(2,'0')).join('');
 }
-// Map the existing engineering ink palette to a neutral dark drawing palette.
-const darkInk = new Map();
+function themeInk(color) {
+  const h = color.slice(1), hex = h.length === 3 ? [...h].map(c => c+c).join('') : h;
+  if (!/^[0-9a-f]{6}$/i.test(hex)) return color;
+  const tone = (.2126*parseInt(hex.slice(0,2),16)+.7152*parseInt(hex.slice(2,4),16)+.0722*parseInt(hex.slice(4,6),16))/255;
+  const p = COLOR_THEMES[theme];
+  return blendInk(p.bg, p.ink, clamp((248/255-tone)/(248/255),0,1));
+}
+function applyTheme(value) {
+  theme = COLOR_THEMES[value] ? value : 'dark';
+  const p = COLOR_THEMES[theme], root = document.documentElement;
+  root.dataset.theme = theme;
+  // Reset overrides before returning to either original neutral theme.
+  for (const key of themeProperties) root.style?.removeProperty(key);
+  themeProperties.clear(); darkInk.clear();
+  const put = (key, color) => { root.style?.setProperty(key, color); themeProperties.add(key); };
+  if (theme !== 'dark' && theme !== 'light') {
+    root.style?.setProperty('color-scheme', 'dark'); themeProperties.add('color-scheme');
+    const tones = ['f6f6f6','c1c1c1','e3e3e3','9b9b9b','7e7e7e','eaeaea','252525','a7a7a7','e0e0e0','949494','d2d2d2','a8a8a8','bcbcbc','e6e6e6','c5c5c5','dedede','878787','858585','8b8b8b','e9e9e9','333','222','aaa','ddd','bbb','444','ccc','999','666','555','888','777'];
+    for (const h of tones) put('--tone-'+h, themeInk('#'+h));
+    put('--tone-f6f6f6f5', p.bg+'f5'); put('--tone-00000008', p.ink+'08');
+    put('--tone-0002', '#000a'); put('--tone-2225', '#000b'); put('--tone-0001', p.ink+'11');
+    put('--paper',p.bg); put('--ink',p.ink); put('--muted',blendInk(p.bg,p.ink,.65));
+    put('--line',blendInk(p.bg,p.ink,.24)); put('--card-muted',blendInk(p.bg,p.ink,.7));
+    put('--accent',p.accent);
+  }
+  $('themeBtn').setAttribute('aria-label', 'Цветовая схема: '+p.name);
+  $('themeBtn').title = 'Цветовая схема: '+p.name;
+  $('themeBtn').innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#theme-' + (theme === 'light' ? 'dark' : 'light') + '-icon"/></svg>';
+  $('themePicker').innerHTML = Object.entries(COLOR_THEMES).map(([id,q]) => '<button data-color-theme="'+id+'" aria-pressed="'+(theme===id)+'"><i style="background:'+q.bg+';border-color:'+q.ink+';color:'+q.accent+'">●</i><span>'+q.name+'</span></button>').join('');
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = p.bg;
+  try { localStorage.setItem('parus-theme', theme); } catch {}
+}
+// Canvas and CSS use the same palette. Neutral dark retains its established inks.
 function paint(color) {
   if (theme === 'light') return color;
-  if (color === '#f8f8f8') return '#000000';
-  if (color.startsWith('rgba')) return color.replace('37,38,32', '218,218,218');
-  const cached = darkInk.get(color);
+  if (color === '#f8f8f8') return COLOR_THEMES[theme]?.bg || '#000000';
+  if (color.startsWith('rgba')) {
+    if (theme === 'dark') return color.replace('37,38,32', '218,218,218');
+    const rgb = COLOR_THEMES[theme].ink.match(/[0-9a-f]{2}/gi).map(h => parseInt(h,16));
+    return color.replace('37,38,32', rgb.join(','));
+  }
+  const key = theme + ':' + color, cached = darkInk.get(key);
   if (cached) return cached;
   const h = color.slice(1);
   if (!/^[0-9a-f]{3,6}$/i.test(h)) return color;
-  const hex = h.length === 3 ? [...h].map((c) => c + c).join('') : h;
-  const value =
-    '#' +
-    [0, 2, 4]
-      .map((i) => (255 - parseInt(hex.slice(i, i + 2), 16)).toString(16).padStart(2, '0'))
-      .join('');
+  const hex = h.length === 3 ? [...h].map(c => c+c).join('') : h;
+  const value = theme === 'dark' ? '#' + [0,2,4].map(i => (255-parseInt(hex.slice(i,i+2),16)).toString(16).padStart(2,'0')).join('') : themeInk(color);
   if (darkInk.size >= 128) darkInk.clear();
-  darkInk.set(color, value);
+  darkInk.set(key, value);
   return value;
 }

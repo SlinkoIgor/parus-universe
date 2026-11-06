@@ -19,7 +19,7 @@ function visit(id,nodes,structural=false){
   if(n.children.length)assert.ok(rows.length<=48);
   for(const r of rows){
    assert.equal(digest(r),originals.get(r[0]),'science, original map coordinates and geometry preserved');
-   if(structural)for(const [dx,dy] of r[11].regionData?.points||[]){const c=positions[r[0]].position;assert.ok(c.x+dx>=n.box[0]-1e-4&&c.x+dx<=n.box[2]+1e-4&&c.y+dy>=n.box[1]-1e-4&&c.y+dy<=n.box[3]+1e-4,'entire transferred filament, including offscreen anchor, fits index');}
+   if(structural)for(const d of r[11].regionData?.offsets3||[]){const p=positions[r[0]].position,x=p.x+d[0],y=p.y-d[1];assert.ok(x>=n.box[0]-1e-4&&x<=n.box[2]+1e-4&&y>=n.box[1]-1e-4&&y<=n.box[3]+1e-4,'entire translated local filament, including offscreen anchor, fits index');}
    const p=positions[r[0]].position;assert.ok(p.x>=n.box[0]&&p.x<=n.box[2]&&p.y>=n.box[1]&&p.y<=n.box[3],'new anchor inside queried index');
    if(n.children.length)assert.ok(ids.has(r[0]));
    else{assert.ok(!reached.has(r[0]),'one occurrence per leaf');reached.add(r[0]);ids.add(r[0]);}
@@ -31,9 +31,9 @@ for(const id of manifest.roots)visit(id,manifest.nodes);
 assert.equal(reached.size,source.length);assert.equal(manifest.mapRows,source.length);assert.equal(manifest.catalogRevision,full.revision);
 for(const [category,id] of Object.entries(layers.roots)){
  reached.clear();visit(id,layers.nodes,true);
- assert.deepEqual(reached,new Set(source.filter(r=>categories.get(r[0])===category).map(r=>r[0])));
+ assert.deepEqual(reached,new Set(source.filter(r=>categories.get(r[0])===category&&(category!=='galaxy'||r[11].angularMajorArcmin>0&&r[3]>0||r[11].diameterLy>0&&!r[11].sizeEstimated&&!r[11].sizeUnknown)).map(r=>r[0])));
 }
-console.log('PASS all 229637 mapped rows and complete structural layers: alternate bounds, no missing geometry, unchanged original data');
+console.log('PASS all mapped rows and complete structural layers: alternate bounds, no missing geometry, unchanged original data');
 // Offline and runtime (also original atlas rows) must agree for the whole class,
 // not just handpicked examples or pre-tagged alternate tiles.
 for(let i=0;i<source.length;i+=2000){context.batch=source.slice(i,i+2000);run(`for(const row of batch){const o=ExtendedCatalog.decode(row),a=MapLayout.baseProject(o),b=auditPlacements[o.id].position;assert.ok(Math.hypot(a.x-b.x,a.y-b.y)<1e-5,o.id);}`);}
@@ -50,11 +50,11 @@ run(`{
  const sat={id:'new-satellite',kind:'galaxy',p3:[27000,10000,500000]},s=MapRadial.placement(sat),host=MapRadial.resolve(s.parent),h=MapRadial.placement(host).position;
  assert.equal(s.rule,'distance-domain');assert.equal(s.parent,'sgr');
  assert.ok(Math.abs(Math.hypot(s.position.x-h.x,s.position.y-h.y)-Math.hypot(...sat.p3.map((v,i)=>v-host.p3[i])))<1e-6);
- // A child uses full 3D radius about its moved parent, not a shared XY shift.
+ // A declared child shares the moved parent and keeps its Galactic XY offset.
  const star={id:'new-population-star',kind:'star',synthetic:true,parentObject:sat.id,p3:sat.p3.map((v,i)=>v+[10,20,30][i]),galaxyMember:true,parentGalaxy:sat.id};
  const resolve=MapLayout.resolve;MapLayout.resolve=id=>id===sat.id?sat:resolve(id);
- const p=MapRadial.placement(star);assert.equal(p.parent,sat.id);assert.equal(p.frame,'radial');
- assert.ok(Math.abs(Math.hypot(p.position.x-s.position.x,p.position.y-s.position.y)-Math.hypot(10,20,30))<1e-9);
+ const p=MapRadial.placement(star);assert.equal(p.parent,sat.id);assert.equal(p.frame,'rigid-xy');
+ assert.deepEqual(p.position,{x:s.position.x+10,y:s.position.y-20});
  assert.equal(MapRadial.explain(star).chain.length,3);
  const before=JSON.stringify(OBJECTS.map(o=>MapRadial.project(o)));
  // Adding even a new dominant-galaxy record cannot refit the frozen group origin.
@@ -68,6 +68,7 @@ run(`{
  const close={id:'near-missing-parent',kind:'star',p3:[1,2,3],distanceHost:extra.id};assert.equal(MapRadial.placement(close).parent,'sol','solar domain has priority over hierarchy');
  assert.equal(MapRadial.profile.distanceDomains.find(d=>d.origin==='sol').radiusLy,1000);assert.equal(MapRadial.profile.distanceDomains.find(d=>d.origin==='sgr').radiusLy,15e6);
  for(const r of [999.999,1000,1000.001]){const o={id:'solar-boundary-'+r,kind:'star',p3:[0,0,r]},p=MapRadial.placement(o);if(r<=1000){assert.equal(p.parent,'sol');assert.ok(Math.abs(Math.hypot(p.position.x,p.position.y)-r)<1e-9);}else assert.ok(Math.hypot(p.position.x,p.position.y)>1000);}
+ for(const delta of [[1,2,900],[0,0,1100]]){const host=MapRadial.resolve('alpha'),o={id:'rigid-near-component-'+delta,kind:'star',boundSystemPrimary:'alpha',p3:host.p3.map((n,i)=>n+delta[i])},p=MapRadial.placement(o),h=MapRadial.placement(host).position;assert.equal(p.parent,'alpha');assert.equal(p.frame,'rigid-xy');assert.deepEqual(p.position,{x:h.x+delta[0],y:h.y-delta[1]});assert.equal(p.distanceDomain,undefined);}
  const unknown=MapRadial.placement({id:'unknown',p3:null,atlasOnly:true});assert.ok(Number.isNaN(unknown.position.x));
  const physical=()=>JSON.stringify({ship:state.ship,proper:state.proper,earth:state.earth,matter:state.matter,beta:state.beta,phase:state.phase,flight:state.flight&&Object.fromEntries(Object.entries(state.flight).filter(([k])=>k!=='view'))});
  state=initial();state.selected='coma';launch(true);paused=true;const expedition=physical();
@@ -132,7 +133,7 @@ run(`{
  MapSlice.setMode('full');assert.deepEqual(MapLayout.project(alpha),MapLayout.base(current));
  MapLayout.resolve=resolve;state=initial();MapSlice.setMode('full');
 }`);
-console.log('PASS exact local radii and nearest-100 rendered order for independent stars/galaxies, no distant intruders, M31 order, halo membership policy and shared 3D orbital snapshots across modes');
+console.log('PASS exact local radii and nearest-100 rendered order for all stars/galaxies, no distant intruders, M31 order, halo membership policy and shared 3D orbital snapshots across modes');
 // A late radial manifest cannot switch a newer choice. Bad profiles are rejected
 // and retry works; failed loads must never silently display the ordinary index.
 context.radialPointer=pointer;let release;context.delayedRadial=new Promise(r=>release=r);

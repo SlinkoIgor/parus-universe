@@ -1,17 +1,23 @@
 """Cross-identify added source rows without moving existing usable atlas positions."""
 import gzip,json,re,math,collections
 
-def key(s):
+def legacy_key(s):
  s=''.join(c.lower() for c in str(s) if c.isalnum())
  # Only established catalogue prefixes: never strip zeroes from sky-coordinate IDs.
  return re.sub(r'^(ngc|ic|ugc|pgc|aco|abell|a)0*(\d+)$',lambda m:('aco' if m[1] in ('aco','abell','a') else m[1])+str(int(m[2])),s)
+def key(s):
+ return re.sub(r'^(?:messier|m)0*(\d+)$',lambda m:'m'+str(int(m[1])),legacy_key(s))
 def family(kind,extra):
  if kind=='galaxy' and extra.get('catalogType') in ('GPair','GTrpl','GGroup'):return 'galaxy-system'
  if kind=='cluster':return extra.get('catalogClass') or ('galaxy-cluster' if 'галактик' in ' '.join(str(extra.get(k,'')) for k in ('type','catalogTypeLabel','name')).lower() else 'stellar-cluster')
  return 'structure' if kind in ('structure','wall','ring','arc') else kind
 
 def merge_catalogs(root,core,records,patches,coverage,projection):
- data=json.loads(gzip.decompress((root/'data-tools/cosmic-catalogs.json.gz').read_bytes()));members={};aliases=collections.defaultdict(set);grid=collections.defaultdict(set);core_patches={};merged=[];conflicts=[];upgraded=[];new_ids=[]
+ data=json.loads(gzip.decompress((root/'data-tools/cosmic-catalogs.json.gz').read_bytes()));members={};aliases=collections.defaultdict(set);grid=collections.defaultdict(set);core_patches={};merged=[];conflicts=[];upgraded=[];new_ids=[];deferred_positions=[]
+ def promote(m,o,extra,source):
+  r=m['row'];ra=o['raDeg'];dec=o['decDeg'];kind=o['kind'];ident=m['id']
+  if r[11].get('atlasOnly') and not r[11].get('invalidIdentification') and not r[11].get('identityConflict') and not extra.get('atlasOnly') and o['distanceLy']:
+   old={'d':r[3],'raDeg':r[4],'decDeg':r[5],'reason':r[11].get('positionReason')};r[3:8]=[o['distanceLy'],ra,dec,o.get('positionQuality','approximate'),extra['distanceMethod']];r[11].update({k:v for k,v in extra.items() if k not in ('cosmicCatalog','catalogData')});r[11].update(atlasOnly=False,catalogPositionUpdated=True,previousCatalogPosition=old);r[11].pop('positionReason',None);r[12:14]=projection(ra,dec,r[3],kind,ident);m.update(ra=ra,dec=dec,d=r[3]);coverage[source]['promotedFromAtlas']+=1;upgraded.append(ident)
  def position(ra,dec):
   if ra is None or dec is None:return None
   a,b=math.radians(ra),math.radians(dec);return math.cos(b)*math.cos(a),math.cos(b)*math.sin(a),math.sin(b)
@@ -65,7 +71,7 @@ def merge_catalogs(root,core,records,patches,coverage,projection):
    near=[ident for ident in near if not (pgc and (oldpgc:={key(n) for n in members[ident]['aliases'] if re.fullmatch(r'pgc0*\d+',key(n))}) and pgc.isdisjoint(oldpgc))]
    if len(near)==1:exact=near;basis='unique <1 arcsec + compatible distance + no conflicting PGC'
   if exact:
-   ident=exact[0];m=members[ident];m.setdefault('claimedCatalogs',set()).add(source);coverage[source]['merged']+=1;merged.append([o['id'],ident,basis]);m['aliases']=list(dict.fromkeys([*m['aliases'],*names]))
+   ident=exact[0];m=members[ident];expanded_identity=basis=='identifier+direction' and not ({legacy_key(n) for n in names}&{legacy_key(n) for n in m['aliases']});m.setdefault('claimedCatalogs',set()).add(source);coverage[source]['merged']+=1;merged.append([o['id'],ident,basis]);m['aliases']=list(dict.fromkeys([*m['aliases'],*names]))
    for name in names:aliases[(fam,key(name))].add(ident)
    if 'core' in m:
     p=core_patches.setdefault(ident,{'aliases':[],'catalogMeasurements':[]});p['aliases']=list(dict.fromkeys([*p['aliases'],*names]));p['catalogMeasurements'].append({'catalog':source,'sourceId':o['id'],'source':extra['referenceURL'],'distanceLy':o['distanceLy'],'data':extra.get('catalogData',{})})
@@ -77,8 +83,8 @@ def merge_catalogs(root,core,records,patches,coverage,projection):
    r=m['row'];r[8]=list(dict.fromkeys([*r[8],*names]));r[11].setdefault('catalogMeasurements',[]).append({'catalog':source,'sourceId':o['id'],'source':extra['referenceURL'],'distanceLy':o['distanceLy'],'data':extra.get('catalogData',{})})
    # Fill unavailable positions for every matched record with a usable individual
    # distance. Keep established usable positions and their save/route anchors.
-   if r[11].get('atlasOnly') and not r[11].get('invalidIdentification') and not r[11].get('identityConflict') and not extra.get('atlasOnly') and o['distanceLy']:
-    old={'d':r[3],'raDeg':r[4],'decDeg':r[5],'reason':r[11].get('positionReason')};r[3:8]=[o['distanceLy'],ra,dec,o.get('positionQuality','approximate'),extra['distanceMethod']];r[11].update({k:v for k,v in extra.items() if k not in ('cosmicCatalog','catalogData')});r[11].update(atlasOnly=False,catalogPositionUpdated=True,previousCatalogPosition=old);r[11].pop('positionReason',None);r[12:14]=projection(ra,dec,r[3],kind,ident);m.update(ra=ra,dec=dec,d=r[3]);coverage[source]['promotedFromAtlas']+=1;upgraded.append(ident)
+   if expanded_identity:deferred_positions.append((m,o,extra,source))
+   else:promote(m,o,extra,source)
    if extra.get('diameterLy') and (r[11].get('sizeEstimated') or r[11].get('sizeUnknown')):r[11].update(diameterLy=extra['diameterLy'],sizeEstimated=False,sizeUnknown=False)
    for field in ('massSolar','massUncertaintySolar','massIsSystem','massBasis','diameterLy','angularMajorArcmin','angularMinorArcmin','hubbleType','sizeOrientationUnknown'):
     if not r[11].get(field) and extra.get(field) is not None:r[11][field]=extra[field]
@@ -93,6 +99,9 @@ def merge_catalogs(root,core,records,patches,coverage,projection):
   r=[ident,o['name'],kind,o['distanceLy'],ra,dec,quality if o['distanceLy'] and ra is not None and dec is not None else 'unknown',extra.get('distanceMethod',''),names,None,source,extra,x,y]
   if not located:extra['atlasOnly']=True
   records.append(r);coverage[source]['added']+=1;new_ids.append(ident);register({'id':ident,'family':fam,'aliases':names,'ra':ra,'dec':dec,'d':o['distanceLy'],'row':r})
+ # New identifier spellings must not preempt an already established usable
+ # distance from a later catalogue. Fill only those still unlocated afterwards.
+ for m,o,extra,source in deferred_positions:promote(m,o,extra,source)
  result={'retrieved':data['retrieved'],'sources':data['sources'],'referenceCosmology':data['referenceCosmology'],'coverage':{k:coverage[k] for k in data['coverage']},'inputObjects':len(data['objects']),'added':len(new_ids),'merged':len(merged),'promotedFromAtlas':len(upgraded),'matches':merged,'conflicts':conflicts,'upgradedIds':upgraded,'filamentRotationValidation':data['filamentRotationValidation'],'filamentFrameChecks':data['filamentFrameChecks'],'positionPolicy':'Existing usable positions/IDs stay fixed. Missing/unusable distances are filled by usable individual data; no host shell, random depth or brightness-based radius. Conflicting catalogue IDs/directions are not silently merged.'}
  (root/'data-tools/cosmic-catalog-audit.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
  return core_patches,result

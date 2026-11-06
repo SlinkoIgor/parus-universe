@@ -11,10 +11,10 @@ run(`{
  cam.x=10000;ExtendedCatalog.adoptCut([b],3000);ExtendedCatalog.advanceVisibility(4500);assert.equal(ExtendedCatalog.transitions.has(a.id),false,'offscreen history is released');
  MapLayers.active=true;const enabled=MapLayers.enabled;MapLayers.enabled=()=>true;MapLayers.admitted.clear();MapLayers.ready.clear();
  const known={id:'known-detail',kind:'star'},fresh={id:'fresh-detail',kind:'star'};assert.equal(MapLayers.admits(known),false);MapLayers.ready.set('stellar-cluster',true);MapLayers.ready.set('nebula',true);assert.equal(MapLayers.admits(known),true);MapLayers.ready.clear();assert.equal(MapLayers.admits(known),true,'a pending pan cannot hide admitted detail');assert.equal(MapLayers.admits(fresh),false,'initial detail still waits for its context');MapLayers.enabled=enabled;MapLayers.active=false;
- const filament={kind:'structure',cosmicSubtype:'filament'},end=150e6*width/128;
+ const filament={kind:'structure',cosmicSubtype:'filament'},end=2.7e9*width/1440;
  const fade=[.6,.7,.8,.9,.99,1].map(f=>MapDetails.opacity(filament,end*f));assert.equal(fade[0],1);assert.equal(fade.at(-1),0);for(let i=1;i<fade.length;i++)assert.ok(fade[i]<fade[i-1]);assert.ok(Math.abs(fade[2]-.5)<1e-12);
  // A first press centres the ship. Every zoom input must preserve that anchor.
- followShip=false;shipFocusArmed=false;cam={x:100,y:200,span:24};focusShip();assert.equal(shipFocusArmed,true);
+ followShip=false;cam={x:100,y:200,span:24};focusShip();assert.equal(followShip,true);
  for(const deltaY of [-100,100,220,-220]){zoomAtPointer({preventDefault(){},deltaY,clientX:30,clientY:200});const p=screen(state.ship);assert.ok(Math.hypot(p.x-width/2,p.y-height/2)<1e-7);}
  const c=shipCamera(.01);goCamera(cam.x,cam.y,.01,true,true);assert.ok(Math.hypot(cam.x-c.x,cam.y-c.y)<1e-12);releaseShipCamera();
  // Wheel zoom can fit the whole atlas after expansion, including a frozen late

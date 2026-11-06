@@ -1,0 +1,626 @@
+{
+  "source": "https://raw.githubusercontent.com/ofrohn/d3-celestial/master/data/constellations.bounds.json",
+  "sha256": "f2e2687af6b20b24567879f838c21874d412efcc93ecc1966be07e78431cc196",
+  "retrieved": "2026-11-06",
+  "frame": "J2000",
+  "unit": "degree",
+  "method": "Min/max of independent boundary vertices, merging both Serpens polygons; include the enclosed pole when RA winds by 360 degrees. Interior edge extrema can extend slightly beyond the vertices.",
+  "cases": [
+    {
+      "id": "And",
+      "declinationRangeDeg": [
+        21.6766,
+        53.187
+      ]
+    },
+    {
+      "id": "Ant",
+      "declinationRangeDeg": [
+        -40.4246,
+        -24.5425
+      ]
+    },
+    {
+      "id": "Aps",
+      "declinationRangeDeg": [
+        -83.1201,
+        -67.4801
+      ]
+    },
+    {
+      "id": "Aql",
+      "declinationRangeDeg": [
+        -11.8664,
+        18.6882
+      ]
+    },
+    {
+      "id": "Aqr",
+      "declinationRangeDeg": [
+        -24.904,
+        3.3257
+      ]
+    },
+    {
+      "id": "Ara",
+      "declinationRangeDeg": [
+        -67.6906,
+        -45.486
+      ]
+    },
+    {
+      "id": "Ari",
+      "declinationRangeDeg": [
+        10.3632,
+        31.2213
+      ]
+    },
+    {
+      "id": "Aur",
+      "declinationRangeDeg": [
+        27.8913,
+        56.1648
+      ]
+    },
+    {
+      "id": "Boo",
+      "declinationRangeDeg": [
+        7.3606,
+        55.0449
+      ]
+    },
+    {
+      "id": "CMa",
+      "declinationRangeDeg": [
+        -33.2505,
+        -11.0302
+      ]
+    },
+    {
+      "id": "CMi",
+      "declinationRangeDeg": [
+        -0.3694,
+        13.2238
+      ]
+    },
+    {
+      "id": "CVn",
+      "declinationRangeDeg": [
+        27.8438,
+        52.3598
+      ]
+    },
+    {
+      "id": "Cae",
+      "declinationRangeDeg": [
+        -48.7384,
+        -27.0249
+      ]
+    },
+    {
+      "id": "Cam",
+      "declinationRangeDeg": [
+        52.6656,
+        86.0975
+      ]
+    },
+    {
+      "id": "Cap",
+      "declinationRangeDeg": [
+        -27.6419,
+        -8.4044
+      ]
+    },
+    {
+      "id": "Car",
+      "declinationRangeDeg": [
+        -75.684,
+        -50.7545
+      ]
+    },
+    {
+      "id": "Cas",
+      "declinationRangeDeg": [
+        46.6758,
+        77.6923
+      ]
+    },
+    {
+      "id": "Cen",
+      "declinationRangeDeg": [
+        -64.6958,
+        -29.9949
+      ]
+    },
+    {
+      "id": "Cep",
+      "declinationRangeDeg": [
+        53.3533,
+        88.6639
+      ]
+    },
+    {
+      "id": "Cet",
+      "declinationRangeDeg": [
+        -24.8729,
+        10.5144
+      ]
+    },
+    {
+      "id": "Cha",
+      "declinationRangeDeg": [
+        -83.1201,
+        -75.2899
+      ]
+    },
+    {
+      "id": "Cir",
+      "declinationRangeDeg": [
+        -70.6244,
+        -55.4363
+      ]
+    },
+    {
+      "id": "Cnc",
+      "declinationRangeDeg": [
+        6.4701,
+        33.1415
+      ]
+    },
+    {
+      "id": "Col",
+      "declinationRangeDeg": [
+        -43.1116,
+        -27.0772
+      ]
+    },
+    {
+      "id": "Com",
+      "declinationRangeDeg": [
+        13.304,
+        33.3074
+      ]
+    },
+    {
+      "id": "CrA",
+      "declinationRangeDeg": [
+        -45.5163,
+        -36.7786
+      ]
+    },
+    {
+      "id": "CrB",
+      "declinationRangeDeg": [
+        25.5381,
+        39.7117
+      ]
+    },
+    {
+      "id": "Crt",
+      "declinationRangeDeg": [
+        -25.1958,
+        -6.6622
+      ]
+    },
+    {
+      "id": "Cru",
+      "declinationRangeDeg": [
+        -64.6958,
+        -55.6771
+      ]
+    },
+    {
+      "id": "Crv",
+      "declinationRangeDeg": [
+        -25.1958,
+        -11.6774
+      ]
+    },
+    {
+      "id": "Cyg",
+      "declinationRangeDeg": [
+        27.7324,
+        61.3577
+      ]
+    },
+    {
+      "id": "Del",
+      "declinationRangeDeg": [
+        2.4021,
+        20.9399
+      ]
+    },
+    {
+      "id": "Dor",
+      "declinationRangeDeg": [
+        -70.1041,
+        -48.67
+      ]
+    },
+    {
+      "id": "Dra",
+      "declinationRangeDeg": [
+        47.5476,
+        86.4656
+      ]
+    },
+    {
+      "id": "Equ",
+      "declinationRangeDeg": [
+        2.4773,
+        13.0391
+      ]
+    },
+    {
+      "id": "Eri",
+      "declinationRangeDeg": [
+        -57.9162,
+        0.4037
+      ]
+    },
+    {
+      "id": "For",
+      "declinationRangeDeg": [
+        -39.5129,
+        -23.7563
+      ]
+    },
+    {
+      "id": "Gem",
+      "declinationRangeDeg": [
+        9.8098,
+        35.3906
+      ]
+    },
+    {
+      "id": "Gru",
+      "declinationRangeDeg": [
+        -56.3908,
+        -36.3128
+      ]
+    },
+    {
+      "id": "Her",
+      "declinationRangeDeg": [
+        3.6735,
+        51.3243
+      ]
+    },
+    {
+      "id": "Hor",
+      "declinationRangeDeg": [
+        -67.0358,
+        -39.6368
+      ]
+    },
+    {
+      "id": "Hya",
+      "declinationRangeDeg": [
+        -35.6939,
+        6.6302
+      ]
+    },
+    {
+      "id": "Hyi",
+      "declinationRangeDeg": [
+        -82.0645,
+        -57.8484
+      ]
+    },
+    {
+      "id": "Ind",
+      "declinationRangeDeg": [
+        -74.4545,
+        -44.9589
+      ]
+    },
+    {
+      "id": "LMi",
+      "declinationRangeDeg": [
+        22.8376,
+        41.4317
+      ]
+    },
+    {
+      "id": "Lac",
+      "declinationRangeDeg": [
+        35.1656,
+        56.918
+      ]
+    },
+    {
+      "id": "Leo",
+      "declinationRangeDeg": [
+        -6.6917,
+        32.9691
+      ]
+    },
+    {
+      "id": "Lep",
+      "declinationRangeDeg": [
+        -27.2788,
+        -10.8138
+      ]
+    },
+    {
+      "id": "Lib",
+      "declinationRangeDeg": [
+        -29.9949,
+        -0.4743
+      ]
+    },
+    {
+      "id": "Lup",
+      "declinationRangeDeg": [
+        -55.58,
+        -29.8378
+      ]
+    },
+    {
+      "id": "Lyn",
+      "declinationRangeDeg": [
+        32.9691,
+        61.9641
+      ]
+    },
+    {
+      "id": "Lyr",
+      "declinationRangeDeg": [
+        25.6641,
+        47.7144
+      ]
+    },
+    {
+      "id": "Men",
+      "declinationRangeDeg": [
+        -85.2614,
+        -69.7467
+      ]
+    },
+    {
+      "id": "Mic",
+      "declinationRangeDeg": [
+        -45.09,
+        -27.4597
+      ]
+    },
+    {
+      "id": "Mon",
+      "declinationRangeDeg": [
+        -11.3688,
+        11.9333
+      ]
+    },
+    {
+      "id": "Mus",
+      "declinationRangeDeg": [
+        -75.684,
+        -64.6379
+      ]
+    },
+    {
+      "id": "Nor",
+      "declinationRangeDeg": [
+        -60.4355,
+        -42.2675
+      ]
+    },
+    {
+      "id": "Oct",
+      "declinationRangeDeg": [
+        -90,
+        -74.304
+      ]
+    },
+    {
+      "id": "Oph",
+      "declinationRangeDeg": [
+        -30.2123,
+        14.3875
+      ]
+    },
+    {
+      "id": "Ori",
+      "declinationRangeDeg": [
+        -10.9785,
+        22.8765
+      ]
+    },
+    {
+      "id": "Pav",
+      "declinationRangeDeg": [
+        -74.9745,
+        -56.5886
+      ]
+    },
+    {
+      "id": "Peg",
+      "declinationRangeDeg": [
+        2.3257,
+        36.6069
+      ]
+    },
+    {
+      "id": "Per",
+      "declinationRangeDeg": [
+        30.9219,
+        59.1046
+      ]
+    },
+    {
+      "id": "Phe",
+      "declinationRangeDeg": [
+        -57.8484,
+        -39.3039
+      ]
+    },
+    {
+      "id": "Pic",
+      "declinationRangeDeg": [
+        -64.1519,
+        -42.7964
+      ]
+    },
+    {
+      "id": "PsA",
+      "declinationRangeDeg": [
+        -36.4593,
+        -24.825
+      ]
+    },
+    {
+      "id": "Psc",
+      "declinationRangeDeg": [
+        -6.3075,
+        33.6819
+      ]
+    },
+    {
+      "id": "Pup",
+      "declinationRangeDeg": [
+        -51.1026,
+        -11.2521
+      ]
+    },
+    {
+      "id": "Pyx",
+      "declinationRangeDeg": [
+        -37.292,
+        -17.4113
+      ]
+    },
+    {
+      "id": "Ret",
+      "declinationRangeDeg": [
+        -67.2479,
+        -52.7471
+      ]
+    },
+    {
+      "id": "Scl",
+      "declinationRangeDeg": [
+        -39.3726,
+        -24.8042
+      ]
+    },
+    {
+      "id": "Sco",
+      "declinationRangeDeg": [
+        -45.7671,
+        -8.2959
+      ]
+    },
+    {
+      "id": "Sct",
+      "declinationRangeDeg": [
+        -15.9436,
+        -3.8337
+      ]
+    },
+    {
+      "id": "Ser",
+      "declinationRangeDeg": [
+        -16.14,
+        25.6641
+      ]
+    },
+    {
+      "id": "Sex",
+      "declinationRangeDeg": [
+        -11.6621,
+        6.4328
+      ]
+    },
+    {
+      "id": "Sge",
+      "declinationRangeDeg": [
+        16.0791,
+        21.6437
+      ]
+    },
+    {
+      "id": "Sgr",
+      "declinationRangeDeg": [
+        -45.2776,
+        -11.6762
+      ]
+    },
+    {
+      "id": "Tau",
+      "declinationRangeDeg": [
+        -1.3462,
+        31.1004
+      ]
+    },
+    {
+      "id": "Tel",
+      "declinationRangeDeg": [
+        -56.9838,
+        -45.09
+      ]
+    },
+    {
+      "id": "TrA",
+      "declinationRangeDeg": [
+        -70.5115,
+        -60.2645
+      ]
+    },
+    {
+      "id": "Tri",
+      "declinationRangeDeg": [
+        25.6051,
+        37.3471
+      ]
+    },
+    {
+      "id": "Tuc",
+      "declinationRangeDeg": [
+        -75.3472,
+        -56.3127
+      ]
+    },
+    {
+      "id": "UMa",
+      "declinationRangeDeg": [
+        28.304,
+        73.1384
+      ]
+    },
+    {
+      "id": "UMi",
+      "declinationRangeDeg": [
+        65.3997,
+        90
+      ]
+    },
+    {
+      "id": "Vel",
+      "declinationRangeDeg": [
+        -57.1744,
+        -37.16
+      ]
+    },
+    {
+      "id": "Vir",
+      "declinationRangeDeg": [
+        -22.6773,
+        14.3605
+      ]
+    },
+    {
+      "id": "Vol",
+      "declinationRangeDeg": [
+        -75.4955,
+        -64.107
+      ]
+    },
+    {
+      "id": "Vul",
+      "declinationRangeDeg": [
+        19.3983,
+        29.4871
+      ]
+    }
+  ]
+}

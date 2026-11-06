@@ -120,9 +120,9 @@ function renderCatalog() {
     .filter(
       (o) =>
         !o.streamed &&
-        ExtendedCatalog.matches(o.kind, filter, o) &&
+        ExtendedCatalog.matches(o.kind, searchFilter, o) &&
         MapDetails.searchKey(
-          `${o.name} ${(o.aliases || []).join(' ')} ${o.type} ${o.id} ${o.ngc || ''} ${o.hip || ''} ${o.hd || ''} ${o.gliese || ''}`,
+          `${o.name} ${(o.aliases || []).join(' ')} ${o.type} ${MapDetails.typeName(o)} ${o.id} ${o.ngc || ''} ${o.hip || ''} ${o.hd || ''} ${o.gliese || ''}`,
         ).includes(term),
     )
     .sort(
@@ -135,7 +135,7 @@ function renderCatalog() {
     catalogRows(core.slice(0, limit), core.length);
     return;
   }
-  ExtendedCatalog.search(term, filter, limit)
+  ExtendedCatalog.search(term, searchFilter, limit)
     .then((result) => {
       if (revision !== catalogRevision || $('catalog').hidden) return;
       const ids = new Set(core.map((o) => o.id));
@@ -154,11 +154,24 @@ function renderCatalog() {
         catalogRows(core.slice(0, limit), core.length, false, e.message);
     });
 }
+function showMenuPage(page = 'home', focus = false) {
+  document.querySelectorAll('[data-menu-page]').forEach((panel) => {
+    panel.hidden = panel.dataset.menuPage !== page;
+  });
+  $('libraryBtn').setAttribute('aria-expanded', String(page === 'library'));
+  $('settingsBtn').setAttribute('aria-expanded', String(page === 'settings'));
+  $('menu').scrollTop = 0;
+  if (focus) $('menu').querySelector('[data-menu-page]:not([hidden]) button').focus();
+}
 function closeMenu() {
+  const restoreFocus = document.activeElement?.closest('#menu');
   $('menu').hidden = true;
   $('menuBtn').setAttribute('aria-expanded', 'false');
+  showMenuPage();
+  if (restoreFocus) $('menuBtn').focus();
 }
 function openCatalog() {
+  MapFilters.close();
   closeMenu();
   $('catalog').hidden = false;
   $('catalogBtn').setAttribute('aria-expanded', 'true');
@@ -173,6 +186,8 @@ function closeCatalog() {
   Route.picking = false;
 }
 function showDialog(html) {
+  ExtendedCatalog.systemViewRequest++;
+  MapFilters.close();
   closeMenu();
   $('dialogContent').innerHTML = html;
   $('infoDialog').showModal();
@@ -245,7 +260,7 @@ function stellarOrbitBounds(o) {
     }
   }
   if (['alpha','hyg-71453','proxima'].includes(o.id))
-    for (const id of o.id === 'proxima' ? ['proxima'] : ['alpha','hyg-71453']) {
+    for (const id of ExtendedCatalog.systemByMember.get(o.id)?.members || [o.id]) {
       const curve = OrbitalMotion.alphaCurve(id);
       if (curve) curves.push({id, curve});
     }
@@ -262,11 +277,32 @@ function stellarOrbitBounds(o) {
   }
   return {box, anchor:object(curves[0].id)};
 }
-function focusStellarOrbits(id) {
-  const o = object(id), bounds = stellarOrbitBounds(o);
+function relatedSystemBounds(members) {
+  const box = [Infinity, Infinity, -Infinity, -Infinity];
+  const include = b => {
+    if (!b?.every(Number.isFinite)) return;
+    box[0] = Math.min(box[0], b[0]);box[1] = Math.min(box[1], b[1]);
+    box[2] = Math.max(box[2], b[2]);box[3] = Math.max(box[3], b[3]);
+  };
+  const located = members.filter(o => o?.p3?.length === 3 && o.p3.every(Number.isFinite) && !o.atlasOnly && !MapGeometry.unlocated(o));
+  for (const o of located) {
+    const p = MapLayout.project(o), extent = MapGeometry.indexBounds(o), scale = Cosmology.regionScale(o);
+    include(extent ? [p.x+extent[0]*scale,p.y+extent[1]*scale,p.x+extent[2]*scale,p.y+extent[3]*scale] : [p.x,p.y,p.x,p.y]);
+    include(stellarOrbitBounds(o)?.box);
+  }
+  return located.length && box.every(Number.isFinite) ? {box, anchor:located[0], members:located} : null;
+}
+function focusRelatedSystem(members) {
+  const bounds = relatedSystemBounds(members);
   if (!bounds) return;
   $('infoDialog').close();
-  MapSlice.focus(OrbitalMotion.isOrbiting(o) ? o : bounds.anchor);
+  // A complete system cannot be restricted to one physical depth slab.
+  if (MapSlice.mode === 'slice') MapSlice.setMode('full');
+  MapSlice.focus(bounds.anchor);
+  if (bounds.members.some(o => !ExtendedCatalog.matches(o.kind, filter, o) || !MapFilters.matches(o)))
+    MapFilters.change('all', 'all', 'all');
+  MapFilters.invalidate();
+  ExtendedCatalog.systemView = {selected:state.selected, members:new Set(bounds.members.map(o => o.id))};
   const controls = document.querySelector('.map-controls');
   if (width < 700 && controls) controls.open = false;
   const b = bounds.box, v = routeViewport(), panel = controls?.getBoundingClientRect(),
@@ -279,7 +315,8 @@ function focusStellarOrbits(id) {
   const span = Math.max(.00006, (b[2]-b[0])*width/(v.right-v.left)*1.25,
     (b[3]-b[1])*width/(v.bottom-v.top)*1.25);
   goCamera((b[0]+b[2])/2-((v.left+v.right)/2-width*.43)*span/width,
-    (b[1]+b[3])/2-((v.top+v.bottom)/2-height*(width<700?.39:.5))*span/width, span);
+    (b[1]+b[3])/2-((v.top+v.bottom)/2-mapOriginY())*span/width, span);
+  return bounds;
 }
 function stellarSkyPhoto(o) {
   return SkyGuide.gallery(o);
@@ -335,17 +372,18 @@ function showObject(id = state.selected) {
   let html =
     '<div class="modal-eyebrow">АТЛАС / ОБ ОБЪЕКТЕ</div><h2>' +
     o.name +
-    '</h2><div class="object-type">' +
+    '</h2>' +
+    stellarSkyPhoto(o) +
+    '<div class="object-type">' +
     MapDetails.typeName(o) +
     '</div><p>' +
     MapDetails.description(o) +
     '</p>' +
     (MapDetails.componentNote(o) ? '<p>' + MapDetails.componentNote(o) + '</p>' : '') +
     SkyGuide.finder(o) +
-    stellarSkyPhoto(o) +
     sizeButton +
     '<dl class="object-facts">' +
-    row('Класс', f.class) +
+    row('Класс', o.kind === 'blackhole' ? MapDetails.typeName(o) : f.class) +
     row('Масса', f.mass) +
     row('Светимость', luminosity);
   if (o.region)
@@ -400,8 +438,11 @@ function showObject(id = state.selected) {
       distanceText(g.diameterLy) +
         ' × ' +
         distanceText(g.diameterLy * g.axisRatio) +
-        '<small>Большая × малая ось проекции; размеры контура в масштабе карты</small>',
+        '<small>Наблюдаемые с Земли оптические оси. Проекция на карту рассчитывается отдельно.</small>',
     );
+  if (globalThis.MapGeometry?.unlocated(o)) html += row('Геометрия карты', 'В текущем каталоге нет пространственной привязки области. Прежний условный контур скрыт; измеренная форма не восстановлена. Сохранённая игровая точка не является измеренным центром объекта.');
+  else if (globalThis.MapGeometry?.model(o)) html += row('Геометрия карты', MapGeometry.model(o).note);
+  else if (o.region?.sizeUnknown) html += row('Геометрия карты', 'Измеренная граница и размер области в текущем каталоге отсутствуют. Показана только опорная точка; прежний иллюстративный контур скрыт.');
   else if (f.radius) html += row('Размер', f.radius);
   if (f.extra) html += row(...f.extra);
   if (o.p3) {
@@ -485,11 +526,11 @@ function showObject(id = state.selected) {
   html +=
     row('От Солнца', o.atlasOnly ? 'Надёжная дальность неизвестна' : distanceText(o.d)) + '</dl>';
   html += stellarOrbitFacts(system);
-  if (stellarOrbitBounds(o)) html += '<button class="map-size-action" id="viewStellarOrbits">Показать орбиты на карте ↗</button>';
   if(o.stellarNameSource)html += '<p class="object-sources"><a href="'+o.stellarNameSource+'" target="_blank" rel="noopener">Источник имени и обозначений ↗</a></p>';
   if (ExtendedCatalog.systemByMember.has(o.id))
     html +=
-      '<button class="map-size-action" id="viewSystem">Показать связанную систему ↗</button>';
+      '<button class="map-size-action" id="viewSystem">' +
+      (system.associationOnly ? 'Показать компоненты группы' : 'Показать связанную систему') + ' ↗</button>';
   if (o.id === 'sgr' || o.nuclearStar)
     html +=
       '<button class="map-size-action" id="viewNuclearCluster">Звёзды и орбиты у Стрельца A* ↗</button>';
@@ -516,7 +557,6 @@ function showObject(id = state.selected) {
     '</p>';
   showDialog(html);
   SkyGuide.mount(o);
-  if (stellarOrbitBounds(o)) $('viewStellarOrbits').onclick = () => focusStellarOrbits(o.id);
   if (o.id === 'sgr' || o.nuclearStar)
     $('viewNuclearCluster').onclick = () => {
       $('infoDialog').close();
@@ -537,7 +577,7 @@ function showObject(id = state.selected) {
     };
 }
 function focusGalaxy(g) {
-  const span = g.diameterLy * Math.max(2.5, width / Math.max(height * 0.58, 1));
+  const span = g.diameterLy * Math.max(2.5, width / Math.max(cameraViewportHeight() * 0.58, 1));
   const p = MapLayout.project(g);
   goCamera(p.x, p.y, span);
   toast('Оптический контур · ' + distanceText(g.diameterLy) + ' · в масштабе карты');

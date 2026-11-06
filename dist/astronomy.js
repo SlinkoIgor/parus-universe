@@ -69,4 +69,4 @@ const EXTRA_FACTS={
  horizon:{mass:'Неприменимо: горизонт — геометрическая граница, не тело',lumUnknown:'Собственного излучения нет; это граница доступной наблюдению области.',radius:'≈ 46,5 млрд св. лет · современный сопутствующий радиус',extra:['Размер области','≈ 93 млрд св. лет · диаметр'],ref:SOURCES.universe}
 };
 for(const o of OBJECTS){if(o.facts)continue;const f=STAR_FACTS[o.id]||EXTRA_FACTS[o.id];if(!f)throw new Error('Missing astronomical facts: '+o.id);o.facts={class:o.type,...f,refs:[[f.ref,'Характеристики и наблюдения']]};}
-GALAXIES.unshift({...OBJECTS.find(o=>o.id==='sgr'),id:'milkyway',name:'Млечный Путь',diameterLy:100000,axisRatio:.55,shape:'spiral',rotation:-.5});
+GALAXIES.unshift({...OBJECTS.find(o=>o.id==='sgr'),id:'milkyway',name:'Млечный Путь',kind:'galaxy',coordinateHost:'sgr',aliases:['Milky Way'],diameterLy:100000,axisRatio:.55,shape:'spiral',rotation:-.5});

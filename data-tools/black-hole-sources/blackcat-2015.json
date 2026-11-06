@@ -1,0 +1,797 @@
+{
+  "source": "https://arxiv.org/abs/1510.08869v1",
+  "sourceArchive": "https://arxiv.org/src/1510.08869v1",
+  "archiveSha256": "7040d38a28b5b8612dc3db8f2670c4f143f0bd4ca0cb83f98648f453ec25c8b8",
+  "retrieved": "2026-11-05",
+  "tables": [
+    "table2.tex (coordinates, distances and dynamical flags)",
+    "table5.tex (individual mass estimates)"
+  ],
+  "note": "All 59 transients from this historical snapshot. Gray source rows are dynamical objects in this publication, not a census of all confirmed black holes in 2026. Other rows remain historical candidates, atlas-only. A limit/range/typical distance never becomes a map point.",
+  "records": [
+    {
+      "name": "IGR J17454-2919",
+      "aliases": [],
+      "raHms": "17 45 27.69",
+      "decDms": "-29 19 53.83",
+      "astrometricErrorRaw": "x 0.6",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Chenevez2014,Paizis2015"
+      ]
+    },
+    {
+      "name": "IGR J17451-3022",
+      "aliases": [],
+      "raHms": "17 45 06.72",
+      "decDms": "-30 22 43.30",
+      "astrometricErrorRaw": "x 0.6",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Chenevez2014b,Chakrabarty2014"
+      ]
+    },
+    {
+      "name": "MAXI J1828-249",
+      "aliases": [],
+      "raHms": "18 28 58.24",
+      "decDms": "-25 01 49.30",
+      "astrometricErrorRaw": "o 0.03",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Nakahira2013,Kennea2013a"
+      ]
+    },
+    {
+      "name": "SWIFT J1753.7-2544",
+      "aliases": [],
+      "raHms": "17 53 39.85",
+      "decDms": "-25 45 14.20",
+      "astrometricErrorRaw": "i 0.3",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Krimm2013,Rau2013"
+      ]
+    },
+    {
+      "name": "SWIFT J174510.8-262411",
+      "aliases": [],
+      "raHms": "17 45 10.85",
+      "decDms": "-26 24 12.60",
+      "astrometricErrorRaw": "r (0.001,0.01)",
+      "distanceKpcRaw": "<7^\\ast",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Cummings2012,Miller-Jones2012"
+      ]
+    },
+    {
+      "name": "SWIFT J1910.2-0546",
+      "aliases": [],
+      "raHms": "19 10 22.80",
+      "decDms": "-05 47 55.92",
+      "astrometricErrorRaw": "o 0.3",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Krimm2012,Usui2012,Rau2012"
+      ]
+    },
+    {
+      "name": "MAXI J1305-704",
+      "aliases": [],
+      "raHms": "13 06 55.30",
+      "decDms": "-70 27 05.11",
+      "astrometricErrorRaw": "r (0.003,0.07)",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Sato2012a,Coriat2012"
+      ]
+    },
+    {
+      "name": "MAXI J1836-194",
+      "aliases": [],
+      "raHms": "18 35 43.44",
+      "decDms": "-19 19 10.48",
+      "astrometricErrorRaw": "e (0.000003\n,0.0002)",
+      "distanceKpcRaw": "7\\pm 3",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Negoro2011b,Russell2015"
+      ]
+    },
+    {
+      "name": "MAXI J1543-564",
+      "aliases": [],
+      "raHms": "15 43 17.18",
+      "decDms": "-56 24 49.61",
+      "astrometricErrorRaw": "r (0.049,0.775)",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Negoro2011a,Miller-Jones2011b"
+      ]
+    },
+    {
+      "name": "SWIFT J1357.2-0933",
+      "aliases": [],
+      "raHms": "13 57 16.82",
+      "decDms": "-09 32 38.55",
+      "astrometricErrorRaw": "oi 0.3",
+      "distanceKpcRaw": ">2.29",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Krimm2011a,Rau2011,MataSanchez2015"
+      ],
+      "massSolarRaw": ">8.9",
+      "massReferenceRaw": "Corral-Santana et al. (2013); Mata Sánchez et al. (2015)†"
+    },
+    {
+      "name": "MAXI J1659-152",
+      "aliases": [],
+      "raHms": "16 59 01.68",
+      "decDms": "-15 15 28.73",
+      "astrometricErrorRaw": "e 0.0001",
+      "distanceKpcRaw": "8.60\\pm 3.70",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Negoro2010,Paragi2010,Kuulkers2013"
+      ]
+    },
+    {
+      "name": "XTE J1752-223",
+      "aliases": [],
+      "raHms": "17 52 15.09",
+      "decDms": "-22 20 32.36",
+      "astrometricErrorRaw": "e 0.0014",
+      "distanceKpcRaw": "6\\pm 2",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Markwardt2009c,Miller-Jones2011,Ratti2012"
+      ]
+    },
+    {
+      "name": "XTE J1652-453",
+      "aliases": [],
+      "raHms": "16 52 20.33",
+      "decDms": "-45 20 39.99",
+      "astrometricErrorRaw": "r 0.32",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Markwardt2009a,Calvelo2009a"
+      ]
+    },
+    {
+      "name": "SWIFT J1539.2-6227",
+      "aliases": [],
+      "raHms": "15 39 11.96",
+      "decDms": "-62 28 02.30",
+      "astrometricErrorRaw": "ox 0.5",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Krimm2008b,Krimm2011c"
+      ]
+    },
+    {
+      "name": "SWIFT J1842.5-1124",
+      "aliases": [],
+      "raHms": "18 42 17.45",
+      "decDms": "-11 25 03.90",
+      "astrometricErrorRaw": "xo 0.6",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Krimm2008,Markwardt2008"
+      ]
+    },
+    {
+      "name": "SWIFT J174540.2-290005",
+      "aliases": [],
+      "raHms": "17 45 40.10",
+      "decDms": "-29 00 06.40",
+      "astrometricErrorRaw": "x 3.6",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Kennea2006,Kennea2006a"
+      ]
+    },
+    {
+      "name": "IGR J17497-2821",
+      "aliases": [],
+      "raHms": "17 49 38.04",
+      "decDms": "-28 21 17.50",
+      "astrometricErrorRaw": "i 0.1",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Soldi2006,Torres2006"
+      ]
+    },
+    {
+      "name": "XTE J1817-330",
+      "aliases": [],
+      "raHms": "18 17 43.53",
+      "decDms": "-33 01 07.57",
+      "astrometricErrorRaw": "r 0.2",
+      "distanceKpcRaw": "5.5\\pm 4.5^\\ast",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Remillard2006a,Rupen2006,Sala2007"
+      ]
+    },
+    {
+      "name": "XTE J1726-476",
+      "aliases": [],
+      "raHms": "17 26 49.28",
+      "decDms": "-47 38 24.90",
+      "astrometricErrorRaw": "o 0.3",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Levine2005b,Turler2005,Maitra2005"
+      ]
+    },
+    {
+      "name": "XTE J1818-245",
+      "aliases": [],
+      "raHms": "18 18 24.43",
+      "decDms": "-24 32 17.96",
+      "astrometricErrorRaw": "r (0.2,0.4)",
+      "distanceKpcRaw": "3.55\\pm 0.75",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Levine2005a,Rupen2005a,CadolleBel2009"
+      ]
+    },
+    {
+      "name": "SWIFT J1753.5-0127",
+      "aliases": [],
+      "raHms": "17 53 28.29",
+      "decDms": "-01 27 06.22",
+      "astrometricErrorRaw": "r 0.05",
+      "distanceKpcRaw": "\\sim 6\\pm 2",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Palmer2005,Fender2005"
+      ]
+    },
+    {
+      "name": "IGR J17098-3628",
+      "aliases": [],
+      "raHms": "17 09 45.93",
+      "decDms": "-36 27 57.30",
+      "astrometricErrorRaw": "r (0.011,0.55)",
+      "distanceKpcRaw": "\\sim10.5",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Grebenev2005,Rupen2005"
+      ]
+    },
+    {
+      "name": "IGR J17091-3624",
+      "aliases": [],
+      "raHms": "17 09 07.61",
+      "decDms": "-36 24 25.7",
+      "astrometricErrorRaw": "r 0.1",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Kuulkers2003,Rodriguez2011a"
+      ]
+    },
+    {
+      "name": "XTE J1720-318",
+      "aliases": [],
+      "raHms": "17 19 58.99",
+      "decDms": "-31 45 01.11",
+      "astrometricErrorRaw": "r 0.25",
+      "distanceKpcRaw": "6.5\\pm 3.5",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Remillard2003,OBrien2003,Chaty2006"
+      ]
+    },
+    {
+      "name": "XTE J1908+094",
+      "aliases": [],
+      "raHms": "19 08 53.08",
+      "decDms": "+09 23 04.84",
+      "astrometricErrorRaw": "r (0.001,0.01)",
+      "distanceKpcRaw": "6.5\\pm 3.5",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Woods2002,Miller-Jones2013b,Chaty2006b"
+      ]
+    },
+    {
+      "name": "SAX J1711.6-3808",
+      "aliases": [],
+      "raHms": "17 11 37.10",
+      "decDms": "-38 07 05.70",
+      "astrometricErrorRaw": "x 3.2",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "intZand2001,intZand2002"
+      ]
+    },
+    {
+      "name": "XTE J1650-500",
+      "aliases": [],
+      "raHms": "16 50 00.98",
+      "decDms": "-49 57 43.60",
+      "astrometricErrorRaw": "x 0.6",
+      "distanceKpcRaw": "2.6\\pm 0.7",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Remillard2001,Tomsick2004,Homan2006"
+      ],
+      "massSolarRaw": "\\leq 7.3",
+      "massReferenceRaw": "Orosz et al. (2004)"
+    },
+    {
+      "name": "XTE J1118+480",
+      "aliases": [
+        "KV Uma"
+      ],
+      "raHms": "11 18 10.79",
+      "decDms": "+48 02 12.42",
+      "astrometricErrorRaw": "r (0.004,0.02)",
+      "distanceKpcRaw": "1.7\\pm 0.1",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Remillard2000,Fender2001b"
+      ],
+      "massSolarRaw": "6.9-8.2",
+      "massReferenceRaw": "Khargharia et al. (2013); Torres et al. (2004)"
+    },
+    {
+      "name": "XTE J1859+226",
+      "aliases": [
+        "V406 Vul"
+      ],
+      "raHms": "18 58 41.58",
+      "decDms": "+22 39 29.40",
+      "astrometricErrorRaw": "o 0.5",
+      "distanceKpcRaw": "12.5\\pm 1.5",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Wood1999,Garnavich1999"
+      ],
+      "massSolarRaw": ">5.42",
+      "massReferenceRaw": "Corral-Santana et al. (2011)"
+    },
+    {
+      "name": "SAX J1819.3-2525",
+      "aliases": [
+        "V4641 Sgr"
+      ],
+      "raHms": "18 19 21.58",
+      "decDms": "-25 24 25.10",
+      "astrometricErrorRaw": "o 0.7",
+      "distanceKpcRaw": "6.2\\pm 0.7",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "intZand1999,Samus1999"
+      ],
+      "massSolarRaw": "6.4\\pm 0.6",
+      "massReferenceRaw": "Orosz et al. (2001); MacDonald et al. (2014)"
+    },
+    {
+      "name": "XTE J2012+381",
+      "aliases": [],
+      "raHms": "20 12 37.71",
+      "decDms": "+38 11 01.10",
+      "astrometricErrorRaw": "o 0.35",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Remillard1998,Hynes1999"
+      ]
+    },
+    {
+      "name": "XTE J1748-288",
+      "aliases": [],
+      "raHms": "17 48 05.06",
+      "decDms": "-28 28 25.80",
+      "astrometricErrorRaw": "r 0.6",
+      "distanceKpcRaw": "\\gtrsim8",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Smith1998b,Hjellming1998b"
+      ]
+    },
+    {
+      "name": "XTE J1550-564",
+      "aliases": [
+        "V381 Nor"
+      ],
+      "raHms": "15 50 58.70",
+      "decDms": "-56 28 35.20",
+      "astrometricErrorRaw": "r 0.3",
+      "distanceKpcRaw": "4.5\\pm0.5",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Smith1998a,Corbel2001,Orosz2011a"
+      ],
+      "massSolarRaw": "7.81-15.6",
+      "massReferenceRaw": "Orosz et al. (2002); Orosz et al. (2011b)"
+    },
+    {
+      "name": "XTE J1755-324",
+      "aliases": [],
+      "raHms": "17 55 28.60",
+      "decDms": "-32 28 39.00",
+      "astrometricErrorRaw": "x 60",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Remillard1997,Remillard1997"
+      ]
+    },
+    {
+      "name": "GRS 1737-31",
+      "aliases": [],
+      "raHms": "17 40 09.00",
+      "decDms": "-31 02 24.00",
+      "astrometricErrorRaw": "x 30",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Sunyaev1997,Ueda1997"
+      ]
+    },
+    {
+      "name": "GRS 1739-278",
+      "aliases": [],
+      "raHms": "17 42 40.03",
+      "decDms": "-27 44 52.70",
+      "astrometricErrorRaw": "r (0.02,0.3)",
+      "distanceKpcRaw": "7.25\\pm 1.25^\\ast",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Paul1996,Hjellming1996,Greiner1996"
+      ]
+    },
+    {
+      "name": "XTE J1856+053",
+      "aliases": [],
+      "raHms": "18 56 42.92",
+      "decDms": "+05 18 34.30",
+      "astrometricErrorRaw": "i <1",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Marshall1996,Torres2007a"
+      ]
+    },
+    {
+      "name": "GRS 1730-312",
+      "aliases": [],
+      "raHms": "17 33 32.00",
+      "decDms": "-31 12 16.00",
+      "astrometricErrorRaw": "x 180",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Borozdin1994,Vargas1996"
+      ]
+    },
+    {
+      "name": "GRO J1655-40",
+      "aliases": [
+        "N. Sco 1994"
+      ],
+      "raHms": "16 54 00.14",
+      "decDms": "-39 50 44.90",
+      "astrometricErrorRaw": "o (0.015,0.2)",
+      "distanceKpcRaw": "3.2\\pm 0.2",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Zhang1994,Bailyn1995"
+      ],
+      "massSolarRaw": "6.0\\pm 0.4",
+      "massReferenceRaw": "Orosz & Bailyn (1997); van der Hooft et al. (1998); Shahbaz et al. (1999); Shahbaz et al. (2003)"
+    },
+    {
+      "name": "GRS 1716-249",
+      "aliases": [
+        "N. Oph 1993",
+        "V2293 Oph"
+      ],
+      "raHms": "17 19 36.93",
+      "decDms": "-25 01 03.43",
+      "astrometricErrorRaw": "r 0.5",
+      "distanceKpcRaw": "2.4\\pm 0.4",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Ballet1993,Harmon1993a"
+      ]
+    },
+    {
+      "name": "GRS 1009-45",
+      "aliases": [
+        "N. Vel 1993 = MM Vel"
+      ],
+      "raHms": "10 13 35.60",
+      "decDms": "-45 04 35.28",
+      "astrometricErrorRaw": "o",
+      "distanceKpcRaw": "3.8\\pm 0.3",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Lapshov1993,Harmon1993b"
+      ],
+      "massSolarRaw": "\\gtrsim 4.4",
+      "massReferenceRaw": "Filippenko et al. (1999); Shahbaz et al. (1996)"
+    },
+    {
+      "name": "GRS 1915+105",
+      "aliases": [
+        "V1487 Aql"
+      ],
+      "raHms": "19 15 11.55",
+      "decDms": "+10 56 44.80",
+      "astrometricErrorRaw": "e 0.001",
+      "distanceKpcRaw": "10.4\\pm 1.3",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Castro-Tirado1992,Dhawan2000"
+      ],
+      "massSolarRaw": "10.1\\pm 0.6",
+      "massReferenceRaw": "Harlaftis & Greiner (2004); Steeghs et al. (2013); Fender et al. (1999)"
+    },
+    {
+      "name": "GRO J0422+32",
+      "aliases": [
+        "V518 Per"
+      ],
+      "raHms": "04 21 42.79",
+      "decDms": "+32 54 27.10",
+      "astrometricErrorRaw": "r 0.2",
+      "distanceKpcRaw": "2.49\\pm 0.30",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Paciesas1992,Shrader1994"
+      ],
+      "massSolarRaw": "2-15",
+      "massReferenceRaw": "Webb et al. (2000); Casares et al. (1995b)"
+    },
+    {
+      "name": "GRS 1124-684",
+      "aliases": [
+        "N. Mus 1991",
+        "GU Mus"
+      ],
+      "raHms": "11 26 26.65",
+      "decDms": "-68 40 32.83",
+      "astrometricErrorRaw": "o (0.015,0.17)",
+      "distanceKpcRaw": "5.9\\pm 0.3",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Lund1991,Makino1991"
+      ],
+      "massSolarRaw": "3.8-7.5",
+      "massReferenceRaw": "Orosz et al. (1996); Shahbaz et al. (1997); Gelino et al. (2001a)"
+    },
+    {
+      "name": "GS 2023+338",
+      "aliases": [
+        "V404 Cyg"
+      ],
+      "raHms": "20 24 03.82",
+      "decDms": "+33 52 01.90",
+      "astrometricErrorRaw": "e (0.000002,0.00005)",
+      "distanceKpcRaw": "2.39\\pm 0.14",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Makino1989,Miller-Jones2009"
+      ],
+      "massSolarRaw": "9^{+0.2}_{-0.6}",
+      "massReferenceRaw": "Wagner et al. (1992); Casares et al. (1992); Casares et al. (1993)"
+    },
+    {
+      "name": "GS 1734-275",
+      "aliases": [],
+      "raHms": "17 36 02.00",
+      "decDms": "-27 25 41.00",
+      "astrometricErrorRaw": "x 7",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Makino1988a,Voges1999"
+      ]
+    },
+    {
+      "name": "GS 2000+251",
+      "aliases": [
+        "QZ Vul"
+      ],
+      "raHms": "20 02 49.58",
+      "decDms": "+25 14 11.30",
+      "astrometricErrorRaw": "r (0.07,1)",
+      "distanceKpcRaw": "2.7\\pm 0.7",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Makino1988,Okamura1988"
+      ],
+      "massSolarRaw": "5.5-8.8",
+      "massReferenceRaw": "Charles et al. (1991); Casares et al. (1995a)"
+    },
+    {
+      "name": "GS 1354-64",
+      "aliases": [
+        "BW Cir"
+      ],
+      "raHms": "13 58 09.70",
+      "decDms": "-64 44 05.80",
+      "astrometricErrorRaw": "r 0.2",
+      "distanceKpcRaw": "\\sim25",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Makino1987,Brocksopp2001"
+      ],
+      "massSolarRaw": "\\geq 7.6\\pm 0.7",
+      "massReferenceRaw": "Casares et al. (2004); Casares et al. (2009)"
+    },
+    {
+      "name": "EXO 1846-031",
+      "aliases": [],
+      "raHms": "18 49 16.92",
+      "decDms": "-03 03 54.74",
+      "astrometricErrorRaw": "x 11",
+      "distanceKpcRaw": "\\sim7",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Parmar1985,Parmar1993"
+      ]
+    },
+    {
+      "name": "SLX 1746-331",
+      "aliases": [],
+      "raHms": "17 49 48.94",
+      "decDms": "-33 12 11.60",
+      "astrometricErrorRaw": "i 0.10",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Skinner1990,Torres2007b"
+      ]
+    },
+    {
+      "name": "H 1705-250",
+      "aliases": [
+        "N. Oph 1977",
+        "V2107 Oph"
+      ],
+      "raHms": "17 08 15.52",
+      "decDms": "-25 05 30.15",
+      "astrometricErrorRaw": "o 0.2",
+      "distanceKpcRaw": "8.6\\pm 2.1",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Kaluzienski1977,Yang2012"
+      ],
+      "massSolarRaw": "4.9-7.9",
+      "massReferenceRaw": "Remillard et al. (1996); Filippenko et al. (1997)"
+    },
+    {
+      "name": "H 1743-322",
+      "aliases": [],
+      "raHms": "17 46 15.596",
+      "decDms": "-32 14 00.860",
+      "astrometricErrorRaw": "r (0.0006,0.002)",
+      "distanceKpcRaw": "\\sim10",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "White1983,Miller-Jones2012a"
+      ]
+    },
+    {
+      "name": "3A 0620-003",
+      "aliases": [
+        "N. Mon 1975",
+        "V616 Mon"
+      ],
+      "raHms": "06 22 44.50",
+      "decDms": "-00 20 44.72",
+      "astrometricErrorRaw": "r (0.012,0.1)",
+      "distanceKpcRaw": "1.06\\pm 0.10",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Elvis1975,Gallo2006,Cantrell2010"
+      ],
+      "massSolarRaw": "6.6\\pm 0.3",
+      "massReferenceRaw": "Cantrell et al. (2010); Orosz et al. (1994)"
+    },
+    {
+      "name": "3A 1524-617",
+      "aliases": [],
+      "raHms": "15 28 16.89",
+      "decDms": "-61 52 58.40",
+      "astrometricErrorRaw": "o 0.3",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Pounds1974,Holt1974,Zurita2015"
+      ]
+    },
+    {
+      "name": "1H 1659-487",
+      "aliases": [
+        "GX 339-4"
+      ],
+      "raHms": "17 02 49.40",
+      "decDms": "-48 47 23.40",
+      "astrometricErrorRaw": "r 0.3",
+      "distanceKpcRaw": ">6",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Markert1973,Gallo2004"
+      ],
+      "massSolarRaw": ">6",
+      "massReferenceRaw": "Hynes et al. (2003b); Hynes et al. (2004); Muñoz-Darias et al. (2008)"
+    },
+    {
+      "name": "4U 1755-338",
+      "aliases": [
+        "V4134 Sgr"
+      ],
+      "raHms": "17 58 40.04",
+      "decDms": "-33 48 26.80",
+      "astrometricErrorRaw": "o 1",
+      "distanceKpcRaw": "6.5\\pm 2.5",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Giacconi1972,Bradt1983"
+      ]
+    },
+    {
+      "name": "4U 1543-475",
+      "aliases": [
+        "IL Lup"
+      ],
+      "raHms": "15 47 08.32",
+      "decDms": "-47 40 10.80",
+      "astrometricErrorRaw": "o 0.25",
+      "distanceKpcRaw": "7.5\\pm 0.5",
+      "dynamicalInSource": true,
+      "referenceKeys": [
+        "Giacconi1972,Matilsky1972"
+      ],
+      "massSolarRaw": "8.4-10.4",
+      "massReferenceRaw": "Orosz et al. (1998); Orosz (2003)"
+    },
+    {
+      "name": "4U 1630-472",
+      "aliases": [],
+      "raHms": "16 34 01.61",
+      "decDms": "-47 23 34.80",
+      "astrometricErrorRaw": "r (0.02,0.3)",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Giacconi1972,Priedhorsky1986,Buxton1998"
+      ]
+    },
+    {
+      "name": "Cen~X-2",
+      "aliases": [],
+      "raHms": "14 00 28.2",
+      "decDms": "-64 47 35.6",
+      "astrometricErrorRaw": "x 7200",
+      "distanceKpcRaw": "",
+      "dynamicalInSource": false,
+      "referenceKeys": [
+        "Harries1967,Francey1971"
+      ]
+    }
+  ]
+}

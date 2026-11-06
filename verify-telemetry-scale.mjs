@@ -12,9 +12,9 @@ for(const w of [390,701,924,1280,1920])for(const span of [.00006,24,130000,3e7,5
  assert.ok(Math.abs(step-ruler)<1e-7,'ruler must match the drawn major grid spacing');assert.ok(Math.abs(step/substep-5)<1e-9);assert.ok(Math.abs(step*span/w-gridUnit())<gridUnit()*1e-12);
 }
 Object.assign(ctx,saved);resize();
-let previous=-1;for(const ratio of [1,1.25,2,10,100,1000,1e5,1e8]){const x=dilationScale(ratio);assert.ok(x>=previous&&x>=0&&x<=1);previous=x;}assert.equal(dilationScale(1),0);assert.equal(dilationScale(1e4),.5);assert.equal(dilationScale(1e10),1);
+let previous=-1;for(const ratio of [1,1.25,2,10,100,1000,1e5,1e6,1e8]){const x=dilationScale(ratio);assert.ok(x>=previous&&x>=0&&x<=1);previous=x;}assert.equal(dilationScale(1),0);assert.equal(dilationScale(1e3),.5);assert.equal(dilationScale(1e6),1);assert.equal(dilationScale(1e10),1);
 for(const [beta,gamma] of [[0,1],[.6,1.25],[.8,5/3],[.99,1/Math.sqrt(.0199)],[1-Number.EPSILON,1/Math.sqrt(2*Number.EPSILON-Number.EPSILON**2)]]){
- state=initial();state.flight={};state.phase='cruise';state.beta=beta;renderClockRatio();assert.ok(Math.abs(1/clockRate()-gamma)<gamma*1e-12);assert.ok(Math.abs(parseFloat($('dilationFill').style.width)-Math.log10(gamma)/8*100)<1e-9);
+ state=initial();state.flight={};state.phase='cruise';state.beta=beta;renderClockRatio();assert.ok(Math.abs(1/clockRate()-gamma)<gamma*1e-12);assert.ok(Math.abs(parseFloat($('dilationFill').style.width)-Math.min(100,Math.log10(gamma)/6*100))<1e-9);
 }
 state=initial();state.orbit={};state.beta=.6;assert.ok(Math.abs(clockRate()-.8)<1e-14);state.orbit=null;assert.equal(clockRate(),1);
 const at=Gravity.atProper;Gravity.atProper=()=>({r:2});state.flight={encounter:{plan:{rp:1,q:2,beta:.6,elapsedProper:0}}};state.phase='flyby';assert.ok(Math.abs(1/clockRate()-5/3)<1e-14);renderClockRatio();Gravity.atProper=at;

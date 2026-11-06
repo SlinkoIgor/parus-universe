@@ -5,6 +5,10 @@ await run(`(async()=>{
 state=initial();Cosmology.sync(state);resize();
 const originalObjects=OBJECTS.slice(),originalGalaxies=GALAXIES.slice(),originalCache=ExtendedCatalog.cache;
 const samples=['star','pulsar','blackhole','quasar','nebula','galaxy','cluster','cluster','wall','void','ring','arc','horizon'].map((kind,i)=>({id:'filter-probe-'+i,name:'Probe '+i,kind,streamed:true,d:1000,p3:[-330+i*50,80,0],mapPosition:{x:-330+i*50,y:80},navigable:true,facts:{mass:'Нет индивидуальной оценки',class:i===7?'Скопление галактик':''},type:i===7?'СКОПЛЕНИЕ ГАЛАКТИК':'ЗВЁЗДНОЕ СКОПЛЕНИЕ'}));
+// Transitions must move the source position too: physical projections no longer
+// use an independently editable legacy mapPosition as their coordinate source.
+const place=(o,x,y=o.mapPosition.y)=>{Object.assign(o,Space.point([x,-y,0]));o.d=Math.hypot(...o.p3);o.mapPosition={x,y};};
+for(const o of samples)place(o,o.mapPosition.x);
 OBJECTS.splice(0,OBJECTS.length);GALAXIES.splice(0,GALAXIES.length);ExtendedCatalog.visible=samples;ExtendedCatalog.pinned.clear();ExtendedCatalog.pinned.set(samples[0].id,samples[0]);ExtendedCatalog.pinned.set(samples[1].id,samples[1]);cam={x:0,y:0,span:1000};
 for(const [f,expected] of [['star',[0]],['pulsar',[1]],['blackhole',[2]],['quasar',[3]],['nebula',[4]],['galaxy',[5]],['stellar-cluster',[6]],['galaxy-cluster',[7]],['structure',[8,10,11]],['void',[9]],['horizon',[12]],['all',samples.map((_,i)=>i)]]){
  filter=f;state.current=samples[0].id;state.selected=samples[1].id;MapLabels.begin();drawObjects();ExtendedCatalog.draw();
@@ -19,16 +23,16 @@ for(const f of ['star','pulsar','blackhole','quasar','galaxy','stellar-cluster',
 }
 filter='all';ExtendedCatalog.transitions.clear();ExtendedCatalog.cache=new Map();
 const a=samples[0],b=samples[1],c=samples[2];ExtendedCatalog.adoptCut([a,b],0);ExtendedCatalog.advanceVisibility(1000);assert.equal(ExtendedCatalog.transitions.get(a.id).alpha,1);
-b.mapPosition.x=-1e12;ExtendedCatalog.adoptCut([a,c],1000);assert.equal(ExtendedCatalog.transitions.get(a.id).alpha,1,'shared representative never blinks');assert.equal(ExtendedCatalog.transitions.get(b.id).alpha,1,'old point retained');assert.equal(ExtendedCatalog.transitions.get(c.id).alpha,0,'new point fades in');
+place(b,-1e12);ExtendedCatalog.adoptCut([a,c],1000);assert.equal(ExtendedCatalog.transitions.get(a.id).alpha,1,'shared representative never blinks');assert.equal(ExtendedCatalog.transitions.get(b.id).alpha,1,'old point retained');assert.equal(ExtendedCatalog.transitions.get(c.id).alpha,0,'new point fades in');
 ExtendedCatalog.advanceVisibility(1250);const oldAlpha=ExtendedCatalog.transitions.get(b.id).alpha;assert.ok(oldAlpha>0&&oldAlpha<1);assert.ok(ExtendedCatalog.transitions.get(c.id).alpha>0&&ExtendedCatalog.transitions.get(c.id).alpha<1);
-b.mapPosition.x=-280;c.mapPosition.x=1e12;ExtendedCatalog.adoptCut([a,b],1250);assert.equal(ExtendedCatalog.transitions.get(b.id).alpha,oldAlpha,'reverse zoom starts from current opacity');ExtendedCatalog.advanceVisibility(2500);assert.equal(ExtendedCatalog.transitions.get(b.id).alpha,1);assert.ok(!ExtendedCatalog.transitions.has(c.id));assert.ok(new Set(samples.map(o=>ExtendedCatalog.stagger(o.id))).size>6,'fade order is distributed among objects');
+place(b,-280);place(c,1e12);ExtendedCatalog.adoptCut([a,b],1250);assert.equal(ExtendedCatalog.transitions.get(b.id).alpha,oldAlpha,'reverse zoom starts from current opacity');ExtendedCatalog.advanceVisibility(2500);assert.equal(ExtendedCatalog.transitions.get(b.id).alpha,1);assert.ok(!ExtendedCatalog.transitions.has(c.id));assert.ok(new Set(samples.map(o=>ExtendedCatalog.stagger(o.id))).size>6,'fade order is distributed among objects');
 // Network completion is independent of camera order. A late obsolete request
 // must never replace the complete current cut or blank its existing points.
 ExtendedCatalog.adoptCut([c],2600);ExtendedCatalog.adoptCut([a],2600);ExtendedCatalog.advanceVisibility(3600);assert.ok(!ExtendedCatalog.transitions.has(c.id),'a point reversed before its fade-in must still be collected');
 const originalRead=ExtendedCatalog.readJSON,originalNodes=ExtendedCatalog.nodesForView;
 const pending=new Map();ExtendedCatalog.readJSON=path=>new Promise(resolve=>pending.set(path.replace('catalog-data/',''),resolve));
 let desired=['ready'];ExtendedCatalog.nodesForView=()=>desired;ExtendedCatalog.manifest={};ExtendedCatalog.cache.set('ready',[a,b]);ExtendedCatalog.cutKey=null;ExtendedCatalog.lastUpdate=-Infinity;ExtendedCatalog.update(3000);ExtendedCatalog.update(4000);
-const encode=o=>[o.id,o.name,o.kind,100,20,30,'catalog','test',[],1,'HYG',{},o.mapPosition.x,o.mapPosition.y];
+const encode=o=>{const v=Space.matrix[0].map((_,i)=>Space.matrix.reduce((s,row,j)=>s+row[i]*o.p3[j],0));return[o.id,o.name,o.kind,o.d,(Math.atan2(v[1],v[0])*180/Math.PI+360)%360,Math.atan2(v[2],Math.hypot(v[0],v[1]))*180/Math.PI,'catalog','test',[],1,'HYG',{p3:o.p3.slice()},o.mapPosition.x,o.mapPosition.y];};
 desired=['late'];ExtendedCatalog.update(5000);assert.ok(ExtendedCatalog.visibleMap.has(b.id),'hold loaded cut while waiting');
 desired=['new'];ExtendedCatalog.update(5200);pending.get('new')([encode(c)]);await Promise.resolve();await Promise.resolve();await Promise.resolve();ExtendedCatalog.update(5500);ExtendedCatalog.advanceVisibility(6500);assert.ok(ExtendedCatalog.visibleMap.has(c.id));
 pending.get('late')([encode(samples[3])]);await Promise.resolve();await Promise.resolve();await Promise.resolve();ExtendedCatalog.lastUpdate=-Infinity;ExtendedCatalog.update(7000);assert.ok(ExtendedCatalog.visibleMap.has(c.id));assert.ok(!ExtendedCatalog.visibleMap.has(samples[3].id),'stale download cannot become visible');

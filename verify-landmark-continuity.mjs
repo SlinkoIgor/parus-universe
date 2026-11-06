@@ -5,7 +5,7 @@ run(['map-visibility-data','map-visibility','map-label-data','map-annotations'].
 run(`{
  state=initial();state.current=ExtendedCatalog.revealArrival(object('huge-lqg')).id;state.visited.push('huge-lqg',state.current);state.ship=Space.point(object(state.current).p3);ExtendedCatalog.capture(state);state=restore(JSON.parse(JSON.stringify(state)));paused=true;filter='all';MapLayers.active=false;cameraGoal=null;releaseShipCamera();
  const catalogue=JSON.stringify(OBJECTS.map(o=>[o.id,o.p3,o.mapPosition,o.region])),entries=JSON.stringify(MAP_LABEL_BOOT);
- const regions=['local-void','bootes','laniakea','shapley','hyperion'],points=['mom-z14','jades-z14'];
+ const regions=['local-void','bootes','boss-wall','shapley','hyperion'],points=['mom-z14','jades-z14'];
  for(const mode of ['full','slice','radial'])for(const size of [[1440,1000],[390,844]])for(const epoch of [0,15e9,100e9,1e12])for(const expansion of [true,false]){
   MapSlice.mode=mode;[width,height]=size;state.cosmicTime=epoch;state.expansion=expansion;Cosmology.sync(state);
   const physical=JSON.stringify(state),a=Cosmology.scale();MapSlice.centerZ=0;
@@ -19,9 +19,11 @@ run(`{
   for(const id of [...regions,...points]){
    const o=object(id),q=MapAnnotations.entries.get(id),named=!!MapDetails.mapLabelName(o),limit=q?.limits[mode==='radial'?1:0]??MapVisibility.limit(o),start=q?.minPixel||limit*.1;
    if(!named)assert.equal(q,undefined,'numeric points are absent from generated name metadata');
-   const pixel=Math.sqrt(start*1.3*limit*.7),referenceSpan=pixel*width;
+   const pixel=Math.sqrt(start*1.3*limit*.7),structural=MapAnnotations.structural(o),referenceSpan=structural?Math.max(o.region.major,o.region.minor)*3:pixel*width;
    state.cosmicTime=0;Cosmology.sync(state);cam={...MapLayout.project(o),span:referenceSpan};
-   const baseline={name:MapAnnotations.opacity(o),symbol:MapDetails.opacity(o,cam.span)};assert.ok(baseline.symbol>.03&&(!named||baseline.name>.03),id+' has a visible reference window');if(!named)assert.equal(baseline.name,0);
+   const baseline={name:MapAnnotations.opacity(o),symbol:MapDetails.opacity(o,cam.span)};assert.ok(baseline.symbol>.03&&(!named||structural||baseline.name>.03),id+' has a visible reference window');if(!named)assert.equal(baseline.name,0);
+   MapSlice.focus(o);MapLabels.begin();MapAnnotations.draw();
+   const baselineHit=MapAnnotations.hits.find(h=>h.object.id===id),baselineAnchor=MapAnnotations.structural(o)?MapAnnotations.structureAnchor(o).point:screen(o);
    state.cosmicTime=epoch;Cosmology.sync(state);cam={...MapLayout.project(o),span:referenceSpan*a};MapSlice.focus(o);
    assert.ok(Math.abs(MapAnnotations.opacity(o)-baseline.name)<1e-12,id+' name follows its expanding geometry');
    assert.ok(Math.abs(MapDetails.opacity(o,cam.span)-baseline.symbol)<1e-12,id+' visibility follows the same units');
@@ -29,12 +31,21 @@ run(`{
    if(!MapSlice.includes(o)){assert.ok(!MapAnnotations.hits.some(h=>h.object.id===id),'unknown-depth legacy anchors still respect the physical slice');continue;}
    if(!MapDetails.mapLabelName(o)){assert.ok(!MapAnnotations.hits.some(h=>h.object.id===id),'numeric point remains unlabelled after expansion');continue;}
    assert.ok(MapAnnotations.hits.some(h=>h.object.id===id),'visible named region/point after expansion: '+id+'/'+mode+'/'+width+'/'+epoch+'/'+expansion);
-   const p=screen(o),hit=MapAnnotations.hits.find(h=>h.object.id===id);assert.ok(Math.abs(hit.box.x-p.x-12)<1e-7,'catalogue anchor stays attached');
+   const p=MapAnnotations.structural(o)?MapAnnotations.structureAnchor(o).point:screen(o),hit=MapAnnotations.hits.find(h=>h.object.id===id);
+   assert.ok(baselineHit&&Math.abs(hit.box.x-p.x-(baselineHit.box.x-baselineAnchor.x))<1e-7&&Math.abs(hit.box.y-p.y-(baselineHit.box.y-baselineAnchor.y))<1e-7,'caption keeps its pixel offset from the same world anchor after expansion');
    if(o.region){RegionMap.render(ctx);assert.ok(RegionMap.hits.some(h=>h.o.id===id),'expanded region contour remains: '+id);}
   }
+  for(const o of OBJECTS.filter(o=>MapGeometry.unlocated(o))){
+   assert.equal(MapGeometry.model(o),null);assert.equal(ExtendedCatalog.matchesMap(o),false);assert.equal(MapAnnotations.opacity(o),0);
+   if(epoch===0&&expansion){
+    cam={...MapLayout.project(o),span:(o.region?.major||1e8)*3*Cosmology.regionScale(o)};MapSlice.focus(o);MapLabels.begin();RegionMap.render(ctx);MapAnnotations.draw();
+    assert.ok(!RegionMap.hits.some(h=>h.o.id===o.id),'an unlocated atlas anchor never restores a spatial contour: '+o.id);
+    assert.ok(!MapAnnotations.hits.some(h=>h.object.id===o.id),'an unlocated atlas anchor never restores a spatial caption: '+o.id);
+   }
+  }
   const filament=MapLayers.sample('filament'),boundCluster=MapLayers.sample('galaxy-cluster');
-  assert.equal(MapDetails.opacity(filament,1.8e9*a*width/1440,width),0);assert.equal(MapDetails.opacity(filament,1.8e9*a*width/1440*.7,width),1);
-  assert.equal(MapDetails.opacity(boundCluster,1.2e9*width/1440,width),0,'bound clusters do not grow with expansion');
+  assert.equal(MapDetails.opacity(filament,2.7e9*a*width/1440,width),0);assert.equal(MapDetails.opacity(filament,2.7e9*a*width/1440*.7,width),1);
+  assert.equal(MapDetails.opacity(boundCluster,1.8e9*width/1440,width),0,'bound clusters do not grow with expansion');
   assert.equal(JSON.stringify(state),physical,'landmark rendering never edits the expedition');
  }
  // Home wins caption collisions without moving nearby catalogue anchors.

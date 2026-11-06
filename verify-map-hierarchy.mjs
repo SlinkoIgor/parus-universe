@@ -7,7 +7,8 @@ const {context,run}=await import('data:text/javascript,'+encodeURIComponent(harn
 const boot=run('MAP_LAYER_BOOT');
 const layers=new Map();
 for(const n of boot.nodes)if(n.file)for(const row of JSON.parse(fs.readFileSync('dist/'+boot.dataRoot+'/'+n.file)))layers.set(row[0],row);
-assert.deepEqual(JSON.parse(JSON.stringify(boot.counts)),{filament:15421,'galaxy-cluster':2161,nebula:250,'stellar-cluster':4094,supercluster:1313,void:635});
+const {galaxy:galaxyContours,...structuralCounts}=JSON.parse(JSON.stringify(boot.counts));assert.ok(galaxyContours>10000,'all sourced galaxy contours');
+assert.deepEqual(structuralCounts,{filament:15421,'galaxy-cluster':2161,nebula:250,'stellar-cluster':4094,supercluster:1313,void:635});
 // Compare every complete-layer row against its independent canonical leaf.
 const manifest=JSON.parse(fs.readFileSync(catalogPath('manifest.json')));let matched=0;
 for(const n of manifest.nodes)if(!n.children.length)for(const row of JSON.parse(fs.readFileSync(catalogPath(n.file))))if(layers.has(row[0])){assert.deepEqual(layers.get(row[0]),row);matched++;}
@@ -63,7 +64,7 @@ console.log('PASS every source spine crossing viewport, including offscreen anch
 run(`
 // All stellar clusters/nebulae load before ordinary stars, and all spines and
 // galaxy clusters load before ordinary galaxies. Filters have their own files.
-MapLayers.ready.clear();MapLayers.admitted.clear();filter='all';cam={x:0,y:0,span:1000};assert.equal(MapLayers.admits(object('alpha')),true,'known orbit remains visible without streaming context');assert.equal(MapLayers.admits(object('sirius')),true,'published Sirius orbit remains visible without streaming context');assert.equal(MapLayers.admits({id:'hierarchy-context-star',kind:'star'}),false,'ordinary stars still wait for streaming context');assert.equal(MapLayers.admits(object('andromeda')),false);
+MapLayers.ready.clear();MapLayers.admitted.clear();filter='all';cam={x:0,y:0,span:1000};assert.equal(MapLayers.admits(object('alpha')),true,'known orbit remains visible without streaming context');assert.equal(MapLayers.admits(object('sirius')),true,'published Sirius orbit remains available without streaming context');assert.equal(MapLayers.admits(object('tau')),false);assert.equal(MapLayers.admits(object('andromeda')),false);
 MapLayers.ready.set('stellar-cluster',true);MapLayers.ready.set('nebula',true);assert.equal(MapLayers.admits(object('alpha')),true);
 MapLayers.ready.set('filament',true);MapLayers.ready.set('galaxy-cluster',true);assert.equal(MapLayers.admits(object('andromeda')),true);
 filter='galaxy';assert.equal(MapLayers.admits(object('andromeda')),true,'explicit class filter has no hidden competitors');
@@ -75,20 +76,19 @@ assert.equal(MapDetails.visible({kind:'star'},2000),false);assert.equal(MapDetai
 assert.equal(MapDetails.visible({kind:'galaxy',d:1e12},3e8),false);assert.equal(MapDetails.visible({kind:'cluster',catalogClass:'galaxy-cluster'},3e8),true);assert.equal(MapDetails.visible({kind:'structure',cosmicSubtype:'filament'},1.4e11),false);
 // Tiny and very large spines keep their visible segments. No point fallback,
 // closed polygon, or hit-test connection across clipped-out portions.
-const small={shape:'polyline',points:[[0,0],[1,1],[2,0]],major:4,minor:2};assert.deepEqual(RegionMap.curve(small,.01).map(p=>[p.x,p.y]),[[0,0],[2,0]]);assert.equal(RegionMap.asPoint({region:small}),false);
+const small={shape:'polyline',points:[[0,0],[1,1],[2,0]],major:4,minor:2};assert.deepEqual(RegionMap.curve(small,.01).map(p=>[p.x,p.y]),[[0,0],[2,0]]);assert.equal(RegionMap.asPoint({id:'sourced-small-spine',p3:[0,0,0],region:{...small,offsets3:small.points.map(([x,y])=>[x,-y,0])}}),false);
 assert.equal(RegionMap.clip({x:-10,y:-20},{x:20,y:-20}),null);assert.ok(RegionMap.clip({x:-1e20,y:100},{x:1e20,y:100}));
 // Coarse layer labels win conflicts with even an extremely massive star.
 MapLabels.begin();MapLabels.add({key:'star-test',name:'STAR',level:0,mass:1e12,priority:100,candidates:[{x:550,y:300}]});MapLabels.add({key:'cluster-test',name:'CLUSTER',level:1,mass:null,priority:20,candidates:[{x:550,y:300}]});MapLabels.draw();assert.ok(MapLabels.placed.some(q=>q.key==='cluster-test'));assert.ok(!MapLabels.placed.some(q=>q.key==='star-test'));
 // Draw cache preserves contours, labels and the same click targets.
 filter='all';cam={x:0,y:0,span:7e8};settleLayers();MapLabels.begin();RegionMap.draw();var first=RegionMap.hits.map(h=>h.o.id).join('|');MapLabels.begin();RegionMap.draw();assert.equal(RegionMap.hits.map(h=>h.o.id).join('|'),first);assert.ok(RegionMap.renderCache.canvas);
 var selected=RegionMap.hits.find(h=>h.o.cosmicSubtype==='filament').o;ExtendedCatalog.pin(selected);state.selected=selected.id;ExtendedCatalog.capture(state);var saved=JSON.parse(JSON.stringify(state));ExtendedCatalog.pinned.clear();state=restore(saved);assert.equal(state.selected,selected.id);assert.ok(object(selected.id).p3.every(Number.isFinite));
-// The ruler, rather than the full map width in light-years, defines the new
-// boundary. Cached/selected spines and explicit filters cannot bypass it.
+// The pixel scale defines the extended network boundary. Cached/selected spines and explicit filters cannot bypass it.
 for(const mode of ['dark','light'])for(const viewport of [390,900,1280,1920])for(const category of ['all','structure']){
  theme=mode;filter=category;width=viewport;height=720;
- const boundary=150e6*viewport/128;
+ const boundary=2.7e9*viewport/1440;
  cam={x:0,y:0,span:boundary*.6};settleLayers();MapLabels.begin();RegionMap.draw();
- assert.ok(gridMetrics().unit<=1e8);assert.ok(RegionMap.hits.some(h=>h.o.cosmicSubtype==='filament'),'full network remains before the fade starts');
+ assert.ok(gridMetrics().unit<=2e8);assert.ok(RegionMap.hits.some(h=>h.o.cosmicSubtype==='filament'),'full network remains before the fade starts');
  for(const span of [boundary,boundary*1.001,boundary*4,1.15e11]){
   cam.span=span;assert.ok(gridMetrics().unit>=2e8);assert.equal(MapLayers.enabled('filament'),false);
   assert.equal(MapLayers.filesForView(cam,width,height).get('filament').length,0,'hidden layer requests no tiles');
@@ -101,7 +101,7 @@ for(const mode of ['dark','light'])for(const viewport of [390,900,1280,1920])for
  cam.span=boundary*.6;settleLayers();MapLabels.begin();RegionMap.draw();assert.ok(RegionMap.hits.some(h=>h.o.cosmicSubtype==='filament'),'zooming in restores the full layer');
 }
 // Querying another viewport must use the supplied dimensions, even before resize.
-filter='all';width=1280;cam={x:0,y:0,span:7e8};
+filter='all';width=1280;cam={x:0,y:0,span:9e8};
 assert.ok(MapLayers.filesForView(cam,1280,720).get('filament').length);assert.equal(MapLayers.filesForView(cam,390,720).get('filament').length,0);
 // Observe actual canvas text and hit targets over the real Coma network. Hiding
 // catalogue captions must not remove any spine, cluster symbol or selected card.
@@ -120,7 +120,7 @@ for(const mode of ['dark','light']){
  showObject(target.id);assert.ok($('dialogContent').innerHTML.includes(target.name),'identifier remains available in the card');$('infoDialog').close();
 }
 `);
-console.log('PASS class boundaries, full Milky Way cluster layer, category filters, coarse labels, subpixel curves, clipping, cached hits and selected-spine reload; 200 million ruler cutoff; only proper cluster/filament names reach canvas, sourced aliases and click targets preserved');
+console.log('PASS class boundaries, full Milky Way cluster layer, category filters, coarse labels, subpixel curves, clipping, cached hits and selected-spine reload; extended smooth screen-scale cutoff; only proper cluster/filament names reach canvas, sourced aliases and click targets preserved');
 
 // Late network replies populate only the cache, never an obsolete visible cut.
 await run(`(async()=>{

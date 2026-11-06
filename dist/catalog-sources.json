@@ -282,8 +282,8 @@
   },
   "fullCatalog": {
     "builder": "data-tools/build-full-catalog.py",
-    "manifest": "catalog-data/47ba380fdce5/manifest.json",
-    "records": 260898,
+    "manifest": "catalog-data/c240a9fdd8f7/manifest.json",
+    "records": 260892,
     "coverage": {
       "HYG": 119626,
       "OpenNGC": 13970,
@@ -305,7 +305,7 @@
       "Gaia-Clusters": 4100
     },
     "search": "Lazy 39.7 MB compact worker index; 100 results initially",
-    "map": "Orthographic Galactic XY plus explicit host-local views; one spatial binary tree (no radial bands); max256 leaf rows, 48 cached tiles, 32 view nodes, 4 concurrent loads, 8000 target streamed objects plus fading union <=16000; weighted stable representatives; observed filament polylines; immutable versioned data root",
+    "map": "Physical Galactic XY with documented Milky Way cartographic displacement; source XYZ contours and measured sky footprints; one spatial binary tree (no radial bands); max256 leaf rows, 48 cached tiles, 32 view nodes, 4 concurrent loads, 8000 target streamed objects plus fading union <=16000; weighted stable representatives; observed filament polylines; immutable versioned data root",
     "uncertainty": "Formal policy v4: HYG sigma is attached only to the matching HIP2007/HIP1997 solution; unmatched adopted distances retain unknown sigma. Bounded compact GC hosts use published distance/error and tidal radius; galaxy membership alone never supplies depth.  bounded point estimates only; no sentinels or model bounds. Field reported relative error <=0.5, ATNF PX significance >3 and DM-model ratio <=2. Host-local model envelope <=0.5 of its reference diameter; common host-distance error is correlated, not independent scatter. Full definitions in docs/catalog.md.",
     "systems": "461 catalog groups; shared-distance estimates explicitly labelled. Distance conflicts suppress orbital diagrams; Cygnus X-1/HDE226868 use the published system distance. Local shared display transform prevents t-SNE separation of close components.",
     "fictionalStars": "Known nearby stars preferred; otherwise explicitly fictional departure stars at every mapped destination, persisted with expedition.",
@@ -335,10 +335,10 @@
         "MBR": 9,
         "SMC": 4654
       },
-      "method": "Individual published period-Wesenheit distances and errors; no common host shell or disk approximation. Host-local display uses an orthographic sky view of true 3D coordinates, rotated to align the observed population with its schematic outline; physical depth remains in p3."
+      "method": "Individual published period-Wesenheit distances and errors; no common host shell or disk approximation. Display uses Galactic XY of the individual physical coordinates in the same frame as the host geometry; no population rotation or compression."
     },
     "galaxyPopulationCoverage": "data-tools/galaxy-population-coverage.json",
-    "dataRoot": "catalog-data/47ba380fdce5",
+    "dataRoot": "catalog-data/c240a9fdd8f7",
     "current": "catalog-data/current.json",
     "cosmicCatalogs": {
       "MCXC-II": {
@@ -386,8 +386,8 @@
         "rows": 869,
         "represented": 869,
         "selection": "All objects searchable. Membership-only, Hubble-only and untyped txt distances atlas-only; individual measured/model distances eligible. Holmberg angular sizes retained.",
-        "added": 679,
-        "merged": 190,
+        "added": 672,
+        "merged": 197,
         "promotedFromAtlas": 13
       },
       "GLADE+": {

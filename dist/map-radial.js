@@ -38,15 +38,15 @@ const MapRadial={
  },
  groupKeys(o){return [...new Set([o.catalogData,...(o.catalogMeasurements||[]).map(m=>m.data)].filter(d=>d?.groupPGC>0).map(d=>String(d.groupPGC)))].sort();},
  decision(o){
-  const hostId=this.hostId(o),host=hostId&&(this.data.anchors[hostId]||((o.synthetic||o.stellarSystem)&&this.resolve(hostId)));
+  const hostId=this.hostId(o),host=hostId&&(this.data.anchors[hostId]||((o.synthetic||o.blackHoleCatalog||o.stellarSystem)&&this.resolve(hostId)));
   // Static catalogue hosts are admitted by the frozen registry. Generated game
   // stars may reference a newly pinned object without changing any old record.
-  // Priority is data, not the accidental order of catalogue imports.
-  if(o.stellarSystem&&hostId&&hostId!==o.id&&host?.p3)return{rule:'declared-host',frame:'rigid-xy',parent:hostId};
+  // Declared components share one rigid XY frame, including inside the solar
+  // distance domain. Reapplying individual radius constraints would deform it.
   for(const rule of this.profile.rules){
    if(rule==='protected-anchor'&&this.profile.protected.includes(o.id))return{rule,frame:'fixed',parent:null};
    if(rule==='distance-domain'){const domain=this.distanceDomain(o);if(domain&&this.exactDistance(o))return{rule,frame:'radial',parent:domain.origin,domain:domain.id};}
-   if(rule==='declared-host'&&hostId&&hostId!==o.id&&host?.p3)return{rule,frame:'radial',parent:hostId};
+   if(rule==='declared-host'&&hostId&&hostId!==o.id&&host?.p3)return{rule,frame:this.profile.declaredHostFrame||'radial',parent:hostId};
    if(rule==='local-cartographic-domain'){
     const candidates=this.profile.localDomains.filter(d=>{const h=this.resolve(d.host);return d.kinds.includes(this.category(o))&&d.host!==o.id&&h?.p3&&Math.hypot(...o.p3.map((v,i)=>v-h.p3[i]))<=d.radiusLy;});
     if(candidates.length===1)return{rule,frame:'radial',parent:candidates[0].host};
@@ -85,7 +85,7 @@ const MapRadial={
   const p=this.placement(o),labels={
    'protected-anchor':'Солнце — начало карты',
    'distance-domain':'Радиальное расстояние от центра ближайшего окружения',
-   'declared-host':'Общая опора из существующей связи каталога',
+   'declared-host':'Общая опора и сохранённая локальная форма XY из существующей связи каталога',
    'local-cartographic-domain':'Радиальное размещение в локальной области галактики; физическая принадлежность этим не устанавливается',
    'published-cf4-group':'Опубликованная группа CF4, поле 1PGC',
    'independent-anchor':'Самостоятельная опора',

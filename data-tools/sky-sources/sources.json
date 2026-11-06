@@ -24,6 +24,11 @@
     "starnames.json": {
       "url": "https://raw.githubusercontent.com/ofrohn/d3-celestial/master/data/starnames.json",
       "sha256": "19c84bc885f8a97c3b8e1f6a380084c575a9758dedfe35256e911a823ec3a695"
+    },
+    "dss2-red-plates.xml.gz": {
+      "url": "https://skyview.gsfc.nasa.gov/current/jar/surveys/xml/dss2r.xml.gz",
+      "sha256": "28ace24ca8aa6e971f0281551e3d4ac20df3778b831b78ecff71008d9434bf72",
+      "description": "1907 actual DSS2-red plate centres and published epochs; nearest-plate estimates are not a verified STScI plate selection."
     }
   },
   "mediaChecks": [

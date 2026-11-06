@@ -16,8 +16,25 @@ const FlightMarks={
  },
  actual(kind){const f=state.flight;if(f)this.set(f,kind,state.ship.p3,true);},
  draw(f=state.flight){
+  if(!f?.markers?.length)return;
+  // Stage details belong to a close view of the route, never its overview.
+  // Fade them in only after the full projected leg spans two screen widths.
+  const a=FlightView.at(f,0),b=FlightView.at(f,1),zoom=Math.hypot(b.x-a.x,b.y-a.y)/cam.span,
+   fade=Math.max(0,Math.min(1,zoom-2)),opacity=fade*fade*(3-2*fade);
+  if(opacity<=.03)return;
   const labels={acceleration:'КОНЕЦ РАЗГОНА',brake:f?.mission?'ТОРМОЖЕНИЕ':'ТОРМОЖЕНИЕ ПАРУСОМ',fine:'ТОЧНОЕ ТОРМОЖЕНИЕ'};
-  for(const m of f?.markers||[]){const p=screen(FlightView.at(f,FlightView.fraction(f,m.p3)));circle(p.x,p.y,4,'#666666',.9,m.actual?[]:[2,2]);MapLabels.point({key:'flight-mark-'+m.kind,name:labels[m.kind]+(m.actual?'':' · ПРОГНОЗ'),p,priority:115,size:8});}
-
+  const groups=[];
+  for(const m of f.markers){
+   const p=screen(FlightView.at(f,FlightView.fraction(f,m.p3)));
+   if(!Number.isFinite(p.x+p.y)||p.x<8||p.x>width-8||p.y<8||p.y>height-8)continue;
+   const nearby=groups.find(g=>Math.hypot(g.p.x-p.x,g.p.y-p.y)<48);
+   if(nearby)nearby.marks.push(m);else groups.push({p,marks:[m]});
+  }
+  for(const {p,marks} of groups){
+   // Keep the first event's anchor instead of averaging two coincident stages.
+   const actual=marks.every(m=>m.actual),kinds=marks.map(m=>m.kind),name=marks.length>1?(kinds.includes('acceleration')?'РАЗГОН → ТОРМОЖЕНИЕ':'ТОРМОЖЕНИЕ'):labels[kinds[0]];
+   ctx.save();ctx.globalAlpha=opacity;circle(p.x,p.y,4,'#666666',.9,actual?[]:[2,2]);ctx.restore();
+   MapLabels.point({key:'flight-mark-'+kinds.join('-'),name:name+(actual?'':' · ПРОГНОЗ'),p,priority:115,size:8,opacity});
+  }
  }
 };

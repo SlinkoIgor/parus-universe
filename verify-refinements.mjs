@@ -5,7 +5,7 @@ run(`
 // Exercise the pre-orbital/save-compatible branch; verify-orbits covers new captures.
 OrbitalArrival.enabled=false;
 function resetRefinement(){state=initial();state.expansion=false;paused=false;speed=1;Simulation.debt=0;Simulation.wallDebt=0;delete Simulation.smoothedFactor;}
-resetRefinement();state.proper=12345.99;state.earth=999999.9;renderUI();assert.ok(!$('shipClock').innerHTML.includes(','));assert.ok(!$('earthClock').innerHTML.includes(','));assert.ok($('shipClock').innerHTML.replace(/[^0-9]/g,'').startsWith('12345'));
+resetRefinement();state.proper=12345.99;state.earth=999999.9;renderUI();assert.ok(!$('shipClock').textContent.includes(','));assert.ok(!$('earthClock').textContent.includes(','));assert.ok($('shipClock').textContent.replace(/[^0-9]/g,'').startsWith('12345'));
 assert.equal(SAILS.length,1);assert.equal(SAILS[0].diameterM,100);assert.equal(SAILS[0].collectorDiameterM,1000);assert.ok(Math.abs(SHIP.sailMassKg-.7853981633974483)<1e-12);
 const dense=HybridBrake.plan(1,.99,Magnetic.rho(1e6)*SAILS[0].areaM2),thin=HybridBrake.plan(1,.99,Magnetic.rho(1)*SAILS[0].areaM2);assert.ok(thin.proper>dense.proper);
 for(const plan of [dense,thin])for(const fraction of [0,.1,.5,.9,1]){const q=Magnetic.sample(plan,fraction);assert.ok(-q.properAcceleration<=100*G0*(1+1e-12));assert.ok(q.mass<=2*(1+1e-12));}assert.ok(dense.finalMass>=1-1e-12);

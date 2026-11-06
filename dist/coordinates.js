@@ -42,4 +42,19 @@ for(const o of OBJECTS){
  if(o.galaxy)Object.assign(o.galaxy,{x:o.x,y:o.y});
 }
 Object.assign(GALAXIES[0],{x:OBJECTS.find(o=>o.id==='sgr').x,y:OBJECTS.find(o=>o.id==='sgr').y,axisRatio:1});
+// Every drawn host needs a galaxy identity for source cross-matching. A nucleus
+// is a different physical class; sharing its centre must not merge their IDs.
+for(const g of GALAXIES){
+ if(OBJECTS.some(o=>o.id===g.id)||!g.coordinateHost)continue;
+ const host=OBJECTS.find(o=>o.id===g.coordinateHost);if(!host?.p3)continue;
+ const o={id:g.id,name:g.name,kind:'galaxy',type:'Спиральная галактика',aliases:g.aliases||[],
+  ...Space.point(host.p3),d:host.d,raDeg:host.raDeg,decDeg:host.decDeg,
+  coordinateHost:g.coordinateHost,coordinateModel:'galaxy-center-v1',coordinateSource:host.coordinateSource,
+  coordinateNote:'Положение центра галактики совпадает с принятым положением её ядра.',
+  navigable:true,index:OBJECTS.length,galaxy:g,diameterLy:g.diameterLy,
+  desc:'Наша спиральная галактика. Солнце находится внутри её диска.',
+  facts:{class:'Спиральная галактика',mass:'Полная масса галактики здесь не назначена.',lumUnknown:'Индивидуальная болометрическая светимость здесь не задана.',
+   note:'Расстояние относится к центру галактики, а не к другой галактике за её пределами. Оптический диаметр диска — около 100 тысяч световых лет.',refs:[...(host.facts?.refs||[])]}};
+ OBJECTS.push(o);
+}
 const CATALOG_COUNTS=Object.freeze({get all(){return OBJECTS.length;},get stars(){return OBJECTS.filter(o=>o.kind==='star').length;},get galaxies(){return OBJECTS.filter(o=>o.kind==='galaxy').length;},get pulsars(){return OBJECTS.filter(o=>o.kind==='pulsar').length;}});

@@ -1,1 +1,4 @@
-{"profile": "data-tools/map-radial-profile-v3.json", "anchors": "data-tools/map-radial-anchors-v2.json"}
+{
+  "profile": "data-tools/map-radial-profile-v4.json",
+  "anchors": "data-tools/map-radial-anchors-v2.json"
+}

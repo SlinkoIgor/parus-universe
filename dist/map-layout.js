@@ -4,7 +4,7 @@
 // Physical p3 is never changed by the map.
 const MapLayout={
  cache:new Map(),anchors:[],
- version:3,
+ version:4,
  disk:{radius:50000,innerHeight:1500,outerHeight:3000,gap:4000},
  base(p3){return{x:p3[0],y:-p3[1]};},
  center(){return this.diskCenter||(this.diskCenter=this.base(OBJECTS.find(o=>o.id==='sgr').p3));},
@@ -30,7 +30,7 @@ const MapLayout={
   // At the exact projected centre the sign of Z selects a stable pole.
   return r>1e-9?{x:dx/r*shift,y:dy/r*shift}:{x:0,y:(o.p3[2]<0?1:-1)*shift};
  },
- rawProject(o){if(!o.mapPosition)return this.base(o.p3);const p=o.mapPosition,d=o.mapOffset||[0,0];return{x:p.x-d[0],y:p.y-d[1]};},
+ rawProject(o){return this.base(o.p3);},
  displacement(o,base,resolve=id=>OBJECTS.find(q=>q.id===id)||this.resolve?.(id),seen=new Set()){
   if(seen.has(o.id))return{x:0,y:0};seen.add(o.id);
   const id=this.anchorId(o),host=id&&id!==o.id&&resolve(id);
@@ -43,13 +43,12 @@ const MapLayout={
  baseProject(p){return globalThis.MapRadial?.active()?MapRadial.project(p):this.ordinaryProject(p);},
  ordinaryProject(p){
   if(p.atlasOnly)return{x:NaN,y:NaN};
-  if(p.mapPosition)return p.mapPosition;
   if(!p.p3)return this.cache.get(p.id)||{x:p.x,y:p.y};
   return this.place(p);
  },
  init(){
   this.cache.clear();this.anchors=[];
-  for(const o of OBJECTS)if(o.p3)this.cache.set(o.id,o.mapPosition||this.place(o));
+  for(const o of OBJECTS)if(o.p3)this.cache.set(o.id,this.place(o));
   this.cache.set('milkyway',this.cache.get('sgr'));
  }
 };

@@ -30,6 +30,78 @@ run(`{
 }`);
 
 run(`{
+  const reference=id=>ExtendedCatalog.pinned.get(id)?.historicalStellarNavigation
+    ? ExtendedCatalog.get(id) : OBJECTS.find(o=>o.id===id)||ExtendedCatalog.get(id);
+  for(const id of [...OBJECTS.map(o=>o.id),...Object.keys(EXTENDED_BOOT.identityRedirects||{}),'missing-performance-record'])
+    assert.equal(object(id),reference(id),'indexed lookup retains catalogue identity: '+id);
+  const indexed=OBJECTS.find(o=>OBJECTS[o.index]===o),find=OBJECTS.find;
+  MapDetails.beginFrame();
+  let scans=0;OBJECTS.find=function(...args){scans++;return find.apply(this,args);};
+  try{for(let i=0;i<1000;i++)assert.equal(object(indexed.id),indexed);assert.equal(scans,0,'draw-scoped indexed records need no array scans');}
+  finally{OBJECTS.find=find;MapDetails.endFrame();}
+  const replacement={...indexed,name:'Replacement regression'},oldPin=ExtendedCatalog.pinned.get(indexed.id);
+  try{
+    OBJECTS[indexed.index]=replacement;
+    assert.equal(object(indexed.id),replacement,'replacement wins over a stale index');
+    const historical={...indexed,historicalStellarNavigation:true,p3:[1,2,3]};ExtendedCatalog.pinned.set(indexed.id,historical);
+    assert.equal(object(indexed.id),historical,'private historical flight endpoints retain precedence');
+  }finally{OBJECTS[indexed.index]=indexed;if(oldPin)ExtendedCatalog.pinned.set(indexed.id,oldPin);else ExtendedCatalog.pinned.delete(indexed.id);}
+  const legacy={id:'legacy-performance-restore',index:OBJECTS.length};OBJECTS.push(legacy);
+  try{assert.equal(object(legacy.id),legacy,'unindexed legacy restores remain available');}finally{OBJECTS.pop();}
+  console.log('PASS draw-scoped lookups avoid linear scans and preserve replacements, redirects, legacy restores and historical flight records');
+}`);
+
+run(`{
+  state=initial();state.expansion=false;paused=true;Cosmology.sync(state);
+  width=1440;height=1000;cam={x:0,y:0,span:24};MapSlice.mode='full';
+  const o=object('alpha'),opacity=MapDetails.classOpacity,geometry=RegionMap.pointGeometry;
+  let opacityCalls=0,geometryCalls=0;
+  MapDetails.classOpacity=function(...args){opacityCalls++;return opacity.apply(this,args);};
+  RegionMap.pointGeometry=function(...args){geometryCalls++;return geometry.apply(this,args);};
+  try{
+    MapDetails.beginFrame();
+    const expected=MapDetails.opacity(o,24,1440),point=RegionMap.asPoint(o);
+    for(let i=0;i<100;i++){assert.equal(MapDetails.opacity(o,24,1440),expected);assert.equal(RegionMap.asPoint(o),point);}
+    assert.equal(opacityCalls,1);assert.equal(geometryCalls,1,'one point classification per object/draw');
+    MapDetails.opacity(o,24,390);assert.equal(opacityCalls,2,'mobile width has its own visibility');
+    assert.equal(MapDetails.opacity(o,4000,1440),0,'changed span never reuses a previous value');
+    MapDetails.endFrame();MapDetails.beginFrame();MapDetails.opacity(o,24,1440);RegionMap.asPoint(o);
+    assert.equal(geometryCalls,2,'next frame recomputes geometry');
+  }finally{MapDetails.endFrame();MapDetails.classOpacity=opacity;RegionMap.pointGeometry=geometry;}
+  const draw=drawGrid;drawGrid=()=>{throw new Error('intentional render failure');};
+  try{assert.throws(()=>frame(performance.now()),/intentional render failure/);}finally{drawGrid=draw;}
+  assert.equal(MapDetails.frameObjects,null);assert.equal(MapDetails.frameOpacity,null);assert.equal(MapDetails.framePoints,null);
+  console.log('PASS draw-scoped visibility/geometry reuse respects span, mobile width and frame boundaries, and clears even on rendering failure');
+}`);
+
+run(`{
+  state=initial();state.expansion=false;paused=true;Cosmology.sync(state);
+  width=1440;height=1000;cam={x:0,y:0,span:24};MapSlice.mode='full';filter='all';
+  const originals=[...OBJECTS],visible=ExtendedCatalog.visible,pinned=ExtendedCatalog.pinned,layers=MapLayers.visible,active=MapLayers.active,
+    visibility=globalThis.MapVisibility,asPoint=RegionMap.asPoint,admitted=MapDetails.visible;
+  const rows=['visible','hidden'].map((name,i)=>({id:'performance-pass-'+name,kind:'star',name:'HYG '+i,aliases:[],
+    p3:[i+1,0,0],mapPosition:{x:i+1,y:0},streamed:true,bulkGalaxyMember:true,massSolar:null,gravity:null,facts:{mass:'Нет индивидуальной оценки.'}}));
+  const scientific=JSON.stringify(rows),checks=new Map(),geometry=new Map();
+  try{
+    OBJECTS.splice(0,OBJECTS.length,object('sol'),...rows);ExtendedCatalog.visible=rows;ExtendedCatalog.pinned=new Map(rows.map(o=>[o.id,o]));
+    MapLayers.visible=rows;MapLayers.active=false;
+    globalThis.MapVisibility={active:true,limit(){return Infinity;},overviewPoint(){return false;}};
+    MapDetails.visible=function(o,...args){if(rows.includes(o)){checks.set(o.id,(checks.get(o.id)||0)+1);if(o===rows[1])return false;}return admitted.call(this,o,...args);};
+    RegionMap.asPoint=function(o){if(rows.includes(o))geometry.set(o.id,(geometry.get(o.id)||0)+1);return asPoint.call(this,o);};
+    MapLabels.begin();drawObjects();assert.equal(checks.size,0,'ordinary background skips foreground visibility work');
+    ExtendedCatalog.draw();assert.ok(hitObjects.some(h=>h.o===rows[0]));assert.ok(!hitObjects.some(h=>h.o===rows[1]));
+    assert.equal(geometry.get(rows[1].id)||0,0,'invisible background never prepares point geometry');
+    state.selected=rows[0].id;MapLabels.begin();drawObjects();assert.ok(hitObjects.some(h=>h.o===rows[0]),'selected background still uses foreground');
+    state.selected='sol';state.current=rows[0].id;MapLabels.begin();drawObjects();assert.ok(hitObjects.some(h=>h.o===rows[0]),'parked background still uses foreground');
+    assert.equal(JSON.stringify(rows),scientific,'passes preserve catalogue properties');
+  }finally{
+    OBJECTS.splice(0,OBJECTS.length,...originals);ExtendedCatalog.visible=visible;ExtendedCatalog.pinned=pinned;MapLayers.visible=layers;
+    MapLayers.active=active;globalThis.MapVisibility=visibility;RegionMap.asPoint=asPoint;MapDetails.visible=admitted;
+  }
+  console.log('PASS foreground/background routing skips invisible geometry while preserving selection, station, hits and source data');
+}`);
+
+run(`{
   state=initial();state.expansion=false;paused=true;Cosmology.sync(state);
   width=1440;height=1000;cam={x:0,y:0,span:24};MapSlice.mode='full';filter='all';
   const sol=object('sol');

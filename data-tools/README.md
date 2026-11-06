@@ -1,10 +1,12 @@
 # Full catalog snapshot, 2026-10-25
 
+Актуальная геометрия от 05.11.2026: [единая проекция протяжённых объектов](../docs/projection-geometry.md). Версия раскладки 4 заменяет исторические ручные повороты галактик, 2D-перенос контуров и отбор протяжённых областей по центру.
+
 Current expansion generator: `build-full-catalog.py`. Existing curated core: `curate_catalog.py`; historical `normalize_catalog.py` must not replace the current core.
 
 Distant supplement: `python3 build-distant-catalog.py` reproduces `../dist/distant-catalog-data.js` and `distant-catalog-audit.json` without network access. CCPC-II fields/units and extracted JADES DR4 v1.2 `Obs_info` rows, URLs and SHA-256 values are retained in `distant-sources/`. FITS re-extraction requires astropy and `--extract-from DIR`; original file hashes are checked. Identity, conflict policy and source limitations: [universe-overview.md](../docs/universe-overview.md). This supplement preserves existing tile revisions and adopted positions.
 
-Full HYG 4.1 / OpenNGC / ATNF snapshots → 152010 generated atlas records (+40 nuclear stars at runtime), bounded spatial tiles, lazy search worker index, approximate positions and atlas-only uncertain records and catalog system links. Keep source snapshots in ignored `raw/`; derived `../dist/catalog-data/` is tracked. See `../README-AGENT.md` for regeneration, source paths, uncertainty, persistence and validation. Audit: `full-catalog-audit.json`. Run `node verify-stream.mjs`, `node verify-map.mjs`, `node verify.mjs`.
+Full HYG 4.1 / OpenNGC / ATNF snapshots → 152010 generated atlas records (+40 nuclear stars at runtime), bounded spatial tiles, lazy search worker index, approximate positions and atlas-only uncertain records and catalog system links. Keep source snapshots in ignored `raw/`; derived streaming directories are ignored too and installed from a pinned release archive. See [catalogue artifacts](../docs/catalog-artifacts.md) for installation and packaging, and `../README-AGENT.md` for regeneration, source paths, uncertainty, persistence and validation. Audit: `full-catalog-audit.json`. Run `node verify-stream.mjs`, `node verify-map.mjs`, `node verify.mjs`.
 
 The legacy curated audit `selection-audit.json` still verifies all 652 IAU names and the original nearest30 / brightest500 core. Licenses/provenance: `../dist/catalog-sources.json` and `../THIRD_PARTY_NOTICES.md`.
 
@@ -21,6 +23,28 @@ Offline geometry audit: `python3 data-tools/audit-map-geometry.py` (Node.js requ
 
 Geometry fixes (policy v4, map version2): shared orthographic Galactic XY for core/stream/free points, bounded compact GC models and coherent host distances, NGC4676 shared published distance and cosmological binding. import-geometry-sources.py reads HIP2007 and authors' GC compilation raw snapshots; compact inputs hipparcos-2007.json / globular-cluster-models.json. import-low-z-distances.py selects explicit independent methods for all 152 low-z targets in the stored SIMBAD ADQL snapshot: 122 independent measurements, one documented system-distance exception (NGC3690A), 29 atlas-only. No invented depth or unrecognized method. Regenerate build-full-catalog.py, run audit-map-geometry.py, then verify-geometry-fixes.mjs. Historical audit retained as map-geometry-audit-before-fixes.json / docs/map-geometry-audit-before-fixes.md. Catalog geometry2 migrates map coordinates and refreshes referenced rows without resetting historical clocks or travelled path.
 
+
+Black-hole supplement: `node data-tools/build-black-hole-catalog.mjs` from the
+repository root reproduces `dist/black-hole-catalog-data.js` and
+`data-tools/black-hole-catalog-audit.json` offline. Published compact inputs,
+source rows, epochs, units, errors and source URLs are in `black-hole-sources/`.
+The builder reads the current full core and canonical leaf tiles to match whole
+host identities, including NGC suffixes; it changes neither those tiles nor
+filament geometry. Scientific selection/coverage and the research shortlist:
+[atlas-expansion.md](../docs/atlas-expansion.md). Regression:
+`node verify-atlas-expansion.mjs`.
+The full catalogue builder also runs the compact-object builder after its final host tiles; the supplemental revision updates its index.html cache key.
+
+
+Drawn galaxy hosts with `coordinateHost` receive their own core identity before
+source matching. `build-full-catalog.py` exports `identityRedirects` from cosmic
+merge results for source IDs matched to these galaxy hosts. Milky Way's UNGC
+source row is retained as a `catalogMeasurements` estimate of our own galaxy,
+not a second galaxy. Runtime preserves old parked/active navigation estimates
+privately during save migration; see `docs/catalog.md` and
+`node verify-galaxy-identities.mjs`.
+
+
 `python3 data-tools/build-stellar-catalog.py` rebuilds the additive stellar
 identity/multiplicity layer entirely offline from `stellar-sources/`, rejecting
 an incompatible scientific base revision. It runs before map metadata in the
@@ -36,6 +60,34 @@ Regression: `node verify-stellar-catalog.mjs`.
 `dist/sky-guide-data.js` из замороженных `sky-sources/`: XHIP до V=6,
 линии/названия созвездий d3-celestial, границы Roman B1875 и проверенные
 наблюдения обсерваторий с полными кредитами. Сеть и пересборка научного
-каталога не требуются. Полные источники, условия наблюдения, ограничения,
+каталога не требуются. Из полных областей Roman дополнительно выводятся
+экстремумы склонения J2000 всех 88 созвездий для широт наблюдения;
+учитываются внутренние экстремумы дуг, оба участка Змеи и небесные полюса.
+Полные источники, условия наблюдения, ограничения,
 сверка 935 созвездий с Astropy и описание горизонтальной галереи —
 [docs/sky-guide.md](../docs/sky-guide.md). Регрессия: `node verify-sky-guide.mjs`.
+
+
+## Предварительная подготовка DSS
+
+`node data-tools/build-sky-dss.mjs` готовит фотографические направления всех
+звёздных исходников без пересборки научных тайлов, p3 и орбит. HYG читается из
+`raw/hyg_v41.csv`, где сохранились исходные PM. Зарегистрированные звёзды и
+быстрые HYG проходят пакетные SIMBAD/FITS-проверки с четырьмя рабочими запросами;
+результаты/заголовки сохраняются в `sky-sources/dss-prepared-measurements.json`.
+Сборка возобновляется, ошибки сети повторяются. `--offline` воспроизводит сборку
+из замороженных данных; `--calibrate-all` дополнительно проверяет фактические
+пластинки всех звёзд с известным движением (длительный пакетный запуск).
+
+Выход: `dist/sky-dss-data.js`, 128 локальных файлов в `dist/sky-dss-data/<revision>/`
+и `sky-dss-audit.json`. `calibrated` означает проверенные DATE-OBS и WCS,
+`plate-epoch-estimate` — приблизительный центр по опубликованной эпохе ближайшей
+пластинки из 1907 полей NASA SkyView; `catalogue-direction` — неизвестное движение.
+Последние два статуса не получают ложную точную отметку/дату. Единицы:
+направления — градусы J2000, эпохи — юлианские годы, PM — mas/yr, параллакс — mas,
+RV — km/s, маркеры — пиксели GIF (начало сверху). Ошибки HYG неизвестны;
+ошибки и библиографические ссылки SIMBAD сохраняются. Открытие карточки ничего
+из этого не вычисляет и не запрашивает астрометрию по сети.
+
+Регрессии: `node verify-sky-dss.mjs`, `node verify-sky-guide.mjs`.
+Ограничения и источник списка пластинок — `docs/sky-guide.md`.

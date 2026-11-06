@@ -5,17 +5,17 @@ import crypto from 'node:crypto';
 import {readMapCatalog} from './map-radial-catalog.mjs';
 
 const {c,rows,objects:catalogObjects,manifest,pointer}=await readMapCatalog({supplement:true});
-vm.runInContext(fs.readFileSync('dist/map-radial-data.js','utf8')+'\n'+fs.readFileSync('dist/map-radial.js','utf8'),c);
+vm.runInContext(['map-radial-data','map-radial','map-geometry-data','map-geometry'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
 const details=vm.runInContext('MapDetails',c);
 const radialPointer=JSON.parse(fs.readFileSync('dist/map-radial/current.json'));
 const radialManifest=JSON.parse(fs.readFileSync('dist/'+radialPointer.dataRoot+'/manifest.json'));
 console.log('Read immutable catalogue');
-const objects=catalogObjects.filter(o=>!o.atlasOnly&&o.p3?.every(Number.isFinite));
+const objects=catalogObjects.filter(o=>!o.atlasOnly&&!c.MapGeometry.unlocated(o)&&o.p3?.every(Number.isFinite));
 const byId=new Map(objects.map(o=>[o.id,o]));c.MapLayout.resolve=id=>byId.get(id);
 const complete=new Set(['filament','galaxy-cluster','stellar-cluster','nebula','supercluster','void']);
 // Same deterministic importance in both projections; selection and load order
 // never enter it. Unknown mass stays unknown, rather than receiving a typical mass.
-const completeObject=o=>complete.has(details.group(o))&&!details.cosmologicalPoint(o);
+const completeObject=o=>(complete.has(details.group(o))||details.group(o)==='galaxy'&&!!c.MapGeometry.model(o))&&!details.cosmologicalPoint(o);
 const groups=new Map(objects.map(o=>[o.id,details.group(o)]));
 const hostRange=new Map(objects.filter(o=>completeObject(o)&&details.maxSpan(o)>({'stellar-cluster':300000,nebula:300000,'galaxy-cluster':2e9}[groups.get(o.id)]??Infinity)).map(o=>[o.id,details.maxSpan(o)/1440]));
 const ranks=new Map(objects.map(o=>[o.id,[details.level(o),details.mass(o)??-1,Number(!!o.cosmicLandmark),Number(!!o.messier),Number(!!details.mapLabelName(o)),-(o.apparentV??99)]]));
@@ -40,7 +40,7 @@ for(const mode of ['full','radial']){
  }
  for(const o of objects){const diameter=!o.sizeEstimated&&!o.sizeUnknown?(o.diameterLy||o.galaxy?.diameterLy||0):0;const p=Math.max(1e-6,limits.get(o.id),diameter/8);(pixels[o.id]??=[]).push(completeObject(o)?(hostRange.get(o.id)??-1):p);}
 }
-const dependencies=['data-tools/build-map-visibility.mjs','data-tools/map-radial-catalog.mjs','dist/map-details.js','dist/map-layout.js','dist/map-radial.js','dist/map-radial-data.js','dist/catalog-extended.js','dist/catalog-stream.js','dist/distant-catalog.js','dist/distant-catalog-data.js'];
+const dependencies=['data-tools/build-map-visibility.mjs','data-tools/map-radial-catalog.mjs','dist/map-details.js','dist/map-layout.js','dist/map-geometry.js','dist/map-geometry-data.js','dist/map-radial.js','dist/map-radial-data.js','dist/catalog-extended.js','dist/catalog-stream.js','dist/distant-catalog.js','dist/distant-catalog-data.js'];
 const revision=crypto.createHash('sha256').update(manifest.revision+radialManifest.revision+dependencies.map(p=>fs.readFileSync(p)).join('')).digest('hex').slice(0,12);
 const root='map-visibility/'+revision,out='dist/'+root;fs.mkdirSync(out,{recursive:true});
 function write(file,value){const content=JSON.stringify(value)+'\n',path='dist/'+file;if(fs.existsSync(path)){if(fs.readFileSync(path,'utf8')!==content)throw Error('Immutable visibility index differs: '+file);return;}fs.writeFileSync(path,content);}

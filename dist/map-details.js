@@ -1,10 +1,32 @@
 'use strict';
 // Display hierarchy and one collision budget for every atlas label.
 const MapDetails = {
+  // These snapshots live only inside one synchronous draw pass. Simulation,
+  // streaming adoption and UI forecasts run outside that scope.
+  frameObjects: null,
+  frameOpacity: null,
+  framePoints: null,
+  frameSpines: null,
+  frameModels: null,
+  beginFrame() {
+    this.frameObjects = new Map();
+    for (const o of OBJECTS) if (!this.frameObjects.has(o.id)) this.frameObjects.set(o.id, o);
+    this.frameOpacity = new WeakMap();
+    this.framePoints = new WeakMap();
+    this.frameSpines = new WeakMap();
+    this.frameModels = new WeakMap();
+  },
+  endFrame() {
+    this.frameObjects = this.frameOpacity = this.framePoints = this.frameSpines = this.frameModels = null;
+  },
   massCache: new WeakMap(),
   nameCache: new WeakMap(),
   typeName(o) {
-    if (o.cosmicEpoch || o.distantCatalog) return o.type;
+    if (o.kind === 'blackhole' && (o.blackHolePopulation || o.population) === 'supermassive')
+      return o.confirmed === false
+        ? 'Кандидат в сверхмассивные чёрные дыры'
+        : 'Сверхмассивная чёрная дыра';
+    if (o.cosmicEpoch || o.distantCatalog || o.blackHoleCatalog) return o.type;
     if (o.catalogClass === 'galaxy-cluster') return 'Скопление галактик';
     if (o.cosmicSubtype === 'filament') return 'Галактический филамент';
     if (o.cosmicSubtype === 'supercluster') return 'Сверхскопление галактик';
@@ -120,6 +142,9 @@ const MapDetails = {
         basis: 'Численная масса объекта',
         system: !!o.massIsSystem,
       };
+    // This sourced layer explicitly distinguishes point estimates from bounds,
+    // intervals and missing data. Its display text must never invent a point mass.
+    if (o.blackHoleCatalog) return null;
     const txt = String(o.facts?.mass || '');
     // A typical neutron-star mass is not an individual measurement. In particular,
     // never take the uncertainty after ± as the central value of a catalogue mass.
@@ -202,7 +227,9 @@ const MapDetails = {
     }
     return o.kind;
   },
-  mapLabelName(o) {
+  mapLabelName(o, selected = false) {
+    // Selection may reveal the full designation; it never makes it a proper name.
+    if (selected && !o.synthetic) return o.mapLabel || o.name;
     // Sourced stellar names include surname numbers (Wolf 359), Flamsteed
     // numbers (61 Cygni) and explicit component suffixes. Other classes keep
     // their proper-name rule, including the black-hole catalogue.
@@ -215,6 +242,8 @@ const MapDetails = {
     const aliases = o.galaxyMember || o.bulkGalaxyMember ? [] : o.aliases || [];
     const generic =
       /^(?:звезда|зв[её]зд|галактика|галактик|скопление|сверхскопление|туманность|пульсар|квазар|ч[её]рная|дыра|филамент|нить|стена|войд|неизвестная|star|galaxy|cluster|supercluster|nebula|pulsar|quasar|black|hole|filament|wall|void|unknown|unnamed|HIP|HYG|HD|HR|GJ|GL|NGC|IC|PGC|UGC|MCXC|RXC|SDSS|OGLE|LGGS|PHAT|HSC|ATNF|PSR)$/i;
+    const hostName = o.kind === 'blackhole' && /^Чёрная дыра\s*·/i.test(o.name)
+      ? o.name.split('·')[1].trim() : null;
     const candidates = [o.name, ...aliases].flatMap((value) =>
       String(value || '')
         .split('·')
@@ -228,6 +257,11 @@ const MapDetails = {
           (name) =>
             /\p{L}/u.test(name) &&
             (!/[0-9]/.test(name) || descriptive) &&
+            // Host names, variable-star codes and search descriptions are not
+            // proper names of the black hole itself.
+            !(o.kind === 'blackhole' && (name === hostName ||
+              /^(?:[A-Z]{1,2}|V\d+)\s+[A-Z][A-Za-z]{2}$/.test(name) ||
+              /ч[её]рн[а-яё]*\s+дыр|black\s+hole|первое\s+изображение|first\s+image/i.test(name))) &&
             name
               .split(/\s+/)
               .some((word) => /\p{L}/u.test(word) && !/[0-9]/.test(word) && !generic.test(word)),
@@ -271,10 +305,30 @@ const MapDetails = {
       o.p3?.every(Number.isFinite)
     );
   },
+  blackHoleHost(o) {
+    if (o.kind !== 'blackhole') return null;
+    const id = o.parentGalaxy ||
+      ((o.blackHolePopulation || o.population) === 'supermassive'
+        ? GALAXIES.find(g => g.coordinateHost === o.id)?.id
+        : null);
+    const host = id && (globalThis.BlackHoleCatalog?.hosts.get(id) ||
+      (typeof ExtendedCatalog === 'undefined' ? null : ExtendedCatalog.get(id)));
+    return host?.kind === 'galaxy' ? host : null;
+  },
   maxSpan(o) {
     // One cutoff per scale class. Compact landmarks use the same boundary,
     // then compete for empty screen space in the final label pass.
     if (o.synthetic) return 2000;
+    if (o.kind === 'blackhole') {
+      if ((o.blackHolePopulation || o.population) !== 'supermassive')
+        return o.notableLandmark ? 150000 : 2000;
+      const host = this.blackHoleHost(o),
+        diameter = host?.galaxy?.diameterLy || host?.diameterLy || o.hostDiameterLy,
+        // A nucleus is an interior detail: resolve the host to about 180 CSS px
+        // at the 1440px reference width. Distance from Earth never enlarges it.
+        span = diameter > 0 ? diameter * 8 : 1e6;
+      return Math.min(span, host ? this.maxSpan(host) * 0.7 : 1e6);
+    }
     // Every resolved population retains its host scale. Larger local objects
     // also keep their own class range; adding a host cannot shorten that range.
     const hostSpan = o.galaxyMember
@@ -290,7 +344,6 @@ const MapDetails = {
     if (this.group(o) === 'galaxy-cluster') return 2e9;
     if (o.kind === 'home') return 600;
     if (o.kind === 'star' || o.kind === 'pulsar') return 2000;
-    if (o.kind === 'blackhole') return o.id === 'sgr' ? 4e6 : 2000;
     if (o.kind === 'galaxy' || o.kind === 'quasar') return 3e8;
     return Infinity;
   },
@@ -301,25 +354,31 @@ const MapDetails = {
   // sourced overview points keep the same screen window as their geometry.
   lodScale(o) {
     if (!o.kind && o.id) o = ExtendedCatalog.get(o.id) || o;
+    const host = this.blackHoleHost(o);
+    if (host) return this.lodScale(host);
     return globalThis.MapVisibility?.overviewPoint(o)
       ? Cosmology.scale()
       : Cosmology.regionScale(o);
   },
-  // Fade continuously before the ruler reaches 200 million ly. The ruler's
-  // rounded tick itself must never make the entire network blink off.
+  // Match the fixed hierarchy's 1440px reference ranges in the fallback too.
+  // Ruler rounding never changes the visibility of the network.
   opacity(o, span, viewportWidth = width) {
+    if (ExtendedCatalog.isSystemMember(o)) return 1;
     if (this.origin(o)) return 1;
-    if (globalThis.MapVisibility?.active) {
-      const limit = MapVisibility.limit(o);
-      if (limit !== Infinity) return MapVisibility.opacity(o, span, viewportWidth, limit);
-    }
-    return this.classOpacity(o, span, viewportWidth);
+    const cached = this.frameOpacity?.get(o);
+    if (cached && cached.span === span && cached.width === viewportWidth) return cached.value;
+    const limit = globalThis.MapVisibility?.active ? MapVisibility.limit(o) : Infinity,
+      value = limit !== Infinity
+        ? MapVisibility.opacity(o, span, viewportWidth, limit)
+        : this.classOpacity(o, span, viewportWidth);
+    this.frameOpacity?.set(o, {span, width: viewportWidth, value});
+    return value;
   },
   classOpacity(o, span, viewportWidth = width) {
     if (this.origin(o)) return 1;
     span /= this.lodScale(o);
     if (this.group(o) === 'filament') {
-      const end = (150e6 * viewportWidth) / 128,
+      const end = (2.7e9 * viewportWidth) / 1440,
         t = Math.max(0, Math.min(1, (span / end - 0.6) / 0.4));
       return 1 - t * t * (3 - 2 * t);
     }
@@ -357,7 +416,7 @@ const MapDetails = {
     );
   },
   sparse(o, span) {
-    if (this.origin(o) || globalThis.MapVisibility?.active) return false;
+    if (this.origin(o) || o.kind === 'blackhole' || globalThis.MapVisibility?.active) return false;
     return span > this.maxSpan(o) * 0.8 && this.discoverable(o);
   },
   visible(o, span, viewportWidth) {
@@ -447,10 +506,11 @@ const MapLandmarks = {
       // Galaxy outlines are background for compact contents. Their actual glyphs
       // and labels already reserve space when the contents cannot be resolved.
       const container = !!h.container;
-      const segments = h.segments || h.points.slice(1).map((p, i) => [h.points[i], p]);
+      const paths = h.paths || [{points:h.points,closed:h.closed}];
+      const segments = h.segments || paths.flatMap(path => path.points.slice(1).map((p, i) => [path.points[i], p]).concat(path.closed ? [[path.points.at(-1),path.points[0]]] : []));
       // Separate segment bounds avoid filling a large filament's empty bounding box.
       for (const pair of segments) this.insert(grid, { box: this.box(pair), pair, container });
-      if (h.closed) this.insert(grid, { box: this.box(h.points), polygon: h.points, container });
+      if (h.closed) this.insert(grid, { box: this.box(h.points), paths, container });
     }
     this.cache = { key, scale, hits: RegionMap.hits, grid };
   },
@@ -496,7 +556,7 @@ const MapLandmarks = {
       if (
         h.pair
           ? this.crosses(h.pair, box)
-          : this.contains({ x: box.x + box.w / 2, y: box.y + box.h / 2 }, h.polygon)
+          : h.paths.reduce((inside,path) => path.closed && this.contains({ x: box.x + box.w / 2, y: box.y + box.h / 2 }, path.points) ? !inside : inside,false)
       )
         return false;
     }
@@ -547,6 +607,47 @@ const MapLabels = {
   contours: [],
   slots: new Map(),
   viewKey: null,
+  areaGeometry: null,
+  emphasized(o) {
+    return !!o && (hover?.id === o.id || state.selected === (o.navigationId || o.id));
+  },
+  geometry() {
+    if (!this.areaGeometry) {
+      this.areaGeometry = new Map((typeof RegionMap === 'undefined' ? [] : RegionMap.hits).map(h => [h.o.id, {...h, object:h.o}]));
+      for (const h of this.contours) if (h.object) this.areaGeometry.set(h.id, h);
+      // Interior picking needs an outline on the actual canvas. A galaxy can
+      // surround a close stellar view, and cached regions include offscreen
+      // padding; neither should turn the whole viewport into a hidden target.
+      const viewport = {x:0, y:0, w:width, h:height};
+      for (const [id, h] of this.areaGeometry) {
+        const paths = h.paths || [{points:h.points, closed:h.closed}];
+        if (!h.closed || !paths.some(path => path.closed && path.points.some((p, i) =>
+          MapLandmarks.crosses([p, path.points[(i + 1) % path.points.length]], viewport)
+        ))) this.areaGeometry.delete(id);
+      }
+    }
+    return this.areaGeometry;
+  },
+  areaHit(x, y) {
+    let found = null, smallest = Infinity;
+    for (const h of this.geometry().values()) {
+      if (!h.closed || h.object.region?.shape === 'ring') continue;
+      const box = MapLandmarks.box(h.points);
+      if (box.w*box.h >= smallest || x < box.x || x > box.x+box.w || y < box.y || y > box.y+box.h) continue;
+      if ((h.paths||[{points:h.points}]).reduce((inside,path)=>MapLandmarks.contains({x,y},path.points)?!inside:inside,false)) { found = h.object; smallest = box.w*box.h; }
+    }
+    return found;
+  },
+  leader(box, anchor, alpha = 1, active = false) {
+    if (!anchor || !Number.isFinite(anchor.x+anchor.y)) return;
+    const from = {x:clamp(anchor.x,box.x,box.x+box.w),y:clamp(anchor.y,box.y,box.y+box.h)};
+    if (Math.hypot(anchor.x-from.x,anchor.y-from.y) < 5) return;
+    ctx.save();ctx.globalAlpha=alpha*(active ? .95 : .8);
+    line(from.x,from.y,anchor.x,anchor.y,active?'#252525':'#646464',active?1:.7);
+    circle(anchor.x,anchor.y,1.6,active?'#252525':'#646464',.8);
+    ctx.restore();
+    return {from,to:anchor};
+  },
   dynamic(key) {
     return (
       key === 'ship' ||
@@ -575,6 +676,7 @@ const MapLabels = {
     this.queue = [];
     this.placed = [];
     this.contours = [];
+    this.areaGeometry = null;
     MapLandmarks.points = null;
     MapLandmarks.ui = null;
     MapLandmarks.prepared = false;
@@ -651,7 +753,9 @@ const MapLabels = {
     );
     for (const q of this.queue) {
       if (q.sparse && !MapLandmarks.available(q.p, q.object)) continue;
-      const mapName = q.object ? MapDetails.mapLabelName(q.object) : q.name;
+      const mapName = q.object
+        ? MapDetails.mapLabelName(q.object, q.object.kind === 'blackhole' && q.object.id === state.selected)
+        : q.name;
       if (mapName === null) {
         if (q.sparse) q.onPlace?.();
         continue;
@@ -686,10 +790,11 @@ const MapLabels = {
           if (!this.dynamic(q.key)) this.slots.set(q.key, q.candidates.indexOf(p));
           this.boxes.push(box);
           this.placed.push({ key: q.key, ...box });
+          const active = this.emphasized(q.object), alpha = active ? 1 : q.opacity ?? 1;
           ctx.save();
-          ctx.globalAlpha = q.opacity ?? 1;
-          text(name, p.x, p.y, size, q.color || '#646464', p.align || 'left', 'sans');
-          if (caption) text(caption, p.x, p.y + 14, 7, '#999999', p.align || 'left');
+          ctx.globalAlpha = alpha;
+          text(name, p.x, p.y, size, active ? '#171717' : q.color || '#646464', p.align || 'left', 'sans');
+          if (caption) text(caption, p.x, p.y + 14, 7, active ? '#454545' : '#999999', p.align || 'left');
           ctx.restore();
           if (!q.sparse) q.onPlace?.(box);
           placed = true;

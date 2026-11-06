@@ -1,0 +1,79 @@
+{
+  "id": "rigid-shapes-radial-v4",
+  "version": 4,
+  "units": "ly",
+  "axes": "reference-epoch heliocentric Galactic XYZ; screen Y = -Yg",
+  "localDomains": [
+    {
+      "host": "sgr",
+      "radiusLy": 1000000,
+      "kinds": [
+        "star",
+        "pulsar",
+        "blackhole",
+        "stellar-cluster",
+        "nebula"
+      ]
+    },
+    {
+      "host": "andromeda",
+      "radiusLy": 1000000,
+      "kinds": [
+        "star",
+        "pulsar",
+        "blackhole",
+        "stellar-cluster",
+        "nebula"
+      ]
+    }
+  ],
+  "protected": [
+    "sol"
+  ],
+  "rules": [
+    "protected-anchor",
+    "declared-host",
+    "distance-domain",
+    "local-cartographic-domain",
+    "published-cf4-group",
+    "independent-anchor"
+  ],
+  "distanceDomains": [
+    {
+      "id": "solar-neighbours",
+      "origin": "sol",
+      "kinds": [
+        "star",
+        "pulsar",
+        "blackhole",
+        "stellar-cluster",
+        "nebula"
+      ],
+      "radiusLy": 1000,
+      "minimumCount": 100,
+      "countKind": "star",
+      "outsidePolicy": "exclude-distant-intruders"
+    },
+    {
+      "id": "milkyway-neighbours",
+      "origin": "sgr",
+      "kinds": [
+        "galaxy"
+      ],
+      "radiusLy": 15000000,
+      "minimumCount": 100,
+      "countKind": "galaxy",
+      "coverageCatalog": {
+        "prefix": "ungc-",
+        "minimumCount": 110,
+        "note": "Independent single-catalogue coverage avoids counting aliases from several catalogues as 100 distinct galaxies. Margin includes the self Milky Way entry and classification uncertainty; no spatial deduplication or membership is inferred."
+      },
+      "outsidePolicy": "exclude-distant-intruders"
+    }
+  ],
+  "pole": "screen negative Y for Z >= 0; positive Y for Z < 0",
+  "notes": "Radial placement applies to object anchors only. Declared members share their host translation and Galactic XY offsets; membership has priority over distance domains and members bypass individual radius/floor constraints. All extended shapes retain their local XY geometry. Unassociated anchors retain the fixed solar 1000 ly and Galactic-centre 15 million ly distance domains, local cartographic domains and CF4 group rules from v3. No new physical membership, fitting or science-coordinate changes. Frozen anchors v2 unchanged.",
+  "projection": "radial-anchors-rigid-xy",
+  "localGeometry": "Galactic XY offsets (dx, -dy); identical in full and radial; Z is retained for physical slice clipping",
+  "declaredHostFrame": "rigid-xy"
+}

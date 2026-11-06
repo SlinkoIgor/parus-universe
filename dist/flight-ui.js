@@ -85,13 +85,13 @@ function renderAcceleration() {
     visible = clamp(g, -c.maxBrakingG, c.maxAccelerationG),
     fraction = visible / (visible < 0 ? c.maxBrakingG : c.maxAccelerationG),
     label = (g > 0 ? '+' : '') + fmt(g, 2) + ' g';
-  $('acceleration').innerHTML = (g > 0 ? '+' : '') + fmt(g, 2) + '<small>g</small>';
+  UIContent.html($('acceleration'), (g > 0 ? '+' : '') + fmt(g, 2) + '<small>g</small>');
   $('accelerationFill').style.left = (fraction < 0 ? 50 + fraction * 50 : 50) + '%';
   $('accelerationFill').style.width = Math.abs(fraction) * 50 + '%';
   const limitText = (n) =>
     n >= 1e4 || n < 0.01 ? quantity(n) : fmt(n, Number.isInteger(n) ? 0 : 2);
-  $('accelerationMin').textContent = '−' + limitText(c.maxBrakingG) + ' g';
-  $('accelerationMax').textContent = '+' + limitText(c.maxAccelerationG) + ' g';
+  UIContent.text($('accelerationMin'), '−' + limitText(c.maxBrakingG) + ' g');
+  UIContent.text($('accelerationMax'), '+' + limitText(c.maxAccelerationG) + ' g');
   $('accelerationBar').setAttribute('aria-valuemin', String(-c.maxBrakingG));
   $('accelerationBar').setAttribute('aria-valuemax', String(c.maxAccelerationG));
   $('accelerationBar').setAttribute('aria-valuenow', String(visible));
@@ -111,17 +111,16 @@ function renderFlightProfile(eta) {
   ]) {
     const q = p[key],
       prefix = key === 'acceleration' ? 'boost' : 'stop';
-    $('' + prefix + 'Stage').textContent =
-      label + (q?.actual ? ' · факт' : q?.remainingOnly ? ' · осталось' : ' · ≈');
-    $('' + prefix + 'Distance').textContent = q ? profileDistance(q.distance) : '—';
-    $('' + prefix + 'Proper').textContent = q
+    UIContent.text($('' + prefix + 'Stage'), label + (q?.actual ? ' · факт' : q?.remainingOnly ? ' · осталось' : ' · ≈'));
+    UIContent.text($('' + prefix + 'Distance'), q ? profileDistance(q.distance) : '—');
+    UIContent.text($('' + prefix + 'Proper'), q
       ? durationText(q.proper)
       : p.flyby
         ? 'пролёт'
         : p.unreachable
           ? 'нет прибытия'
-          : '—';
-    $('' + prefix + 'Peak').textContent = q ? fmt(q.maxG, 2) + ' g' : '—';
+          : '—');
+    UIContent.text($('' + prefix + 'Peak'), q ? fmt(q.maxG, 2) + ' g' : '—');
   }
 }
 function gammaText(beta) {
@@ -139,22 +138,22 @@ function renderDepartureDiagram(forecast, wind) {
     peak = forecast?.peakBeta;
   const known = Number.isFinite(peak),
     boost = forecast?.acceleration;
-  $('departureDiagramTitle').textContent = {
+  UIContent.text($('departureDiagramTitle'), {
     engine: 'РАЗГОН · СОБСТВЕННАЯ ТЯГА',
     beam: 'РАЗГОН · СВЕТ ЗВЕЗДЫ',
     burst: 'РАЗГОН · ЗВЁЗДНАЯ ВСПЫШКА',
-  }[mode];
-  $('sailGamma').textContent = gammaText(peak);
-  $('departureSpeed').textContent = known ? '≈ ' + percentC(peak) : '—';
+  }[mode]);
+  UIContent.text($('sailGamma'), gammaText(peak));
+  UIContent.text($('departureSpeed'), known ? '≈ ' + percentC(peak) : '—');
   $('departureGamma').title =
     'Лоренц-фактор при прогнозной скорости в конце разгона, относительно неподвижного наблюдателя. γ = 1 / √(1 − β²).';
-  $('departureDistance').textContent = boost
+  UIContent.text($('departureDistance'), boost
     ? 'Путь разгона ≈ ' +
       profileDistance(boost.distance) +
       ' · ' +
       durationText(boost.proper) +
       ' на борту'
-    : 'Нет прогноза разгона';
+    : 'Нет прогноза разгона');
   const ship = '<path d="m258 59 16 5-16 5 4-5Z"/><path d="M301 64h28m-5-4 5 4-5 4"/>';
   const sail =
     '<path d="M286 44q14 20 0 40m0-40-13 20 13 20"/><text x="289" y="102" text-anchor="middle">парус</text><text x="289" y="117" text-anchor="middle">Ø 100 м</text>';
@@ -172,8 +171,7 @@ function renderDepartureDiagram(forecast, wind) {
     ' а.е.</text>';
   const engine =
     '<path d="m241 54-22 10 22 10m-9-20-28 10 28 10" stroke-dasharray="3 3"/><text x="216" y="36" text-anchor="middle">фотоны ←</text><text x="280" y="102" text-anchor="middle">двигатель</text><path d="M35 64h148" stroke-dasharray="2 5"/><circle cx="35" cy="64" r="3"/><text x="35" y="36" text-anchor="middle">старт</text><text x="170" y="137" text-anchor="middle">парус сложен · расход топлива</text>';
-  $('sailDiagram').innerHTML =
-    (mode === 'engine' ? engine : optical) + ship + (mode === 'engine' ? '' : sail);
+  UIContent.html($('sailDiagram'), (mode === 'engine' ? engine : optical) + ship + (mode === 'engine' ? '' : sail));
   $('sailDiagram').setAttribute(
     'aria-label',
     mode === 'engine'
@@ -189,10 +187,9 @@ function renderUI() {
   FlightSetup.sync();
   Cosmology.sync(state);
   $('expansionToggle').checked = state.expansion !== false;
-  $('expansionFactor').textContent =
-    (state.expansion !== false ? 'ВКЛ' : 'ВЫКЛ') +
+  UIContent.text($('expansionFactor'), (state.expansion !== false ? 'ВКЛ' : 'ВЫКЛ') +
     ' · a = ' +
-    fmt(Cosmology.scale(), Cosmology.scale() < 10 ? 6 : 2);
+    fmt(Cosmology.scale(), Cosmology.scale() < 10 ? 6 : 2));
   const f = state.flight,
     target = object(f ? f.target : state.selected),
     current = object(state.current),
@@ -203,22 +200,23 @@ function renderUI() {
     const estimate = f.mission || FlightEstimate.get();
     f.summary = { distance: f.distance, proper: estimate?.proper, earth: estimate?.earth };
   }
-  $('targetName').textContent = target.name;
-  $('targetType').textContent = objectTypeText(target);
+  UIContent.text($('distanceCaption'), 'РАССТОЯНИЕ ДО ЦЕЛИ');
+  UIContent.text($('targetName'), target.name);
+  UIContent.text($('targetType'), objectTypeText(target));
   $('targetVisited').hidden = !state.visited.includes(target.id);
   $('flightCard').classList.toggle('in-flight', active);
   const locationFrom = active
     ? object(f.fromId)?.name || f.from?.name || 'Межзвёздное пространство'
     : current ? 'Стоянка · ' + current.name : 'Межзвёздное пространство';
-  $('shipLocationFrom').textContent = locationFrom;
-  $('shipLocationTo').textContent = active ? target.name : '';
+  UIContent.text($('shipLocationFrom'), locationFrom);
+  UIContent.text($('shipLocationTo'), active ? target.name : '');
   $('shipLocationArrow').hidden = !active;
   $('shipLocationTo').hidden = !active;
   $('shipLocationIcon').setAttribute('href', active ? '#ship-icon' : '#station-icon');
-  $('shipLocationType').textContent = objectTypeText(active ? null : current) +
+  UIContent.text($('shipLocationType'), objectTypeText(active ? null : current) +
     (state.orbit && current && !active
       ? ' · орбита ' + fmt(state.orbit.radius / Stellar.r0, 2) + ' а.е.'
-      : '');
+      : ''));
   $('shipLocationType').hidden = active || !current;
   $('shipLocation').title = active
     ? locationFrom + ' → ' + target.name
@@ -228,9 +226,9 @@ function renderUI() {
   const d = target.navigable
     ? (f?.summary?.distance ?? f?.distance ?? Cosmology.physicalDistance(state.ship, target))
     : NaN;
-  $('targetDistance').innerHTML = Number.isFinite(d)
+  UIContent.html($('targetDistance'), Number.isFinite(d)
     ? compact(d) + ' <small>св. лет</small>'
-    : '<small>Расстояние неизвестно</small>';
+    : '<small>Расстояние неизвестно</small>');
   $('departureSection').hidden = active || arrived || !target.navigable;
   document.querySelectorAll('[data-departure]').forEach((b) => {
     const on = (state.departureMode || 'burst') === b.dataset.departure;
@@ -251,17 +249,15 @@ function renderUI() {
   if (planningBoost) {
     const predicted = windPlan(),
       light = Stellar.stellarLight(current);
-    $('sourceStarName').textContent = 'Источник: ' + current.name;
-    $('sailArea').textContent =
-      'Парус Ø ' +
+    UIContent.text($('sourceStarName'), 'Источник: ' + current.name);
+    UIContent.text($('sailArea'), 'Парус Ø ' +
       fmt(SHIP.sailDiameterM, 0) +
       ' м · коллектор Ø ' +
       fmt(Stellar.collectorDiameterM / 1000, 2) +
-      ' км';
+      ' км');
     $('sailArea').title = 'Si₃N₄ · 0,1 г/м² · масса плёнки 0,785 кг';
     const sourceRow = (label, value) => '<div><dt>' + label + '</dt><dd>' + value + '</dd></div>';
-    $('sourceReadout').innerHTML =
-      '<p class="source-basis">' +
+    UIContent.html($('sourceReadout'), '<p class="source-basis">' +
       (predicted.continuous
         ? light.estimated
           ? 'Оценка по типу звезды'
@@ -272,7 +268,7 @@ function renderUI() {
       sourceRow('В единицах Солнца', quantity(predicted.luminosityW / 3.828e26) + ' L☉') +
       sourceRow('Звезда → коллектор', fmt(predicted.collectorR / Stellar.r0, 2) + ' а.е.') +
       sourceRow('Пучок к парусу', quantity(predicted.beamPower) + ' Вт') +
-      '</dl>';
+      '</dl>');
   }
   const departurePreview =
     !MissionPlanner.enabledIdle() && !state.flightSetup && !active && !arrived && target.navigable;
@@ -294,9 +290,8 @@ function renderUI() {
   $('burnTrack').hidden = !photon;
   if (planningEngine) {
     const e = Rocket.plan(state.matter, d);
-    $('engineLabel').textContent = 'ФОТОННАЯ ТЯГА · ДО ' + fmt(Rocket.maxG, 2) + ' g';
-    $('engineReadout').innerHTML =
-      'Масса <b>' +
+    UIContent.text($('engineLabel'), 'ФОТОННАЯ ТЯГА · ДО ' + fmt(Rocket.maxG, 2) + ' g');
+    UIContent.html($('engineReadout'), 'Масса <b>' +
       massText(Rocket.dryMass) +
       ' + ' +
       massText(state.matter) +
@@ -304,69 +299,62 @@ function renderUI() {
       massText(e.budget) +
       ' → ' +
       percentC(e.beta) +
-      '</b>';
+      '</b>');
   }
   if (photon) {
     const e = f.engine;
-    $('engineLabel').textContent =
-      e.direction < 0 ? 'ОБРАТНАЯ ФОТОННАЯ ТЯГА' : 'АННИГИЛЯЦИЯ ВЕЩЕСТВА';
-    $('engineReadout').innerHTML =
-      'Расход <b>' +
+    UIContent.text($('engineLabel'), e.direction < 0 ? 'ОБРАТНАЯ ФОТОННАЯ ТЯГА' : 'АННИГИЛЯЦИЯ ВЕЩЕСТВА');
+    UIContent.html($('engineReadout'), 'Расход <b>' +
       massText(e.burned) +
       ' / ' +
       massText(e.budget) +
       '</b><br>Энергия <b>' +
       quantity(e.energy / 1e15) +
-      ' ПДж</b>';
+      ' ПДж</b>');
     $('burnBar').style.width = (e.budget ? (100 * e.burned) / e.budget : 0) + '%';
   }
   if (wind) {
     const sample = f.wind.lastSample || Stellar.sampleProper(f.wind, f.wind.elapsedProper || 0),
       r = sample.r,
       force = sample.force;
-    $('engineLabel').textContent =
-      (f.wind.continuous ? 'СВЕТ ЗВЕЗДЫ' : 'СВЕТ ВСПЫШКИ') +
+    UIContent.text($('engineLabel'), (f.wind.continuous ? 'СВЕТ ЗВЕЗДЫ' : 'СВЕТ ВСПЫШКИ') +
       ' · РАСКРЫТИЕ ' +
       fmt(sample.opening * 100, 2) +
-      '%';
-    $('engineReadout').innerHTML =
-      'До звезды <b>' +
+      '%');
+    UIContent.html($('engineReadout'), 'До звезды <b>' +
       compact(r / Stellar.r0) +
       ' а.е.</b><br>Сила <b>' +
       quantity(force) +
       ' Н</b><br>Свет испущен на <b>' +
       fmt(((f.wind.sourceOffset || 0) + sample.source) * 365.25, 2) +
-      (f.wind.continuous ? ' сут.</b> непрерывного излучения' : ' / 30 сут.</b> вспышки');
+      (f.wind.continuous ? ' сут.</b> непрерывного излучения' : ' / 30 сут.</b> вспышки'));
   }
   if (mag) {
     const rates =
       f.magnetic.lastSample || ProperTime.at(f.magnetic, Magnetic, f.magnetic.elapsedProper || 0);
-    $('engineLabel').textContent = 'ПАРУС + ОБРАТНАЯ ТЯГА';
-    $('engineReadout').innerHTML =
-      f.medium.label +
+    UIContent.text($('engineLabel'), 'ПАРУС + ОБРАТНАЯ ТЯГА');
+    UIContent.html($('engineReadout'), f.medium.label +
       '<br>В баке <b>' +
       massText(state.matter) +
       '</b><br>Мощность двигателя <b>' +
       quantity(rates.enginePower || 0) +
       ' Вт</b><br>Суммарное торможение <b>' +
       fmt(-rates.properAcceleration / G0, 2) +
-      ' g</b>';
+      ' g</b>');
   }
 
   if (state.phase === 'flyby') {
     const p = f.encounter.plan,
       local = Gravity.atProper(p, p.elapsedProper || 0);
-    $('engineLabel').textContent = 'ГРАВИТАЦИОННЫЙ ПРОЛЁТ · 0 g';
-    $('engineReadout').innerHTML =
-      'Поворот <b>' +
+    UIContent.text($('engineLabel'), 'ГРАВИТАЦИОННЫЙ ПРОЛЁТ · 0 g');
+    UIContent.html($('engineReadout'), 'Поворот <b>' +
       Route.angleText(p.angle) +
       '</b><br>Перицентр <b>' +
       Route.radiusText(p.rp) +
       '</b><br>Локальная скорость <b>' +
       percentC(local.localBeta) +
-      '</b>';
+      '</b>');
   }
-  $('routeCount').textContent = f?.route?.length || state.itinerary.length || '';
   let action, hint;
   if (active) {
     action = '';
@@ -407,11 +395,10 @@ function renderUI() {
         : 'Запас рабочего вещества исчерпан.';
   }
   $('launchBtn').hidden = active;
-  $('launchBtn').querySelector('span').textContent = action;
+  UIContent.text($('launchBtn').querySelector('span'), action);
   $('launchBtn').disabled =
     !target.navigable || (!arrived && !boost && !Rocket.usableFuel(state.matter));
-  $('flightHint').textContent =
-    hint + (target.positionQuality === 'approximate' ? ' Позиция приблизительная.' : '');
+  UIContent.text($('flightHint'), hint + (target.positionQuality === 'approximate' ? ' Позиция приблизительная.' : ''));
   const phases = {
     thrust: 'ФОТОННАЯ ТЯГА',
     launch: 'РАЗГОН СВЕТОМ',
@@ -420,30 +407,30 @@ function renderUI() {
     dock: 'ТОЧНАЯ ОСТАНОВКА',
     flyby: 'ГРАВИТАЦИОННЫЙ ПРОЛЁТ',
   };
-  $('phaseTag').textContent = paused
+  UIContent.text($('phaseTag'), paused
     ? 'ПАУЗА'
     : active
       ? phases[state.phase]
       : arrived
         ? 'ВЫ ЗДЕСЬ'
-        : 'ЦЕЛЬ';
+        : 'ЦЕЛЬ');
   $('flightControls').hidden = !active;
   const eta = FlightEstimate.get();
   $('horizonNotice').hidden = !eta?.unreachable;
-  $('horizonNotice').textContent = eta?.unreachable
-    ? 'При включённом расширении прибытие недостижимо. Можно лететь в направлении цели.'
-    : '';
+  UIContent.text($('horizonNotice'), eta?.unreachable
+    ? 'При включённом расширении прибытие недостижимо.'
+    : '');
   $('arrivalEstimate').hidden = arrived || !target.navigable;
   $('arrivalFuelRow').hidden = Route.isFlyby();
-  $('arrivalFuel').textContent = Number.isFinite(eta?.arrivalFuelKg)
+  UIContent.text($('arrivalFuel'), Number.isFinite(eta?.arrivalFuelKg)
     ? fmt(eta.arrivalFuelKg, 3) + ' кг'
-    : '—';
-  $('arrivalLabel').textContent = Route.isFlyby()
+    : '—');
+  UIContent.text($('arrivalLabel'), Route.isFlyby()
     ? 'ДЛИТЕЛЬНОСТЬ ДО ПРОЛЁТА'
-    : 'ДЛИТЕЛЬНОСТЬ ПОЛЁТА';
+    : 'ДЛИТЕЛЬНОСТЬ ПОЛЁТА');
   const summary = f?.summary || f?.mission || eta;
-  $('arrivalProper').textContent = summary ? durationText(summary.proper) : '—';
-  $('arrivalEarth').textContent = summary ? durationText(summary.earth) : '—';
+  UIContent.text($('arrivalProper'), summary ? durationText(summary.proper) : '—');
+  UIContent.text($('arrivalEarth'), summary ? durationText(summary.earth) : '—');
   renderFlightProfile(eta);
   $('flightDetails').hidden = arrived || !target.navigable;
   $('arrivalFuel').title = Number.isFinite(eta?.arrivalFuelKg)
@@ -453,17 +440,16 @@ function renderUI() {
   renderAcceleration();
   renderClockRatio();
   renderReachability();
-  $('matter').innerHTML =
-    fmt(state.matter * 1000, 3) +
+  UIContent.html($('matter'), fmt(state.matter * 1000, 3) +
     ' / ' +
     fmt(Rocket.fuelCapacity * 1000, Rocket.fuelCapacity === 0.001 ? 0 : 2) +
-    '<small>кг</small>';
-  $('dryMass').innerHTML = fmt(SHIP.dryMassKg, SHIP.dryMassKg === 1 ? 0 : 3) + '<small>кг</small>';
+    '<small>кг</small>');
+  UIContent.html($('dryMass'), fmt(SHIP.dryMassKg, SHIP.dryMassKg === 1 ? 0 : 3) + '<small>кг</small>');
   const dryWidth = (Rocket.dryMass / (Rocket.dryMass + Rocket.fuelCapacity)) * 100,
     fuelWidth = (state.matter / (Rocket.dryMass + Rocket.fuelCapacity)) * 100;
   $('massDry').style.width = dryWidth + '%';
   $('massFuel').style.width = fuelWidth + '%';
-  $('massTotal').textContent = massText(Rocket.dryMass + state.matter);
+  UIContent.text($('massTotal'), massText(Rocket.dryMass + state.matter));
   $('massBar').setAttribute(
     'aria-label',
     'Сухая масса ' +
@@ -484,34 +470,36 @@ function renderUI() {
     ' | Свободно ' +
     massText(Rocket.fuelCapacity - state.matter);
   const rate = Simulation.replayRate();
-  $('timeRate').textContent = paused
+  UIContent.text($('timeRate'), paused
     ? 'Пауза'
     : rate < speed
       ? 'СЛОУМО ×' + compact(speed / rate)
       : '1 с = ' +
         fmt(speed, speed < 1 ? 1 : 0) +
         (speed === 1 ? ' год' : speed < 1 ? ' года' : ' лет') +
-        ' на борту';
+        ' на борту');
   $('timeRate').classList.toggle('replaying', rate < speed);
 
   const cosmicYears = Math.floor(state.universeElapsed ?? state.earth);
-  $('universeClock').textContent = fmt(13800000000 + cosmicYears, 0);
-  $('earthClock').innerHTML = fmt(Math.floor(state.earth), 0) + '<small>лет</small>';
-  $('shipClock').innerHTML = fmt(Math.floor(state.proper), 0) + '<small>лет</small>';
+  UIContent.text($('universeClock'), fmt(13800000000 + cosmicYears, 0));
+  UIContent.text($('earthClock'), fmt(Math.floor(state.earth), 0));
+  UIContent.text($('shipClock'), fmt(Math.floor(state.proper), 0));
   const pct = f ? Math.min(100, (f.covered / f.distance) * 100) : 0;
   $('progressBar').style.width = pct + '%';
-  $('progressValue').textContent = fmt(pct, 1) + '%';
-  $('progressRemaining').textContent =
-    f && eta ? 'Осталось на борту · ' + durationText(eta.proper) : '';
+  UIContent.text($('progressValue'), fmt(pct, 1) + '%');
+  UIContent.text($('progressRemaining'), f && eta ? 'Осталось на борту · ' + durationText(eta.proper) : '');
   $('cancelFlight').disabled = !f?.rollback;
   $('cancelFlight').title =
     f && !f.rollback ? 'В этом старом сохранении нет снимка состояния до старта' : '';
-  $('progressLabel').textContent = f?.route?.length
+  UIContent.text($('progressLabel'), f?.route?.length
     ? 'УЧАСТОК ' + (f.legIndex + 1) + ' / ' + f.route.length
     : f?.missed
       ? 'ПРОЛЁТ ЦЕЛИ'
-      : 'ПРОЙДЕНО';
+      : 'ПРОЙДЕНО');
   updateTimeControl();
   FlightBuilder.renderCard(target, arrived, eta);
   globalThis.UniverseMap?.renderCard(target);
+  FlightQueue.render();
+  QuickFlight.render();
+  GalacticTraffic.renderControl();
 }

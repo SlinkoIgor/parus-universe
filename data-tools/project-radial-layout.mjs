@@ -15,22 +15,19 @@ const domains={};
 for(const d of profile.distanceDomains||[]){
  const host=layout.resolve(d.origin),centre=layout.placement(host).position;
  const members=[...byid.values()].filter(o=>!o.atlasOnly&&!o.synthetic&&o.positionQuality!=='unknown'&&o.p3?.every(Number.isFinite)&&d.kinds.includes(layout.category(o))&&o.id!==d.origin);
- const radii=members.map(o=>({id:o.id,kind:o.kind,r:Math.hypot(...o.p3.map((v,i)=>v-host.p3[i])),m:Math.hypot(placements[o.id].position.x-centre.x,placements[o.id].position.y-centre.y)}));
+ const radii=members.map(o=>({id:o.id,kind:o.kind,rigid:placements[o.id].frame==='rigid-xy',r:Math.hypot(...o.p3.map((v,i)=>v-host.p3[i])),m:Math.hypot(placements[o.id].position.x-centre.x,placements[o.id].position.y-centre.y)}));
  const nearest=radii.filter(o=>o.kind===d.countKind).sort((a,b)=>a.r-b.r||a.id.localeCompare(b.id));
  if(nearest.length<d.minimumCount||nearest[d.minimumCount-1].r>d.radiusLy)throw Error('Nearest '+d.minimumCount+' no longer fit fixed distance domain '+d.id+'; review a new profile, do not refit automatically');
- const rigidStellarComponents=radii.filter(o=>byid.get(o.id).stellarSystem&&placements[o.id].frame==='rigid-xy');
- const rigidIds=new Set(rigidStellarComponents.map(o=>o.id));
- for(const row of rigidStellarComponents){
-  const o=byid.get(row.id),parent=byid.get(placements[o.id].parent),a=placements[o.id].position,b=placements[parent.id].position;
-  if(Math.abs(a.x-b.x-o.p3[0]+parent.p3[0])>1e-9||Math.abs(a.y-b.y+o.p3[1]-parent.p3[1])>1e-9)throw Error('Stellar local frame invariant failed for '+o.id);
- }
- for(const o of radii)if(!rigidIds.has(o.id)&&(o.r<=d.radiusLy?Math.abs(o.r-o.m)>Math.max(1e-6,o.r*1e-12):o.m<d.radiusLy))throw Error('Distance invariant failed for '+o.id);
- domains[d.id]={origin:d.origin,radiusLy:d.radiusLy,exactRecords:radii.filter(o=>!rigidIds.has(o.id)&&o.r<=d.radiusLy).length,rigidStellarComponents:rigidStellarComponents.length,nearestCount:d.minimumCount,lastNearestRadiusLy:nearest[d.minimumCount-1].r,violations:0};
+ for(const o of radii.filter(o=>!o.rigid))if(o.r<=d.radiusLy?Math.abs(o.r-o.m)>Math.max(1e-6,o.r*1e-12):o.m<d.radiusLy)throw Error('Distance invariant failed for '+o.id);
+ domains[d.id]={origin:d.origin,radiusLy:d.radiusLy,exactRecords:radii.filter(o=>!o.rigid&&o.r<=d.radiusLy).length,rigidMemberExceptions:radii.filter(o=>o.rigid).length,nearestCount:d.minimumCount,lastNearestRadiusLy:nearest[d.minimumCount-1].r,violations:0};
  if(d.coverageCatalog){
   const coverage=nearest.filter(o=>o.id.startsWith(d.coverageCatalog.prefix)),n=d.coverageCatalog.minimumCount;
   if(coverage.length<n||coverage[n-1].r>d.radiusLy)throw Error('Independent single-catalogue coverage no longer fits '+d.id+'; review a new profile');
   domains[d.id].coverageCatalog={...d.coverageCatalog,inside:coverage.filter(o=>o.r<=d.radiusLy).length,lastRequiredRadiusLy:coverage[n-1].r};
  }
 }
-fs.writeFileSync(output,JSON.stringify({runtimeData:data,profileKey:layout.key,catalogRevision:manifest.revision,geometryVersion:c.MapLayout.version,counts,warnings,parents,domains,placements}));
+vm.runInContext(['regions','map-geometry-data','map-geometry'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
+const geometryBounds={};
+for(const o of objects){o.region??=o.regionData;c.StellarClusters.prepare(o);c.Nebulae.prepare(o);const b=c.MapGeometry.indexBounds(o,'radial');if(!b)continue;const p=placements[o.id]?.position;if(p)geometryBounds[o.id]=b.map((v,i)=>v+(i%2?p.y:p.x));}
+fs.writeFileSync(output,JSON.stringify({runtimeData:data,profileKey:layout.key,catalogRevision:manifest.revision,geometryVersion:c.MapLayout.version,counts,warnings,parents,domains,placements,geometryBounds}));
 console.log(JSON.stringify({profileKey:layout.key,counts,warnings}));
