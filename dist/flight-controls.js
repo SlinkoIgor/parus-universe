@@ -14,13 +14,13 @@ function launch(forceEngine = false, {focusRoute = true} = {}) {
   if (!target || target.id === state.current || !target.navigable) return;
   if (!forceEngine && state.departureMode === 'burst') {
     const issue = FlightSetup.burstIssue(object(state.current));
-    if (issue) { toast(issue); return; }
+    if (issue) { toast(issue,4200,'warning'); return; }
   }
   state.controlG = 10;
   state.auto = true;
   const boost = !forceEngine && wantsBoost();
   if (!boost && !Rocket.usableFuel(state.matter)) {
-    toast('Нет рабочего вещества для тяги.');
+    toast('Нет рабочего вещества для тяги.',4200,'warning');
     return;
   }
   const from = { ...state.ship },
@@ -68,12 +68,14 @@ function launch(forceEngine = false, {focusRoute = true} = {}) {
     ? Stellar.sample(wind, 0).force / wind.massKg
     : Rocket.acceleration(Rocket.dryMass + state.matter, engine.maxG);
   state.phase = boost ? 'launch' : 'thrust';
+  FlightTips.noteLaunch();
   Simulation.smoothedFactor = Math.min(1, state.flight.replayRate);
   paused = false;
   if (boost) {
     const current = object(state.current);
     if (state.departureMode === 'burst') {
       state.destroyed.push(current.id);
+      FlightTips.use('supernova');
       effects.push({ x: from.x, y: from.y, p3: from.p3, age: 0 });
     }
     log(
@@ -86,7 +88,7 @@ function launch(forceEngine = false, {focusRoute = true} = {}) {
     toast(
       state.departureMode === 'burst'
         ? 'Вспышка длится 30 суток у звезды.'
-        : 'Постоянный пучок света: звезда сохраняется.',
+        : 'Постоянный пучок света: звезда сохраняется.',4200,'launch',
     );
   } else
     log(
@@ -126,7 +128,7 @@ function beginDock() {
   f.engine = Rocket.retroPlan(state.matter, state.beta, Magnetic.maxG);
   f.replayRate = f.engine.burnProper / 2;
   if (!f.engine.canStop) {
-    toast('Недостаточно вещества для точной остановки. Продолжаем захват.');
+    toast('Недостаточно вещества для точной остановки. Продолжаем захват.',4200,'warning');
     state.phase = 'brake';
     f.magnetic = Magnetic.plan((Rocket.dryMass + state.matter) * 1000, state.beta);
     return;
@@ -191,20 +193,21 @@ function advance(ds, earth, proper, comoving = false, path) {
     state.beta > 1e-8
   ) {
     f.missed = true;
-    toast('Цель пройдена. Физический тормозной путь ещё не исчерпан.');
+    toast('Цель пройдена. Физический тормозной путь ещё не исчерпан.',4200,'warning');
   }
 }
 function finishFlight(arrived) {
   const f = state.flight,
     target = object(f.target);
   FlightHistory.complete(f);
+  if (!arrived || !f.route?.length || (f.legIndex || 0) >= f.route.length - 1) FlightHistory.finish(f);
   state.orbit = null;
   if (arrived) {
     const stop = ExtendedCatalog.revealArrival(
       target,
       f.arrivalStar ||
         f.mission?.arrivalStar ||
-        (f.mission?.arrival ? null : ExtendedCatalog.arrivalStar(target)),
+        (f.mission?.arrival ? null : ExtendedCatalog.syntheticArrivalStar(target)),
     );
     state.ship = Space.point(stop.p3);
     state.current = stop.id;
@@ -222,6 +225,7 @@ function finishFlight(arrived) {
       state.transferSetup = null;
     }
     if (!state.visited.includes(target.id)) state.visited.push(target.id);
+    if (f.requestedTarget && !state.visited.includes(f.requestedTarget)) state.visited.push(f.requestedTarget);
     log(
       'Прибытие: ' +
         stop.name +
@@ -231,11 +235,10 @@ function finishFlight(arrived) {
         compact(state.earth) +
         ' лет.',
     );
-    toast('Прибытие: ' + stop.name + '. Выберите следующую цель.');
   } else {
     state.current = null;
     log('Остановка вне цели. До неё ' + distanceText(distance(state.ship, target)) + '.');
-    toast(SHIP_NAME + ' остановлен. До цели ' + distanceText(distance(state.ship, target)) + '.');
+    toast(SHIP_NAME + ' остановлен. До цели ' + distanceText(distance(state.ship, target)) + '.',4200,'warning');
   }
   const orbital = arrived && OrbitalArrival.park(f);
   if (orbital) {
@@ -246,19 +249,19 @@ function finishFlight(arrived) {
         fmt(state.orbit.speed / 1000, 2) +
         ' км/с.',
     );
-    toast('Выход на орбиту: ' + target.name + '.');
   }
   state.matter = Rocket.usableFuel(state.matter);
   if (!orbital) state.beta = 0;
   state.acceleration = 0;
   state.phase = 'idle';
   state.flight = null;
+  FlightTips.clear();
   renderUI();
   renderCatalog();
   persist();
   if (arrived) {
     Route.afterStop(f);
-    if (!state.flight && (!f.route?.length || f.legIndex >= f.route.length - 1)) FlightQueue.depart({focusRoute:false});
+
   }
 }
 function autoFraction(predict) {

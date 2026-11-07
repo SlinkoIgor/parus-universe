@@ -42,7 +42,7 @@ const gl=ExtendedCatalog.systemByMember.get('hyg-82565'),glMembers=gl.members.ma
 for(const o of glMembers.slice(-2)){const p=MapLayout.project(o);assert.ok(p.x<inner[0]||p.x>inner[2]||p.y<inner[1]||p.y>inner[3],'remote Gl 644 branch lies outside the known close orbit');inside(p,whole,'Gl 644 includes remote '+o.id);}
 MapSlice.setMode('slice');state.selected='proxima';showObject('proxima');await $('viewSystem').onclick();assert.equal(MapSlice.mode,'full','a depth slab cannot cut the requested complete system');
 MapFilters.change('star','naked-eye','all',false);showObject('alpha');await $('viewSystem').onclick();assert.equal(MapFilters.key,'all|all|all','incompatible map selections cannot hide C');
-MapFilters.change('star','nearby','all',false);showObject('alpha');await $('viewSystem').onclick();assert.equal(MapFilters.key,'star|nearby|all','compatible map selections are retained');MapFilters.change('all','all','all',false);
+MapFilters.change('star','nearby','all',false);showObject('alpha');await $('viewSystem').onclick();assert.equal(MapFilters.key,'all|nearby|all','compatible map selections are retained');MapFilters.change('all','all','all',false);
 assert.equal(relatedSystemBounds([{id:'unknown',atlasOnly:true,p3:null}]),null);
 assert.equal(relatedSystemBounds([{id:'incomplete',p3:[1,2]}]),null);
 // Whole-system selection must survive the ordinary density and layer cutoffs;

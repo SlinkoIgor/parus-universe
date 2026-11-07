@@ -6,6 +6,7 @@ try {
   state = initial();
 }
 FlightSetup.sync();
+ArrivalStars.primeRoutes();
 paused = !!state.paused;
 speed = state.timeScale > 0 && TIME_RATES.includes(state.timeScale) ? state.timeScale : 1;
 if (state.flight && state.phase !== 'flyby') Route.configure();
@@ -64,6 +65,8 @@ function frame(now) {
       MapLabels.draw();
       Route.drawEncounter();
       drawHover();
+      // Paint the distance backing over objects and their names as well as the grid.
+      drawRouteDistance();
     } finally {
       MapDetails.endFrame();
     }
@@ -73,7 +76,7 @@ function frame(now) {
       lastUI = now;
     }
   }
-  if (now - saveTick > 1500) {
+  if (!Route.feedbackPending && now - saveTick > 1500) {
     persist();
     saveTick = now;
   }
@@ -170,7 +173,13 @@ canvas.addEventListener('pointerup', (e) => {
     doubleClickTarget = id && id === clickedMapTarget ? id : null;
     clickedMapTarget = id || null;
     if (traffic) { if (!zenMode) GalacticTraffic.show(traffic); }
-    else if (id) select(id);
+    else if (id) {
+      select(id,false,{deferPreview:true,routeAnchor:!e.shiftKey});
+      if (e.shiftKey) {
+        doubleClickTarget = clickedMapTarget = null;
+        planRoutePoint(id,{deferPreview:true});
+      }
+    }
     else FlightQueue.dismiss();
   }
   pointer.down = false;
@@ -183,12 +192,22 @@ canvas.addEventListener('pointercancel', () => {
 });
 canvas.addEventListener('pointerleave', () => (hover = null));
 canvas.addEventListener('dblclick', (e) => {
-  if (e.button !== 0 || pointer.moved || !doubleClickTarget) return;
+  if (e.button !== 0 || e.shiftKey || pointer.moved || !doubleClickTarget) return;
   const { id } = pickMapTarget(e), target = object(id);
-  if (id !== doubleClickTarget || !target?.navigable || id === state.current) return;
+  if (id !== doubleClickTarget || !target?.navigable) return;
   e.preventDefault();
-  select(id);
+  if(state.selected!==id)select(id,false,{deferPreview:true});
+  if(state.flight){
+    if(Route.add(id,{deferPreview:true}))FlightTips.use('double-click',{persistNow:false});
+    return;
+  }
+  // Finish the draft before starting; a repeated final point only starts it.
+  if(state.itinerary.length&&state.itinerary.at(-1).id!==id&&
+     !Route.add(id,{mode:'stop',deferPreview:true}))return;
+  Route.cancelFeedback();
   launchSelectedTarget();
+  if(state.flight)FlightTips.use('double-click');
+  else Route.flushFeedback();
 });
 
 $('shipBtn').onclick = focusShip;
@@ -243,33 +262,22 @@ $('multiplayerToggle').onchange = e => {
   state.multiplayer = e.target.checked;
   persist(); renderUI();
 };
-$('menuBtn').onclick = () => {
-  if (!$('menu').hidden) return closeMenu();
-  MapFilters.close();
-  $('themePicker').hidden = true;
-  $('themeBtn').setAttribute('aria-expanded', 'false');
-  showMenuPage();
-  $('menu').hidden = false;
-  $('menuBtn').setAttribute('aria-expanded', 'true');
-};
-$('libraryBtn').onclick = () => showMenuPage('library', true);
-$('settingsBtn').onclick = () => showMenuPage('settings', true);
-document.querySelectorAll('[data-menu-back]').forEach((button) => {
-  button.onclick = () => {
-    const opener = button.closest('[data-menu-page]').dataset.menuPage === 'library'
-      ? $('libraryBtn') : $('settingsBtn');
-    showMenuPage();
-    opener.focus();
-  };
-});
+$('libraryBtn').onclick = () => toggleMenu('library');
+$('settingsBtn').onclick = () => toggleMenu('settings');
 $('menu').onkeydown = (event) => {
   if (event.key !== 'Escape') return;
   event.preventDefault();
   event.stopPropagation();
-  const back = event.target.closest('[data-menu-page]')?.querySelector('[data-menu-back]');
-  if (back) back.click();
-  else closeMenu();
+  closeMenu();
 };
+for (const [id, page] of [['libraryBtn','library'],['settingsBtn','settings']]) {
+  $(id).onkeydown = event => {
+    if (event.key !== 'ArrowDown') return;
+    event.preventDefault();
+    if ($('menu').hidden || $(id).getAttribute('aria-expanded') !== 'true') toggleMenu(page);
+    showMenuPage(page, true);
+  };
+}
 document.addEventListener('pointerdown', (e) => {
   if (!e.target.closest('#mapFilters,#mapFilterBtn')) MapFilters.close();
   if (!e.target.closest('.menu-popover,.menu-button')) closeMenu();
@@ -326,16 +334,22 @@ $('timeSlider').addEventListener('input', (event) =>
 document
   .querySelectorAll('[data-time]')
   .forEach((button) => (button.onclick = () => setTimeRate(button.dataset.time)));
-function launchSelectedTarget() {
+function launchSelectedTarget(event) {
   syncClock();
   if (FlightQueue.browsing()) {
-    FlightQueue.add(state.selected);
+    Route.add(state.selected,{deferPreview:!!event});
+  } else if (state.itinerary.length) {
+    if (state.itinerary.at(-1).mode === 'flyby') {
+      if(Route.canSelectNext()&&Route.add(state.selected,{deferPreview:!!event}))fitRoute(object(state.selected),{wholeRoute:true});
+    }
+    else Route.start();
   } else if (state.current === state.selected) {
     openCatalog();
   } else launch();
 }
 $('launchBtn').onclick = launchSelectedTarget;
 $('helpBtn').onclick = showHelp;
+$('routeBtn').onclick = () => Route.show();
 $('modelBtn').onclick = showModel;
 $('pulsarResearchBtn').onclick = () => PulsarResearch.show();
 $('journalBtn').onclick = showJournal;
@@ -366,7 +380,7 @@ $('resetBtn').onclick = () => {
     renderUI();
     persist();
     $('infoDialog').close();
-    toast('Новая экспедиция. Солнечная система, нулевой год.');
+    toast('Новая экспедиция. Солнечная система, нулевой год.',4200,'reset');
   };
 };
 window.addEventListener('keydown', (e) => {
@@ -379,11 +393,6 @@ window.addEventListener('keydown', (e) => {
     setZenMode(false);
     openCatalog();
     $('search').select();
-    return;
-  }
-  if (e.key === 'Escape' && zenMode) {
-    e.preventDefault();
-    setZenMode(false);
     return;
   }
   if (e.key === 'Escape' && !$('mapFilters').hidden) {
@@ -401,7 +410,15 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !$('menu').hidden) {
     e.preventDefault();
     closeMenu();
-    $('menuBtn').focus();
+    return;
+  }
+  if (e.key === 'Escape' && !document.querySelector('dialog[open]') && !e.target.closest('input,textarea,select,[contenteditable]') && Route.undo()) {
+    e.preventDefault();
+    return;
+  }
+  if (e.key === 'Escape' && zenMode) {
+    e.preventDefault();
+    setZenMode(false);
     return;
   }
   if (e.target.closest('input,textarea,select,button,summary,[contenteditable]')) return;
@@ -445,7 +462,6 @@ globalThis.MapSlice?.setup();
 MapFilters.setup();
 FlightBuilder.setup();
 Route.setup();
-FlightQueue.setup();
 QuickFlight.setup();
 applyTheme(theme);
 updateShipButton();

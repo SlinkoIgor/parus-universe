@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 const els=new Map();
 class Element{constructor(){this.style={};this.dataset={};this.classList={add(){},remove(){},toggle(){}};this.hidden=false;this.value='';this.checked=true;this.children=[];this.open=false;}querySelector(s){return this.child||(this.child=new Element)}querySelectorAll(){return []}setAttribute(){}addEventListener(){}getBoundingClientRect(){return{width:900,height:620,left:0,top:0}}getContext(){return new Proxy({measureText:s=>({width:s.length*6})},{get:(o,k)=>o[k]||(()=>{})})}append(e){this.children.push(e)}replaceChildren(){this.children=[]}focus(){}showModal(){this.open=true}close(){this.open=false}}
 const el=id=>els.get(id)||(els.set(id,new Element),els.get(id));
+Object.defineProperty(el('toast'),'textContent',{get(){return el('toastText').textContent||''},set(value){el('toastText').textContent=value;}});
 const context=vm.createContext({console,performance,Math,JSON,Number,Array,String,Set,Map,Date,setTimeout:()=>0,clearTimeout(){},requestAnimationFrame(){},ResizeObserver:class{observe(){}},document:{documentElement:{dataset:{theme:'dark'}},querySelector:()=>null,getElementById:el,querySelectorAll:()=>[],addEventListener(){},createElement:()=>new Element,hidden:false},window:{devicePixelRatio:1,addEventListener(){},open(){}},localStorage:{getItem(){return null},setItem(){}},assert});
 
 

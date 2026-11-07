@@ -124,3 +124,29 @@ run(`
 console.log('PASS no stage dots/captions in route overviews, smooth close-view reveal, coincident-event merging, fixed caption anchors through crowding/status changes, unchanged atlas and physical state in all modes/widths');
 console.log('PASS fixed name intervals and local anchors in all modes; panels do not move names or change area leaders; monotone coarse-layer cutoffs, no hidden tile loads, native areas and clickable labels');
 console.log(JSON.stringify(checks));
+// Pan through every canvas edge: clip the text without changing its anchor,
+// collision priority or the filtered/ship placement chosen before reaching it.
+run(`{
+ width=1440;height=1000;RegionMap.hits=[];hover=null;
+ const object=ExtendedCatalog.get('alpha');
+ for(const variant of [{key:'ordinary'},{key:'local',local:true},{key:'filtered',filtered:true},
+   {key:'flight-mark-brake'},{key:'ship'}]){
+  const place=p=>{MapLabels.boxes=[];MapLabels.placed=[];MapAnnotations.hits=[];
+   MapAnnotations.originBox=null;MapAnnotations.notableBoxes=[];MapAnnotations.filteredGlyphs=[];
+   MapLabels.slots.clear();MapAnnotations.place({...variant,object,name:'Название у края экрана',p,alpha:1},[]);
+   return MapLabels.placed[0];};
+  const p={x:650,y:400},base=place(p);assert.ok(base);
+  for(const [x,y] of [[-base.w+20,base.y],[width-20,base.y],[base.x,-base.h+5],[base.x,height-5]]){
+   const dx=x-base.x,dy=y-base.y,partial=place({x:p.x+dx,y:p.y+dy});assert.ok(partial,variant.key+' stays partially visible');
+   assert.equal(partial.x,x);assert.equal(partial.y,y,'edge cannot change row/anchor');
+   const visible={x:Math.max(0,x),y:Math.max(0,y),w:Math.min(width,x+base.w)-Math.max(0,x),h:Math.min(height,y+base.h)-Math.max(0,y)};
+   assert.equal(MapAnnotations.hit(visible.x+visible.w/2,visible.y+visible.h/2)?.id,object.id,'visible fragment stays clickable');
+  }
+  assert.equal(place({x:-10000,y:400}),undefined,'fully invisible text is culled');
+  // The legacy renderer uses the same clipping rule.
+  MapLabels.queue=[];MapLabels.boxes=[];MapLabels.placed=[];
+  MapLabels.add({key:'legacy-edge',name:'Название у края',size:10,candidates:[{x:width-20,y:400,align:'left'}]});
+  MapLabels.legacyDraw();assert.ok(MapLabels.placed.some(q=>q.key==='legacy-edge'),'fallback keeps partial text');
+ }
+}`);
+console.log('PASS partial ordinary/component/numeric/filtered/flight/ship captions at all four edges, fixed anchors and rows, clickable visible fragments, fully offscreen culling and legacy clipping');

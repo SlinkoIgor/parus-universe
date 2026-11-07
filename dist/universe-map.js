@@ -25,7 +25,7 @@ const UniverseMap={
    label=value+' млрд св. лет',size=width<700?8:10,
    w=MapLabels.measure(label,size+'px "IBM Plex Mono",monospace'),y=g.y+g.r+12,
    box={x:g.x-g.r-5,y:y-6,w:2*g.r+10,h:28};
-  if(w>g.r-8||box.x<8||box.x+box.w>width-8||box.y<80||box.y+box.h>height-8)return;
+  if(w>g.r-8||!MapLabels.intersectsViewport(box))return;
   const from={x:g.x-g.r,y},center={x:g.x,y},to={x:g.x+g.r,y},
    labels=[{text:label,x:g.x-g.r/2,y:y+18},{text:label,x:g.x+g.r/2,y:y+18}];
   this.ruler={radius,diameter:2*radius,label,labels,box,from,center,to};

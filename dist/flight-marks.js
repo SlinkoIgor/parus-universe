@@ -26,14 +26,14 @@ const FlightMarks={
   const groups=[];
   for(const m of f.markers){
    const p=screen(FlightView.at(f,FlightView.fraction(f,m.p3)));
-   if(!Number.isFinite(p.x+p.y)||p.x<8||p.x>width-8||p.y<8||p.y>height-8)continue;
+   if(!Number.isFinite(p.x+p.y))continue;
    const nearby=groups.find(g=>Math.hypot(g.p.x-p.x,g.p.y-p.y)<48);
    if(nearby)nearby.marks.push(m);else groups.push({p,marks:[m]});
   }
   for(const {p,marks} of groups){
    // Keep the first event's anchor instead of averaging two coincident stages.
    const actual=marks.every(m=>m.actual),kinds=marks.map(m=>m.kind),name=marks.length>1?(kinds.includes('acceleration')?'РАЗГОН → ТОРМОЖЕНИЕ':'ТОРМОЖЕНИЕ'):labels[kinds[0]];
-   ctx.save();ctx.globalAlpha=opacity;circle(p.x,p.y,4,'#666666',.9,actual?[]:[2,2]);ctx.restore();
+   if(p.x>=-4&&p.x<=width+4&&p.y>=-4&&p.y<=height+4){ctx.save();ctx.globalAlpha=opacity;circle(p.x,p.y,4,'#666666',.9,actual?[]:[2,2]);ctx.restore();}
    MapLabels.point({key:'flight-mark-'+kinds.join('-'),name:name+(actual?'':' · ПРОГНОЗ'),p,priority:115,size:8,opacity});
   }
  }

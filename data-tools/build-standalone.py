@@ -22,6 +22,8 @@ if catalog.exists():
  search=json.loads((catalog/'search.json').read_text())
  names={'manifest.json','search.json'}|{n['file'] for n in manifest['nodes']}|{row[5] for row in search}
  files={'catalog-data/'+name:(catalog/name).read_text() for name in sorted(names)}
+ for path in root.glob('sky-photos-*.json'):files[path.name]=path.read_text()
+ if (root/'arrival-stars-index.json').exists():files['arrival-stars-index.json']=(root/'arrival-stars-index.json').read_text()
  layer_pointer=root/'map-layers/current.json'
  if layer_pointer.exists():
   layer_root=json.loads(layer_pointer.read_text())['dataRoot']

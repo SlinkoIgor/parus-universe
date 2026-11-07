@@ -52,7 +52,7 @@ const MapSlice={
   $('mapSliceTargetNotice').hidden=this.mode!=='slice'||this.includes(target);
  },
  render(){
-  document.querySelectorAll('[data-map-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mapMode===this.mode)));
+  document.querySelectorAll('[data-map-mode]').forEach(input=>{input.checked=input.dataset.mapMode===this.mode;});
   $('mapControlsTitle').textContent=this.mode==='slice'?'Карта · срез':this.mode==='radial'?'Карта · радиальная':'Карта и время';
   const status=$('mapSliceStatus');
   const index=this.mode==='radial'?MapRadial:this,label=this.mode==='radial'?'Радиальная':'Срез';
@@ -65,7 +65,11 @@ const MapSlice={
  },
  setup(){
   let mode='full';try{mode=localStorage.getItem('parus-map-mode');}catch{}
-  document.querySelectorAll('[data-map-mode]').forEach(b=>b.onclick=()=>this.setMode(b.dataset.mapMode));
+  document.querySelectorAll('[data-map-mode]').forEach(input=>{
+   input.onchange=()=>{if(input.checked)this.setMode(input.dataset.mapMode);};
+   // A selected radio can retry a failed radial download without changing modes.
+   input.onclick=()=>{if(input.checked&&input.dataset.mapMode==='radial'&&this.mode==='radial'&&MapRadial.error)this.setMode('radial');};
+  });
   // Retire the saved slice choice; the public switch offers full/radial.
   this.setMode(mode==='radial'?'radial':'full');
  }

@@ -77,17 +77,19 @@ runHoleNames(`{
  for(const mode of ['full','slice','radial'])for(const palette of ['dark','light'])for(const id of examples){
   const o=holes.find(o=>o.id===id);OBJECTS.splice(0,OBJECTS.length,o);MapSlice.mode=mode;theme=palette;
   MapSlice.focus(o);cam={...MapLayout.project(o),span:Math.min(1000,MapVisibility.limit(o)*width*.5)};cameraGoal=null;
-  for(const draw of [()=>MapLabels.legacyDraw(),()=>MapAnnotations.draw()]){
+  for(const [modern,draw] of [[false,()=>MapLabels.legacyDraw()],[true,()=>MapAnnotations.draw()]]){
    const render=()=>{textCalls.length=0;MapLabels.begin();RegionMap.hits=[];drawObjects();draw();return MapLabels.placed.some(q=>q.key==='object-'+id);};
-   state.selected=null;hover=null;assert.equal(render(),proper.has(id),'idle label: '+mode+'/'+palette+'/'+id);
+   state.selected=null;hover=null;const idle=render();
+   if(!modern||proper.has(id))assert.equal(idle,proper.has(id),'idle proper-name/legacy label: '+mode+'/'+palette+'/'+id);
+   else if(idle)assert.ok(MapAnnotations.sparseView(),'numeric idle caption requires a sparse view');
    assert.ok(hitObjects.some(q=>q.o.id===id),'unlabelled marker remains clickable: '+id);
-   hover=o;assert.equal(render(),proper.has(id),'hover cannot reveal a numbered label: '+id);
+   hover=o;assert.equal(render(),idle,'hover preserves sparse/proper-name admission: '+id);
    state.selected=id;assert.ok(render(),'click selection reveals designation: '+id);
    assert.ok(textCalls.includes(o.mapLabel||o.name),'selected caption text: '+id);
-   state.selected=null;hover=null;assert.equal(render(),proper.has(id),'deselection removes numbered label: '+id);
+   state.selected=null;hover=null;assert.equal(render(),idle,'deselection preserves sparse/proper-name admission: '+id);
   }
  }
  ctx.fillText=fill;OBJECTS.splice(0,OBJECTS.length,...originals);hover=null;
  assert.equal(JSON.stringify(holes),snapshot,'names, aliases, scientific values and source records are unchanged');
- console.log('PASS all 135 BH names: catalogue/variable/host/descriptive aliases stay hidden until selection; genuine names retained, hover/deselect/cache, clickable glyphs, both renderers, themes and three map modes; immutable source records');
+ console.log('PASS all 135 BH names: genuine names and numeric designations stay distinct; a clear sparse view reveals designations, selection/hover/cache and legacy behavior work in both themes/three modes; immutable source records');
 }`);

@@ -23,7 +23,11 @@ for(const mode of ['full','slice','radial']){
   drawObjects();MapLabels.begin();MapAnnotations.draw();
   for(const id of ['mom-z14','jades-z14']){
    assert.ok(hitObjects.some(h=>h.o.id===id),'clickable point: '+id);
-   assert.ok(!MapAnnotations.hits.some(h=>h.object.id===id),'numeric captions stay hidden, including cached metadata: '+id);
+   const caption=MapAnnotations.hits.find(h=>h.object.id===id);
+   if(caption){
+    assert.ok(MapAnnotations.sparseView(),'numeric captions require at most 10 visible objects: '+id);
+    for(const box of MapLabels.placed)if(box.key!=='object-'+id)assert.ok(!MapLabels.overlaps(caption.box,box),'sparse caption cannot cover another name');
+   }
   }
  `);
  // One interval per point and name, independent of selection, pan and menus.
@@ -43,4 +47,4 @@ for(const mode of ['full','slice','radial']){
 }
 run(`assert.equal(MapVisibility.overviewPoint({kind:'galaxy',cosmicLandmark:true,atlasOnly:true,cosmology:{distanceLy:3e10},p3:[3e10,0,0]}),false);`);
 assert.equal(run('JSON.stringify(OBJECTS.map(o=>[o.id,o.p3,o.mapPosition,o.redshift,o.cosmology,o.source,o.navigable,o.region]))'),science);
-console.log('PASS sourced cosmic points follow common density in all modes/mobile and remain discoverable by focus; generated names exclude numeric captions, class cutoffs are respected and science is unchanged');
+console.log('PASS sourced cosmic points follow common density in all modes/mobile and remain discoverable by focus; numeric captions require a clear sparse view and remain outside static name metadata; class cutoffs and science are unchanged');

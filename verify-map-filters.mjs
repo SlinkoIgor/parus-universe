@@ -1,6 +1,6 @@
 import './verify-map-collections.mjs';
 import fs from 'node:fs';
-const harness = fs.readFileSync('verify-map.mjs', 'utf8').split('\nrun(`')[0] + '\nexport {context,run};';
+const harness = fs.readFileSync('verify-map.mjs', 'utf8').split('\nrun(`')[0].replace('setAttribute(){}','setAttribute(k,v){(this.attributes ||= {})[k]=v}getAttribute(k){return this.attributes?.[k]}') + '\nexport {context,run};';
 const {context, run} = await import('data:text/javascript,' + encodeURIComponent(harness) + '#map-filters');
 // These catalogues are ordinary browser scripts, outside the harness's data-app list.
 run(['distant-catalog-data','distant-catalog'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'));
@@ -10,10 +10,13 @@ context.localStorage = {
   setItem: (key, value) => context.savedPreferences.set(key, value),
 };
 run(`
+const queryAll=document.querySelectorAll;
+document.querySelectorAll=selector=>selector==='#mapFilters input[data-filter-group]' ? ['classes','collections','catalogs'].flatMap(g=>$('filterPanel-'+g).children.map(label=>label.children[0])) : queryAll(selector);
 resize();state=initial();state.expansion=false;paused=true;Cosmology.sync(state);
 MapLayers.active=false;MapSlice.mode='full';width=1440;height=1000;cam={x:0,y:0,span:24};
 const physical=JSON.stringify([state,OBJECTS.map(o=>[o.id,o.p3,o.d,o.apparentV])]);
 const draw=()=>{hitObjects=[];MapLabels.begin();RegionMap.draw();drawObjects();ExtendedCatalog.draw();MapLabels.draw();return hitObjects.map(h=>h.o.id).sort().join('|');};
+MapFilters.change(MapFilters.defaults('classes'),[],[]);const defaultHits=draw();
 MapFilters.change('all','all','all');const initialHits=draw();
 for(const kind of MapFilters.classes){
  searchFilter=kind;assert.equal(draw(),initialHits,'search class cannot change map points or labels: '+kind);
@@ -51,14 +54,25 @@ for(const [catalog,yes,no] of [['hyg','sirius','andromeda'],['opengc','andromeda
 }
 MapFilters.change('galaxy','messier','cf4');
 assert.ok(ExtendedCatalog.matchesMap(object('andromeda'),true));assert.ok(!ExtendedCatalog.matchesMap(object('sirius'),true));
-assert.equal(MapFilters.count,3);assert.equal($('mapFilterCount').textContent,3);
-assert.equal(MapFilters.allowsCategory('nebula'),false);assert.equal(MapFilters.allowsCategory('galaxy'),true);
-MapFilters.change('all','naked-eye','atnf');assert.ok(OBJECTS.every(o=>MapFilters.anchor(o)||!ExtendedCatalog.matchesMap(o,true)),'incompatible conditions leave only permanent anchors');
+assert.equal(MapFilters.activeGroup,'collections');assert.equal(MapFilters.count,1);assert.equal($('mapFilterCount').textContent,1);
+assert.equal(MapFilters.allowsCategory('nebula'),true);assert.equal(MapFilters.allowsCategory('galaxy'),true);
+MapFilters.change('all','naked-eye','atnf');assert.ok(ExtendedCatalog.matchesMap(object('sirius'),true),'legacy combinations retain one collection without source intersections');
 MapFilters.change('__proto__','constructor',null);assert.ok(!MapFilters.values('classes').includes('void'));
-MapFilters.change('star','nearby','hyg');MapFilters.setup();assert.equal(MapFilters.key,'star|nearby|hyg','separate preference survives setup/reload');
+MapFilters.change('pulsar','all','invalid-source');assert.equal(MapFilters.activeGroup,'classes');assert.equal(MapFilters.values('classes').join(),'pulsar','invalid sources cannot activate catalogue defaults over an explicit class');
+MapFilters.setGroup('catalogs',['hyg']);MapFilters.setup();assert.equal(MapFilters.key,'all|all|hyg','active source preference survives setup/reload');
 assert.equal(JSON.stringify([state,OBJECTS.map(o=>[o.id,o.p3,o.d,o.apparentV])]),physical,'filters cannot alter coordinates, catalogue values, expedition, clocks or fuel');
 MapFilters.change('all','all','all');searchFilter='all';assert.equal(draw(),initialHits,'reset restores original map');
-console.log('PASS sourced catalogue selection, intersecting conditions, reset, invalid preferences and separate persistence without changing flight data');
+console.log('PASS sourced catalogue selection, exclusive modes, reset, invalid preferences and separate persistence without changing flight data');
+const sourceCamera={...cam};
+for(const mode of ['full','radial','slice'])for(const span of [24,130000,3e7,5e9,1.15e11]) {
+ MapSlice.mode=mode;cam={x:0,y:0,span};MapFilters.change('all',[],[]);
+ const points=draw(),areas=RegionMap.hits.map(h=>h.o.id).sort().join('|');
+ MapFilters.setGroup('catalogs',MapFilters.options('catalogs'));
+ assert.equal(draw(),points,'all sources equal no restriction: '+mode+' '+span);
+ assert.equal(RegionMap.hits.map(h=>h.o.id).sort().join('|'),areas,'contours also agree: '+mode+' '+span);
+}
+cam=sourceCamera;MapFilters.change('all','all','all');
+console.log('PASS full source union and unrestricted map agree at five scales in all projections');
 for(const mode of ['full','radial','slice']){
  MapSlice.mode=mode;MapFilters.change('all','all','all');
  for(const c of Object.keys(MapFilters.collections)){
@@ -71,55 +85,156 @@ MapSlice.mode='full';MapFilters.change('all','all','all');
 console.log('PASS map points, hit targets, background and cached contours obey all selections across three map modes');
 
 MapFilters.change(['star','galaxy'],['naked-eye','messier'],['hyg','opengc']);
-for(const id of ['sirius','andromeda']) assert.ok(ExtendedCatalog.matchesMap(object(id),true),'OR within each tab: '+id);
-assert.ok(!ExtendedCatalog.matchesMap(object('orion'),true),'class restrictions still intersect collection unions');
+assert.equal(MapFilters.values('collections').join(),'naked-eye','old collection unions keep only their first valid choice');
+assert.ok(ExtendedCatalog.matchesMap(object('sirius'),true));
+assert.ok(!ExtendedCatalog.matchesMap(object('andromeda'),true),'second collection is not silently combined');
+MapFilters.setGroup('collections',[]);
+for(const id of ['sirius','andromeda']) assert.ok(ExtendedCatalog.matchesMap(object(id),true),'clearing a collection removes every optional restriction: '+id);
 for(const group of ['classes','collections','catalogs']) {
  MapFilters.change('all','all','all');MapFilters.setGroup(group,[]);
- if(group==='classes')assert.ok(OBJECTS.every(o=>MapFilters.anchor(o)||!ExtendedCatalog.matchesMap(o,true)),'empty classes leave only anchors');
- else assert.equal(draw(),initialHits,'empty optional facet clears its restriction: '+group);
+ if(group!=='collections')assert.ok(OBJECTS.every(o=>MapFilters.anchor(o)||!ExtendedCatalog.matchesMap(o,true)),'empty classes/catalogues leave only anchors: '+group);
+ else assert.equal(draw(),defaultHits,'empty collection restores the ordinary overview');
  for(const id of ['sol','milkyway']) assert.ok(ExtendedCatalog.matchesMap(object(id),true),'persistent anchor: '+id);
  assert.ok(MapFilters.matches({id:'planet-test',kind:'planet'}));
  MapFilters.setGroup(group,MapFilters.options(group));
  if(group==='classes')assert.equal(MapFilters.key,'all|all|all');
+ else if(group==='collections') assert.ok(MapFilters.unrestricted(group),'old complete collection set migrates to no selection');
  else {
-  const predicate=group==='collections'?'matchesCollection':'matchesCatalog';
-  assert.ok(!MapFilters.unrestricted(group),'every selected value still applies its actual membership');
-  const outside=OBJECTS.find(o=>!MapFilters.anchor(o)&&MapFilters.classOf(o)&&!MapFilters.options(group).some(k=>MapFilters[predicate](o,k)));
-  assert.ok(outside);assert.ok(!MapFilters.matches(outside),'selecting the last facet never admits unrelated records');
+  const predicate='matchesCatalog';
+  assert.ok(MapFilters.unrestricted(group),'the complete source union is unrestricted');
+  assert.ok(OBJECTS.every(o=>MapFilters.options(group).some(k=>MapFilters[predicate](o,k))), 'generated source union covers every core object');
+  assert.equal(draw(),initialHits,'complete source union preserves the unrestricted map');
   const full=MapFilters.options(group);MapFilters.setGroup(group,full.slice(0,-1));const before=OBJECTS.filter(o=>MapFilters.matches(o));
   MapFilters.setGroup(group,full);assert.ok(before.every(o=>MapFilters.matches(o)),'adding a value only expands its union');
  }
 }
 MapFilters.change(['star','galaxy'],['nearby','messier'],['hyg','opengc']);const multiKey=MapFilters.key;
-MapFilters.setup();assert.equal(MapFilters.key,multiKey,'multiple values survive reload');
-MapFilters.open();assert.equal(MapFilters.tab,'classes','first tab opens by default');
-MapFilters.setTab('catalogs');MapFilters.open();assert.equal(MapFilters.tab,'classes');
-MapFilters.change(MapFilters.defaults('classes'),'all','all');
+MapFilters.setup();assert.equal(MapFilters.key,multiKey,'active mode survives reload');
+assert.equal(MapFilters.activeGroup,'collections');
+MapFilters.open();assert.equal(MapFilters.tab,'collections','reopening preserves the active filter');
+MapFilters.setTab('catalogs');MapFilters.open();assert.equal(MapFilters.tab,'catalogs');
+assert.equal(MapFilters.values('collections').length,0,'switching tabs clears previous selections');
+assert.equal(MapFilters.values('catalogs').join(),MapFilters.defaults('catalogs').join(),'catalogue mode displays its explicit default selection');
+assert.ok(MapFilters.isDefault());
+for(const from of ['classes','collections','catalogs'])for(const to of ['classes','collections','catalogs'])if(from!==to){
+ const selections={classes:['star'],collections:['messier'],catalogs:['sdss-voids']};
+ MapFilters.setGroup(from,selections[from]);MapFilters.setTab(to);
+ assert.equal(MapFilters.activeGroup,to);assert.equal(MapFilters.tab,to);
+ for(const group of ['classes','collections','catalogs'])assert.equal(MapFilters.values(group).join(),MapFilters.defaults(group).join(),'tab transition resets defaults: '+from+' → '+to+' '+group);
+ MapFilters.setGroup(to,selections[to]);
+ for(const group of ['classes','collections','catalogs'])if(group!==to){
+  assert.ok(MapFilters.unrestricted(group),'inactive mode has no effect');
+  assert.equal(MapFilters.values(group).join(),MapFilters.defaults(group).join());
+ }
+ assert.equal(MapFilters.count,1);assert.equal(filter,to==='classes'?'star':'all','streaming legacy class hint follows the active mode');
+}
+MapFilters.setGroup('catalogs',['sdss-voids']);
+assert.ok(!MapFilters.values('classes').includes('void'),'inactive classes retain their visual default');
+assert.ok(MapFilters.allowsCategory('void'),'inactive class defaults do not hide the source category');
+assert.ok(OBJECTS.filter(o=>o.kind==='void'&&MapFilters.matchesCatalog(o,'sdss-voids')).every(o=>MapFilters.matches(o)));
+assert.ok(MapFilters.bucketMatches(['void',0,['sdss-voids'],1,[]]),'streaming and small-selection counts also ignore inactive classes');
+MapFilters.setGroup('classes',['star']);
+for(const id of ['sirius','s2'])assert.ok(MapFilters.matches(object(id)),'stars from every source: '+id);
+for(const label of $('filterPanel-catalogs').children){
+ const input=label.children[0],text=label.children[1],description=text.children[1];
+ assert.ok(description.textContent.length>15,'each discovered source has visible contents');
+ assert.equal(description.className,'map-filter-description');assert.equal(input.getAttribute('aria-describedby'),description.id);
+ assert.equal(description.textContent,MapFilters.catalogs[input.value][1],'shared registry supplies visible descriptions');
+}
+
+// The native preset checkbox restores defaults and reflects their actual state.
+MapFilters.setGroup('classes',MapFilters.options('classes'));
+assert.ok(MapFilters.values('classes').includes('void'));
+const fullKey=MapFilters.key;
+assert.equal($('mapFilterDefault').checked,false,'custom values clear the preset checkmark');
+$('mapFilterDefault').onchange();
+assert.equal($('mapFilterDefault').checked,true,'reset checks the default preset');
+assert.ok(MapFilters.isDefault());assert.equal(MapFilters.count,0);
 assert.ok(!MapFilters.values('classes').includes('void'));
-assert.ok(OBJECTS.filter(o=>o.kind==='void').every(o=>!ExtendedCatalog.matchesMap(o,true)),'all void populations are off by default');
-assert.equal($('mapFilterAll').checked,false);assert.equal($('mapFilterAll').indeterminate,true,'master reflects partial class selection');
-$('mapFilterAll').checked=true;$('mapFilterAll').onchange();assert.ok(MapFilters.all('classes'));assert.equal($('mapFilterAll').indeterminate,false);
-$('mapFilterAll').checked=false;$('mapFilterAll').onchange();assert.equal(MapFilters.values('classes').length,0);
+assert.ok(OBJECTS.filter(o=>o.kind==='void').every(o=>!ExtendedCatalog.matchesMap(o,true)),'all void populations are off after the actual default action');
+assert.notEqual(MapFilters.key,fullKey,'default overview cannot reuse an unrestricted render cache');
+assert.equal($('filterPanel-classes').children.find(label=>label.children[0].value==='void').children[1].children.length,1,'void row has no obsolete default-off note');
+const classDefaults=MapFilters.values('classes').join(),defaultKey=MapFilters.key;
+$('mapFilterDefault').checked=false;$('mapFilterDefault').onchange();assert.equal(MapFilters.key,defaultKey,'repeat reset is idempotent');assert.equal($('mapFilterDefault').checked,true,'preset remains checked while defaults apply');
+MapFilters.setup();assert.equal(MapFilters.values('classes').join(),classDefaults,'the default reset survives reload without enabling voids');
+const mappedCore=OBJECTS.filter(o=>!o.atlasOnly&&!o.supersededBy&&!MapGeometry.unlocated(o));
+const normalObjects=new Set(mappedCore.filter(o=>MapFilters.matches(o)).map(o=>o.id));
+const normalTotal=MapFilters.total;
+for(const group of ['classes','collections','catalogs']){
+ MapFilters.setGroup(group,MapFilters.defaults(group));
+ assert.ok(MapFilters.isDefault());assert.equal(MapFilters.count,0);
+ assert.equal(MapFilters.total,normalTotal,'default sources preserve the complete ordinary overview count: '+group);
+ assert.deepEqual(mappedCore.filter(o=>MapFilters.matches(o)!==normalObjects.has(o.id)).map(o=>[o.id,o.kind,MapFilters.classOf(o)]),[],'every default mode has the same baseline: '+group);
+ assert.ok(!MapFilters.allowsCategory('void'));assert.ok(!MapFilters.allowsCategory('supercluster'));
+ assert.ok(MapFilters.allowsCategory('filament'),'default overview retains cosmic filaments');
+ assert.ok(!MapFilters.bucketMatches(['void',0,['sdss-voids'],635,null,true]));
+ assert.ok(!MapFilters.bucketMatches(['structure',0,['sdss-superclusters'],1313,null,true]));
+ for(const id of ['sirius','s2','andromeda','shapley','laniakea','quipu'])assert.ok(MapFilters.matches(object(id)),'ordinary objects and named structures remain: '+id+' / '+group);
+ const bulk={id:'bulk-structure',kind:'structure',cosmicSubtype:'supercluster',cosmicCatalog:true};
+ assert.ok(!MapFilters.matches(bulk));assert.ok(MapFilters.matches({...bulk,cosmicLandmark:true}),'named landmark exception survives');
+}
+MapFilters.setGroup('classes',['void']);
+assert.ok(OBJECTS.filter(o=>o.kind==='void').every(o=>MapFilters.matches(o)),'voids remain explicitly selectable');
+MapFilters.setGroup('classes',['structure']);assert.ok(MapFilters.matches({id:'bulk-structure',kind:'structure',cosmicSubtype:'supercluster',cosmicCatalog:true}),'explicit megastructures retain their full layer');
 MapFilters.change(MapFilters.defaults('classes'),[],[]);assert.ok(MapFilters.unrestricted('collections')&&MapFilters.unrestricted('catalogs'));
 MapFilters.setGroup('collections',['messier']);assert.equal(MapFilters.values('collections').join(),'messier','one optional value immediately isolates the selection');
-for(const group of ['collections','catalogs']) {
- MapFilters.setTab(group);MapFilters.setGroup(group,[MapFilters.options(group)[0]]);
- const otherKey=MapFilters.values('classes').join(),otherGroup=group==='collections'?'catalogs':'collections',otherValues=MapFilters.values(otherGroup).join();
- assert.equal($('mapFilterAll').checked,false);assert.equal($('mapFilterAll').indeterminate,true);
- $('mapFilterAll').checked=true;$('mapFilterAll').onchange();assert.ok(MapFilters.all(group));assert.equal($('mapFilterAll').indeterminate,false);
- $('mapFilterAll').checked=false;$('mapFilterAll').onchange();assert.equal(MapFilters.values(group).length,0);assert.ok(MapFilters.unrestricted(group));
- assert.equal(MapFilters.values('classes').join(),otherKey);assert.equal(MapFilters.values(otherGroup).join(),otherValues,'master only changes the active tab');
-}
-console.log('PASS native three-state master in every tab, optional facet defaults, unions including all selected values and independent v3 preferences');
+MapFilters.setTab('collections');assert.equal($('mapFilterToolbar').hidden,true,'collections have no master control');
+const collectionInputs=$('filterPanel-collections').children.map(label=>label.children[0]);
+assert.ok(collectionInputs.every(input=>input.type==='radio'&&input.name==='map-collection'));
+collectionInputs.find(input=>input.value==='nearby').onclick();assert.equal(MapFilters.values('collections').join(),'nearby');
+collectionInputs.find(input=>input.value==='messier').onclick();assert.equal(MapFilters.values('collections').join(),'messier','new radio replaces the old selection');
+collectionInputs.find(input=>input.value==='messier').onclick();assert.ok(MapFilters.unrestricted('collections'),'repeat activation clears the collection');
+MapFilters.setTab('catalogs');MapFilters.setGroup('catalogs',MapFilters.options('catalogs'));
+assert.equal($('mapFilterToolbar').hidden,false);assert.ok(!MapFilters.isDefault());
+assert.ok(MapFilters.matches({id:'bulk-structure',kind:'structure',cosmicSubtype:'supercluster',cosmicCatalog:true,catalog:'SDSS-superclusters'}),'explicit complete source union includes all survey records');
+const allSourceKey=MapFilters.key;
+$('mapFilterDefault').onchange();
+assert.ok(MapFilters.isDefault());assert.equal(MapFilters.values('catalogs').join(),MapFilters.defaults('catalogs').join(),'default catalogue action selects its actual source set');
+assert.equal(MapFilters.values('catalogs').length,28);
+const checkedCatalogs=$('filterPanel-catalogs').children.filter(label=>label.children[0].checked).map(label=>label.children[0].value);
+assert.equal(checkedCatalogs.join(),MapFilters.defaults('catalogs').join(),'every enabled default source has a visible checkmark');
+assert.ok(!checkedCatalogs.includes('sdss-voids')&&!checkedCatalogs.includes('sdss-superclusters'));
+assert.ok(checkedCatalogs.includes('phat-ap')&&checkedCatalogs.includes('game')&&checkedCatalogs.includes('sdss-filaments'));
+assert.equal($('filterCount-catalogs').hidden,true,'default sources do not count as an extra filter');
+assert.notEqual(MapFilters.key,allSourceKey,'source default has a distinct rendering policy');
+assert.equal(MapFilters.values('classes').join(),classDefaults,'inactive classes remain at defaults');
+assert.equal(MapFilters.values('collections').length,0);
+MapFilters.setup();assert.equal(MapFilters.activeGroup,'catalogs');assert.ok(MapFilters.isDefault(),'catalogue reset survives reload');
+console.log('PASS six tab transitions, inactive defaults, source voids, visible source contents, native radios, real default actions and exclusive v5 preferences');
 `);
 
-context.savedPreferences.delete('parus-map-filters-v3');
-context.savedPreferences.set('parus-map-filters-v2',JSON.stringify({classes:['star'],collections:['naked-eye','messier','nearby','multiple','remnants'],catalogs:[]}));
-run(`MapFilters.setup();assert.equal(MapFilters.values('collections').length,0,'old five-value v2 unrestricted set stays unrestricted after adding collections');`);
-context.savedPreferences.set('parus-map-filters-v2',run(`JSON.stringify({classes:MapFilters.defaults('classes'),collections:MapFilters.options('collections'),catalogs:MapFilters.options('catalogs')})`));
-run(`MapFilters.setup();assert.equal(MapFilters.values('collections').length,0);assert.equal(MapFilters.values('catalogs').length,0);assert.ok(!MapFilters.values('classes').includes('void'));`);
-context.savedPreferences.set('parus-map-filters-v2',JSON.stringify({classes:['star','galaxy'],collections:['nearby','messier'],catalogs:['hyg','opengc']}));
-run(`MapFilters.setup();assert.equal(MapFilters.key,'star,galaxy|messier,nearby|hyg,opengc');console.log('PASS v2 migration preserves active subsets and converts formerly unrestricted full selections to empty optional facets');`);
+const oldCatalogs=['hyg','opengc','atnf','nearby','cf4','blackholes'];
+const migrate=(version,value)=>{
+ context.savedPreferences.clear();context.savedPreferences.set('parus-map-filters-'+version,JSON.stringify(value));
+ run('MapFilters.setup()');
+};
+migrate('v2',{classes:['star'],collections:[],catalogs:oldCatalogs});
+run(`assert.equal(MapFilters.key,'star|all|all','the former six-value v2 unrestricted set stays unrestricted');`);
+migrate('v3',{classes:['star'],collections:[],catalogs:oldCatalogs});
+run(`assert.equal(MapFilters.key,'all|all|hyg,opengc,atnf,nearby,cf4,blackholes','v3 preserves its explicitly restricted six-source union, resetting classes');`);
+migrate('v2',{classes:['star'],collections:['naked-eye','messier','nearby','multiple','remnants'],catalogs:[]});
+run(`assert.equal(MapFilters.key,'star|all|all','old five-value v2 unrestricted set stays unrestricted after adding collections');`);
+migrate('v2',run(`({classes:MapFilters.defaults('classes'),collections:MapFilters.options('collections'),catalogs:MapFilters.options('catalogs')})`));
+run(`assert.equal(MapFilters.activeGroup,'classes');assert.equal(MapFilters.values('collections').length,0);assert.equal(MapFilters.values('catalogs').join(),MapFilters.defaults('catalogs').join());assert.ok(!MapFilters.values('classes').includes('void'));`);
+migrate('v2',{classes:['star','galaxy'],collections:['nearby','messier'],catalogs:['hyg','opengc']});
+run(`assert.equal(MapFilters.key,'all|nearby|all');`);
+migrate('v3',{classes:['star','galaxy'],collections:['invalid','messier','nearby'],catalogs:['hyg','opengc']});
+run(`assert.equal(MapFilters.key,'all|messier|all','legacy unions keep their first valid collection and reset other modes');`);
+migrate('v1',{classFilter:'galaxy',catalog:'opengc'});
+run(`assert.equal(MapFilters.key,'all|all|opengc');`);
+migrate('v4',{activeGroup:'catalogs',classes:['star'],collections:['messier'],catalogs:[]});
+run(`assert.equal(MapFilters.activeGroup,'catalogs');assert.ok(MapFilters.isDefault(),'an old empty source mode becomes the explicit default set');assert.equal(MapFilters.values('catalogs').length,28);MapFilters.open();assert.equal(MapFilters.tab,'catalogs');`);
+migrate('v4',{activeGroup:'classes',classes:['galaxy'],collections:['messier'],catalogs:['hyg']});
+run(`assert.equal(MapFilters.key,'galaxy|all|all','explicit saved mode wins over inactive stale selections');`);
+migrate('v4',run(`({activeGroup:'catalogs',catalogs:MapFilters.options('catalogs')})`));
+run(`assert.ok(MapFilters.all('catalogs')&&!MapFilters.isDefault(),'old explicit complete source union remains complete');`);
+migrate('v1',{classFilter:'pulsar',catalog:'all'});
+run(`assert.equal(MapFilters.activeGroup,'classes');assert.equal(MapFilters.values('classes').join(),'pulsar','legacy all sources cannot activate catalogue mode');`);
+migrate('v5',{activeGroup:'catalogs',catalogs:[]});
+run(`assert.equal(MapFilters.activeGroup,'catalogs');assert.equal(MapFilters.values('catalogs').length,0);assert.equal(MapFilters.total,0);assert.ok(!MapFilters.isDefault());MapFilters.setup();assert.equal(MapFilters.values('catalogs').length,0,'genuinely empty v5 catalogues persist');`);
+context.savedPreferences.set('parus-map-filters-v4',JSON.stringify({activeGroup:'catalogs',catalogs:[]}));
+run(`MapFilters.setup();assert.equal(MapFilters.values('catalogs').length,0,'v5 empty selection wins over an older default');MapFilters.setGroup('catalogs',MapFilters.defaults('catalogs'));MapFilters.setup();assert.equal(MapFilters.values('catalogs').length,28);`);
+console.log('PASS v1–v4 migration, former unrestricted sets, explicit full source sets, v5 defaults/empty selections and reopening');
 
 // Test real small-selection references independently of current map tiles.
 context.readFilterJSON = file => JSON.parse(fs.readFileSync('dist/'+file.replace(/^catalog-data\//,'catalog-data/'+JSON.parse(fs.readFileSync('dist/catalog-data/current.json','utf8')).revision+'/'),'utf8'));

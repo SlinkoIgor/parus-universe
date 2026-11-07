@@ -549,8 +549,8 @@ const FlightProfile={
 // spiralling branch is rejected explicitly; it is never turned into a free orbit.
 const OrbitalArrival={
  enabled:true,G:6.67430e-11,solarMass:1.98847e30,AU:149597870700,cache:new Map(),
- target(o){
-  if(!this.enabled||!o||!['home','star','pulsar','blackhole','quasar'].includes(o.kind)||state.destroyed.includes(o.id))return null;
+ target(o,destroyed=state.destroyed){
+  if(!this.enabled||!o||!['home','star','pulsar','blackhole','quasar'].includes(o.kind)||destroyed.includes(o.id))return null;
   const mass=MapDetails.massInfo(o);if(!mass||mass.system)return null;
   const text=String(o.facts?.class||o.type||'');if(/двойная система|тройная система/i.test(text)&&!MapDetails.component(o))return null;
   const mu=this.G*this.solarMass*mass.solar,rs=2*mu/Rocket.c**2;
@@ -862,11 +862,15 @@ const MissionPlanner={
   if(c.brakeEngine){const e=Rocket.retroPlan(fuel/1000,beta,c.maxBrakingG),valid=e.canStop&&(beta===0||fuel>0)&&e.mf*1000>=this.dry+reserveKg-1e-11;return{valid,kind:'engine',plan:e,proper:e.burnProper,earth:e.burnEarth,distance:e.burnDistance,comoving:valid?this.enginePath(e,e.burnProper,epoch,cosmic,expansion):Infinity,finalMass:e.mf*1000,captured:0,burned:e.budget*1000,epoch};}
   return{valid:false,comoving:Infinity};
  },
- plan(input,source,target,fuelKg=state.matter*1000,origin=state.ship,epoch=state.cosmicTime||0,expansion=state.expansion!==false,startBeta=0,startOrbit=null,coastOnly=false){
+ plan(input,source,target,fuelKg=state.matter*1000,origin=state.ship,epoch=state.cosmicTime||0,expansion=state.expansion!==false,startBeta=0,startOrbit=null,coastOnly=false,destroyed=state.destroyed){
+  const requestedTarget=target,selectionIssue=globalThis.ArrivalStars?.issue(target,destroyed);
+  if(selectionIssue)return this.invalid(selectionIssue,{targetId:target?.id});
+  const arrivalStar=ExtendedCatalog.arrivalStar(target,destroyed);
+  if(arrivalStar&&!arrivalStar.synthetic)target=arrivalStar;
   const departure=startOrbit||(!startBeta&&source?.id===state.orbit?.targetId?state.orbit:null);
   if(departure)startBeta=departure.beta;
   const c=coastOnly?FlightSetup.normalize({...input,engine:false,sail:false,collector:false,burst:false,dump:false}):FlightSetup.resolve(input,source),d=target?.p3&&origin?.p3?Space.distance(origin,target):0,cosmic=target?.rangeProbe===true||Cosmology.isCosmic(source||origin,target),prepared=c.dump?0:Math.min(fuelKg,c.capacityKg);
-  const arrivalStar=ExtendedCatalog.arrivalStar(target),arrival=OrbitalArrival.target(arrivalStar||target),shared={...(arrivalStar?{arrivalStar}:{}),setup:c,distance:d,cosmic,epoch,expansion,sourceId:source?.id,targetId:target?.id,initialFuelKg:prepared,jettisonKg:Math.max(0,fuelKg-prepared),arrival,departureOrbit:departure?{radius:departure.radius,beta:departure.beta}:null};
+  const arrival=OrbitalArrival.target(arrivalStar||target,destroyed),shared={...(arrivalStar?{arrivalStar}:{}),setup:c,distance:d,cosmic,epoch,expansion,sourceId:source?.id,targetId:target?.id,...(requestedTarget!==target?{requestedTargetId:requestedTarget.id}:{}),initialFuelKg:prepared,jettisonKg:Math.max(0,fuelKg-prepared),arrival,departureOrbit:departure?{radius:departure.radius,beta:departure.beta}:null};
   if(c.arrivalFuelPercent!==null&&c.arrivalFuelPercent>99)return this.invalid('С таким наполнением топливного бака точная остановка в этой модели недостижима.',shared);
   if(!target?.navigable||!(d>1e-14))return this.invalid('Выберите другую цель с известным расстоянием.',shared);
   // Check the original request: resolve may have replaced unavailable optics
@@ -923,32 +927,32 @@ const MissionPlanner={
   const totalDistance=end.distance+(cosmic?coast.path:coast.distance)+stop.distance,proper=end.proper+coast.proper+stop.proper,earth=end.earth+coast.earth+stop.earth;
   return{...shared,valid:true,reason:'',model:this.model,acceleration:a,accelerationEnd:end,coast,coastEpoch,brake:stop,reserveKg,proper,earth,totalDistance,peakBeta:end.beta,arrivalFuelKg:Math.max(0,stop.finalMass-this.dry),capturedKg:stop.captured,burnedKg:end.burned+stop.burned,sourceLuminosityW:a.luminosityW,orbitFrame:arrival?OrbitalArrival.frame(stop.plan,origin,target):null,vacuumComparison:vacuum?.valid?{proper:vacuum.proper,burnedKg:vacuum.burned,arrivalFuelKg:vacuum.finalMass-this.dry}:null};
  },
- planPreferred(input,source,target,fuel,origin,epoch,expansion,startBeta=0,orbit=null){
-  const args=[source,target,fuel,origin,epoch,expansion,startBeta,orbit],slow=this.planAvailableReserve(input,...args);
+ planPreferred(input,source,target,fuel,origin,epoch,expansion,startBeta=0,orbit=null,destroyed=state.destroyed){
+  const args=[source,target,fuel,origin,epoch,expansion,startBeta,orbit],slow=this.planAvailableReserve(input,...args,destroyed);
   // Compare the same trip and propulsion, changing only the arrival reserve.
   // A barely attainable half tank can otherwise force centuries of coasting.
   if(!slow.valid||FlightSetup.normalize(input).arrivalFuelPercent!==50||slow.setup.arrivalFuelPercent<=25)return slow;
-  const fast=this.plan({...slow.setup,arrivalFuelPercent:25,fill:true},...args);
+  const fast=this.plan({...slow.setup,arrivalFuelPercent:25,fill:true},...args,false,destroyed);
   if(!fast.valid||!(fast.proper>0)||!(slow.proper>=100*fast.proper))return slow;
   return{...fast,requestedArrivalFuelPercent:50,reserveLimited:true,reserveTimeLimited:true,reserveComparison:{slowProper:slow.proper,slowEarth:slow.earth,fastProper:fast.proper,fastEarth:fast.earth,speedup:slow.proper/fast.proper}};
  },
- planAvailableReserve(input,source,target,fuel,origin,epoch,expansion,startBeta=0,orbit=null){
-  const c=FlightSetup.resolve(input,source),args=[source,target,fuel,origin,epoch,expansion,startBeta,orbit],requested=c.arrivalFuelPercent,p=this.plan(input,...args);
+ planAvailableReserve(input,source,target,fuel,origin,epoch,expansion,startBeta=0,orbit=null,destroyed=state.destroyed){
+  const c=FlightSetup.resolve(input,source),args=[source,target,fuel,origin,epoch,expansion,startBeta,orbit],requested=c.arrivalFuelPercent,p=this.plan(input,...args,false,destroyed);
   if(p.valid||p.burstUnavailable||!(requested>0)||p.rangeBlocked||p.cosmic&&expansion&&Cosmology.beyondHorizon(p.distance,epoch))return p;
-  let fast=this.plan({...c,arrivalFuelPercent:0,fill:false},...args),lo=0;
+  let fast=this.plan({...c,arrivalFuelPercent:0,fill:false},...args,false,destroyed),lo=0;
   // The orbital solver supports a monotone capture branch. A zero-reserve
   // trajectory can fall outside it even when another positive reserve works.
-  if(!fast.valid)for(let n=1;n<=6;n++){const percent=requested/2**n,q=this.plan({...c,arrivalFuelPercent:percent,fill:true},...args);if(q.valid){fast=q;lo=percent;break;}}
+  if(!fast.valid)for(let n=1;n<=6;n++){const percent=requested/2**n,q=this.plan({...c,arrivalFuelPercent:percent,fill:true},...args,false,destroyed);if(q.valid){fast=q;lo=percent;break;}}
   if(!fast.valid)return p;
   let hi=requested,best=fast;
-  for(let n=0;n<14;n++){const mid=(lo+hi)/2,q=this.plan({...c,arrivalFuelPercent:mid,fill:true},...args);if(q.valid){lo=mid;best=q;}else hi=mid;}
-  const percent=Math.floor(lo*100)/100,q=this.plan({...c,arrivalFuelPercent:percent,fill:percent>0},...args);
+  for(let n=0;n<14;n++){const mid=(lo+hi)/2,q=this.plan({...c,arrivalFuelPercent:mid,fill:true},...args,false,destroyed);if(q.valid){lo=mid;best=q;}else hi=mid;}
+  const percent=Math.floor(lo*100)/100,q=this.plan({...c,arrivalFuelPercent:percent,fill:percent>0},...args,false,destroyed);
   return{...(q.valid?q:best),requestedArrivalFuelPercent:requested,reserveLimited:true};
  },
  preview(input=null,automatic=input===null){
   const source=state.planningSource||object(state.current),c=input===null?FlightSetup.read():FlightSetup.normalize(input);
   const target=object(state.selected),cosmic=Cosmology.isCosmic(source||state.ship,target),epoch=cosmic?Math.floor((state.cosmicTime||0)/1000)*1000:0;
-  const key=JSON.stringify([automatic,c,source?.id,target?.id,state.orbit?source?.p3:state.ship.p3,state.matter,epoch,state.expansion,state.destroyed,OrbitalArrival.enabled]);
+  const key=JSON.stringify([automatic,c,source?.id,target?.id,state.orbit?source?.p3:state.ship.p3,state.matter,epoch,state.expansion,state.destroyed,OrbitalArrival.enabled,globalThis.ArrivalStars?.revision]);
   if(!this.cache.has(key)){if(this.cache.size>64)this.cache.clear();this.cache.set(key,(automatic&&OrbitalArrival.enabled?this.planPreferred(c,source,target,state.matter*1000,state.ship,epoch,state.expansion!==false):this.plan(c,source,target,state.matter*1000,state.ship,epoch,state.expansion!==false)));}return this.cache.get(key);
  },
  fuelLimit(input){
@@ -956,7 +960,7 @@ const MissionPlanner={
   // of a route's gas budget. Search only plans which really attain that mass.
   const c=FlightSetup.normalize({...input,arrivalFuelPercent:0,fill:false,reservePercent:99});
   const source=state.planningSource||object(state.current),target=object(state.selected),cosmic=Cosmology.isCosmic(source||state.ship,target),epoch=cosmic?Math.floor((state.cosmicTime||0)/1000)*1000:0;
-  const key=JSON.stringify([c,source?.id,target?.id,state.orbit?source?.p3:state.ship.p3,state.matter,epoch,state.expansion,state.destroyed,OrbitalArrival.enabled]);
+  const key=JSON.stringify([c,source?.id,target?.id,state.orbit?source?.p3:state.ship.p3,state.matter,epoch,state.expansion,state.destroyed,OrbitalArrival.enabled,globalThis.ArrivalStars?.revision]);
   if(this.fuelLimitCache.has(key))return this.fuelLimitCache.get(key);
   let fast=this.preview(c),minimum=0,maximum=0;
   if(!fast.valid&&!fast.rangeBlocked&&OrbitalArrival.enabled)for(const percent of [50,25,75,10,90,1]){const q=this.preview({...c,arrivalFuelPercent:percent});if(q.valid){fast=q;minimum=percent;break;}}
@@ -1000,28 +1004,29 @@ const MissionPlanner={
  fireBurst(f){
   const p=f.mission;if(f.burstTriggered||!this.burstScheduled(p)||(f.missionElapsed?.earth||0)<(p.acceleration.preboost?.explosionEarth||0))return;
   f.burstTriggered=true;
-  if(!state.destroyed.includes(p.sourceId)){state.destroyed.push(p.sourceId);effects.push({x:f.from.x,y:f.from.y,p3:f.from.p3,age:0});log('Вспышка: '+object(p.sourceId).name+'. '+(p.setup.collector?'Коллектор передаёт свет до прихода выброса; уже отправленные фотоны продолжают путь.':'Прямой свет вспышки разгоняет парус.'));}
+  if(!state.destroyed.includes(p.sourceId)){state.destroyed.push(p.sourceId);effects.push({x:f.from.x,y:f.from.y,p3:f.from.p3,age:0});FlightTips.use('supernova');log('Вспышка: '+object(p.sourceId).name+'. '+(p.setup.collector?'Коллектор передаёт свет до прихода выброса; уже отправленные фотоны продолжают путь.':'Прямой свет вспышки разгоняет парус.'));}
  },
  launch(planned=null,routeInfo=null,{focusRoute=true}={}){
-  if(state.flight)return;const p=planned||this.preview();if(!p.valid){toast(p.reason);return;}
+  if(state.flight)return;const p=planned||this.preview();if(!p.valid){toast(p.reason,4200,'warning');return;}
   // Prepared route/queue plans may predate the destruction of their source.
   // Reject them before changing fuel, history or any other expedition state.
   const burstIssue=p.setup?.sail&&p.setup?.burst?FlightSetup.burstIssue(object(p.sourceId)):'';
-  if(burstIssue){toast(burstIssue);return;}
+  if(burstIssue){toast(burstIssue,4200,'warning');return;}
   // Rebuild with the exact launch epoch; the cached preview may use an idle bucket.
-  let plan=planned||this.plan(p.setup,object(state.current),object(state.selected),state.matter*1000,state.ship,state.cosmicTime||0,state.expansion!==false);if(!plan.valid){toast(plan.reason);return;}
+  let plan=planned||this.plan(p.setup,object(state.current),object(state.selected),state.matter*1000,state.ship,state.cosmicTime||0,state.expansion!==false);if(!plan.valid){toast(plan.reason,4200,'warning');return;}
   if(!planned&&p.reserveLimited)plan={...plan,requestedArrivalFuelPercent:p.requestedArrivalFuelPercent,reserveLimited:true,...(p.reserveTimeLimited?{reserveTimeLimited:true,reserveComparison:p.reserveComparison}:{})};
   if(state.transferSetup&&state.transferSetup.starId!==plan.targetId)state.transferSetup=null;
   const rollback=FlightHistory.pending||FlightHistory.snapshot();FlightHistory.pending=null;
+  if(plan.arrivalStar&&!plan.arrivalStar.synthetic)ExtendedCatalog.pin(plan.arrivalStar);
   const source=object(plan.sourceId),target=object(plan.targetId),from={...state.ship,p3:[...state.ship.p3]};
   state.tankCapacityKg=plan.setup.capacityKg;state.matter=plan.initialFuelKg/1000;state.jettisoned=(state.jettisoned||0)+plan.jettisonKg/1000;
-  state.flight={rollback,summary:{distance:plan.distance,proper:plan.proper,earth:plan.earth},mission:plan,missionElapsed:{proper:0,earth:0},cosmic:plan.cosmic,from,fromId:plan.sourceId,target:target.id,...(plan.arrivalStar?{arrivalStar:plan.arrivalStar}:{}),distance:plan.distance,covered:0,maxBeta:plan.peakBeta,medium:{n:plan.setup.densityCm3*1e6,area:SHIP.sailAreaM2,model:GasMedium.model,label:'Газ на торможении · '+plan.setup.densityCm3+' атом/см³'},boost:plan.acceleration.hasLight,departureMode:plan.setup.burst?'burst':plan.setup.sail?'beam':'engine',engine:null,wind:null,magnetic:null,autoStopping:true,missed:false};
+  state.flight={rollback,summary:{distance:plan.distance,proper:plan.proper,earth:plan.earth},mission:plan,...(plan.requestedTargetId?{requestedTarget:plan.requestedTargetId}:{}),missionElapsed:{proper:0,earth:0},cosmic:plan.cosmic,from,fromId:plan.sourceId,target:target.id,...(plan.arrivalStar?{arrivalStar:plan.arrivalStar}:{}),distance:plan.distance,covered:0,maxBeta:plan.peakBeta,medium:{n:plan.setup.densityCm3*1e6,area:SHIP.sailAreaM2,model:GasMedium.model,label:'Газ на торможении · '+plan.setup.densityCm3+' атом/см³'},boost:plan.acceleration.hasLight,departureMode:plan.setup.burst?'burst':plan.setup.sail?'beam':'engine',engine:null,wind:null,magnetic:null,autoStopping:true,missed:false};
   if(plan.passage){state.flight.aim=plan.aim;state.flight.encounter=plan.encounter;}if(routeInfo){state.flight.route=routeInfo.nodes;state.flight.legIndex=routeInfo.index;}
   this.fireBurst(state.flight);
   if(plan.jettisonKg>0)log('Перед стартом сброшено '+fmt(plan.jettisonKg,3)+' кг вещества; бак сохранён.');
   log('Составной полёт: '+FlightSetup.acceleration(plan.setup)+'; торможение: '+FlightSetup.braking(plan.setup)+'. '+(plan.setup.fill?'С сохранением вещества.':'Быстрое прибытие.'));
-  state.current=null;state.orbit=null;state.beta=plan.acceleration.rows[0].beta;paused=false;this.activateStage(state.flight,0);Simulation.smoothedFactor=Math.min(1,state.flight.replayRate);state.acceleration=plan.acceleration.rows[0].a;FlightMarks.plan();renderUI();if(focusRoute)fitRoute(target);persist();
-  const reserveNotice=FlightBuilder.reserveNote(plan);if(reserveNotice)toast(reserveNotice,14000);
+  state.selected=target.id;state.current=null;state.orbit=null;state.beta=plan.acceleration.rows[0].beta;paused=false;this.activateStage(state.flight,0);Simulation.smoothedFactor=Math.min(1,state.flight.replayRate);state.acceleration=plan.acceleration.rows[0].a;FlightMarks.plan();FlightTips.noteLaunch();renderUI();if(focusRoute)fitRoute(target);persist();
+  const reserveNotice=FlightBuilder.reserveNote(plan);if(reserveNotice)toast(reserveNotice,14000,'warning');
  },
  step(dt){
   const f=state.flight,p=f.mission,index=f.missionStage||0,stages=this.stages(p),stage=stages[index],oldTime=f.stageElapsed||0,left=Math.max(0,stage.proper-oldTime);
@@ -1143,31 +1148,41 @@ Object.assign(MissionPlanner,{
   return{valid:true,reason:'',model:this.model,setup:c,sourceId:source?.id,targetId:target.id,distance:legDistance,cosmic,epoch,expansion,initialFuelKg:prepared,jettisonKg:Math.max(0,fuel-prepared),acceleration:a,accelerationEnd:end,coast,coastEpoch:epoch+(expansion?end.earth:0),brake:{proper:0,earth:0,distance:0,comoving:0,finalMass:end.mass,captured:0,burned:0},proper:end.proper+coast.proper+encounterTime,earth:end.earth+coast.earth+encounterEarth,totalDistance:end.distance+coast.path,peakBeta:end.beta,arrivalFuelKg:end.mass-this.dry,capturedKg:0,burnedKg:end.burned,passage:true,aim,encounter:{...encounter,beta:coast.beta}};
  },
  analyzeRoute(nodes=state.itinerary){
-  let origin=state.ship,source=object(state.current),fuel=state.matter*1000,beta=0,orbit=state.orbit,epoch=state.cosmicTime||0,valid=nodes.length>0;const records=[],used=new Set(state.destroyed),settings=OrbitalArrival.enabled?FlightSetup.preferred():FlightSetup.read();
+  let origin=state.ship,source=object(state.current),fuel=state.matter*1000,beta=0,orbit=state.orbit,epoch=state.cosmicTime||0,valid=nodes.length>0,proper=0,earth=0;const records=[],used=new Set(state.destroyed),settings=OrbitalArrival.enabled?FlightSetup.preferred():FlightSetup.read();
   for(let i=0;i<nodes.length;i++){
-   const n=nodes[i],target=object(n.id),next=object(nodes[i+1]?.id),c=this.legSetup(settings,source,used);let p;
+   const n=nodes[i],target=object(n.id),next=object(nodes[i+1]?.id),c=this.legSetup(n.setup||settings,source,used);let p;
    if(!target?.navigable||!origin?.p3)p=this.invalid('Нет физических координат.');
-   else if(n.mode==='flyby'&&(!Gravity.canFlyby(target)||!next))p=this.invalid('Пролёт требует чёрной дыры и следующей точки.');
-   else p=n.mode==='flyby'?this.passage(c,source,target,next,fuel,origin,epoch,state.expansion!==false,beta):(OrbitalArrival.enabled?this.planPreferred(c,source,target,fuel,origin,epoch,state.expansion!==false,beta,orbit):this.plan(c,source,target,fuel,origin,epoch,state.expansion!==false,beta,orbit));
-   const r={id:n.id,mode:n.mode,d:target?.p3?Space.distance(origin,target):0,beta:p.peakBeta||beta,issue:p.valid?'':p.reason};
+   else if(n.mode==='flyby'&&!Gravity.canFlyby(target))p=this.invalid('Для гравитационного манёвра недостаточно данных о массе чёрной дыры.');
+   else if(n.mode==='flyby'&&!next)p=this.invalid('Для пролёта выберите следующую точку маршрута.');
+   else p=n.mode==='flyby'?this.passage(c,source,target,next,fuel,origin,epoch,state.expansion!==false,beta):(OrbitalArrival.enabled?this.planPreferred(c,source,target,fuel,origin,epoch,state.expansion!==false,beta,orbit,[...used]):this.plan(c,source,target,fuel,origin,epoch,state.expansion!==false,beta,orbit,false,[...used]));
+   const r={id:n.id,mode:n.mode,d:p.distance??(target?.p3?Space.distance(origin,target):0),beta:p.peakBeta||beta,issue:p.valid?'':p.reason};
    if(!p.valid){valid=false;records.push(r);break;}
    if(n.mode==='flyby'){orbit=null;const angle=V3.angle(V3.sub(target.p3,origin.p3),V3.sub(next.p3,target.p3));Object.assign(r,Gravity.solve(target.gravity,p.coast.beta,angle),{required:angle});const exit=p.encounter.plan?Gravity.atProper(p.encounter.plan,p.encounter.plan.proper).offset:[0,0,0];origin=Space.point(V3.add(target.p3,exit));beta=p.coast.beta;}
-   else{origin=Space.point(target.p3);beta=0;orbit=p.arrival?{targetId:target.id,radius:p.arrival.radius,beta:p.arrival.beta}:null;}
-   if(this.burstScheduled(p)&&source)used.add(source.id);fuel=p.arrivalFuelKg;source=n.mode==='flyby'?target:ExtendedCatalog.arrivalStar(target,[...used])||target;epoch+=state.expansion!==false?p.earth:0;records.push(r);
+   else{const stop=p.arrivalStar||target;origin=Space.point(stop.p3);beta=0;orbit=p.arrival?{targetId:stop.id,radius:p.arrival.radius,beta:p.arrival.beta}:null;}
+   if(this.burstScheduled(p)&&source)used.add(source.id);fuel=p.arrivalFuelKg;source=n.mode==='flyby'?target:ExtendedCatalog.arrivalStar(target,[...used])||target;epoch+=state.expansion!==false?p.earth:0;proper+=p.proper;earth+=p.earth;records.push(r);
   }
-  return{valid,records};
+  return{valid,records,proper,earth};
  },
  routeLeg(nodes,index,source,origin,beta=0){
-  const c=this.legSetup(OrbitalArrival.enabled?FlightSetup.preferred():FlightSetup.read(),source),target=object(nodes[index].id),epoch=state.cosmicTime||0;if(beta>0)c.dump=false;
+  const c=this.legSetup(nodes[index].setup||(OrbitalArrival.enabled?FlightSetup.preferred():FlightSetup.read()),source),target=object(nodes[index].id),epoch=state.cosmicTime||0;if(beta>0)c.dump=false;
   return nodes[index].mode==='flyby'?this.passage(c,source,target,object(nodes[index+1]?.id),state.matter*1000,origin,epoch,state.expansion!==false,beta):(OrbitalArrival.enabled?this.planPreferred(c,source,target,state.matter*1000,origin,epoch,state.expansion!==false,beta):this.plan(c,source,target,state.matter*1000,origin,epoch,state.expansion!==false,beta));
  },
  startRoute(){
   syncClock();const analysis=this.analyzeRoute();if(!analysis.valid||state.flight)return;const nodes=state.itinerary.map(n=>({...n})),source=object(state.current);const rollback=FlightHistory.snapshot();state.selected=nodes[0].id;
-  const p=this.routeLeg(nodes,0,source,state.ship);if(!p.valid){toast(p.reason);return;}FlightHistory.pending=rollback;$('infoDialog').close();this.launch(p,{nodes,index:0});state.itinerary=[];log('Составной маршрут: '+nodes.map(n=>object(n.id).name).join(' → '));persist();
+  const p=this.routeLeg(nodes,0,source,state.ship);if(!p.valid){toast(p.reason,4200,'warning');return;}FlightHistory.pending=rollback;$('infoDialog').close();this.launch(p,{nodes,index:0});state.itinerary=[];log('Составной маршрут: '+nodes.map(n=>object(n.id).name).join(' → '));persist();
  },
+ routeWaits:new WeakSet(),
  continueRoute(old,from=state.ship,beta=0){
+  if(this.routeWaits.has(old))return;
   if(!old.route?.length||old.legIndex>=old.route.length-1)return;
-  const index=old.legIndex+1,source=object(beta>0?old.target:state.current)||object(old.target),p=this.routeLeg(old.route,index,source,from,beta);if(!p.valid){toast('Следующий участок недоступен: '+p.reason);return;}
+  const index=old.legIndex+1,source=object(beta>0?old.target:state.current)||object(old.target),p=this.routeLeg(old.route,index,source,from,beta);if(!p.valid){
+   const target=object(old.route[index].id);
+   if(globalThis.ArrivalStars?.issue(target)){
+    const expedition=state,active=state.flight,current=state.current;this.routeWaits.add(old);
+    ArrivalStars.prepare(target).then(()=>{this.routeWaits.delete(old);if(state===expedition&&state.flight===active&&state.current===current&&!ArrivalStars.issue(target))this.continueRoute(old,from,beta);});
+   }else {if(!state.flight){state.itinerary=old.route.slice(index).map(n=>({...n}));state.selected=state.itinerary[0].id;renderUI();persist();}toast('Следующий участок недоступен: '+p.reason,4200,'warning');}
+   return;
+  }
   state.selected=old.route[index].id;state.ship=Space.point(from.p3);FlightHistory.complete(old);state.flight=null;FlightHistory.pending=old.rollback;this.launch(p,{nodes:old.route,index},{focusRoute:false});
  }
 });

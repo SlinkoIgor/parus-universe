@@ -26,15 +26,15 @@ for (const id of ['alpha','proxima']) {
 
  // Forecast a return to the spent source while its first flight is still running.
  const engine = {...FlightSetup.defaults(), sail:false, collector:false, burst:false};
- FlightQueue.setSetup(id, engine); select(id); FlightQueue.add(id);
- assert.equal(state.nextTargets[0]?.id,id);
+ FlightQueue.setSetup(id, engine); select(id); Route.add(id);
+ assert.equal(Route.future()[0]?.id,id);
  select('sirius');
  const context = FlightQueue.context();
  assert.equal(context.current,id); assert.ok(context.destroyed.includes(id));
  blocked(() => QuickFlight.toggle('burst'));
  assert.ok($('infoDialog').open); assert.ok($('dialogContent').innerHTML.includes(message));
  $('infoDialog').close(); FlightQueue.dismiss();
- // The queue really returns to the remnant, without creating another flash.
+ // The route really returns to the remnant, without creating another flash.
  finish();
  assert.equal(state.current,id); assert.equal(JSON.stringify(state.destroyed),JSON.stringify([id]));
  assert.ok(Math.abs(state.matter*1000-.5)<1e-9);

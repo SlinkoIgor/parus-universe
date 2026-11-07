@@ -1,28 +1,32 @@
 import fs from 'node:fs';
-const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {run};';
-const {run}=await import('data:text/javascript,'+encodeURIComponent(harness));
+const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {run,context};';
+const {run,context}=await import('data:text/javascript,'+encodeURIComponent(harness));
+context.fetch=async path=>{path=path.split('?')[0];return {ok:fs.existsSync('dist/'+path),json:async()=>JSON.parse(fs.readFileSync('dist/'+path,'utf8'))};};
+context.arrivalIndex=JSON.parse(fs.readFileSync('dist/arrival-stars-index.json'));
+run('ArrivalStars.index=arrivalIndex');
+await run('ArrivalStars.prepare(object("andromeda"))');
 run(`{
 OrbitalArrival.enabled=true;
-const reset=()=>{state=initial();state.expansion=false;state.trafficSeed=31;paused=true;Simulation.debt=Simulation.wallDebt=0;FlightQueue.cache=null;FlightQueue.drafts.clear();Cosmology.sync(state);};
+const reset=()=>{state=initial();state.expansion=false;state.trafficSeed=31;paused=true;Simulation.debt=Simulation.wallDebt=0;FlightQueue.reset();Cosmology.sync(state);};
 reset();launch();paused=true;
-const active=state.flight,physical=()=>JSON.stringify({flight:state.flight,ship:state.ship,beta:state.beta,matter:state.matter,phase:state.phase,earth:state.earth,proper:state.proper});
+const active=state.flight,physical=()=>JSON.stringify({flight:{...state.flight,route:undefined,legIndex:undefined},ship:state.ship,beta:state.beta,matter:state.matter,phase:state.phase,earth:state.earth,proper:state.proper});
 const before=physical();
-select('sirius');assert.equal(state.flight,active);assert.equal(physical(),before);assert.equal($('targetName').textContent,object('sirius').name);assert.equal($('phaseTag').textContent,'СЛЕДУЮЩАЯ ЦЕЛЬ');assert.equal($('flightControls').hidden,true);
+select('sirius');assert.equal(state.flight,active);assert.equal(physical(),before);assert.equal($('targetName').textContent,object('sirius').name);assert.equal($('phaseTag').textContent,'ДОБАВИТЬ УЧАСТОК');assert.equal($('flightControls').hidden,true);
 const ctx=FlightQueue.context();assert.equal(ctx.current,'alpha');assert.equal(ctx.matter,active.mission.arrivalFuelKg/1000);assert.ok(FlightQueue.forecast(ctx).valid);assert.equal(physical(),before);
 FlightBuilder.open(ctx);assert.equal(FlightBuilder.readOnly,false);assert.equal(FlightBuilder.source.id,'alpha');assert.equal(physical(),before);FlightBuilder.draft.arrivalFuelPercent=25;FlightBuilder.apply();assert.equal(physical(),before);assert.equal(FlightQueue.setupFor('sirius').arrivalFuelPercent,25);
-FlightQueue.add('sirius');assert.deepEqual(state.nextTargets.map(n=>n.id),['sirius']);assert.equal(physical(),before);
-select('vega');FlightQueue.add('vega');assert.deepEqual(state.nextTargets.map(n=>n.id),['sirius','vega']);assert.equal(FlightQueue.context('vega').current,'sirius');
+Route.add('sirius');assert.deepEqual(Route.future().map(n=>n.id),['sirius']);assert.equal(physical(),before);
+select('vega');Route.add('vega');assert.deepEqual(Route.future().map(n=>n.id),['sirius','vega']);assert.equal(FlightQueue.context('vega').current,'sirius');
 FlightQueue.dismiss();assert.equal(state.selected,'alpha');assert.equal($('targetName').textContent,object('alpha').name);
-const saved=JSON.parse(JSON.stringify(state)),restored=restore(saved);assert.equal(restored.nextTargets.length,2);assert.equal(restored.nextTargets[0].setup.arrivalFuelPercent,25);assert.equal(restored.trafficSeed,31);assert.equal(restored.multiplayer,false);
-state=restored;Simulation.tick(state.flight.mission.proper*1.00001);assert.equal(state.flight.target,'sirius');assert.equal(state.nextTargets.length,1);Simulation.tick(state.flight.mission.proper*1.00001);assert.equal(state.flight.target,'vega');assert.equal(state.nextTargets.length,0);Simulation.tick(state.flight.mission.proper*1.00001);assert.equal(state.current,'vega');assert.equal(state.flight,null);assert.ok(state.flightHistory.length>=3);
-// Queue rollback restores the stop that was about to launch.
-state=restore(saved);FlightHistory.cancel();assert.equal(state.current,'sol');assert.equal(state.nextTargets.length,0);
+const saved=JSON.parse(JSON.stringify(state)),restored=restore(saved);assert.equal(restored.flight.route.length,3);assert.equal(restored.flight.route[1].setup.arrivalFuelPercent,25);assert.equal(restored.trafficSeed,31);assert.equal(restored.multiplayer,false);
+state=restored;Simulation.tick(state.flight.mission.proper*1.00001);assert.equal(state.flight.target,'sirius');assert.equal(Route.future().length,1);Simulation.tick(state.flight.mission.proper*1.00001);assert.equal(state.flight.target,'vega');assert.equal(Route.future().length,0);Simulation.tick(state.flight.mission.proper*1.00001);assert.equal(state.current,'vega');assert.equal(state.flight,null);assert.ok(state.flightHistory.length>=3);
+// Cancelling the flight restores the pre-departure expedition.
+state=restore(saved);FlightHistory.cancel();assert.equal(state.current,'sol');assert.equal(Route.future().length,0);
 reset();launch();paused=true;const choices=[];for(const o of OBJECTS.filter(o=>o.navigable&&o.kind==='star'&&o.id!=='alpha').sort((a,b)=>a.d-b.d)){if(choices.every(q=>Space.distance(q,o)>.1)&&Space.distance(o,object('alpha'))>.1)choices.push(o);if(choices.length===10)break;}const ids=choices.map(o=>o.id);
-assert.equal(ids.length,10);for(const id of ids){select(id);FlightQueue.add(id);}assert.equal(state.nextTargets.length,10);select('proxima');FlightQueue.add('proxima');assert.equal(state.nextTargets.length,10);
-// Unknown/non-navigable records cannot enter the physical queue.
-const unknown=OBJECTS.find(o=>!o.navigable);FlightQueue.add(unknown.id);assert.equal(state.nextTargets.length,10);
+assert.equal(ids.length,10);for(const id of ids){select(id);Route.add(id);}assert.equal(Route.future().length,10);select('proxima');Route.add('proxima');assert.equal(Route.future().length,10);
+// Unknown/non-navigable records cannot enter the route.
+const unknown=OBJECTS.find(o=>!o.navigable);Route.add(unknown.id);assert.equal(Route.future().length,10);
 // A future nonstellar endpoint stays a preview; it is not registered as a discovered star.
-reset();launch();paused=true;select('andromeda');FlightQueue.add('andromeda');select('sirius');const pinnedBefore=ExtendedCatalog.pinned.size,registered=OBJECTS.length,preview=FlightQueue.context();assert.ok(preview.planningSource?.gameArrivalStar||preview.planningSource?.parentObject==='andromeda');assert.equal(OBJECTS.length,registered);assert.equal(ExtendedCatalog.pinned.size,pinnedBefore);const optical=FlightQueue.run(preview,()=>MissionPlanner.preview({...preview.flightSetup,engine:false,sail:true,collector:true,arrivalFuelPercent:0}));assert.ok(optical.valid,optical.reason);assert.ok(optical.acceleration.hasLight,'future undiscovered star remains an optical departure source in detailed plans');
+reset();launch();paused=true;select('andromeda');Route.add('andromeda');select('sirius');const pinnedBefore=ExtendedCatalog.pinned.size,registered=OBJECTS.length,preview=FlightQueue.context();assert.ok(preview.planningSource?.gameArrivalStar||preview.planningSource?.parentObject==='andromeda'||preview.planningSource?.parentGalaxy==='andromeda');assert.equal(OBJECTS.length,registered);assert.equal(ExtendedCatalog.pinned.size,pinnedBefore);const optical=FlightQueue.run(preview,()=>MissionPlanner.preview({...preview.flightSetup,engine:false,sail:true,collector:true,arrivalFuelPercent:0}));assert.ok(optical.valid,optical.reason);assert.ok(optical.acceleration.hasLight,'future undiscovered star remains an optical departure source in detailed plans');
 // Current epoch changes must not contaminate the fixed arrival forecast.
 reset();launch();paused=true;Simulation.tick(state.flight.mission.proper*.2);select('sirius');const late=FlightQueue.context();assert.ok(Math.abs(late.earth-state.earth-FlightEstimate.get().earth)<1e-8);
 // Reaching the first stop while editing must not discard the next launch.
@@ -40,5 +44,5 @@ for(const sample of [q,far,heavy]){const eta=Math.atanh(sample.plasmaTerminalBet
 assert.ok(q.plasmaTerminalBeta>far.plasmaTerminalBeta&&q.plasmaTerminalBeta>heavy.plasmaTerminalBeta);
 const weak=PulsarResearch.calculate({powerW:1e8}),strong=PulsarResearch.calculate({powerW:1e48});assert.ok(Math.abs(weak.plasmaTerminalBeta*Rocket.c/Math.sqrt(2*weak.plasmaA*149597870700)-1)<1e-6);assert.ok(strong.plasmaTerminalBeta<=.7&&strong.plasmaTerminalBeta>.69);
 for(const key of Object.keys(COLOR_THEMES)){applyTheme(key);assert.equal(theme,key);assert.ok(/^#[0-9a-f]{6}$/.test(paint('#424242')));for(let n=0;n<200;n++)paint('#'+n.toString(16).padStart(6,'0'));assert.ok(darkInk.size<=128);}applyTheme('dark');assert.equal(paint('#424242'),'#bdbdbd');
-console.log('PASS future target cards, independent plans, queue limit, automatic multi-stop arrival, save/restore, rollback, unrevealed stars, exact fleet worldlines/relative clocks/5% exits, palettes and pulsar bounds');
+console.log('PASS future target cards, independent plans, route limit, automatic multi-stop arrival, save/restore, rollback, unrevealed stars, exact fleet worldlines/relative clocks/5% exits, palettes and pulsar bounds');
 }`);

@@ -76,7 +76,7 @@ const FlightBuilder = {
       $(id).value = this.draft[key];
     $('applyFlightSetup').hidden = this.readOnly;
     $('launchConfigured').hidden = this.readOnly;
-    $('launchConfigured').querySelector('span').textContent = this.context ? 'Сохранить цель' : 'Лететь';
+    $('launchConfigured').querySelector('span').textContent = this.context ? 'Сохранить цель' : state.itinerary.length ? (state.itinerary.at(-1).mode==='flyby'?'Выбрать следующую точку':'Начать маршрут') : 'Лететь';
     $('builderReadOnly').hidden = !this.readOnly;
     if (!this.readOnly && this.draft.arrivalFuelPercent === null) {
       const old = MissionPlanner.preview(this.draft);
@@ -847,13 +847,13 @@ const FlightBuilder = {
       FlightQueue.setSetup(this.context.selected, this.draft);
       $('flightBuilder').close();
       // The live flight can arrive while a future plan's dialog is open.
-      if (!state.flight && !state.nextTargets.some(n => n.id === this.context.selected)) {
+      if (!state.flight && !state.itinerary.some(n => n.id === this.context.selected)) {
         state.selected = this.context.selected;
         state.flightSetup = FlightSetup.normalize(this.draft);
         FlightSetup.sync();
-        if (fly) launch();
+        if (fly) launchSelectedTarget();
         else { persist(); renderUI(); }
-      } else if (fly) FlightQueue.add(this.context.selected);
+      } else if (fly) { Route.add(this.context.selected); if (!state.flight) Route.start(); }
       else renderUI();
       return;
     }
@@ -870,7 +870,7 @@ const FlightBuilder = {
     $('flightBuilder').close();
     renderUI();
     persist();
-    if (fly) launch();
+    if (fly) launchSelectedTarget();
   },
   reserveNote(p) {
     if (!p?.valid || !p.reserveLimited) return '';

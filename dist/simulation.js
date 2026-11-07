@@ -33,7 +33,9 @@ const Simulation={
    const rate=this.replayRate();let years=slice*rate;
    for(let transitions=0;years>1e-15&&transitions<64;transitions++){
     if(!state.flight){if(OrbitalArrival.idle(years)){years=0;break;}state.proper+=years;state.earth+=years;Cosmology.elapse(state,years);years=0;break;}
-    const used=this.step(years);if(!(used>=0&&Number.isFinite(used)))throw new Error('Invalid replay step');years=Math.max(0,years-used);
+    const f=state.flight,elapsed=globalThis.FlightTips?.elapsed(f);
+    const used=this.step(years);if(!(used>=0&&Number.isFinite(used)))throw new Error('Invalid replay step');
+    globalThis.FlightTips?.advance(f,elapsed,used/rate);years=Math.max(0,years-used);
    }
    if(years>1e-15)this.debt+=years;remaining=Math.max(0,remaining-slice);
   }
@@ -43,7 +45,9 @@ const Simulation={
   let remaining=years+this.debt;this.debt=0;
   for(let transitions=0;remaining>0&&transitions<256;transitions++){
    if(!state.flight){if(OrbitalArrival.idle(remaining)){remaining=0;break;}state.proper+=remaining;state.earth+=remaining;Cosmology.elapse(state,remaining);remaining=0;break;}
+   const f=state.flight,elapsed=globalThis.FlightTips?.elapsed(f),rate=this.replayRate();
    const used=this.step(remaining);if(!(used>=0&&Number.isFinite(used)))throw new Error('Invalid proper-time step');
+   globalThis.FlightTips?.advance(f,elapsed,used/rate);
    remaining=Math.max(0,remaining-used);
   }
   // Preserve time even if a very long multi-route update exceeds the work budget.

@@ -98,5 +98,457 @@
     "source": "https://esahubble.org/images/opo0602a/",
     "credit": "NASA, ESA, N. Evans (Harvard-Smithsonian CfA), H. Bond (STScI)",
     "description": "Коллаж показывает систему Полярной звезды на разных масштабах, включая тесного компаньона на снимке Hubble. Ультрафиолет преобразован в видимые цвета; компоненты тесной пары глазом не разделяются."
+  },
+  {
+    "id": "hubble-heic1501a",
+    "objects": [
+      "opengc-ic4703"
+    ],
+    "identifiers": [
+      "IC4703"
+    ],
+    "kind": "nebula",
+    "title": "Орёл — Hubble",
+    "instrument": "Hubble / ESA",
+    "band": "Обработанные наблюдения · цвета зависят от фильтров",
+    "date": "5 January 2015, 23:15",
+    "url": "https://cdn.esahubble.org/archives/images/screen/heic1501a.jpg",
+    "source": "https://esahubble.org/images/heic1501a/",
+    "credit": "NASA , ESA/Hubble and the Hubble Heritage Team",
+    "description": "Наблюдение обсерватории. Цвета и детали после обработки не соответствуют виду в любительский телескоп. Кадр из архива: «New view of the Pillars of Creation — visible».",
+    "archiveTitle": "New view of the Pillars of Creation — visible",
+    "identification": {
+      "method": "official observational caption; manually reviewed exact target",
+      "objectNames": "Eagle Nebula , M 16 , Messier 16",
+      "pageSha256": "ed9fc3413b65220d9cd2f769677051f8bec6b164682031dc47c141970f97e3d9",
+      "caption": "The NASA/ESA Hubble Space Telescope has revisited one of its most iconic and popular images: the Eagle Nebula’s Pillars of Creation. This image shows the pillars as seen in visible light, capturing the multi-coloured glow of gas clouds, wispy tendrils of dark cosmic dust, and the rust-coloured elephants’ trunks of the nebula’s famous pillars. The dust and gas in the pillars is seared by the intense radiation from young stars and eroded by strong winds from massive nearby stars. With these new images comes better contrast and a clearer view for astronomers to study how the structure of the pillars is changing over time."
+    }
+  },
+  {
+    "id": "hubble-heic0615a",
+    "objects": [
+      "opengc-ngc4038",
+      "opengc-ngc4039"
+    ],
+    "identifiers": [
+      "NGC4038",
+      "NGC4039"
+    ],
+    "kind": "galaxy",
+    "title": "Антенны — Hubble",
+    "instrument": "Hubble / ESA",
+    "band": "Обработанные наблюдения · цвета зависят от фильтров",
+    "date": "17 October 2006, 15:00",
+    "url": "https://cdn.esahubble.org/archives/images/screen/heic0615a.jpg",
+    "source": "https://esahubble.org/images/heic0615a/",
+    "credit": "Credit: NASA , ESA , and the Hubble Heritage Team ( STScI / AURA )- ESA / Hubble Collaboration. Acknowledgement: B. Whitmore ( Space Telescope Science Institute ) and James Long (ESA/Hubble).",
+    "description": "Наблюдение обсерватории. Цвета и детали после обработки не соответствуют виду в любительский телескоп. Кадр из архива: «Colliding galaxies make love, not war».",
+    "archiveTitle": "Colliding galaxies make love, not war",
+    "identification": {
+      "method": "official observational caption; manually reviewed exact target",
+      "objectNames": "Antennae Galaxies , NGC4038 , NGC4039",
+      "pageSha256": "3495ef88dc9cd9e889c0dc820f61b3647cbcd8be879fc5db2b0753c976517412",
+      "caption": "This Hubble image of the Antennae galaxies is the sharpest yet of this merging pair of galaxies. As the two galaxies smash together, billions of stars are born, mostly in groups and clusters of stars. The brightest and most compact of these are called super star clusters."
+    }
+  },
+  {
+    "id": "webb-weic2207b",
+    "objects": [
+      "opengc-ngc3132"
+    ],
+    "identifiers": [
+      "NGC3132"
+    ],
+    "kind": "nebula",
+    "title": "Eight-Burst Nebula — Webb",
+    "instrument": "James Webb / ESA",
+    "band": "Инфракрасные наблюдения · условные цвета",
+    "date": "12 July 2022, 16:58",
+    "url": "https://cdn.esawebb.org/archives/images/screen/weic2207b.jpg",
+    "source": "https://esawebb.org/images/weic2207b/",
+    "credit": "NASA, ESA, CSA, STScI, and the Webb ERO Production Team",
+    "description": "Наблюдение обсерватории. Цвета и детали после обработки не соответствуют виду в любительский телескоп. Кадр из архива: «Southern Ring Nebula (NIRCam Image)».",
+    "archiveTitle": "Southern Ring Nebula (NIRCam Image)",
+    "identification": {
+      "method": "official observational caption; manually reviewed exact target",
+      "objectNames": "NGC 3132",
+      "pageSha256": "6f425bb48ca6e985cc858ad46354d15642fa38f3054ed8c9b4c0d76f530f6bf9",
+      "caption": ""
+    }
+  },
+  {
+    "id": "webb-weic2320b",
+    "objects": [
+      "opengc-ngc6720"
+    ],
+    "identifiers": [
+      "NGC6720"
+    ],
+    "kind": "nebula",
+    "title": "Кольцо · M57 — Webb",
+    "instrument": "James Webb / ESA",
+    "band": "Инфракрасные наблюдения · условные цвета",
+    "date": "21 August 2023, 16:00",
+    "url": "https://cdn.esawebb.org/archives/images/screen/weic2320b.jpg",
+    "source": "https://esawebb.org/images/weic2320b/",
+    "credit": "ESA/Webb, NASA, CSA, M. Barlow, N. Cox, R. Wesson",
+    "description": "Наблюдение обсерватории. Цвета и детали после обработки не соответствуют виду в любительский телескоп. Кадр из архива: «Webb captures detailed beauty of Ring Nebula (NIRCam image)».",
+    "archiveTitle": "Webb captures detailed beauty of Ring Nebula (NIRCam image)",
+    "identification": {
+      "method": "official observational caption; manually reviewed exact target",
+      "objectNames": "",
+      "pageSha256": "cadbcb157d3f11ff5fa8ee1804b8b3a455ece725a840c9e344125a37d85ef463",
+      "caption": ""
+    }
+  },
+  {
+    "id": "webb-weic2316a",
+    "objects": [
+      "opengc-ic4604"
+    ],
+    "identifiers": [
+      "IC4604"
+    ],
+    "kind": "nebula",
+    "title": "rho Oph Nebula — Webb",
+    "instrument": "James Webb / ESA",
+    "band": "Инфракрасные наблюдения · условные цвета",
+    "date": "12 July 2023, 12:00",
+    "url": "https://cdn.esawebb.org/archives/images/screen/weic2316a.jpg",
+    "source": "https://esawebb.org/images/weic2316a/",
+    "credit": "NASA, ESA, CSA, STScI, K. Pontoppidan (STScI), A. Pagan (STScI)",
+    "description": "Наблюдение обсерватории. Цвета и детали после обработки не соответствуют виду в любительский телескоп. Кадр из архива: «Rho Ophiuchi cloud complex».",
+    "archiveTitle": "Rho Ophiuchi cloud complex",
+    "identification": {
+      "method": "official observational caption; manually reviewed exact target",
+      "objectNames": "",
+      "pageSha256": "b7c60e12590932d31634ee7a8575586a5795aa00d16843e6068f610d8971c753",
+      "caption": ""
+    }
+  },
+  {
+    "id": "webb-weic2212a",
+    "objects": [
+      "opengc-ngc2070"
+    ],
+    "identifiers": [
+      "NGC2070"
+    ],
+    "kind": "nebula",
+    "title": "Тарантул — Webb",
+    "instrument": "James Webb / ESA",
+    "band": "Инфракрасные наблюдения · условные цвета",
+    "date": "6 September 2022, 16:00",
+    "url": "https://cdn.esawebb.org/archives/images/screen/weic2212a.jpg",
+    "source": "https://esawebb.org/images/weic2212a/",
+    "credit": "NASA, ESA, CSA, and STScI",
+    "description": "Наблюдение обсерватории. Цвета и детали после обработки не соответствуют виду в любительский телескоп. Кадр из архива: «Tarantula Nebula (NIRCam Image)».",
+    "archiveTitle": "Tarantula Nebula (NIRCam Image)",
+    "identification": {
+      "method": "official observational caption; manually reviewed exact target",
+      "objectNames": "30 Doradus , RMC 136 , Tarantula Nebula",
+      "pageSha256": "de12c75e802ecebc95cda68801da398c3b00d2c5b9c1e4293c67c5badb74a766",
+      "caption": ""
+    }
+  },
+  {
+    "id": "eso-eso1907a",
+    "objects": [
+      "bh-m87"
+    ],
+    "identifiers": [],
+    "kind": "blackhole",
+    "title": "M87* — ESO",
+    "instrument": "Event Horizon Telescope",
+    "band": "Радионаблюдения · 1,3 мм · условные цвета",
+    "date": "10 April 2019, 15:07",
+    "url": "https://cdn.eso.org/images/screen/eso1907a.jpg",
+    "source": "https://www.eso.org/public/images/eso1907a/",
+    "credit": "EHT Collaboration",
+    "description": "Свечение горячего вещества вокруг чёрной дыры M87*, восстановленное по радионаблюдениям EHT. Тёмная область соответствует тени чёрной дыры; это не оптический снимок.",
+    "archiveTitle": "First Image of a Black Hole",
+    "identification": {
+      "method": "official observational caption; manually reviewed exact target",
+      "objectNames": "M87* , Messier 87",
+      "pageSha256": "dd685b95d17de5befbe553de2ffe5395a0c75353ac128aaf4788e31a5f3050b0",
+      "caption": ""
+    }
+  },
+  {
+    "id": "hubble-heic1614a",
+    "objects": [
+      "crab"
+    ],
+    "identifiers": [],
+    "kind": "pulsar",
+    "title": "Крабовидный пульсар — Hubble",
+    "instrument": "Hubble / ESA",
+    "band": "Обработанные наблюдения · цвета зависят от фильтров",
+    "date": "7 July 2016, 16:00",
+    "url": "https://cdn.esahubble.org/archives/images/screen/heic1614a.jpg",
+    "source": "https://esahubble.org/images/heic1614a/",
+    "credit": "ESA/Hubble & NASA Acknowledgement: Mahdi Zamani",
+    "description": "Наблюдение обсерватории. Цвета и детали после обработки не соответствуют виду в любительский телескоп. Кадр из архива: «Moving heart of the Crab Nebula».",
+    "archiveTitle": "Moving heart of the Crab Nebula",
+    "identification": {
+      "method": "official observational caption; manually reviewed exact target",
+      "objectNames": "Crab Nebula",
+      "pageSha256": "559577e978954690219a22e8dbd39b83f6aae76063e48d53745b86be453818fe",
+      "caption": "While many other images of the famous Crab Nebula have focused on the filaments in the outer part of the nebula, this image shows the very heart of the Crab Nebula including the central neutron star — it is the rightmost of the two bright stars near the centre of this image. The rapid motion of the material nearest to the central star is revealed by the subtle rainbow of colours in this time-lapse image, the rainbow effect being due to the movement of material over the time between one image and another."
+    }
+  },
+  {
+    "id": "hubble-heic1303a",
+    "objects": [
+      "opengc-ic0348"
+    ],
+    "identifiers": [
+      "IC 348"
+    ],
+    "kind": "nebula",
+    "title": "omi Per Cloud — Hubble",
+    "instrument": "Hubble / ESA",
+    "band": "Обработанные наблюдения · цвета зависят от фильтров",
+    "date": "7 February 2013, 19:00",
+    "url": "https://cdn.esahubble.org/archives/images/screen/heic1303a.jpg",
+    "source": "https://esahubble.org/images/heic1303a/",
+    "credit": "NASA, ESA, and J. Muzerolle (STScI)",
+    "description": "Наблюдение обсерватории. Цвета и детали после обработки не соответствуют виду в любительский телескоп. Кадр из архива: «Hubble image of LRLL 54361 and its surroundings».",
+    "archiveTitle": "Hubble image of LRLL 54361 and its surroundings",
+    "identification": {
+      "method": "exact About the Object name; Observation only",
+      "matchedNames": [
+        "IC 348"
+      ],
+      "objectNames": "IC 348 , LRLL 54361",
+      "pageSha256": "7796b07215ec9e30c050cb28c0855e73b44c495378d5ee6137b4a6280ede4f5e"
+    }
+  },
+  {
+    "id": "hubble-potw1152a",
+    "objects": [
+      "opengc-ic2574"
+    ],
+    "identifiers": [
+      "IC 2574"
+    ],
+    "kind": "galaxy",
+    "title": "Coddington's Nebula — Hubble",
+    "instrument": "Hubble / ESA",
+    "band": "Обработанные наблюдения · цвета зависят от фильтров",
+    "date": "26 December 2011, 10:00",
+    "url": "https://cdn.esahubble.org/archives/images/screen/potw1152a.jpg",
+    "source": "https://esahubble.org/images/potw1152a/",
+    "credit": "ESA/Hubble & NASA",
+    "description": "Наблюдение обсерватории. Цвета и детали после обработки не соответствуют виду в любительский телескоп. Кадр из архива: «Faint galaxy with popping pink features».",
+    "archiveTitle": "Faint galaxy with popping pink features",
+    "identification": {
+      "method": "exact About the Object name; Observation only",
+      "matchedNames": [
+        "IC 2574"
+      ],
+      "objectNames": "IC 2574",
+      "pageSha256": "90edf5f7917207920531c93218ef49815b129d07a7dd54e8d7928af421059d38"
+    }
+  },
+  {
+    "id": "hubble-opo0511a",
+    "objects": [
+      "opengc-ngc1316"
+    ],
+    "identifiers": [
+      "NGC 1316"
+    ],
+    "kind": "galaxy",
+    "title": "Fornax A — Hubble",
+    "instrument": "Hubble / ESA",
+    "band": "Обработанные наблюдения · цвета зависят от фильтров",
+    "date": "31 March 2005, 16:00",
+    "url": "https://cdn.esahubble.org/archives/images/screen/opo0511a.jpg",
+    "source": "https://esahubble.org/images/opo0511a/",
+    "credit": "NASA , ESA , and The Hubble Heritage Team ( STScI / AURA )",
+    "description": "Наблюдение обсерватории. Цвета и детали после обработки не соответствуют виду в любительский телескоп. Кадр из архива: «Hubble spies cosmic dust bunnies».",
+    "archiveTitle": "Hubble spies cosmic dust bunnies",
+    "identification": {
+      "method": "exact About the Object name; Observation only",
+      "matchedNames": [
+        "Fornax A",
+        "NGC 1316"
+      ],
+      "objectNames": "Fornax A , NGC 1316",
+      "pageSha256": "b6530e17c4d72b40695550aad4e7e9647f148c5e7fff5b3a695dc9d54e8f4971"
+    }
+  },
+  {
+    "id": "hubble-potw2148a",
+    "objects": [
+      "opengc-ngc1317"
+    ],
+    "identifiers": [
+      "NGC 1317"
+    ],
+    "kind": "galaxy",
+    "title": "Fornax B — Hubble",
+    "instrument": "Hubble / ESA",
+    "band": "Обработанные наблюдения · цвета зависят от фильтров",
+    "date": "29 November 2021, 06:00",
+    "url": "https://cdn.esahubble.org/archives/images/screen/potw2148a.jpg",
+    "source": "https://esahubble.org/images/potw2148a/",
+    "credit": "ESA/Hubble & NASA, J. Lee and the PHANGS-HST Team",
+    "description": "Наблюдение обсерватории. Цвета и детали после обработки не соответствуют виду в любительский телескоп. Кадр из архива: «One of a Pair».",
+    "archiveTitle": "One of a Pair",
+    "identification": {
+      "method": "exact About the Object name; Observation only",
+      "matchedNames": [
+        "NGC 1317"
+      ],
+      "objectNames": "NGC 1317",
+      "pageSha256": "a550610bcba8335c169553992d79eb2fb0b27805ad864ab27d40692dc9a98582"
+    }
+  },
+  {
+    "id": "hubble-heic1406a",
+    "objects": [
+      "opengc-ngc2174"
+    ],
+    "identifiers": [
+      "NGC 2174"
+    ],
+    "kind": "nebula",
+    "title": "Monkey Head Nebula — Hubble",
+    "instrument": "Hubble / ESA",
+    "band": "Обработанные наблюдения · цвета зависят от фильтров",
+    "date": "17 March 2014, 10:00",
+    "url": "https://cdn.esahubble.org/archives/images/screen/heic1406a.jpg",
+    "source": "https://esahubble.org/images/heic1406a/",
+    "credit": "NASA , ESA , and the Hubble Heritage Team (STScI/AURA)",
+    "description": "Наблюдение обсерватории. Цвета и детали после обработки не соответствуют виду в любительский телескоп. Кадр из архива: «New Hubble image of NGC 2174».",
+    "archiveTitle": "New Hubble image of NGC 2174",
+    "identification": {
+      "method": "exact About the Object name; Observation only",
+      "matchedNames": [
+        "NGC 2174"
+      ],
+      "objectNames": "NGC 2174",
+      "pageSha256": "c6d5966332a5be14c1757194c1596cc9c83436d8c4486c388da27e34a2b63f4f"
+    }
+  },
+  {
+    "id": "sdo-sun",
+    "objects": [
+      "sol"
+    ],
+    "title": "Солнце: гигантское волокно",
+    "instrument": "NASA · Solar Dynamics Observatory",
+    "band": "Ультрафиолет · условные цвета",
+    "date": "2017-12-08",
+    "url": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000790/GSFC_20171208_Archive_e000790~medium.jpg",
+    "source": "https://images.nasa.gov/details/GSFC_20171208_Archive_e000790",
+    "credit": "GSFC",
+    "description": "Солнечное волокно на снимке SDO. Ультрафиолетовое излучение преобразовано в видимые цвета.",
+    "identification": {
+      "method": "NASA image library metadata identifies Sun and SDO",
+      "caption": "A dark line snaked across the lower half of the sun on Feb.10, 2015, as seen in this image from NASA's Solar Dynamics Observatory, or SDO. SDO shows colder material as dark and hotter material as light, so the line is, in fact, an enormous swatch of colder material hovering in the sun's atmosphere, the corona. Stretched out, that line – or solar filament as scientists call it – would be more than 533,000 miles long. That is longer than 67 Earths lined up in a row.  Filaments can float sedately for days before disappearing. Sometimes they also erupt out into space, releasing solar material in a shower that either rains back down or escapes out into space, becoming a moving cloud known as a coronal mass ejection, or CME.  SDO captured images of the filament in numerous wavelengths, each of which helps highlight material of different temperatures on the sun. By looking at such features in different wavelengths and temperatures, scientists learn more about what causes these structures, as well as what catalyzes their occasional eruptions.  For more on SDO, visit: <a href=\"http://www.nasa.gov/sdo\" rel=\"nofollow\">www.nasa.gov/sdo</a>  Karen C. Fox NASA's Goddard Space Flight Center, Greenbelt, Maryland  Credit: NASA/Goddard/SDO  <b><a href=\"http://www.nasa.gov/audience/formedia/features/MP_Photo_Guidelines.html\" rel=\"nofollow\">NASA image use policy.</a></b>  <b><a href=\"http://www.nasa.gov/centers/goddard/home/index.html\" rel=\"nofollow\">NASA Goddard Space Flight Center</a></b> enables NASA’s mission through four scientific endeavors: Earth Science, Heliophysics, Solar System Exploration, and Astrophysics. Goddard plays a leading role in NASA’s accomplishments by contributing compelling scientific knowledge to advance the Agency’s mission. <b>Follow us on <a href=\"http://twitter.com/NASAGoddardPix\" rel=\"nofollow\">Twitter</a></b> <b>Like us on <a href=\"http://www.facebook.com/pages/Greenbelt-MD/NASA-Goddard/395013845897?ref=tsd\" rel=\"nofollow\">Facebook</a></b> <b>Find us on <a href=\"http://instagram.com/nasagoddard?vm=grid\" rel=\"nofollow\">Instagram</a></b> "
+    }
+  },
+  {
+    "id": "chandra-vela",
+    "objects": [
+      "vela"
+    ],
+    "title": "Пульсар Вела и его джет",
+    "instrument": "NASA · Chandra",
+    "band": "Рентгеновское излучение · условные цвета",
+    "date": "публикация 2013",
+    "url": "https://chandra.harvard.edu/photo/2013/vela/vela.jpg",
+    "source": "https://chandra.harvard.edu/photo/2013/vela/",
+    "credit": "NASA/CXC/Univ of Toronto/M.Durant et al.",
+    "description": "Рентгеновский снимок пульсара и его джета. Синий цвет обозначает рентгеновское излучение; глазом и в обычный оптический телескоп этот джет не виден.",
+    "identification": {
+      "method": "Chandra official object page identifies Vela pulsar, photographic image and separate illustration",
+      "pageSha256": "ab4fb5985db3745540ddf3b7498faa2c542653f316cbf5a0531021206a9bc7f5"
+    }
+  },
+  {
+    "id": "eht-eso2208-eht-mwa",
+    "objects": [
+      "sgr"
+    ],
+    "title": "Стрелец A* — изображение EHT",
+    "instrument": "Event Horizon Telescope",
+    "band": "Радионаблюдения · 1,3 мм · условные цвета",
+    "date": "12 May 2022, 15:07",
+    "url": "https://cdn.eso.org/images/screen/eso2208-eht-mwa.jpg",
+    "source": "https://www.eso.org/public/images/eso2208-eht-mwa/",
+    "credit": "EHT Collaboration",
+    "description": "Свечение горячего вещества вокруг чёрной дыры в центре Млечного Пути, восстановленное по радионаблюдениям EHT. Это не оптический снимок; тёмная область соответствует тени чёрной дыры.",
+    "identification": {
+      "method": "Official ESO observational page explicitly identifies Sagittarius A*",
+      "objectNames": "Milky Way Galactic Centre",
+      "pageSha256": "82fef871c815d024e769a2afac2da64b028bda5ca182b8bb0b261ee5ee5165c4"
+    }
+  },
+  {
+    "id": "hubble-potw1346a",
+    "objects": [
+      "3c273"
+    ],
+    "identifiers": [],
+    "kind": "quasar",
+    "title": "Квазар 3C 273 — Hubble",
+    "instrument": "Hubble / ESA",
+    "band": "Обработанные наблюдения · цвета зависят от фильтров",
+    "date": "18 November 2013, 10:00",
+    "url": "https://cdn.esahubble.org/archives/images/screen/potw1346a.jpg",
+    "source": "https://esahubble.org/images/potw1346a/",
+    "credit": "ESA/Hubble & NASA",
+    "description": "Наблюдение обсерватории. Цвета и детали после обработки не соответствуют виду в любительский телескоп.",
+    "archiveTitle": "Best image of bright quasar 3C 273",
+    "identification": {
+      "method": "exact About the Object name; Observation only",
+      "matchedNames": [
+        "3C 273"
+      ],
+      "objectNames": "3C 273",
+      "pageSha256": "d4e2f4df77cffb1112c5d677c359963ae163402b57a6327fd952e65a11add3e9"
+    }
+  },
+  {
+    "id": "webb-jades4",
+    "objects": [
+      "jades-z14"
+    ],
+    "title": "JADES-GS-z14-0 — Webb",
+    "instrument": "James Webb · NIRCam",
+    "band": "Инфракрасные наблюдения · условные цвета · поле с увеличенной вставкой",
+    "date": "30 May 2024, 16:00",
+    "url": "https://cdn.esawebb.org/archives/images/screen/jades4.jpg",
+    "source": "https://esawebb.org/images/jades4/",
+    "credit": "NASA, ESA, CSA, STScI, B. Robertson (UC Santa Cruz), B. Johnson (CfA), S. Tacchella (Cambridge), P. Cargile (CfA)",
+    "description": "Галактика отмечена выноской и показана в увеличенной вставке. Это реальное глубокое инфракрасное наблюдение Webb; в любительский телескоп такая цель не видна.",
+    "identification": {
+      "method": "Official Webb source explicitly identifies the galaxy in the annotated photographic pullout; not an artist concept",
+      "archiveTitle": "Webb finds most distant known galaxy (JADES-GS-z14-0 annotated pullout NIRCam image)",
+      "pageSha256": "96a7dbb07a7e9b281cf387aca934520a3b6ded7d06b9c6b08d1a3e8e06ebb5cd"
+    }
+  },
+  {
+    "id": "webb-weic2603a",
+    "objects": [
+      "mom-z14"
+    ],
+    "title": "MoM-z14 — Webb",
+    "instrument": "James Webb · NIRCam",
+    "band": "Инфракрасные наблюдения · условные цвета · поле с увеличенной вставкой",
+    "date": "28 January 2026, 16:00",
+    "url": "https://cdn.esawebb.org/archives/images/screen/weic2603a.jpg",
+    "source": "https://esawebb.org/images/weic2603a/",
+    "credit": "NASA, ESA, CSA, STScI, R. Naidu (MIT), Image Processing: J. DePasquale (STScI)",
+    "description": "Галактика отмечена выноской и показана в увеличенной вставке. Это реальное глубокое инфракрасное наблюдение Webb; в любительский телескоп такая цель не видна.",
+    "identification": {
+      "method": "Official Webb source explicitly identifies the galaxy in the annotated photographic pullout; not an artist concept",
+      "archiveTitle": "COSMOS Field MoM-z14 Galaxy (NIRCam pullout image)",
+      "pageSha256": "09c3e3c0f2b7c7bc55528e311cb7c59421f898a8747c6a4afda6eed8ad4dff99"
+    }
   }
 ]

@@ -1,185 +1,111 @@
 'use strict';
-// Future stops are forecasts, never edits to the trajectory being flown.
+// Forecast future legs without changing the route or the executing trajectory.
 const FlightQueue = {
-  limit: 10, drafts: new Map(), cache: null,
-  reset() { this.drafts.clear(); this.cache = null; },
+  drafts: new Map(), cache: null, arrivals: null,
+  reset() { this.drafts.clear(); this.cache = null; this.arrivals = null; },
   escape(value) { return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); },
   browsing() { return !!state.flight && state.selected !== state.flight.target; },
   run(context, fn) {
-    const live = state;
-    state = context;
-    try { return fn(); } finally { state = live; }
+    const live=state;state=context;
+    try { return fn(); } finally { state=live; }
   },
-  setupFor(id) {
-    return this.drafts.get(id) || state.nextTargets.find(n => n.id === id)?.setup || FlightSetup.preferred();
-  },
+  setupFor(id) { return this.drafts.get(id)||Route.future().findLast(n=>n.id===id)?.setup||FlightSetup.preferred(); },
   setSetup(id, setup) {
-    const c = FlightSetup.normalize(setup), node = state.nextTargets.find(n => n.id === id);
-    if (node) node.setup = c;
-    this.drafts.set(id, c);
-    if (this.drafts.size > 24) this.drafts.delete(this.drafts.keys().next().value);
-    this.cache = null;
-    persist();
+    const c=FlightSetup.normalize(setup),node=Route.future().findLast(n=>n.id===id);
+    if(node)node.setup=c;
+    this.drafts.set(id,c);
+    if(this.drafts.size>24)this.drafts.delete(this.drafts.keys().next().value);
+    this.cache=null;persist();
   },
-  // Advance a disposable forecast to a stopped endpoint, including fuel and epoch.
-  arrive(s, target, p) {
-    if (!p?.valid || !Number.isFinite(p.earth)) return p?.reason || 'Нет прогноза прибытия к текущей цели.';
-    if (MissionPlanner.burstScheduled(p) && p.sourceId && !s.destroyed.includes(p.sourceId)) s.destroyed.push(p.sourceId);
-    const source = p.passage ? target : p.arrivalStar || (p.arrival ? target : ExtendedCatalog.arrivalStar(target, s.destroyed) || target);
-    s.planningSource = source;
-    s.current = source.id;
-    const exit = p.passage && p.encounter.plan ? Gravity.atProper(p.encounter.plan, p.encounter.plan.proper).offset : [0,0,0];
-    s.ship = Space.point(V3.add(source.p3, exit));
-    s.beta = p.passage ? p.coast.beta : 0;
-    s.matter = p.arrivalFuelKg / 1000;
-    s.cosmicTime += s.expansion !== false ? p.earth : 0;
-    s.earth += p.earth;
-    s.orbit = !p.passage && p.arrival ? {targetId: source.id, radius: p.arrival.radius, beta: p.arrival.beta} : null;
+  // Advance a disposable forecast to an endpoint, including fuel and epoch.
+  arrive(s,target,p) {
+    if(!p?.valid||!Number.isFinite(p.earth))return p?.reason||'Нет прогноза прибытия к текущей цели.';
+    if(MissionPlanner.burstScheduled(p)&&p.sourceId&&!s.destroyed.includes(p.sourceId))s.destroyed.push(p.sourceId);
+    const source=p.passage?target:p.arrivalStar||(p.arrival?target:ExtendedCatalog.arrivalStar(target,s.destroyed)||target);
+    s.planningSource=source;s.current=source.id;
+    const exit=p.passage&&p.encounter.plan?Gravity.atProper(p.encounter.plan,p.encounter.plan.proper).offset:[0,0,0];
+    s.ship=Space.point(V3.add(source.p3,exit));s.beta=p.passage?p.coast.beta:0;
+    s.matter=p.arrivalFuelKg/1000;s.cosmicTime+=s.expansion!==false?p.earth:0;s.earth+=p.earth;
+    s.orbit=!p.passage&&p.arrival?{targetId:source.id,radius:p.arrival.radius,beta:p.arrival.beta}:null;
     return '';
   },
-  context(id = state.selected) {
-    const f = state.flight;
-    // The executing plan has a fixed arrival forecast: no integration per frame.
-    const key = JSON.stringify([id, f?.target, f?.legIndex, state.nextTargets, this.setupFor(id), state.expansion, state.destroyed]);
-    if (this.cache?.flight === f && this.cache.key === key) return this.cache.value;
-    const s = {...state, flight: null, orbit: null, nextTargets: [], selected: id, destroyed: [...state.destroyed], phase: 'idle', beta: 0};
-    let issue = '';
-    if (f) {
-      let plan = f.mission;
-      if (!plan) {
-        const eta = FlightEstimate.get();
-        plan = {...eta, valid: Number.isFinite(eta?.earth), sourceId: f.fromId, arrivalStar: f.arrivalStar};
-      }
-      const remaining = FlightEstimate.get();
-      plan = {...plan, earth: remaining?.earth ?? plan?.earth};
-      issue = this.arrive(s, object(f.target), plan);
-      // An existing atlas route finishes before the appended queue starts.
-      if (!issue && f.route?.length) {
-        for (let i = f.legIndex + 1; !issue && i < f.route.length; i++) {
-          const n = f.route[i];
-          s.selected = n.id;
-          const p = this.run(s, () => {
-            const c = MissionPlanner.legSetup(FlightSetup.preferred(s), s.planningSource, new Set(s.destroyed));
-            return n.mode === 'flyby'
-              ? MissionPlanner.passage(c, s.planningSource, object(n.id), object(f.route[i+1]?.id), s.matter*1000, s.ship, s.cosmicTime, s.expansion !== false, s.beta)
-              : MissionPlanner.planPreferred(c, s.planningSource, object(n.id), s.matter*1000, s.ship, s.cosmicTime, s.expansion !== false, s.beta, s.orbit);
-          });
-          issue = this.arrive(s, object(n.id), p);
-        }
-      }
+  plan(s,node,next) {
+    return this.run(s,()=>{
+      const setup=MissionPlanner.legSetup(node.setup||FlightSetup.preferred(s),s.planningSource,new Set(s.destroyed));
+      return node.mode==='flyby'
+        ?MissionPlanner.passage(setup,s.planningSource,object(node.id),next,s.matter*1000,s.ship,s.cosmicTime,s.expansion!==false,s.beta)
+        :MissionPlanner.planPreferred(setup,s.planningSource,object(node.id),s.matter*1000,s.ship,s.cosmicTime,s.expansion!==false,s.beta,s.orbit);
+    });
+  },
+  context(id=state.selected) {
+    const f=state.flight,future=Route.future(),selectedIndex=future.findLastIndex(n=>n.id===id),nodes=selectedIndex<0?future:future.slice(0,selectedIndex);
+    const key=JSON.stringify([id,f?.target,f?.legIndex,nodes,this.setupFor(id),FlightSetup.preferred(),state.expansion,state.destroyed,ArrivalStars.revision]);
+    if(this.cache?.flight===f&&this.cache.key===key)return this.cache.value;
+    let s={...state,flight:null,orbit:null,itinerary:[],nextTargets:[],selected:id,destroyed:[...state.destroyed],phase:'idle',beta:0};
+    let issue='';
+    const baseKey=JSON.stringify([f?.target,f?.legIndex,FlightSetup.preferred(),state.expansion,state.destroyed,ArrivalStars.revision]);
+    if(this.arrivals?.flight!==f||this.arrivals?.mission!==f?.mission||this.arrivals?.key!==baseKey)this.arrivals={flight:f,mission:f?.mission,key:baseKey,stops:new Map()};
+    const stops=f?.mission?this.arrivals.stops:null,copy=value=>({...value,destroyed:[...value.destroyed]});
+    if(stops?.has(''))s=copy(stops.get(''));
+    else if(f){
+      let plan=f.mission;
+      if(!plan){const eta=FlightEstimate.get();plan={...eta,valid:Number.isFinite(eta?.earth),sourceId:f.fromId,arrivalStar:f.arrivalStar};}
+      plan={...plan,earth:FlightEstimate.get()?.earth??plan?.earth};
+      issue=this.arrive(s,object(f.target),plan);
+      if(!issue)stops?.set('',copy(s));
     }
-    for (const n of state.nextTargets) {
-      if (issue || n.id === id) break;
-      s.selected = n.id; s.flightSetup = n.setup;
-      const p = this.run(s, () => MissionPlanner.preview());
-      issue = this.arrive(s, object(n.id), p);
+    let prefix='';
+    for(let i=0;i<nodes.length&&!issue;i++){
+      const n=nodes[i],next=object(nodes[i+1]?.id||id);
+      prefix+=JSON.stringify([n,n.mode==='flyby'?next?.id:null]);
+      if(stops?.has(prefix)){s=copy(stops.get(prefix));continue;}
+      s.selected=n.id;
+      issue=this.arrive(s,object(n.id),this.plan(s,n,next));
+      if(!issue)stops?.set(prefix,copy(s));
     }
-    s.selected = id;
-    s.flightSetup = this.setupFor(id);
-    s.planningIssue = issue;
-    this.cache = {flight: f, key, value: s};
-    return s;
+    if(stops?.size>40)stops.clear();
+    s.selected=id;s.flightSetup=this.setupFor(id);s.planningIssue=issue;
+    this.cache={flight:f,key,value:s};return s;
   },
-  forecast(context = this.context()) {
-    return context.planningIssue ? MissionPlanner.invalid(context.planningIssue) : this.run(context, () => MissionPlanner.preview());
+  forecast(context=this.context()) {
+    if(context.planningIssue)return MissionPlanner.invalid(context.planningIssue);
+    const nodes=Route.future(),index=nodes.findLastIndex(n=>n.id===context.selected),node=nodes[index];
+    if(node?.mode==='flyby'){
+      const next=object(nodes[index+1]?.id);
+      if(!next)return MissionPlanner.invalid('Для гравитационного манёвра выберите следующую точку.');
+      return this.plan(context,node,next);
+    }
+    return this.run(context,()=>context.beta>0
+      ?MissionPlanner.planPreferred(context.flightSetup,context.planningSource,object(context.selected),context.matter*1000,context.ship,context.cosmicTime,context.expansion!==false,context.beta,context.orbit)
+      :MissionPlanner.preview());
   },
-  add(id) {
-    if (!state.flight || id === state.flight.target) return;
-    if (state.nextTargets.some(n => n.id === id)) { toast('Эта цель уже в очереди.'); return; }
-    if (state.nextTargets.length >= this.limit) { toast('В очереди уже 10 целей.'); return; }
-    const o = object(id);
-    if (!o?.navigable) return;
-    const context = this.context(id), p = this.forecast(context);
-    if (!p.valid) { toast(p.reason); return; }
-    ExtendedCatalog.pin(o);
-    state.nextTargets.push({id, setup: FlightSetup.normalize(context.flightSetup)});
-    this.cache = null;
-    persist(); renderUI();
-    toast('В очереди: ' + o.name + '. Старт после предыдущей остановки.');
-  },
-  depart({focusRoute = true} = {}) {
-    if (state.flight || !state.nextTargets.length) return;
-    const n = state.nextTargets[0], previous = state.selected;
-    state.selected = n.id;
-    const setup = FlightSetup.resolve(n.setup, object(state.current));
-    const p = MissionPlanner.planPreferred(setup, object(state.current), object(n.id), state.matter * 1000, state.ship, state.cosmicTime || 0, state.expansion !== false);
-    if (!p.valid) { state.selected = n.id; renderUI(); persist(); toast('Очередь остановлена: ' + p.reason); return; }
-    // Snapshot before removing the stop so cancellation restores it as well.
-    FlightHistory.pending = FlightHistory.snapshot();
-    state.nextTargets.shift(); state.flightSetup = n.setup;
-    this.cache = null;
-    MissionPlanner.launch(p, null, {focusRoute});
-    if (previous !== n.id && state.nextTargets.some(q => q.id === previous)) select(previous);
-  },
-  dismiss() {
-    if (state.flight && state.selected !== state.flight.target) select(state.flight.target);
-  },
+  dismiss() { if(this.browsing())select(state.flight.target); },
   render() {
-    const f = state.flight, nodes = state.nextTargets;
-    const visible = (!!f && this.browsing()) || nodes.length > 0;
-    const rows = (f ? 1 : 0) + nodes.length + (!f && nodes.length ? 1 : 0);
-    $('flightCard').style.setProperty?.('--queue-height', Math.min(rows, width < 700 ? 2 : 3) * 29 + 'px');
-    $('targetQueue').hidden = !visible;
-    $('flightCard').classList.toggle('has-queue', visible);
-    const html = (f ? '<button class="queue-current" data-queue-select="' + this.escape(f.target) + '" aria-pressed="' + !this.browsing() + '"><small>В ПОЛЁТЕ</small><b>' + this.escape(object(f.target).name) + '</b><span>↗</span></button>' : '') +
-      nodes.map((n, i) => '<div class="queue-stop"><button data-queue-select="' + this.escape(n.id) + '" aria-pressed="' + (state.selected === n.id) + '"><small>' + String(i + 1).padStart(2, '0') + '</small><b>' + this.escape(object(n.id).name) + '</b></button><button data-queue-remove="' + i + '" aria-label="Убрать ' + this.escape(object(n.id).name) + '">×</button></div>').join('') +
-      (!f && nodes.length ? '<button data-queue-resume>Продолжить очередь →</button>' : '');
-    UIContent.html($('targetQueue'), html);
-    if (!this.browsing()) return;
-    const target = object(state.selected), context = this.context(), p = this.forecast(context), queued = nodes.some(n => n.id === target.id);
+    if(!this.browsing())return;
+    const target=object(state.selected),context=this.context(),p=this.forecast(context),nodes=Route.future(),index=nodes.findLastIndex(n=>n.id===target.id);
     $('flightCard').classList.remove('in-flight');
-    UIContent.text($('distanceCaption'), 'ОТ ПРЕДЫДУЩЕЙ ОСТАНОВКИ');
-    UIContent.text($('targetName'), target.name);
-    UIContent.text($('targetType'), objectTypeText(target));
-    $('targetVisited').hidden = !state.visited.includes(target.id);
-    UIContent.text($('phaseTag'), queued ? 'В ОЧЕРЕДИ' : 'СЛЕДУЮЩАЯ ЦЕЛЬ');
-    const d = target.navigable ? this.run(context, () => Cosmology.physicalDistance(context.ship, target)) : NaN;
-    UIContent.html($('targetDistance'), Number.isFinite(d) ? compact(d) + ' <small>св. лет</small>' : '<small>Расстояние неизвестно</small>');
-    UIContent.text($('arrivalLabel'), 'ПОСЛЕ ПРЕДЫДУЩЕЙ ОСТАНОВКИ');
-    $('arrivalEstimate').hidden = !target.navigable;
-    UIContent.text($('arrivalProper'), p.valid ? durationText(p.proper) : '—');
-    UIContent.text($('arrivalEarth'), p.valid ? durationText(p.earth) : '—');
-    $('flightControls').hidden = true;
-    $('launchBtn').hidden = false;
-    $('launchBtn').disabled = queued || !target.navigable || !p.valid || nodes.length >= this.limit;
-    UIContent.text($('launchBtn').querySelector('span'), queued ? 'В очереди · ' + (nodes.findIndex(n => n.id === target.id) + 1) : 'Выбрать следующую цель');
-    $('configureFlight').hidden = !target.navigable || !!context.planningIssue;
-    UIContent.text($('configureFlightLabel'), 'Подробный план ↗');
-    const c = FlightSetup.resolve(context.flightSetup, context.planningSource);
-    UIContent.text($('setupAccelerationSummary'), FlightSetup.acceleration(c));
-    UIContent.text($('setupBrakingSummary'), FlightSetup.braking(c));
-    for (const id of ['departureSection','departureDiagram','sailSection','engineSection','flightDetails']) $(id).hidden = true;
-    $('horizonNotice').hidden = !p.unreachable;
-    UIContent.text($('horizonNotice'), p.unreachable ? 'При включённом расширении прибытие недостижимо.' : '');
-    UIContent.text($('flightHint'), p.valid ? FlightBuilder.reserveNote(p) : p.reason);
-    $('flightHint').hidden = !$('flightHint').textContent;
+    UIContent.text($('distanceCaption'),'ОТ ПРЕДЫДУЩЕЙ ТОЧКИ');
+    UIContent.text($('targetName'),target.name);UIContent.text($('targetType'),objectTypeText(target));
+    $('targetVisited').hidden=!state.visited.includes(target.id);
+    UIContent.text($('phaseTag'),index>=0?'УЧАСТОК '+((state.flight.legIndex||0)+index+2)+' / '+state.flight.route.length:'ДОБАВИТЬ УЧАСТОК');
+    const d=target.navigable?this.run(context,()=>Cosmology.physicalDistance(context.ship,target)):NaN;
+    UIContent.html($('targetDistance'),Number.isFinite(d)?compact(d)+' <small>св. лет</small>':'<small>Расстояние неизвестно</small>');
+    UIContent.text($('arrivalLabel'),'ДЛИТЕЛЬНОСТЬ УЧАСТКА');
+    $('arrivalEstimate').hidden=!target.navigable;
+    UIContent.text($('arrivalProper'),p.valid?durationText(p.proper):'—');UIContent.text($('arrivalEarth'),p.valid?durationText(p.earth):'—');
+    $('flightControls').hidden=true;$('launchBtn').hidden=false;
+    $('launchBtn').disabled=index>=0||!target.navigable||nodes.length>=Route.limit;
+    UIContent.text($('launchBtn').querySelector('span'),index>=0?'Участок добавлен':'Добавить участок');
+    $('configureFlight').hidden=!target.navigable||!!context.planningIssue;
+    UIContent.text($('configureFlightLabel'),'Подробный план ↗');
+    const c=FlightSetup.resolve(context.flightSetup,context.planningSource);
+    UIContent.text($('setupAccelerationSummary'),FlightSetup.acceleration(c));UIContent.text($('setupBrakingSummary'),FlightSetup.braking(c));
+    for(const id of ['departureSection','departureDiagram','sailSection','engineSection','flightDetails'])$(id).hidden=true;
+    $('horizonNotice').hidden=!p.unreachable;UIContent.text($('horizonNotice'),p.unreachable?'При включённом расширении прибытие недостижимо.':'');
+    UIContent.text($('flightHint'),p.valid?FlightBuilder.reserveNote(p):p.reason);$('flightHint').hidden=!$('flightHint').textContent;
     globalThis.UniverseMap?.renderCard(target);
-    if (!target.cosmicEpoch) UIContent.text($('distanceCaption'), 'ОТ ПРЕДЫДУЩЕЙ ОСТАНОВКИ');
-    $('mapSliceTargetNotice').hidden = !(globalThis.MapSlice?.mode === 'slice' && !MapSlice.includes(target));
-  },
-  show() {
-    const f = state.flight;
-    showDialog('<div class="modal-eyebrow">НАВИГАЦИЯ / СЛЕДУЮЩИЕ ОСТАНОВКИ</div><h2>Очередь целей.</h2>' +
-      (f ? '<p>Текущий полёт: <b>'+this.escape(object(f.target).name)+'</b>. Очередь начнётся после завершения текущего маршрута.</p>' : '') +
-      (f?.route?.length ? '<button class="text-action" id="activeAtlasRoute">Текущий маршрут ↗</button>' : '') +
-      '<ol class="route-list">'+state.nextTargets.map((n,i)=>'<li class="route-node"><div class="route-node-name"><span>'+String(i+1).padStart(2,'0')+'</span><b>'+this.escape(object(n.id).name)+'</b></div><p>'+FlightSetup.acceleration(n.setup)+' · '+FlightSetup.braking(n.setup)+'</p><div class="route-node-actions"><button data-open-stop="'+i+'">Карточка ↗</button><button data-raise-stop="'+i+'" '+(i===0?'disabled':'')+' aria-label="Поднять цель '+(i+1)+'">↑</button><button data-delete-stop="'+i+'" aria-label="Удалить цель '+(i+1)+'">×</button></div></li>').join('')+'</ol><p>До 10 следующих остановок. План каждого участка уточняется по фактическим топливу, позиции и времени прибытия.</p>');
-    $('dialogContent').onclick = e => {
-      const b=e.target.closest('button'); if (!b) return;
-      if (b.id === 'activeAtlasRoute') { Route.show(); return; }
-      if (b.dataset.openStop !== undefined) { const n=state.nextTargets[+b.dataset.openStop]; $('infoDialog').close(); if(n) select(n.id); return; }
-      if (b.dataset.deleteStop !== undefined) state.nextTargets.splice(+b.dataset.deleteStop,1);
-      else if (b.dataset.raiseStop !== undefined) { const i=+b.dataset.raiseStop; if(i>0) [state.nextTargets[i-1],state.nextTargets[i]]=[state.nextTargets[i],state.nextTargets[i-1]]; }
-      else return;
-      this.cache=null;persist();renderUI();this.show();
-    };
-  },
-  setup() {
-    $('targetQueue').onclick = e => {
-      const b = e.target.closest('button'); if (!b) return;
-      if (b.dataset.queueSelect !== undefined) select(b.dataset.queueSelect);
-      else if (b.dataset.queueRemove !== undefined) { state.nextTargets.splice(+b.dataset.queueRemove, 1); this.cache = null; persist(); renderUI(); }
-      else if (b.hasAttribute('data-queue-resume')) this.depart();
-    };
+    if(!target.cosmicEpoch)UIContent.text($('distanceCaption'),'ОТ ПРЕДЫДУЩЕЙ ТОЧКИ');
+    $('mapSliceTargetNotice').hidden=!(globalThis.MapSlice?.mode==='slice'&&!MapSlice.includes(target));
   },
 };
 
@@ -188,7 +114,7 @@ const QuickFlight = {
   reserveNoticeKey: null,
   notifyReserve(p) {
     const note = FlightBuilder.reserveNote(p), key = note ? JSON.stringify([p.sourceId, p.targetId, note]) : null;
-    if (key && key !== this.reserveNoticeKey) toast(note, 14000);
+    if (key && key !== this.reserveNoticeKey) toast(note,14000,'warning');
     this.reserveNoticeKey = key;
   },
   issueLabel(p) {

@@ -193,3 +193,46 @@ NASA's [Hubble Messier Catalog](https://science.nasa.gov/mission/hubble/science/
 supplies the M31 first-written-report correction and M44/M45 telescope-observation
 context. No source photographs or page artwork are bundled for these collections;
 source rights remain with their authors.
+
+
+The expanded gallery also uses NASA's credited Hubble Messier and Caldwell
+object pages, frozen as factual image metadata in
+`data-tools/sky-sources/media-hubble.json`. The complete credit accompanies
+every displayed photograph; original source URLs and observational captions
+are retained. Metadata only is bundled; image files stay on publisher servers.
+Additional observations are credited to NASA SDO, NASA/CXC/University of Toronto/
+M. Durant et al. (Vela), and the EHT Collaboration (M87* and Sagittarius A*),
+with their exact credits/URLs in `media.json`.
+
+Caldwell-to-catalogue number correspondences are factual entries from the
+[Wikipedia Caldwell catalogue](https://en.wikipedia.org/wiki/Caldwell_catalogue),
+source attribution and SHA-256 in `visual-targets.json`. No prose, image or
+unstated-band magnitude is copied from that table. NASA's
+[Hubble Caldwell Catalog](https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-caldwell-catalog/)
+provides the separate evidence for visual amateur observing.
+
+### AstroPix observatory image metadata
+
+The mass photographic gallery uses [AstroPix](https://www.astropix.org/),
+operated by Caltech/IPAC as part of NASA's Universe of Learning. The documented
+[JSON API](https://www.astropix.org/page/developers) supplies factual AVM
+identifiers, telescope/filter information, titles, credits and usage policies.
+The derived, filtered metadata and provenance are frozen in
+`data-tools/sky-sources/media-astropix.json`; original feeds are not bundled.
+Photographic pixels are loaded only on demand from external AstroPix URLs.
+
+AstroPix has [no universal image license](https://www.astropix.org/page/image_policies).
+Rights remain with each originating institution and credited contributor:
+ESA/Hubble, STScI/NASA (including Webb), ESO, NOIRLab, Chandra, Spitzer,
+WISE, Herschel, GALEX, NRAO, NuSTAR, Planck, Euclid and ZTF. Each displayed
+material retains its full supplied credit, individual usage-rights statement,
+AstroPix page and original publisher reference. ESO/ESA archive entries
+predominantly specify Creative Commons Attribution 4.0; other entries retain
+their own policy or public-domain statement. None are relicensed as game code.
+
+Qualitative naked-eye visibility of the Magellanic Clouds is attributed to
+NOIRLab's [Large Magellanic Cloud](https://noirlab.edu/public/images/noao-02332/)
+and [Small Magellanic Cloud](https://noirlab.edu/public/images/noao-6051/) pages.
+The short factual quotations, source URLs and underlying AVM metadata hashes
+are retained in `data-tools/sky-sources/observing-evidence.json`. No magnitude
+or other measurement is inferred from those statements.

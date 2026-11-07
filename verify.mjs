@@ -6,6 +6,7 @@ import './verify-composed.mjs';
 import './verify-planner.mjs';
 
 import './verify-time-controls.mjs';
+import './verify-flight-tips.mjs';
 
 import './verify-orbits.mjs';
 
@@ -28,6 +29,7 @@ import './verify-diffraction.mjs';
 import './verify-flight-menu.mjs';
 
 import './verify-atlas-transitions.mjs';
+import './verify-catalog-registry.mjs';
 import './verify-map-filters.mjs';
 
 import './verify-map-hierarchy.mjs';
@@ -51,6 +53,7 @@ import './verify-stellar-catalog.mjs';
 import './verify-system-view.mjs';
 import './verify-sky-guide.mjs';
 import './verify-sky-dss.mjs';
+import './verify-sky-photos.mjs';
 import './verify-orbit-paths.mjs';
 import './verify-extended-geometry.mjs';
 import './verify-map-continuity.mjs';
@@ -58,6 +61,7 @@ import './verify-landmark-continuity.mjs';
 import './verify-map-render-cache.mjs';
 import './verify-map-visibility.mjs';
 import './verify-map-annotations.mjs';
+import './verify-sparse-labels.mjs';
 import './verify-area-labels.mjs';
 import './verify-atlas-expansion.mjs';
 import './verify-black-hole-visibility.mjs';
@@ -82,3 +86,9 @@ import './verify-route-camera.mjs';
 import './verify-ship-camera.mjs';
 import './verify-quick-flight.mjs';
 import './verify-text-selection.mjs';
+
+import './verify-shift-routes.mjs';
+import './verify-unified-routes.mjs';
+import './verify-route-feedback.mjs';
+import './verify-route-search.mjs';
+import './verify-route-presentation.mjs';

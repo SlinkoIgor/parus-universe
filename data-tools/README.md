@@ -6,6 +6,20 @@ Current expansion generator: `build-full-catalog.py`. Existing curated core: `cu
 
 Distant supplement: `python3 build-distant-catalog.py` reproduces `../dist/distant-catalog-data.js` and `distant-catalog-audit.json` without network access. CCPC-II fields/units and extracted JADES DR4 v1.2 `Obs_info` rows, URLs and SHA-256 values are retained in `distant-sources/`. FITS re-extraction requires astropy and `--extract-from DIR`; original file hashes are checked. Identity, conflict policy and source limitations: [universe-overview.md](../docs/universe-overview.md). This supplement preserves existing tile revisions and adopted positions.
 
+Shared source registry: from the repository root,
+`node data-tools/build-map-filter-index.mjs` regenerates both the source census
+(`dist/catalog-registry-data.js`) and the small-selection index. It reads the
+active immutable catalogue, atlas-only rows, the merged core and additive layers;
+it changes no scientific tiles or coordinates. Both the map filter and the
+onboard source library consume the same generated entries. Full catalogue builds
+run it after the final black-hole supplement; run it after independently updating
+an additive layer too. New imports should provide their own `catalog` or
+`catalogMeasurements` names; new names are discovered without editing either UI.
+Readable legacy aliases live once in `dist/catalog-registry.js`.
+`node verify-catalog-registry.mjs` checks reproducibility, whole-record coverage,
+source identities, own measurements and the shared filter/library list.
+`node data-tools/build-catalog-registry.mjs --check` checks the census alone.
+
 Historical map collections: from the repository root, `node data-tools/build-map-collection-history.mjs`
 reproduces `dist/map-collection-history.js` and its HTML cache key without network
 access or dependence on the filter UI. Discovery dates are absent from the
@@ -99,3 +113,38 @@ RV — km/s, маркеры — пиксели GIF (начало сверху). 
 
 Регрессии: `node verify-sky-dss.mjs`, `node verify-sky-guide.mjs`.
 Ограничения и источник списка пластинок — `docs/sky-guide.md`.
+
+## Массовые фотографии обсерваторий
+
+`python3 data-tools/fetch-astropix-media.py --cache /tmp/parus-astropix-metadata`
+получает метаданные официального JSON API AstroPix. Для нового сетевого снимка
+использовать новую папку кеша: частичный сбой не должен смешать страницы разных
+версий архива. Изображения не скачиваются. Фильтруются тип Observation,
+подпись, права, кредиты и идентичность; графики, иллюстрации, модели и DSS
+исключаются. Производные метаданные с происхождением замораживаются в
+`sky-sources/media-astropix.json`; сырые страницы остаются во временном кеше.
+
+`python3 data-tools/build-sky-photos.py` воспроизводит `dist/sky-photos-index.js`
+и 14 JSON с метаданными по поставщикам без сети и без пересборки научных
+каталогов. Имена изображений в URL AstroPix приводятся к нижнему регистру,
+включая исходные AVM ID WISE/NRAO. Звёздные компоненты B/C не отождествляются
+с планетами b/c. `SkyPhotos.ownNames` исключает поисковые псевдонимы хозяина
+у всех классов членов галактик. У скоплений галактик дополнительно требуется
+соответствующая категория AVM. Схемы и снимки не меняют физику/сохранения.
+
+Проверка фактического охвата установленного каталога:
+`node data-tools/audit-sky-photos.mjs /tmp/sky-photo-coverage.json`.
+Она отдельно считает материалы архива, сопоставленные снимки, записи и классы;
+обрабатывает также потоковые тайлы с исходными алиасами и ведущими нулями.
+Регрессия: `node verify-sky-photos.mjs` (включена в `verify.mjs`).
+После пересборки обновить SHA-ключи затронутых скриптов в `dist/index.html`.
+
+Трёхсимвольные имена (LMC, SMC, WLM, AP6) сохраняются наравне с длинными;
+для буквенных кодов требуется подтверждение в исходном заголовке/начале подписи.
+Пустая AVM-категория допускает расширенный объект только при явно названном
+физическом классе в первой фразе. Общие планы с целью в начале заголовка
+идут раньше участков внутри неё. Регрессия покрывает короткие коды, ошибочный
+тег LMC у фотографии SMC и наследование хозяина у членов галактик.
+`sky-sources/observing-evidence.json` отдельно сохраняет прямые свидетельства
+NOIRLab о видимости БМО/ММО глазом: они разрешают карты без выдуманной V,
+не меняя научные записи, и включаются офлайн-сборкой `build-sky-guide.py`.

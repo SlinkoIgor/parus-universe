@@ -1,5 +1,5 @@
 'use strict';
-// World-space thresholds choose names; each name stays beside its object.
+// World-space thresholds choose ordinary names; local captions fill clear gaps.
 // Panels and canvas edges naturally cover text without changing its anchor.
 const MapAnnotations = {
   get active() {
@@ -42,6 +42,32 @@ const MapAnnotations = {
     const center=screen(RegionMap.center(o)),local=RegionMap.nameAnchor(o),scale=width/cam.span*Cosmology.regionScale(o);
     return {point:{x:center.x+local.x*scale,y:center.y+local.y*scale},extent:Math.max(o.region.major,o.region.minor)*scale/2,left:local.x<0};
   },
+  componentName(o) {
+    // Orbital motion invalidates the static catalogue separation of a pair.
+    // Unmodelled members of the same hierarchy also use their actual glyph.
+    return o.kind === 'star' && !!(o.stellarSystem || MapDetails.component(o) || o.nuclearStar);
+  },
+  contourCrosses(h, box) {
+    return (h.paths || [{points:h.points,closed:h.closed}]).some(path =>
+      path.points.some((p,i) => (i > 0 || path.closed) && MapLandmarks.crosses(
+        [path.points[i ? i-1 : path.points.length-1],p], box)));
+  },
+  sparseView() {
+    const ids = new Set(), viewport = {x:0,y:0,w:width,h:height};
+    for (const h of hitObjects) {
+      if (h.p.x >= 0 && h.p.x <= width && h.p.y >= 0 && h.p.y <= height) ids.add(h.o.id);
+      if (ids.size > 10) return false;
+    }
+    // Count resolved contours too, but not offscreen cache padding or a large
+    // surrounding area whose outline is entirely outside this view.
+    for (const h of [...RegionMap.hits, ...MapLabels.contours]) {
+      const o = h.o || h.object;
+      if (!o || ids.has(o.id)) continue;
+      if (this.contourCrosses(h, viewport)) ids.add(o.id);
+      if (ids.size > 10) return false;
+    }
+    return true;
+  },
   place(q, obstacles) {
     const p = q.p || q.candidates?.[0];
     if (!p) return;
@@ -61,13 +87,18 @@ const MapAnnotations = {
       ];
       const free = placements.find(v => {
         const b = {x:v.x-4,y:v.y-size-4,w:w+8,h:size+10};
-        return b.x>=8 && b.x+b.w<=width-8 && b.y>=8 && b.y+b.h<=height-8 &&
-          ![...MapLabels.boxes,...obstacles,...(this.filteredGlyphs || []).filter(g => g.id!==q.object.id)]
+        return ![...MapLabels.boxes,...obstacles,...(this.filteredGlyphs || []).filter(g => g.id!==q.object.id)]
             .some(other => MapLabels.overlaps(b,other));
       });
       if (!free) return;
       x = free.x; offset = free.y-y; box = boxAt(offset);
     }
+    if (q.local && (
+      [...MapLabels.boxes, ...obstacles, ...this.filteredGlyphs.filter(g => g.id !== q.object.id)]
+        .some(other => MapLabels.overlaps(box, other)) ||
+      [...RegionMap.hits, ...MapLabels.contours].some(h =>
+        (h.o || h.object)?.id !== q.object.id && this.contourCrosses(h, box))
+    )) return;
     if (!moving && !q.object?.notableLandmark && (!q.object||MapDetails.level(q.object)<3) && this.notableBoxes?.some(b=>MapLabels.overlaps(box,b))) return;
     if (q.object?.notableLandmark && MapLabels.boxes.some(b=>MapLabels.overlaps(box,b))) return;
     const origin = q.object && MapDetails.origin(q.object);
@@ -76,7 +107,6 @@ const MapAnnotations = {
       // Route events keep one anchor. Passing ships or crowded names may hide
       // the caption, but must never move it to another column or row.
       if (
-        box.x < 8 || box.x + box.w > width - 8 || box.y < 8 || box.y + box.h > height - 8 ||
         [...MapLabels.boxes, ...obstacles].some(other => MapLabels.overlaps(box, other))
       ) return;
     } else if (moving) {
@@ -84,10 +114,8 @@ const MapAnnotations = {
       for (const obstacle of obstacles)
         if (MapLabels.overlaps(box, obstacle)) {
           const right = obstacle.x + obstacle.w + 8;
-          if (right + w + 4 <= width - 8) {
-            x = Math.max(x, right);
-            box = boxAt(0);
-          }
+          x = Math.max(x, right);
+          box = boxAt(0);
         }
       // Keep the atlas fixed and retain the ship name's free row across frames.
       const previous = MapLabels.slots.get(q.key) ?? 0,
@@ -95,10 +123,6 @@ const MapAnnotations = {
       const row = rows.find((row) => {
         const b = boxAt(row * 24);
         return (
-          b.x >= 8 &&
-          b.x + b.w <= width - 8 &&
-          b.y >= 8 &&
-          b.y + b.h <= height - 8 &&
           ![...MapLabels.boxes, ...obstacles].some((other) => MapLabels.overlaps(b, other))
         );
       });
@@ -107,6 +131,8 @@ const MapAnnotations = {
       offset = row * 24;
       box = boxAt(offset);
     }
+    // Canvas clips partial captions. Edges never change their anchor or row.
+    if (!MapLabels.intersectsViewport(box)) return;
     if (origin) this.originBox = box;
     if (q.object) this.hits.push({ object: q.object, box });
     MapLabels.boxes.push(box);
@@ -135,30 +161,61 @@ const MapAnnotations = {
             ? { ...q, name: MapDetails.mapLabelName(q.object).toUpperCase() }
             : q,
         ),
-      items = [];
+      items = [], local = new Map(), sparse = this.sparseView();
+    for (const h of sparse ? [...hitObjects, ...RegionMap.hits, ...MapLabels.contours] : hitObjects) {
+      const o = h.o || h.object, p = h.p || (o && screen(o));
+      if (!o || !h.p && !this.contourCrosses(h,{x:0,y:0,w:width,h:height})) continue;
+      if (local.has(o.id) || o.synthetic || globalThis.MapFilters?.promotes(o)) continue;
+      if (!sparse && !this.componentName(o)) continue;
+      const proper = MapDetails.mapLabelName(o);
+      if (!(proper ? this.componentName(o) : sparse)) continue;
+      const name = proper || o.mapLabel || o.name, alpha = ExtendedCatalog.opacity(o);
+      if (!name || alpha <= .03) continue;
+      local.set(o.id, {key:'object-'+o.id,name,object:o,p,alpha,local:true,
+        rank:this.entries.get(o.id)?.rank ?? 100000});
+    }
     const filtered = new Map();
     if (globalThis.MapFilters?.narrow) {
       for (const h of [...hitObjects,...RegionMap.hits,...MapLabels.contours]) {
         const o = h.o || h.object;
         if (!o || !MapFilters.promotes(o) || filtered.has(o.id)) continue;
         const p = h.p || screen(o);
-        if (p.x<0 || p.y<0 || p.x>width || p.y>height) continue;
         filtered.set(o.id,{key:'object-'+o.id,name:MapDetails.mapLabelName(o),object:o,p,
           rank:this.entries.get(o.id)?.rank ?? 100000,alpha:ExtendedCatalog.opacity(o),filtered:true});
       }
+    }
+    // Keep an overhanging caption after its point leaves the glyph renderer's
+    // padding. Reuse loaded records; point density and streaming stay intact.
+    const offscreen = new Set([...local.keys(), ...filtered.keys()]);
+    for (const source of [OBJECTS, ExtendedCatalog.pinned.values(), ExtendedCatalog.visible,
+      MapLayers.visible, globalThis.MapFilters?.objects.values() || []]) for (const o of source) {
+      if (offscreen.has(o.id) || o.synthetic) continue;
+      offscreen.add(o.id);
+      const promoted = globalThis.MapFilters?.promotes(o);
+      if (!(promoted || sparse || this.componentName(o))) continue;
+      if (!MapDetails.visible(o,cam.span) || !ExtendedCatalog.matchesMap(o)) continue;
+      const p=screen(o);
+      if (p.x>=0 && p.x<=width && p.y>=0 && p.y<=height) continue;
+      const proper=MapDetails.mapLabelName(o);
+      if (!(promoted || (proper ? this.componentName(o) : sparse))) continue;
+      const name=proper || o.mapLabel || o.name, alpha=ExtendedCatalog.opacity(o);
+      if (!name || alpha<=.03) continue;
+      const q={key:'object-'+o.id,name,object:o,p,alpha,rank:this.entries.get(o.id)?.rank ?? 100000};
+      if (promoted) filtered.set(o.id,{...q,filtered:true});
+      else local.set(o.id,{...q,local:true});
     }
     for (const [id, entry] of this.entries) {
       const o = ExtendedCatalog.get(id);
       if (globalThis.MapFilters?.promotes(o)) continue;
       if (!o || !MapDetails.visible(o, cam.span) || !ExtendedCatalog.matchesMap(o)) continue;
       if (o.notableLandmark) continue;
+      if (this.componentName(o)) continue;
       const name = MapDetails.mapLabelName(o);
       if (!name) continue;
       const structure=this.structural(o)?this.structureAnchor(o):null;
       const alpha = Math.max(this.opacity(o),structure?clamp((structure.extent-18)/6,0,1):0) * ExtendedCatalog.opacity(o);
       if (alpha <= 0.03) continue;
       const p=structure?.point||screen(o);
-      if (p.x < 0 || p.x > width || p.y < 0 || p.y > height) continue;
       items.push({
         key: 'object-' + id,
         name: MapDetails.origin(o) ? entry.name : name,
@@ -172,7 +229,7 @@ const MapAnnotations = {
       if (globalThis.MapFilters?.promotes(o)) continue;
       if (!o.notableLandmark || !MapDetails.visible(o,cam.span) || !ExtendedCatalog.matchesMap(o)) continue;
       const p=screen(o),name=MapDetails.mapLabelName(o, o.id === state.selected),alpha=ExtendedCatalog.opacity(o);
-      if(!name||alpha<=.03||p.x<0||p.x>width||p.y<0||p.y>height)continue;
+      if(!name||alpha<=.03)continue;
       items.push({key:'object-'+o.id,name,object:o,p,alpha,rank:0,labelBelow:true});
     }
     items.push(...filtered.values());
@@ -185,19 +242,22 @@ const MapAnnotations = {
         (a.object.notableLandmark&&b.object.notableLandmark?MapDetails.massOrder(a.object,b.object):0) ||
         a.rank - b.rank,
     );
-    this.admitted = items.map((q) => q.object.id);
+    const localItems = [...local.values()].sort((a,b) => a.rank-b.rank || a.object.id.localeCompare(b.object.id));
+    this.admitted = [...items, ...localItems].map((q) => q.object.id);
     this.structureLabels=[];
     this.overflow = [];
     this.hits = [];
     this.originBox = null;
     this.notableBoxes=[];
-    this.filteredGlyphs = globalThis.MapFilters?.narrow ? hitObjects.map(h =>
-      ({id:h.o.id,x:h.p.x-10,y:h.p.y-10,w:20,h:20})) : [];
+    this.filteredGlyphs = globalThis.MapFilters?.narrow || localItems.length ? hitObjects.map(h => {
+      const r = h.o.id === state.selected || h.o.kind === 'home' ? 23 :
+        ['pulsar','quasar'].includes(h.o.kind) ? 20 : h.o.kind === 'blackhole' ? 18 : 10;
+      return {id:h.o.id,x:h.p.x-r,y:h.p.y-r,w:2*r,h:2*r};
+    }) : [];
     MapLabels.boxes = [];
     MapLabels.uiCount = 0;
     MapLabels.placed = [];
-    // Include the sail, braking field and thrust around the ship. This guard
-    // affects only flight captions, never the fixed catalogue names.
+    // Include the sail, braking field and thrust for local and flight captions.
     const ship = screen(state.ship),
       radius = state.flight && ['launch', 'brake'].includes(state.phase) ? 65 : 18,
       obstacles = [{ x: ship.x - radius, y: ship.y - radius, w: radius * 2, h: radius * 2 }];
@@ -210,7 +270,9 @@ const MapAnnotations = {
         );
     for (const q of [
       ...items,
-      ...[...fixed, ...moving].map((q) => ({ ...q, alpha: q.opacity ?? 1 })),
+      ...fixed.map((q) => ({ ...q, alpha: q.opacity ?? 1 })),
+      ...localItems,
+      ...moving.map((q) => ({ ...q, alpha: q.opacity ?? 1 })),
     ])
       this.place(q, obstacles);
   },

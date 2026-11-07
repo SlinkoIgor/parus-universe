@@ -49,12 +49,29 @@ assert.equal(SkyGuide.visibility(object('proxima')).text,'Для наблюде�
 assert.equal(SkyGuide.visibility({...object('sirius'),apparentV:null,hip:null}).v,null,'unknown magnitude is not zero');
 assert.equal(SkyGuide.visibility({...object('sirius'),apparentV:6.25}).text,'На пределе видимости глазом');
 assert.equal(SkyGuide.finder({...object('sirius'),synthetic:true}),'');
-assert.equal(SkyGuide.finder(object('sol')),'');assert.equal(SkyGuide.finder(object('andromeda')),'');
+assert.equal(SkyGuide.finder(object('sol')),'');assert.ok(SkyGuide.finder(object('andromeda')).includes('Андромеда'));
+assert.ok(SkyGuide.canChart(object('proxima')));
+for(const id of ['opengc-ngc3372','opengc-ngc4755','opengc-ngc7000','opengc-ngc6960'])assert.ok(SkyGuide.canChart(object(id)),'Caldwell visibility without invented V: '+id);
+assert.ok(SkyGuide.observing(object('opengc-ngc3372')).v===null,'Caldwell membership never fabricates a magnitude');assert.ok(!SkyGuide.canChart(object('trappist')));
+assert.equal(SkyGuide.chart(object('trappist')),'');
+for(const o of [{...object('sirius'),apparentV:14.01},{...object('sirius'),apparentV:null,hip:null},object('sgr'),object('crab'),object('bh-m87'),object('jades-z14'),{...object('andromeda'),id:'faint',ngc:null,messier:null,aliases:[],apparentV:13.01},{...object('andromeda'),id:'diffuse',ngc:null,messier:null,aliases:[],apparentV:10,angularMajorArcmin:400,angularMinorArcmin:300}]) {assert.equal(SkyGuide.canChart(o),false);assert.equal(SkyGuide.finder(o),'');assert.ok(!SkyGuide.gallery(o).includes('data-photo="chart-'));}
+assert.ok(SkyGuide.canChart({...object('sirius'),apparentV:14}));
+for(const id of ['andromeda','orion','omega','opengc-ngc6720','3c273'])assert.ok(SkyGuide.canChart(object(id)),id+' is an amateur visual target');
 assert.equal(SkyGuide.finder({...object('sirius'),raDeg:360}),'');
+for(const id of ['proxima','hyg-118441','hyg-82565'])for(const close of [false,true]){
+ const o=object(id),v=SkyGuide.magnitude(o),chart=SkyGuide.chart(o,close);
+ assert.ok(v>6&&chart.includes('class="sky-faint-notice"'),'fainter selected star explained on both charts: '+id);
+ assert.ok(chart.includes('Выбранная звезда: V = '+v.toLocaleString('ru-RU',{maximumFractionDigits:2})));
+ assert.ok(chart.includes('Слабее всех фоновых звёзд (V ≤ 6)'));
+ assert.ok(!chart.includes('светимость'),'apparent brightness is not intrinsic luminosity');
+}
+assert.ok(!SkyGuide.chart({...object('sirius'),apparentV:6}).includes('sky-faint-notice'),'V=6 belongs to the background range');
+assert.ok(SkyGuide.chart({...object('sirius'),apparentV:6.01}).includes('sky-faint-notice'),'just above V=6 needs an explanation');
+for(const id of ['alpha','sirius','m87'])assert.ok(!SkyGuide.chart(object(id)).includes('sky-faint-notice'),'no false stellar comparison for '+id);
 const immutable=JSON.stringify([state.flight,state.ship,state.matter,state.earth,state.proper,state.universeElapsed,OBJECTS.map(o=>[o.id,o.p3])]);
 for(const mode of ['full','radial','slice']){
  MapSlice.setMode(mode);
- for(const id of ['sirius','hyg-118441','proxima','hyg-113008','vega','betelgeuse','hyg-82565','trappist']){
+ for(const id of ['sirius','hyg-118441','proxima','hyg-113008','vega','betelgeuse','hyg-82565','andromeda','orion','omega']){
   const o=object(id),wide=SkyGuide.chart(o),close=SkyGuide.chart(o,true);
   for(const chart of [wide,close]){
    assert.ok(!/NaN|Infinity|undefined/.test(chart),'finite spherical projection '+id);
@@ -63,13 +80,15 @@ for(const mode of ['full','radial','slice']){
    assert.ok(chart.includes(SkyGuide.escape(o.name)),'selected label present '+id);
   }
   assert.notEqual(wide,close,'two useful chart scales');
+  assert.ok(wide.includes('150°'),'overview covers a broad sky region');
+  assert.ok((wide.match(/sky-neighbour-figure/g)||[]).length>=8,'many neighbouring constellation lines');
  }
 }
 assert.equal(JSON.stringify([state.flight,state.ship,state.matter,state.earth,state.proper,state.universeElapsed,OBJECTS.map(o=>[o.id,o.p3])]),immutable,'sky guide cannot move navigation stars, fuel or clocks');
 console.log('PASS '+skyChecks.cases.length+' independent Astropy constellation assignments, poles/RA wrap, actual apparent magnitude, unknown values and both chart scales across all map modes');
 for(const p of SKY_GUIDE_DATA.media){
  assert.ok(p.credit&&p.source.startsWith('https://')&&p.description&&p.url.startsWith('https://'));
- for(const id of p.objects){const photos=SkyGuide.photos(object(id));assert.equal(photos[0].id,p.id);assert.equal(photos.at(-1).id,'dss');}
+ for(const id of p.objects){assert.ok(object(id),'known registry object '+id);const photos=SkyGuide.photos(object(id));assert.ok(photos.some(q=>q.id===p.id),'exact observed object '+id);if(object(id).kind==='star')assert.equal(photos.at(-1).id,'dss');}
 }
 assert.equal(SkyGuide.photos(object('sirius'))[0].id,SkyGuide.photos(object('hyg-118441'))[0].id,'source really shows both Sirius components');
 assert.ok(!SkyGuide.photos(object('proxima')).some(p=>p.id==='hubble-alpha'),'Proxima is not in the Alpha AB image');
@@ -87,12 +106,36 @@ for(const alias of ['Gl 244B','HD 48915','WASP-121','2MASS J23062928-0502285','O
  const streamed=ExtendedCatalog.decode(['dss-stream-test',alias,'star',20,120,-10,'catalog','test',[alias],8,'HYG',{},1,2]);
  assert.ok(SkyDSS.identifier(streamed),'streamed exact identity '+alias);assert.equal(SkyGuide.photos(streamed).at(-1).id,'dss');
 }
+for(const id of ['orion','andromeda','omega','opengc-ngc6720','opengc-ic4604','3c273']){
+ const o=object(id),g=SkyGuide.gallery(o),survey=SkyGuide.survey(o);
+ assert.ok(g.includes('stellarMedia')&&survey&&survey.id==='survey','nonstellar photographic field '+id);
+ assert.ok(survey.url.includes('r='+encodeURIComponent(o.raDeg))&&survey.url.includes('d='+encodeURIComponent(o.decDeg)),'actual sky direction, not navigation x/y');
+ assert.ok(!g.includes('stellarSkyImage'),'nonstellar fields never receive stellar proper-motion markers');
+}
+for(const o of [{...object('andromeda'),id:'stream-photo',aliases:['NGC 0224'],ngc:null,messier:null},{...object('andromeda'),id:'stream-photo',aliases:['Messier 31'],ngc:null,messier:null}])assert.ok(SkyGuide.media(o).length,'exact NGC/Messier aliases support streamed and restored records');
+assert.ok(!SkyGuide.media({...object('sirius'),id:'unrelated-star',aliases:['NGC 224']}).length,'no picture inheritance across physical classes');
+assert.equal(SkyGuide.gallery({...object('andromeda'),synthetic:true}),'');
+assert.equal(SkyGuide.gallery(object('horizon')),'');assert.equal(SkyGuide.gallery(object('bootes')),'');
+for(const id of ['sgr','bh-m87','vela','crab','jades-z14','mom-z14']){
+ assert.ok(SkyGuide.media(object(id)).length,'verified professional observation '+id);
+ assert.equal(SkyGuide.canChart(object(id)),false,'invisible target has pictures without a map '+id);
+}
+assert.ok(!SkyGuide.media(object('m87')).some(p=>p.id==='eso-eso1907a'),'EHT black-hole picture is not inherited by the host galaxy');
+assert.ok(!SkyGuide.media({...object('andromeda'),id:'other-galaxy',ngc:'NGC2244',messier:null,aliases:[]}).some(p=>p.objects.includes('andromeda')),'no substring catalogue matches');
+assert.ok(SKY_GUIDE_DATA.media.length>=200,'broad observed-image catalogue');
 const gallery=SkyGuide.gallery(object('sirius'));
 assert.equal((gallery.match(/id="stellarGallery"/g)||[]).length,1);
 assert.equal((gallery.match(/id="stellarGalleryPrev"/g)||[]).length,1);
 assert.equal((gallery.match(/id="stellarGalleryNext"/g)||[]).length,1);
 assert.ok(gallery.indexOf('data-photo="chart-wide"')<gallery.indexOf('data-photo="chart-close"'));
-assert.ok(gallery.indexOf('data-photo="chart-close"')<gallery.indexOf('data-photo="hubble-sirius"'));
+assert.ok(gallery.indexOf('data-photo="chart-wide"')<gallery.indexOf('data-photo="hubble-sirius"'));
+assert.ok(gallery.indexOf('data-photo="chart-close"')<gallery.indexOf('data-photo="hubble-sirius"'),'both charts precede photographs');
+for(const id of ['alpha','sirius','proxima','andromeda','orion','omega']){
+ const slides=[...SkyGuide.gallery(object(id)).matchAll(/<figure[^>]+data-photo="([^"]+)"/g)].map(m=>m[1]);
+ assert.equal(slides[0],'chart-wide','first slide is the overview: '+id);
+ assert.equal(slides[1],'chart-close','second slide is the close chart: '+id);
+ assert.ok(!slides.slice(2).some(s=>s.startsWith('chart-')),'charts are never split by a photo: '+id);
+}
 const clipIds=[...gallery.matchAll(/<clipPath id="([^"]+)"/g)].map(m=>m[1]);
 assert.equal(clipIds.length,2);assert.equal(new Set(clipIds).size,2,'two independent SVG clipping regions');
 showObject('sirius');const html=$('dialogContent').innerHTML;

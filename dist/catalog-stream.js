@@ -201,7 +201,7 @@ const ExtendedCatalog = {
         (o.kind === 'star' && o.d > 0 && o.d <= 50 && !this.foreground.has(o.id)))
     );
   },
-  readJSON(path, options) {
+  readJSON(path, options, revision = EXTENDED_BOOT.revision) {
     if (globalThis.PARUS_CATALOG_FILES?.[path])
       return Promise.resolve().then(() => {
         const v = globalThis.PARUS_CATALOG_FILES[path];
@@ -215,7 +215,7 @@ const ExtendedCatalog = {
         const v = globalThis.PARUS_CATALOG_FILES[url];
         return typeof v === 'string' ? JSON.parse(v) : v;
       });
-    return fetch(url + '?v=' + EXTENDED_BOOT.revision, options).then((r) => {
+    return fetch(url + '?v=' + revision, options).then((r) => {
       if (!r.ok) throw Error('Не удалось загрузить ' + path);
       return r.json();
     });
@@ -759,6 +759,10 @@ const ExtendedCatalog = {
     const host = this.coreIndex?.get(o.parentObject) || this.pinned.get(o.parentObject);
     if (!host?.p3 || !o.p3) return;
     this.repairLocalStar(host, seen);
+    if(o.arrivalHost||o.id.startsWith('arrival-star:')){
+      const n=Number(o.id.split(':').at(-1));
+      o.name='Игровая звезда возле «'+host.name+'»'+(n>1?' · '+n:'');
+    }
     // Store a reference-epoch position. MapLayout.project already applies the
     // common host translation; storing its expanded position applied that twice.
     const base = MapLayout.ordinaryProject(host),
@@ -834,7 +838,7 @@ const ExtendedCatalog = {
     if (o.atlasOnly) {
       toast(
         o.positionReason ||
-          'Для этого объекта недостаточно точное положение. Он доступен только в атласе.',
+          'Для этого объекта недостаточно точное положение. Он доступен только в атласе.',4200,'warning',
       );
       return;
     }
@@ -875,6 +879,7 @@ const ExtendedCatalog = {
       ...(saved.flightHistory || []).flatMap((h) => [h.fromId, h.target]),
       ...(saved.itinerary || []).map((n) => n.id),
       ...(saved.nextTargets || []).map((n) => n.id),
+      saved.flight?.requestedTarget,
       ...(saved.flight?.route || []).map((n) => n.id),
     ]);
     // Include the parent galaxy so a generated star can still be identified on reload.
@@ -1022,8 +1027,15 @@ const ExtendedCatalog = {
     }
   },
   arrivalStar(host, destroyed = state.destroyed) {
-    // A pure destination preview: no catalog mutation, nearest-star search or
-    // visible object until the ship actually reaches this non-stellar target.
+    if (globalThis.ArrivalStars?.eligible(host)) {
+      const result = ArrivalStars.lookup(host, destroyed);
+      if (result.star) return result.star;
+      if (!result.ready && (ArrivalStars.index || typeof fetch === 'function' || globalThis.PARUS_CATALOG_FILES)) return null;
+    }
+    return this.syntheticArrivalStar(host, destroyed);
+  },
+  syntheticArrivalStar(host, destroyed = state.destroyed) {
+    // Pure preview: fictional stars are only registered at the actual stop.
     if (
       !host?.navigable ||
       host.atlasOnly ||
@@ -1036,11 +1048,11 @@ const ExtendedCatalog = {
     while (destroyed.includes('arrival-star:' + host.id + ':' + n)) n++;
     const id = 'arrival-star:' + host.id + ':' + n,
       existing = this.get(id);
-    if (existing) return existing;
+    if (existing) {existing.name='Игровая звезда возле «'+host.name+'»'+(n>1?' · '+n:'');return existing;}
     const p = MapLayout.ordinaryProject(host),
       o = {
         id,
-        name: 'Неизвестная звезда · ' + host.name + (n > 1 ? ' · ' + n : ''),
+        name: 'Игровая звезда возле «' + host.name + '»' + (n > 1 ? ' · ' + n : ''),
         aliases: [host.name, 'Игровая звезда'],
         kind: 'star',
         type: 'УСЛОВНАЯ ИГРОВАЯ ЗВЕЗДА',
@@ -1054,9 +1066,9 @@ const ExtendedCatalog = {
         navigable: true,
         positionQuality: 'fictional',
         desc:
-          'Условная звезда в точке прибытия: ' +
+          'Игровая звезда возле «' +
           host.name +
-          '. Создана для продолжения экспедиции; отдельная реальная звезда в этой позиции не известна.',
+          '». Создана для продолжения экспедиции; подходящая известная звезда в каталоге не найдена. Игровая позиция совпадает с опорной точкой объекта.',
         coordinateNote: 'Игровая позиция в выбранной области; не астрономическое измерение.',
         facts: {
           class: 'Условная игровая звезда',
@@ -1231,11 +1243,11 @@ const ExtendedCatalog = {
     const members = results.filter(r => r.status === 'fulfilled').map(r => this.pin(r.value)),
       bounds = focusRelatedSystem(members);
     if (!bounds) {
-      toast('Для компонентов системы нет доступных положений на карте.');
+      toast('Для компонентов системы нет доступных положений на карте.',4200,'warning');
       return;
     }
     if (bounds.members.length < system.members.length)
-      toast('На карте ' + bounds.members.length + ' из ' + system.members.length + ' компонентов: остальные положения неизвестны или не загрузились.');
+      toast('На карте ' + bounds.members.length + ' из ' + system.members.length + ' компонентов: остальные положения неизвестны или не загрузились.',4200,'warning');
     return bounds;
   },
   async search(term, filter, limit) {

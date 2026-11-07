@@ -655,3 +655,9 @@ subprocess.run([node,str(ROOT/'data-tools/build-map-labels.mjs')],check=True)
 # Nuclear identities reuse the final adopted host positions and distances.
 # Rebuild this small additive layer too, or its base revision would be stale.
 subprocess.run([node,str(ROOT/'data-tools/build-black-hole-catalog.mjs')],cwd=ROOT,check=True)
+
+# The filter and source library share a census of this final immutable snapshot.
+subprocess.run([node,str(ROOT/'data-tools/build-map-filter-index.mjs')],cwd=ROOT,check=True)
+
+# Navigation searches the final physical stellar coordinates, independent of map tiles.
+subprocess.run([node,str(ROOT/'data-tools/build-arrival-stars.mjs')],cwd=ROOT,check=True)

@@ -60,7 +60,7 @@ state = restore(JSON.parse(JSON.stringify(state)));
 assert.equal(reserve(), 0, 'an explicit new choice in the detailed plan survives reload');
 const custom = {...initial(), flightSetup: FlightSetup.normalize({...FlightSetup.defaults(), arrivalFuelPercent: 35})}; delete custom.reserveDefaultsVersion;
 custom.nextTargets = [{id:'sirius', setup:FlightSetup.normalize({...FlightSetup.defaults(), arrivalFuelPercent:0})}];
-state = restore(custom); assert.equal(reserve(), 35); assert.equal(state.nextTargets[0].setup.arrivalFuelPercent, 0, 'existing queued plans retain explicit reserves');
+state = restore(custom); assert.equal(reserve(), 35); assert.equal(state.itinerary[0].setup.arrivalFuelPercent, 0, 'existing queued plans retain explicit reserves');
 // Two real default trips retain half the actual tank, not just a label in the forecast.
 for (const target of ['alpha', 'proxima']) {
  reset(); state.selected = target;

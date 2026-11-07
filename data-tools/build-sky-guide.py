@@ -86,16 +86,26 @@ for dec_lo, dec_hi in zip(dec_edges, dec_edges[1:]):
 for con, limits in ranges.items():
     assert -90 <= limits[0] < limits[1] <= 90, con
     constellations[con]['decRangeDeg'] = [round(v, 6) for v in limits]
-media = read('media.json')
+media = read('media.json') + read('media-hubble.json')
 ids = set()
 for photo in media:
     assert photo['id'] not in ids
     ids.add(photo['id'])
-    assert photo['objects'] and photo['credit'] and photo['description']
+    assert (photo['objects'] or photo.get('identifiers')) and photo['credit'] and photo['description']
     assert photo['url'].startswith('https://') and photo['source'].startswith('https://')
-data = dict(version=2, epoch='J2000', magnitudeLimit=6, stars=stars,
+visual_targets = read('visual-targets.json')
+observing_evidence = read('observing-evidence.json')['entries']
+for evidence in observing_evidence:
+    assert evidence['kind'] == 'galaxy' and evidence['nakedEye'] is True
+    assert evidence['identifiers'] and evidence['source'].startswith('https://') and evidence['quote']
+# Source evidence stays in the source files, outside the browser payload.
+media = [{k: v for k, v in p.items() if k not in ['identification', 'sourceCaption', 'archiveTitle']} for p in media]
+data = dict(version=3, epoch='J2000', magnitudeLimit=6, stars=stars,
             declinationRangeSource='Roman 1987 VI/42 B1875 regions; IAU 1976 to J2000; degrees',
-            constellations=constellations, boundaries=boundaries, media=media)
+            constellations=constellations, boundaries=boundaries, media=media,
+            visualTargets=[[identifier.strip(), p['caldwell']] for p in visual_targets['entries']
+                           for identifier in p['identifier'].split(',')],
+            observingEvidence=observing_evidence)
 encode = lambda d: json.dumps(d, ensure_ascii=False, separators=(',', ':'))
 data['revision'] = hashlib.sha256(encode(data).encode()).hexdigest()[:12]
 out = ROOT / 'dist/sky-guide-data.js'

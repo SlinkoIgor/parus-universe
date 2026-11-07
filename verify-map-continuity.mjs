@@ -34,7 +34,7 @@ run(`{
   for(const o of OBJECTS.filter(o=>o.p3&&!o.atlasOnly)){
    const p=screen(o);assert.ok(p.x>=0&&p.x<=width&&p.y>=0&&p.y<=height,'catalogue position fits: '+o.id);
   }
-  const span=cam.span;focusShip();assert.equal(cam.span,span,'centring must preserve the expanded zoom');releaseShipCamera();
+  const span=cam.span;focusShip();assert.ok(cam.span<span,'centring restores the ship surroundings from the expanded overview');releaseShipCamera();
   goCamera(cam.x,cam.y,span*2,true);assert.equal(cam.span,span*2,'camera navigation can retain wide views');
   assert.ok(Number.isFinite(gridMetrics().majorPixels));updateZoomControl();
   assert.equal($('zoomSlider').value,'5.15','the unchanged slider rests at its upper endpoint');

@@ -183,6 +183,7 @@ function renderDepartureDiagram(forecast, wind) {
   );
 }
 function renderUI() {
+  if(Route.feedbackPending){Route.renderFeedback();return;}
   globalThis.MapSlice?.renderSelection();
   FlightSetup.sync();
   Cosmology.sync(state);
@@ -491,8 +492,8 @@ function renderUI() {
   $('cancelFlight').disabled = !f?.rollback;
   $('cancelFlight').title =
     f && !f.rollback ? 'В этом старом сохранении нет снимка состояния до старта' : '';
-  UIContent.text($('progressLabel'), f?.route?.length
-    ? 'УЧАСТОК ' + (f.legIndex + 1) + ' / ' + f.route.length
+  UIContent.text($('progressLabel'), f
+    ? 'УЧАСТОК ' + ((f.legIndex || 0) + 1) + ' / ' + (f.route?.length || 1)
     : f?.missed
       ? 'ПРОЛЁТ ЦЕЛИ'
       : 'ПРОЙДЕНО');
@@ -501,5 +502,7 @@ function renderUI() {
   globalThis.UniverseMap?.renderCard(target);
   FlightQueue.render();
   QuickFlight.render();
+  Route.renderDraft();
   GalacticTraffic.renderControl();
+  FlightTips.render(eta);
 }

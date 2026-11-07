@@ -15,7 +15,7 @@ for(const o of named){o.region??=o.regionData;c.StellarClusters.prepare(o);c.Neb
 const rank=o=>[details.level(o),details.mass(o)??-1,Number(!!o.cosmicLandmark),Number(!!o.messier),-(o.apparentV??99)];
 const ranks=new Map(named.map(o=>[o.id,rank(o)]));
 named.sort((a,b)=>{const x=ranks.get(a.id),y=ranks.get(b.id);for(let i=0;i<x.length;i++)if(x[i]!==y[i])return y[i]-x[i];return a.id<b.id?-1:a.id>b.id?1:0;});
-const entries=named.map(o=>({id:o.id,name:o.id==='sol'?'СОЛНЦЕ / ЗЕМЛЯ':mapName(o),minPixel:Math.max(o.region?.major||0,o.region?.minor||0,o.galaxy?.diameterLy||0)/1800,limits:[],positions:[]}));
+const entries=named.map(o=>({id:o.id,name:o.id==='sol'?'СОЛНЦЕ':mapName(o),minPixel:Math.max(o.region?.major||0,o.region?.minor||0,o.galaxy?.diameterLy||0)/1800,limits:[],positions:[]}));
 for(const mode of ['full','radial']){
  c.MapSlice.mode=mode;
  const accepted=[];

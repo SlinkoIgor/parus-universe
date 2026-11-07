@@ -14,7 +14,7 @@ try {
  const setup = FlightSetup.defaults(), args = [object('proxima'), object('alpha'), .5, Space.point(object('proxima').p3), 123, false, .001, {radius: 123, beta: .001}];
  let slow = {valid:true, proper:999, earth:1000, setup}, fast = {valid:true, proper:10, earth:11, setup:{...setup, arrivalFuelPercent:25}}, calls = 0;
  MissionPlanner.planAvailableReserve = () => slow;
- MissionPlanner.plan = (c, ...received) => { calls++; assert.deepEqual(received, args); assert.equal(c.arrivalFuelPercent, 25); return fast; };
+ MissionPlanner.plan = (c, ...received) => { calls++; assert.deepEqual(received.slice(0,args.length), args); assert.equal(received[8],false); assert.deepEqual(received[9],state.destroyed); assert.equal(c.arrivalFuelPercent, 25); return fast; };
  assert.equal(MissionPlanner.planPreferred(setup, ...args), slow, '99.9 times faster is below the threshold');
  slow = {...slow, proper:1000};
  const exact = MissionPlanner.planPreferred(setup, ...args);

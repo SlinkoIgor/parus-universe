@@ -1,7 +1,7 @@
 /* Distances are approximate light-years from Sol; angles are diagrammatic. */
 const SOURCES={near:'https://www.esa.int/About_Us/ESAC/Proxima_Centauri_our_nearest_neighbour',clouds:'https://imagine.gsfc.nasa.gov/news/11jun13.html',andromeda:'https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-31/',web:'https://science.nasa.gov/universe/galaxies/large-scale-structures/',wall:'https://imagine.gsfc.nasa.gov/features/cosmic/sheets_voids_info.html',quasar:'https://science.nasa.gov/asset/hubble/quasar-3c-273-2/',vela:'https://www.nasa.gov/missions/chandra/vela-pulsar/',blackhole:'https://www.eso.org/public/images/eso2208-eht-mwe/',ring:'https://www.star.uclan.ac.uk/~alopez/BR_press_release_non_technical.pdf',universe:'https://www.nasa.gov/science-research/astrophysics/how-big-is-space-we-asked-a-nasa-expert-episode-61/'};
 const OBJECTS=[
- ['sol','Солнце и Земля',0,0,'home','СОЛНЕЧНАЯ СИСТЕМА','Наш дом. Земля находится в 8 световых минутах от Солнца. Начало координат и место старта экспедиции.'],
+ ['sol','Солнце',0,0,'home','СОЛНЕЧНАЯ СИСТЕМА','Наш дом. Земля находится в 8 световых минутах от Солнца. Начало координат и место старта экспедиции.'],
  ['proxima','Проксима Центавра',4.24,-38,'star','КРАСНЫЙ КАРЛИК','Ближайшая к Солнцу звезда. Первая точка опоры для большого путешествия.'],
  ['alpha','Альфа Центавра',4.37,-29,'star','ЖЁЛТЫЙ КАРЛИК · КОМПОНЕНТ A','Солнцеподобная звезда A тройной системы Альфа Центавра. Компонент B и Проксима C показаны отдельно.'],
  ['barnard','Звезда Барнарда',5.96,-146,'star','КРАСНЫЙ КАРЛИК','Один из ближайших соседей Солнца. Очень быстро движется по земному небу.'],

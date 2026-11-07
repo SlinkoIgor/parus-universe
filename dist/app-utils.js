@@ -219,9 +219,8 @@ function applyTheme(value) {
     put('--line',blendInk(p.bg,p.ink,.24)); put('--card-muted',blendInk(p.bg,p.ink,.7));
     put('--accent',p.accent);
   }
-  $('themeBtn').setAttribute('aria-label', 'Цветовая схема: '+p.name);
-  $('themeBtn').title = 'Цветовая схема: '+p.name;
-  $('themeBtn').innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><use href="#theme-' + (theme === 'light' ? 'dark' : 'light') + '-icon"/></svg>';
+  $('themeBtn').setAttribute('aria-label', 'Выбрать тему · сейчас: '+p.name);
+  $('themeBtn').title = 'Выбрать тему · сейчас: '+p.name;
   $('themePicker').innerHTML = Object.entries(COLOR_THEMES).map(([id,q]) => '<button data-color-theme="'+id+'" aria-pressed="'+(theme===id)+'"><i style="background:'+q.bg+';border-color:'+q.ink+';color:'+q.accent+'">●</i><span>'+q.name+'</span></button>').join('');
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = p.bg;

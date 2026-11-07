@@ -18,6 +18,7 @@ const initial = () => ({
   tankCapacityKg: 1,
   flightSetup: null,
   flightHistory: [],
+  flightTips: FlightTips.normalize({used: FlightTips.known()}),
   jettisoned: 0,
   controlG: 10,
   current: 'sol',
@@ -265,7 +266,7 @@ function restore(saved) {
   }
   if (!upgraded.flight) {
     const host = object(upgraded.current),
-      star = ExtendedCatalog.arrivalStar(host, upgraded.destroyed);
+      star = ExtendedCatalog.syntheticArrivalStar(host, upgraded.destroyed);
     // Old stationary saves already occupy the arrival point. Reveal its star
     // without changing the position, fuel, clocks or an active trajectory.
     if (star && !upgraded.orbit && Space.distance(upgraded.ship, host) < 1e-10) {
@@ -293,14 +294,24 @@ function restore(saved) {
     );
   upgraded.nextTargets = (Array.isArray(saved.nextTargets) ? saved.nextTargets : [])
     .filter(n => n && object(n.id)?.navigable).slice(0, 10)
-    .map(n => ({id: n.id, setup: FlightSetup.normalize(n.setup || upgraded.flightSetup || FlightSetup.defaults(upgraded))}));
+    .map(n => ({id: n.id, mode: n.mode === 'flyby' && (object(n.id)?.kind==='blackhole'||Gravity.canFlyby(object(n.id))) ? 'flyby' : 'stop', setup: FlightSetup.normalize(n.setup || upgraded.flightSetup || FlightSetup.defaults(upgraded))}));
   upgraded.multiplayer = saved.multiplayer === true;
   upgraded.trafficSeed = Number.isInteger(saved.trafficSeed) ? ((saved.trafficSeed % 100) + 100) % 100 : upgraded.trafficSeed;
+  FlightTips.restoreProgress(upgraded);
   return Route.sanitize(upgraded);
 }
 
 const FlightHistory = {
   pending: null,
+  fadeDuration: 3000,
+  routeStart(f = state.flight) {
+    const count = state.flightHistory?.length || 0;
+    return f ? Math.max(0, count - (f.legIndex || 0) - Number(!!f.historyRecorded && f.covered > 0)) : count;
+  },
+  finish(f) {
+    const mapFadeAt = Date.now();
+    for (const h of (state.flightHistory || []).slice(this.routeStart(f))) h.mapFadeAt = mapFadeAt;
+  },
   snapshot() {
     ExtendedCatalog.capture(state);
     const saved = JSON.parse(JSON.stringify(state));
@@ -317,6 +328,7 @@ const FlightHistory = {
       state.flightHistory.push({
         fromId: f.fromId,
         target: f.target,
+        ...(f.requestedTarget ? {requestedTarget: f.requestedTarget} : {}),
         from: JSON.parse(JSON.stringify(f.from)),
         end: Space.point(state.ship.p3),
         view: JSON.parse(JSON.stringify(f.view)),
@@ -327,17 +339,29 @@ const FlightHistory = {
     f.historyRecorded = true;
   },
   draw() {
-    for (const h of state.flightHistory || []) {
+    const history = state.flightHistory || [], start = this.routeStart(), now = Date.now();
+    for (let i = 0; i < history.length; i++) {
+      const h = history[i], opacity = Number.isFinite(h.mapFadeAt)
+        ? Math.max(0, 1 - Math.max(0, now - h.mapFadeAt) / this.fadeDuration)
+        : i >= start ? 1 : 0;
+      if (!opacity) continue;
       const a = FlightView.at(h, 0),
         b = FlightView.at(h, h.fraction),
         segment = routeScreenSegment({ x: a.x, y: a.y }, { x: b.x, y: b.y });
-      if (segment) line(segment.a.x, segment.a.y, segment.b.x, segment.b.y, '#858585', 1, []);
+      if (segment) {
+        ctx.save();
+        ctx.globalAlpha *= opacity;
+        line(segment.a.x, segment.a.y, segment.b.x, segment.b.y, '#858585', 1, []);
+        ctx.restore();
+      }
     }
   },
   cancel() {
     const saved = state.flight?.rollback;
     if (!saved) return;
+    const tipProgress = state.flightTips;
     state = restore(saved);
+    state.flightTips = FlightTips.mergeProgress(state.flightTips, tipProgress);
     FlightQueue.reset();
     paused = !!saved.paused;
     speed = saved.timeScale || 1;
@@ -355,7 +379,7 @@ const FlightHistory = {
     renderCatalog();
     const p = FlightView.ship();
     goCamera(p.x, p.y, cam.span, true);
-    toast('Полёт отменён. Состояние до старта восстановлено.');
+    toast('Полёт отменён. Состояние до старта восстановлено.',4200,'reset');
   },
 };
 

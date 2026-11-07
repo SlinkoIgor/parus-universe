@@ -13,18 +13,18 @@ const explore=(mode,following=false)=>{
 };
 for(const mode of ['full','slice','radial']){
  reset();launch();paused=true;
- select('sirius');FlightQueue.add('sirius');select('vega');FlightQueue.add('vega');
- assert.equal(state.nextTargets.length,2);
+ select('sirius');Route.add('sirius');select('vega');Route.add('vega');
+ assert.equal(Route.future().length,2);
  const before=explore(mode),goal=cameraGoal;
  for(const target of ['sirius','vega']){
   Simulation.tick(FlightEstimate.get().proper*1.00001);
-  assert.equal(state.flight?.target,target,'queue keeps flying while browsing');
-  assert.equal(view(),before,'automatic queued start preserves pan, zoom, pending animation, follow state and slice');
+  assert.equal(state.flight?.target,target,'route keeps flying while browsing');
+  assert.equal(view(),before,'automatic routed start preserves pan, zoom, pending animation, follow state and slice');
   assert.equal(cameraGoal,goal,'the existing zoom animation is retained');
  }
  Simulation.tick(FlightEstimate.get().proper*1.00001);assert.equal(state.current,'vega');assert.equal(view(),before);
 }
-// Stops in an atlas route use a different continuation path from the queue.
+// Stops in an atlas route use a different continuation path from the route.
 reset();state.itinerary=[{id:'alpha',mode:'stop'},{id:'sirius',mode:'stop'}];
 explore('full');MissionPlanner.startRoute();assert.ok(state.flight);assert.notEqual(cameraGoal.x,7e10,'a manual first launch still fits its route');
 const stoppedView=explore('radial');Simulation.tick(FlightEstimate.get().proper*1.00001);
@@ -41,9 +41,9 @@ state.itinerary=[{id:'alpha',mode:'stop'},{id:'sirius',mode:'stop'}];Route.start
 const legacyView=explore('full');
 for(let n=0;state.flight?.target==='alpha'&&n<8;n++)Simulation.tick(FlightEstimate.get().proper*1.00001);
 assert.equal(state.flight?.target,'sirius');assert.equal(view(),legacyView,'legacy stopped continuation preserves the view');
-// A manual queue resume and a manual new flight still deliberately fit the route.
-reset();state.nextTargets=[{id:'alpha',setup:FlightSetup.defaults()}];explore('full');FlightQueue.depart();
+// A manual route resume and a manual new flight still deliberately fit the route.
+reset();state.itinerary=[{id:'alpha',mode:'stop',setup:FlightSetup.defaults()}];explore('full');Route.start();
 assert.ok(state.flight);assert.notEqual(cameraGoal.x,7e10);
 reset();explore('full');launch();assert.ok(state.flight);assert.notEqual(cameraGoal.x,7e10);
-console.log('PASS queued stops in every map mode, atlas stops, real black-hole passage and legacy stops preserve camera/zoom animation/follow/slice; manual launch and queue resume still frame the route');
+console.log('PASS routed stops in every map mode, atlas stops, real black-hole passage and legacy stops preserve camera/zoom animation/follow/slice; manual launch and route resume still frame the route');
 }`);

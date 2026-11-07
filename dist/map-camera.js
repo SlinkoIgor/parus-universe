@@ -64,11 +64,31 @@ function goCamera(x, y, span, instant = false, keepFollow = false) {
   }
   updateMapHeading();
 }
-function routeViewport() {
+function routeViewport(avoidPanels = false) {
   const pad = Math.max(24, Math.min(54, width * 0.055)),
     card = $('flightCard').getBoundingClientRect(),
     viewportHeight = cameraViewportHeight();
   if (zenMode) return { left: pad, top: Math.max(72, pad), right: width - pad, bottom: height - pad };
+  if (avoidPanels) {
+    // Panel positions change with the screen size and the card contents.
+    // Leave room for the 18px waypoint rings around every visible panel.
+    let spaces = [{ left: 20, top: 20, right: width - 20, bottom: viewportHeight - 20 }];
+    const panels = document.querySelectorAll('.flight-card,.map-heading>.eyebrow,.map-heading h1,.ship-location,.map-actions,.map-controls,.map-scale');
+    for (const panel of panels) {
+      const r = panel.getBoundingClientRect();
+      if (!r.width || !r.height) continue;
+      const box = { left: r.left - 20, top: r.top - 20, right: r.right + 20, bottom: r.bottom + 20 };
+      spaces = spaces.flatMap(s => {
+        if (s.right <= box.left || s.left >= box.right || s.bottom <= box.top || s.top >= box.bottom) return [s];
+        return [
+          { ...s, right: box.left }, { ...s, left: box.right },
+          { ...s, bottom: box.top }, { ...s, top: box.bottom },
+        ].filter(v => v.right > v.left && v.bottom > v.top);
+      });
+    }
+    const area = v => (v.right - v.left) * (v.bottom - v.top);
+    if (spaces.length) return spaces.sort((a, b) => area(b) - area(a))[0];
+  }
   // Keep the route clear of the HUD, target card, heading and map buttons.
   const right =
     width >= 700
@@ -88,11 +108,95 @@ function shipCamera(span = cam.span) {
     span,
   };
 }
+function shipSurroundingsSpan() {
+  const viewportHeight = cameraViewportHeight();
+  if (width <= 0 || viewportHeight <= 0) return cam.span;
+  const ship = FlightView.ship(),
+    halfWidth = Math.max(1, width / 2 - 48),
+    halfHeight = Math.max(1, viewportHeight / 2 - 48),
+    origin = canvas.getBoundingClientRect(),
+    panels = [...document.querySelectorAll(
+      '.map-heading,.map-actions,.map-controls,.flight-card,.map-scale,.ship-location,.catalog-drawer,.menu-popover',
+    )].map(e => e.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0)
+      .map(r => [r.left - origin.left - 8, r.top - origin.top - 8,
+        r.left - origin.left + r.width + 8, r.top - origin.top + r.height + 8]),
+    objects = new Map();
+  for (const source of [OBJECTS, ExtendedCatalog.pinned.values(), ExtendedCatalog.visible,
+    MapLayers.visible, MapFilters.objects.values()])
+    for (const o of source) if (!objects.has(o.id)) objects.set(o.id, o);
+  const candidates = [];
+  for (const o of objects.values()) {
+    if (o.atlasOnly || o.cosmicEpoch || o.kind === 'horizon' || !ExtendedCatalog.matchesMap(o, true)) continue;
+    // Large structures draw an outline, often crossing the slice or a panel.
+    // Their hidden centre cannot stand in for a visible neighbouring marker.
+    if (globalThis.MapVisibility?.active && o.region && MapDetails.level(o) >= 3) continue;
+    const p = MapLayout.project(o), dx = p.x - ship.x, dy = p.y - ship.y;
+    if (!Number.isFinite(dx) || !Number.isFinite(dy)) continue;
+    let span = Math.max(0.00006, Math.abs(dx) * width / halfWidth * 1.03, Math.abs(dy) * width / halfHeight * 1.03);
+    if (o.region && !(globalThis.MapVisibility?.active && MapSymbols.handles(o))) {
+      if (o.region.shape === 'polyline') continue;
+      span = Math.max(span, Math.max(o.region.major, o.region.minor) * Cosmology.regionScale(o) * width / 6 * 1.03);
+    }
+    if (MapSlice.mode === 'slice') {
+      const p3 = MapSlice.position3D(o);
+      if (!p3?.every(Number.isFinite)) continue;
+      const depth = Math.abs(p3[2] - MapSlice.centerZ);
+      // Reference-space slice thickness can change at cosmological scale boundaries.
+      for (let i = 0; i < 3; i++) {
+        const half = MapSlice.halfThicknessAt(p3, shipCamera(span)) * 0.9;
+        if (depth <= half) break;
+        span *= depth / half;
+      }
+    }
+    if (!Number.isFinite(span) || span > MAX_CAMERA_SPAN) continue;
+    // A point travels along a straight screen ray while zooming. Add the scale
+    // where it leaves each panel so covered neighbours can be considered again.
+    const uncovered = panels.map(box => {
+      let lo = 0, hi = Infinity;
+      for (const [center, delta, min, max] of [
+        [width / 2, dx * width, box[0], box[2]],
+        [viewportHeight / 2, dy * width, box[1], box[3]],
+      ]) {
+        if (delta === 0) { if (center < min || center > max) return 0; }
+        else {
+          const a = (min - center) / delta, b = (max - center) / delta;
+          lo = Math.max(lo, Math.min(a, b)); hi = Math.min(hi, Math.max(a, b));
+        }
+      }
+      return lo > 0 && lo <= hi ? 1.03 / lo : 0;
+    });
+    for (const next of [span, ...uncovered.filter(s => s > span && s <= MAX_CAMERA_SPAN)])
+      candidates.push({ o, dx, dy, span: next });
+  }
+  candidates.sort((a, b) => a.span - b.span || a.o.id.localeCompare(b.o.id));
+  let neighbours = [], bestCount = 0, bestSpan = cam.span;
+  for (const q of candidates) {
+    const span = q.span,
+      visible = p => {
+        const x = width / 2 + p.dx * width / span, y = viewportHeight / 2 + p.dy * width / span;
+        return MapDetails.visible(p.o, span) && Math.hypot(p.dx, p.dy) * width / span >= 20 &&
+          !panels.some(b => x >= b[0] && y >= b[1] && x <= b[2] && y <= b[3]);
+      };
+    // At most nine earlier neighbours survive here. Scale cutoffs and unresolved
+    // coincident components must not count as extra visible objects.
+    const retained = [];
+    for (const p of neighbours)
+      if (visible(p) && retained.every(a => Math.hypot(p.dx - a.dx, p.dy - a.dy) * width / span >= 12))
+        retained.push(p);
+    neighbours = retained;
+    if (visible(q) && neighbours.every(p => p.o.id !== q.o.id && Math.hypot(p.dx - q.dx, p.dy - q.dy) * width / span >= 12))
+      neighbours.push(q);
+    if (neighbours.length > bestCount) { bestCount = neighbours.length; bestSpan = span; }
+    if (neighbours.length >= 10) return span;
+  }
+  // A small explicit filter can contain fewer than ten objects: fit what exists.
+  return bestSpan;
+}
 function focusShip() {
   if (followShip) { releaseShipCamera(); cameraGoal=null; return; }
   followShip=true;
   globalThis.MapSlice?.focus(state.ship);
-  const c = shipCamera();
+  const c = shipCamera(shipSurroundingsSpan());
   goCamera(c.x, c.y, c.span, true, true);
   updateShipButton();
 }
@@ -214,7 +318,7 @@ function setTimeRate(value) {
   renderUI();
   persist();
 }
-function fitRoute(target) {
+function fitRoute(target, {wholeRoute = false} = {}) {
   if (
     width <= 0 ||
     height <= 0 ||
@@ -223,29 +327,49 @@ function fitRoute(target) {
     !Number.isFinite(target.y)
   )
     return;
-  const a = FlightView.ship(),
-    b = MapLayout.project(target),
-    v = routeViewport(),
+  const objects = wholeRoute
+      ? Route.nodes().flatMap(n => [object(n.id), Route.endpoint(n)]).filter(o => o?.p3)
+      : [],
+    points = [FlightView.ship(), MapLayout.project(target), ...objects.map(o => MapLayout.project(o))],
+    f = state.flight;
+  if (wholeRoute && f) points.push(FlightView.at(f, 0), FlightView.at(f, 1));
+  const v = routeViewport(wholeRoute),
     current = cameraGoal || cam;
   const sx = (p) => width * 0.43 + ((p.x - current.x) * width) / current.span,
     sy = (p) => mapOriginY() + ((p.y - current.y) * width) / current.span;
   if (
-    [a, b].every((p) => sx(p) >= v.left && sx(p) <= v.right && sy(p) >= v.top && sy(p) <= v.bottom)
+    !wholeRoute && points.every((p) => sx(p) >= v.left && sx(p) <= v.right && sy(p) >= v.top && sy(p) <= v.bottom)
   )
     return;
-  const span = Math.max(
-    current.span,
-    ((Math.abs(a.x - b.x) * width) / (v.right - v.left)) * 1.25,
-    ((Math.abs(a.y - b.y) * width) / (v.bottom - v.top)) * 1.25,
+  const minX = Math.min(...points.map(p => p.x)), maxX = Math.max(...points.map(p => p.x)),
+    minY = Math.min(...points.map(p => p.y)), maxY = Math.max(...points.map(p => p.y));
+  let span = Math.max(
+    wholeRoute ? 0.00006 : current.span,
+    (((maxX - minX) * width) / (v.right - v.left)) * 1.25,
+    (((maxY - minY) * width) / (v.bottom - v.top)) * 1.25,
   );
+  if (wholeRoute && MapSlice.mode === 'slice') {
+    const depths = [state.ship, ...objects, ...(f ? [f.from] : [])].map(o => MapSlice.position3D(o)?.[2]).filter(Number.isFinite),
+      minZ = Math.min(...depths), maxZ = Math.max(...depths);
+    MapSlice.centerZ = (minZ + maxZ) / 2;
+    // Keep every waypoint inside the physical slice as well as the viewport.
+    for (let i = 0; i < 3; i++) {
+      const view = { x: (minX + maxX) / 2, y: (minY + maxY) / 2, span },
+        half = MapSlice.halfThicknessAt(null, view), required = (maxZ - minZ) / 2 * 1.1;
+      if (required <= half) break;
+      span *= required / half;
+    }
+    ExtendedCatalog.cutKey = null;
+    ExtendedCatalog.lastUpdate = -Infinity;
+  }
   goCamera(
-    (a.x + b.x) / 2 - (((v.left + v.right) / 2 - width * 0.43) * span) / width,
-    (a.y + b.y) / 2 -
+    (minX + maxX) / 2 - (((v.left + v.right) / 2 - width * 0.43) * span) / width,
+    (minY + maxY) / 2 -
       (((v.top + v.bottom) / 2 - mapOriginY()) * span) / width,
     span,
   );
 }
-function select(id, fit = false) {
+function select(id, fit = false, {deferPreview = false, routeAnchor = true} = {}) {
   const o = object(id);
   if (!o) return;
   ExtendedCatalog.pin(o);
@@ -253,11 +377,14 @@ function select(id, fit = false) {
     if (ExtendedCatalog.systemView.members.has(id)) ExtendedCatalog.systemView.selected = id;
     else ExtendedCatalog.systemView = null;
   }
+  if(routeAnchor)Route.selection=!Route.future().length?{id,state}:null;
+  else if(!Route.future().length)Route.selection={id:state.selected,state};
   state.selected = id;
-  renderUI();
+  if(deferPreview)Route.deferFeedback({selectionOnly:true});
+  else {Route.cancelFeedback();renderUI();}
   if (fit) fitRoute(o);
   renderCatalog();
-  persist();
+  if(!deferPreview)persist();
 }
 let compactMapControls = null;
 function resize() {

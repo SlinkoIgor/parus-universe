@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "description": "Explicit published visual observing evidence; no photometry inferred. LMC has no entry in our OpenNGC source. SMC is also included so the two documented naked-eye galaxies use the same presentation policy.",
+  "entries": [
+    {
+      "kind": "galaxy",
+      "identifiers": [
+        "LMC"
+      ],
+      "nakedEye": true,
+      "publisher": "NOIRLab",
+      "source": "https://noirlab.edu/public/images/noao-02332/",
+      "quote": "A nearby irregular galaxy, the LMC is visible to the naked eye from the Southern Hemisphere and is a satellite to our own Galaxy.",
+      "origin": {
+        "photoId": "astropix-noirlab-noao-02332",
+        "metadataSha256": "0bcdfe46b1be0197304c8e025567269e7b37246e0be3777ff59d3e16dcfb95e0"
+      }
+    },
+    {
+      "kind": "galaxy",
+      "identifiers": [
+        "SMC"
+      ],
+      "nakedEye": true,
+      "publisher": "NOIRLab",
+      "source": "https://noirlab.edu/public/images/noao-6051/",
+      "quote": "The SMC is visible to the naked eye from the southern hemisphere.",
+      "origin": {
+        "photoId": "astropix-noirlab-noao-6051",
+        "metadataSha256": "53ba116895bc5357ad3ec59cc2f87fb5c48baa008cc28c395d83c63a35813cad"
+      }
+    }
+  ]
+}

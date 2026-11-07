@@ -23,17 +23,10 @@ const MapFilters = {
     'nearby-galaxies': ['Галактический двор · до 15 млн св. лет', 'Галактики с принятой каталожной дальностью не более 15 миллионов световых лет. Это отбор по расстоянию, а не по членству в Местной группе.', ['galaxy']],
     'early-universe': ['Ранняя Вселенная · z ≥ 6', 'Галактики и квазары с каталожным красным смещением z ≥ 6. Метод измерения и неопределённость сохраняются в исходных карточках.', ['galaxy', 'quasar']],
   },
-  catalogs: {
-    all: ['Все каталоги', ''],
-    hyg: ['HYG · звёзды', 'Звёзды с идентификатором или источником HYG.', ['star', 'home']],
-    opengc: ['OpenNGC · NGC / IC', 'Объекты с идентификатором NGC или IC из используемой выборки OpenNGC.', ['star', 'stellar-cluster', 'nebula', 'galaxy']],
-    atnf: ['ATNF · пульсары', 'Пульсары с источником ATNF Pulsar Catalogue.', ['pulsar']],
-    nearby: ['UNGC · близкие галактики', 'Галактики с измерениями Updated Nearby Galaxy Catalog (Nearby-Galaxies), включая сопоставленные записи.', ['galaxy']],
-    cf4: ['Cosmicflows-4 · галактики', 'Галактики с измерениями Cosmicflows-4, включая сопоставленные записи.', ['galaxy']],
-    blackholes: ['Сводный каталог чёрных дыр', 'Источники из отдельной подборки чёрных дыр. Статусы кандидатов и ограничения измерений указаны в карточках.', ['blackhole']],
-  },
+  get catalogs() { return CatalogRegistry.filters; },
   classNames: {'star':'Звёзды',pulsar:'Пульсары',blackhole:'Чёрные дыры',quasar:'Квазары',nebula:'Туманности',galaxy:'Галактики','stellar-cluster':'Звёздные скопления','galaxy-cluster':'Скопления галактик',structure:'Мегаструктуры',void:'Войды',horizon:'Горизонт'},
   tab: 'classes',
+  activeGroup: 'classes',
   selection: null,
   objects: new Map(),
   promoted: new Set(),
@@ -43,12 +36,22 @@ const MapFilters = {
   options(group) {
     return group === 'classes' ? Object.keys(this.classNames) : Object.keys(this[group]).filter(k => k !== 'all');
   },
-  defaults(group) { return group === 'classes' ? this.options(group).filter(k => k !== 'void') : []; },
+  defaults(group) {
+    return group === 'classes' ? this.options(group).filter(k => k !== 'void') :
+      group === 'catalogs' ? CatalogRegistry.entries.filter(e => e.defaultSelected).map(e => e.id) : [];
+  },
   values(group) { return this.selection?.[group] || this.defaults(group); },
+  isDefault(group = this.activeGroup) {
+    const values = this.values(group), defaults = this.defaults(group);
+    return values.length === defaults.length && defaults.every(k => values.includes(k));
+  },
+  // The ordinary overview selects sources with ordinary records, hiding bulk envelopes.
+  // Explicit class/source choices expose the complete matching records.
+  defaultHidden(o) { return CatalogRegistry.defaultHidden(o); },
   all(group) { return this.values(group).length === this.options(group).length; },
-  unrestricted(group) { return group === 'classes' ? this.all(group) : this.values(group).length === 0; },
-  get key() { return ['classes','collections','catalogs'].map(g => this.unrestricted(g) ? 'all' : this.values(g).join(',')).join('|'); },
-  get count() { return ['classes','collections','catalogs'].filter(g => !this.unrestricted(g)).length; },
+  unrestricted(group) { return group !== this.activeGroup || (group === 'collections' ? this.values(group).length === 0 : this.all(group)); },
+  get key() { return ['classes','collections','catalogs'].map(g => this.unrestricted(g) ? 'all' : this.values(g).join(',')).join('|') + (this.isDefault() ? '|default' : ''); },
+  get count() { return this.isDefault() ? 0 : 1; },
   anchor(o) { return o?.id === 'sol' || o?.id === 'milkyway' || o?.kind === 'planet'; },
   classOf(o) {
     return o.kind === 'home' ? 'star' : o.kind === 'cluster' ? MapDetails.group(o) :
@@ -56,29 +59,20 @@ const MapFilters = {
   },
   allowsCategory(category) {
     const kind = category === 'home' ? 'star' : ['filament','supercluster','wall','ring','arc'].includes(category) ? 'structure' : category;
-    return this.values('classes').includes(kind) && ['collections','catalogs'].every(g =>
+    if (this.isDefault() && (kind === 'void' || category === 'supercluster')) return false;
+    return (this.unrestricted('classes') || this.values('classes').includes(kind)) && ['collections','catalogs'].every(g =>
       this.unrestricted(g) || this.values(g).some(k => this[g][k][2]?.includes(category)));
   },
   matches(o) {
     if (this.anchor(o)) return true;
-    if (!this.values('classes').includes(this.classOf(o))) return false;
+    if (this.isDefault() && this.defaultHidden(o)) return false;
+    if (!this.unrestricted('classes') && !this.values('classes').includes(this.classOf(o))) return false;
     if (!o?.id) return true; // Category probes have no individual source metadata.
     return (this.unrestricted('collections') || this.values('collections').some(k => this.matchesCollection(o, k))) &&
       (this.unrestricted('catalogs') || this.values('catalogs').some(k => this.matchesCatalog(o, k)));
   },
   matchesCatalog(o, catalog) {
-    const sources = [o.source, o.coordinateSource, o.catalog, ...(o.facts?.refs || []).flat()].join(' ');
-    const measurement = name => o.catalog === name ||
-      (o.catalogMeasurements || []).some(m => m.catalog === name);
-    switch (catalog) {
-      case 'hyg': return o.hygId != null || /HYG(?:-Database|\s|$)/i.test(sources);
-      case 'opengc': return /^(NGC|IC)\s*\d/i.test(o.ngc || '') || /OpenNGC/i.test(sources);
-      case 'atnf': return /atnf\.csiro\.au|\bATNF\b/i.test(sources);
-      case 'nearby': return measurement('Nearby-Galaxies');
-      case 'cf4': return measurement('Cosmicflows-4');
-      case 'blackholes': return !!o.blackHoleCatalog;
-      default: return false;
-    }
+    return CatalogRegistry.matches(o,catalog);
   },
   matchesCollection(o, collection = this.collection) {
     switch (collection) {
@@ -122,21 +116,22 @@ const MapFilters = {
   },
   promotes(o) { return this.narrow && this.promoted.has(o?.id) && this.matches(o); },
   collapsedStar(o, span) {
-    return o?.kind === 'star' && span >= 100000 && this.values('collections').length === 1 &&
+    return this.activeGroup === 'collections' && o?.kind === 'star' && span >= 100000 && this.values('collections').length === 1 &&
       this.values('collections')[0] === 'naked-eye';
   },
   bucketMatches(b) {
-    return this.values('classes').includes(b[0]) && ['collections','catalogs'].every((g,i) =>
-      this.unrestricted(g) || !!(b[i+1] & this.masks[g]));
+    return (!this.isDefault() || !b[5]) &&
+      (this.unrestricted('classes') || this.values('classes').includes(b[0])) &&
+      (this.unrestricted('collections') || !!(b[1] & this.masks.collections)) &&
+      (this.unrestricted('catalogs') || b[2].some(id=>this.values('catalogs').includes(id)));
   },
   refreshSelection() {
     const revision = ++this.revision;
     this.objects.clear(); this.promoted.clear(); this.narrow = false; this.loading = false; this.loadError = false;
-    this.masks = Object.fromEntries(['collections','catalogs'].map(g => [g,
-      this.options(g).reduce((mask,k,i) => mask | (this.values(g).includes(k) ? 1 << i : 0), 0)]));
+    this.masks = {collections:this.options('collections').reduce((mask,k,i)=>mask | (this.values('collections').includes(k)?1<<i:0),0)};
     const data = typeof MAP_FILTER_DATA === 'undefined' ? null : MAP_FILTER_DATA;
     // Never infer a small complete selection from whichever tiles happen to be loaded.
-    if (!data || data.version !== 1 || data.catalogRevision !== EXTENDED_BOOT.revision ||
+    if (!data || data.version !== 3 || data.catalogRevision !== EXTENDED_BOOT.revision ||
         data.collections.join() !== this.options('collections').join() ||
         data.catalogs.join() !== this.options('catalogs').join()) return;
     const buckets = data.buckets.filter(b => this.bucketMatches(b));
@@ -181,51 +176,61 @@ const MapFilters = {
     MapLayers.landmarkContext = null;
     MapLayers.lastUpdate = ExtendedCatalog.lastUpdate = -Infinity;
   },
-  change(classFilter, collection, catalog, save = true) {
+  change(classFilter, collection, catalog, save = true, activeGroup) {
     this.selection = Object.fromEntries([['classes',classFilter],['collections',collection],['catalogs',catalog]].map(([g,v]) => {
-      const valid = this.options(g), values = Array.isArray(v) ? v : v === 'all' ? (g === 'classes' ? valid : []) : valid.includes(v) ? [v] : this.defaults(g);
+      const valid = this.options(g), values = Array.isArray(v) ? v : v === 'all' ? (g === 'collections' ? [] : valid) : valid.includes(v) ? [v] : this.defaults(g);
+      // Old unions become one choice; a formerly complete set stays unrestricted.
+      if (g === 'collections') return [g,valid.every(k => values.includes(k)) ? [] : values.filter(k => valid.includes(k)).slice(0,1)];
       return [g,valid.filter(k => values.includes(k))];
     }));
-    filter = this.values('classes').length === 1 ? this.values('classes')[0] : 'all';
+    // Legacy combined preferences keep the most specific mode: collection, source, class.
+    this.activeGroup = ['classes','collections','catalogs'].includes(activeGroup) ? activeGroup :
+      this.values('collections').length ? 'collections' :
+        (Array.isArray(catalog) || this.options('catalogs').includes(catalog)) && this.values('catalogs').length ? 'catalogs' : 'classes';
+    this.tab = this.activeGroup;
+    for (const group of ['classes','collections','catalogs'])
+      if (group !== this.activeGroup) this.selection[group] = this.defaults(group);
+    filter = this.activeGroup === 'classes' && this.values('classes').length === 1 ? this.values('classes')[0] : 'all';
     this.collection = this.unrestricted('collections') ? 'all' : this.values('collections').join(',');
     this.catalog = this.unrestricted('catalogs') ? 'all' : this.values('catalogs').join(',');
     this.invalidate(); this.refreshSelection(); this.sync();
     if (save) {
-      try { localStorage.setItem('parus-map-filters-v3', JSON.stringify(this.selection)); } catch {}
+      try { localStorage.setItem('parus-map-filters-v5', JSON.stringify({activeGroup:this.activeGroup,...this.selection})); } catch {}
     }
   },
   setGroup(group, values) {
     const selection = {...this.selection,[group]:values};
-    this.change(selection.classes,selection.collections,selection.catalogs);
+    this.change(selection.classes,selection.collections,selection.catalogs,true,group);
   },
   setTab(group, focus = false) {
-    this.tab = group;
+    if (!['classes','collections','catalogs'].includes(group)) return;
+    if (group !== this.activeGroup) this.setGroup(group,this.defaults(group));
     $('mapFilters').querySelector('.map-filter-scroll').scrollTop = 0;
-    for (const g of ['classes','collections','catalogs']) {
-      $('filterPanel-'+g).hidden = group !== g;
-      $('filterTab-'+g).setAttribute('aria-selected',String(group === g));
-      $('filterTab-'+g).tabIndex = group === g ? 0 : -1;
-    }
     this.sync();
     if (focus) $('filterTab-'+group).focus({preventScroll:true});
   },
   sync() {
+    for (const group of ['classes','collections','catalogs']) {
+      $('filterPanel-'+group).hidden = this.tab !== group;
+      $('filterTab-'+group).setAttribute('aria-selected',String(this.tab === group));
+      $('filterTab-'+group).tabIndex = this.tab === group ? 0 : -1;
+    }
     for (const input of document.querySelectorAll('#mapFilters input[data-filter-group]'))
       input.checked = this.values(input.dataset.filterGroup).includes(input.value);
     for (const group of ['collections','catalogs']) {
       $('filterCount-'+group).textContent = this.values(group).length;
-      $('filterCount-'+group).hidden = this.values(group).length === 0;
+      $('filterCount-'+group).hidden = group !== this.activeGroup || this.isDefault(group) || this.values(group).length === 0;
     }
-    const names = ['classes','collections','catalogs'].filter(g => !this.unrestricted(g)).map(g =>
+    const names = ['classes','collections','catalogs'].filter(g => g === this.activeGroup && !this.isDefault(g)).map(g =>
       this.values(g).length ? this.values(g).map(k => g === 'classes' ? this.classNames[k] : this[g][k][0]).join(', ') : 'ничего не выбрано');
     const label = 'Фильтры карты' + (names.length ? ': '+names.join(' · ') : '');
     $('mapFilterBtn').title = label; $('mapFilterBtn').setAttribute('aria-label',label);
     $('mapFilterBtn').classList.toggle('has-filters',this.count > 0);
     $('mapFilterCount').textContent = this.count; $('mapFilterCount').hidden = !this.count;
-    $('mapFilterAllText').textContent = {classes:'Все объекты',collections:'Все подборки',catalogs:'Все каталоги'}[this.tab];
-    $('mapFilterAll').checked = this.all(this.tab);
-    $('mapFilterAll').indeterminate = this.values(this.tab).length > 0 && !this.all(this.tab);
-    $('mapFilterAll').setAttribute('aria-controls', this.options(this.tab).map(k => 'map-filter-'+this.tab+'-'+k).join(' '));
+    $('mapFilterToolbar').hidden = this.tab === 'collections';
+    $('mapFilterDefault').checked = this.isDefault(this.tab);
+    $('mapFilterDefault').title = this.tab === 'catalogs' ? 'Выставить каталоги по умолчанию' : 'Восстановить классы объектов по умолчанию';
+    $('mapFilterDefault').setAttribute('aria-controls', this.options(this.tab).map(k => 'map-filter-'+this.tab+'-'+k).join(' '));
     $('mapFilterStatus').textContent = this.loading ? 'Загружаем все объекты выборки…' : this.loadError ? 'Часть объектов не загрузилась. Смените фильтр, чтобы повторить.' :
       this.narrow ? (this.total ? 'Объектов: '+this.total : 'Нет объектов по выбранным условиям.') : '';
     $('mapFilterStatus').hidden = !$('mapFilterStatus').textContent;
@@ -239,9 +244,9 @@ const MapFilters = {
   open() {
     closeCatalog(); closeMenu();
     $('themePicker').hidden = true; $('themeBtn').setAttribute('aria-expanded','false');
-    this.setTab('classes');
+    this.setTab(this.activeGroup);
     $('mapFilters').hidden = false; $('mapFilterBtn').setAttribute('aria-expanded','true');
-    $('filterTab-classes').focus({preventScroll:true});
+    $('filterTab-'+this.activeGroup).focus({preventScroll:true});
   },
   setup() {
     for (const group of ['classes','collections','catalogs']) {
@@ -249,17 +254,31 @@ const MapFilters = {
       for (const value of this.options(group)) {
         const label = document.createElement('label'), input = document.createElement('input'), text = document.createElement('span');
         label.className = 'map-filter-option';
-        input.type = 'checkbox'; input.value = value; input.dataset.filterGroup = group;
+        input.type = group === 'collections' ? 'radio' : 'checkbox';
+        if (group === 'collections') input.name = 'map-collection';
+        input.value = value; input.dataset.filterGroup = group;
         input.id = 'map-filter-'+group+'-'+value;
         const title = document.createElement('strong'); title.textContent = group === 'classes' ? this.classNames[value] : this[group][value][0]; text.append(title);
         if (group !== 'classes') {
-          label.title = this[group][value][1]; input.setAttribute('aria-description', this[group][value][1]);
-        }
-        if (group === 'classes' && value === 'void') {
-          const note = document.createElement('small'); note.className = 'map-filter-note'; note.textContent = 'по умолчанию выкл'; text.append(note);
+          label.title = this[group][value][1] + (group === 'collections' ? ' Повторное нажатие снимает подборку.' : '');
+          input.setAttribute('aria-description', label.title);
+          if (group === 'catalogs') {
+            text.className = 'map-filter-catalog-text';
+            const description = document.createElement('small');
+            description.className = 'map-filter-description'; description.id = input.id+'-description';
+            description.textContent = this[group][value][1]; text.append(description);
+            input.setAttribute('aria-describedby',description.id);
+          }
         }
         label.append(input); label.append(text); panel.append(label);
-        input.onchange = () => this.setGroup(group,this.options(group).filter(k => k === value ? input.checked : this.values(group).includes(k)));
+        if (group === 'collections') {
+          input.onclick = () => this.setGroup(group,this.values(group).includes(value) ? [] : [value]);
+          input.onkeydown = event => {
+            if (event.code !== 'Space') return;
+            event.preventDefault();
+            input.onclick();
+          };
+        } else input.onchange = () => this.setGroup(group,this.options(group).filter(k => k === value ? input.checked : this.values(group).includes(k)));
       }
       $('filterTab-'+group).onclick = () => this.setTab(group);
       $('filterTab-'+group).onkeydown = event => {
@@ -269,26 +288,34 @@ const MapFilters = {
         event.preventDefault(); this.setTab(groups[next],true);
       };
     }
-    let saved;
-    try { saved = JSON.parse(localStorage.getItem('parus-map-filters-v3')); } catch {}
-    if (saved && !Array.isArray(saved)) this.change(saved.classes,saved.collections,saved.catalogs,false);
-    else {
-      let previous;
-      try { previous = JSON.parse(localStorage.getItem('parus-map-filters-v2')); } catch {}
-      if (previous && !Array.isArray(previous)) {
-        // v2 had five collections. Adding options must not revive its former unrestricted set.
-        const oldOptions = {collections:['naked-eye','messier','nearby','multiple','remnants'],catalogs:this.options('catalogs')};
-        const migrate = group => Array.isArray(previous[group]) && oldOptions[group].every(k => previous[group].includes(k)) ? [] : previous[group];
-        this.change(previous.classes,migrate('collections'),migrate('catalogs'),false);
-      } else {
-        let legacy;
-        try { legacy = JSON.parse(localStorage.getItem('parus-map-filters-v1')); } catch {}
-        this.change(legacy?.classFilter === 'all' ? undefined : legacy?.classFilter,legacy?.collection,legacy?.catalog,false);
-      }
+    const readPreference = version => {
+      try {
+        const value = JSON.parse(localStorage.getItem('parus-map-filters-'+version));
+        return value && typeof value === 'object' && !Array.isArray(value) ? value : null;
+      } catch { return null; }
+    };
+    const saved = readPreference('v5'), previous = saved ? null : readPreference('v4') || readPreference('v3');
+    const older = saved || previous ? null : readPreference('v2');
+    // Before v5, empty catalogues meant the default overview. New empty selections
+    // genuinely hide ordinary records and must survive subsequent reloads.
+    const oldCatalogs = values => values === 'all' || Array.isArray(values) && !values.length ? undefined : values;
+    if (saved) this.change(saved.classes,saved.collections,saved.catalogs,false,saved.activeGroup);
+    else if (previous) {
+      this.change(previous.classes,previous.collections,oldCatalogs(previous.catalogs),false,previous.activeGroup);
+    } else if (older) {
+      // v2 had five collections. Adding options must not revive its former unrestricted set.
+      const oldOptions = {collections:['naked-eye','messier','nearby','multiple','remnants'],catalogs:['hyg','opengc','atnf','nearby','cf4','blackholes']};
+      const migrate = group => Array.isArray(older[group]) && oldOptions[group].every(k => older[group].includes(k)) ? [] : older[group];
+      this.change(older.classes,migrate('collections'),oldCatalogs(migrate('catalogs')),false);
+    } else {
+      const legacy = readPreference('v1');
+      this.change(legacy?.classFilter === 'all' ? undefined : legacy?.classFilter,legacy?.collection,oldCatalogs(legacy?.catalog),false);
     }
     $('mapFilterBtn').onclick = () => $('mapFilters').hidden ? this.open() : this.close();
     $('closeMapFilters').onclick = () => this.close();
-    $('mapFilterAll').onchange = () => this.setGroup(this.tab, $('mapFilterAll').checked ? this.options(this.tab) : []);
+    $('mapFilterDefault').onchange = () => {
+      if (this.tab !== 'collections') this.setGroup(this.tab,this.defaults(this.tab));
+    };
     $('mapFilters').onkeydown = event => {
       if (event.key !== 'Escape') return;
       event.preventDefault(); event.stopPropagation(); this.close();

@@ -5,6 +5,7 @@ run(['map-visibility-data','map-visibility','map-label-data','map-annotations'].
 run(`{
  state=initial();state.current=ExtendedCatalog.revealArrival(object('huge-lqg')).id;state.visited.push('huge-lqg',state.current);state.ship=Space.point(object(state.current).p3);ExtendedCatalog.capture(state);state=restore(JSON.parse(JSON.stringify(state)));paused=true;filter='all';MapLayers.active=false;cameraGoal=null;releaseShipCamera();
  const catalogue=JSON.stringify(OBJECTS.map(o=>[o.id,o.p3,o.mapPosition,o.region])),entries=JSON.stringify(MAP_LABEL_BOOT);
+ MapFilters.change('all','all','all',false);
  const regions=['local-void','bootes','boss-wall','shapley','hyperion'],points=['mom-z14','jades-z14'];
  for(const mode of ['full','slice','radial'])for(const size of [[1440,1000],[390,844]])for(const epoch of [0,15e9,100e9,1e12])for(const expansion of [true,false]){
   MapSlice.mode=mode;[width,height]=size;state.cosmicTime=epoch;state.expansion=expansion;Cosmology.sync(state);

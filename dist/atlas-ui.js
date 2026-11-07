@@ -1,11 +1,23 @@
 'use strict';
 // Catalogue search, object cards and informational dialogs.
-function toast(text, duration = 4200) {
-  $('toast').textContent = text;
-  $('toast').hidden = false;
+const Notices={
+  labels:{info:'Сообщение',tip:'Подсказка',warning:'Предупреждение',orbit:'Выход на орбиту',arrival:'Прибытие',route:'Маршрут',launch:'Начало полёта',reset:'Состояние экспедиции'},
+  render(text,icon='info',kind='notice'){
+    const node=$('toast');if(!this.labels[icon])icon='info';
+    if(kind==='notice')this.context={flight:state.flight,phase:state.phase,elapsed:globalThis.FlightTips?.elapsed(state.flight)??0};
+    node.dataset.kind=kind;node.dataset.icon=icon;
+    node.setAttribute('role',icon==='warning'?'alert':'status');
+    node.setAttribute('aria-label',this.labels[icon]);
+    $('toastIcon').setAttribute('href','#'+icon+'-icon');
+    UIContent.text($('toastText'),text);node.hidden=false;
+  },
+};
+function toast(text,duration=4200,icon='info'){
+  Notices.render(text,icon);
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => ($('toast').hidden = true), duration);
+  toastTimer=setTimeout(()=>{$('toast').hidden=true;globalThis.FlightTips?.render();},duration);
 }
+
 let catalogRevision = 0,
   catalogTimer;
 function catalogRows(items, total, loading = false, error = '') {
@@ -49,20 +61,21 @@ function catalogRows(items, total, loading = false, error = '') {
     const arrow = document.createElement('span');
     arrow.textContent = '↗';
     b.append(arrow);
-    b.addEventListener('click', async () => {
+    b.addEventListener('click', async (event) => {
       b.disabled = true;
       try {
         const o = await ExtendedCatalog.resolve(entry);
         const picking = Route.picking;
-        select(o.id);
+        select(o.id,false,{deferPreview:event.shiftKey||picking,routeAnchor:!event.shiftKey&&!picking});
         closeCatalog();
-        ExtendedCatalog.focus(o);
         if (picking) {
-          Route.add(o.id);
-          Route.show();
+          if (Route.add(o.id)) fitRoute(o,{wholeRoute:true});
+        } else {
+          ExtendedCatalog.focus(o);
+          if (event.shiftKey) planRoutePoint(o.id,{deferPreview:true});
         }
       } catch (e) {
-        toast(e.message);
+        toast(e.message,4200,'warning');
         b.disabled = false;
       }
     });
@@ -154,21 +167,39 @@ function renderCatalog() {
         catalogRows(core.slice(0, limit), core.length, false, e.message);
     });
 }
-function showMenuPage(page = 'home', focus = false) {
+function showMenuPage(page, focus = false) {
   document.querySelectorAll('[data-menu-page]').forEach((panel) => {
     panel.hidden = panel.dataset.menuPage !== page;
   });
   $('libraryBtn').setAttribute('aria-expanded', String(page === 'library'));
   $('settingsBtn').setAttribute('aria-expanded', String(page === 'settings'));
   $('menu').scrollTop = 0;
-  if (focus) $('menu').querySelector('[data-menu-page]:not([hidden]) button').focus();
+  if (focus) $('menu').querySelector('[data-menu-page]:not([hidden]) button, [data-menu-page]:not([hidden]) input')?.focus();
 }
 function closeMenu() {
   const restoreFocus = document.activeElement?.closest('#menu');
+  const opener = $('libraryBtn').getAttribute?.('aria-expanded') === 'true' ? $('libraryBtn') : $('settingsBtn');
   $('menu').hidden = true;
-  $('menuBtn').setAttribute('aria-expanded', 'false');
   showMenuPage();
-  if (restoreFocus) $('menuBtn').focus();
+  if (restoreFocus) opener.focus();
+}
+function toggleMenu(page) {
+  const button = page === 'library' ? $('libraryBtn') : $('settingsBtn');
+  const open = !$('menu').hidden && button.getAttribute('aria-expanded') === 'true';
+  closeMenu();
+  if (open) return;
+  MapFilters.close();
+  closeCatalog();
+  $('themePicker').hidden = true;
+  $('themeBtn').setAttribute('aria-expanded', 'false');
+  showMenuPage(page);
+  $('menu').hidden = false;
+}
+function planRoutePoint(id,{deferPreview=false}={}) {
+  const before=Route.nodes().length;
+  if (!Route.add(id,{toggle:true,deferPreview,afterSelection:true})) return;
+  if(Route.nodes().length>before)FlightTips.use('shift-route',{persistNow:!deferPreview});
+  toast(Route.nodes().length<before?'Участок удалён.':Gravity.canFlyby(object(id))?'Пролёт у «'+object(id).name+'». Добавьте следующую точку.':'Добавлена точка «'+object(id).name+'».',4200,'route');
 }
 function openCatalog() {
   MapFilters.close();
@@ -196,7 +227,7 @@ function showHelp() {
   showDialog(
     '<div class="modal-eyebrow">' +
       SHIP_NAME.toUpperCase() +
-      ' / ПОЛЁТ</div><h2>Свет, топливо и остановка.</h2><p>Выберите собственную тягу, постоянный свет звезды через зеркало Ø 100 км либо вспышку через то же зеркало. Вспышка длится 30 суток по часам звезды; постоянный свет действует на всём участке разгона. Звезда уничтожается только в режиме вспышки. Для Солнца этот режим запрещён.</p><p>По умолчанию сухая масса — 1 кг, включая парус Si₃N₄ Ø 100 м массой 0,785 кг. Бак — 1 кг. Световой разгон сохраняет топливо, его масса учитывается. Парус и обратная тяга совместно тормозят корабль, собирая и расходуя вещество. Остаток бака не является условием миссии и показывается в прогнозе. По умолчанию пределы разгона и торможения — 10 g; их можно изменить в параметрах корабля.</p><p>На 1× секунда игрока равна году на борту. Вертикальная шкала темпа под масштабом: 0 — пауза, 0,5× / 1× / 10× / 100× / 1000× — скорость симуляции. На 0,5× секунда игрока равна половине бортового года. Пробел — пауза; колесо — масштаб карты; перетаскивание — перемещение.</p><button class="modal-start" id="startExploring">Продолжить →</button>',
+      ' / ПОЛЁТ</div><h2>Свет, топливо и остановка.</h2><p>Выберите собственную тягу, постоянный свет звезды через зеркало Ø 100 км либо вспышку через то же зеркало. Вспышка длится 30 суток по часам звезды; постоянный свет действует на всём участке разгона. Звезда уничтожается только в режиме вспышки. Для Солнца этот режим запрещён.</p><p>По умолчанию сухая масса — 1 кг, включая парус Si₃N₄ Ø 100 м массой 0,785 кг. Бак — 1 кг. Световой разгон сохраняет топливо, его масса учитывается. Парус и обратная тяга совместно тормозят корабль, собирая и расходуя вещество. Остаток бака не является условием миссии и показывается в прогнозе. По умолчанию пределы разгона и торможения — 10 g; их можно изменить в параметрах корабля.</p><p>На 1× секунда игрока равна году на борту. Вертикальная шкала темпа под масштабом: 0 — пауза, 0,5× / 1× / 10× / 100× / 1000× — скорость симуляции. На 0,5× секунда игрока равна половине бортового года. Shift + клик добавляет участок маршрута. Двойной клик добавляет последнюю точку и запускает полёт; в полёте он добавляет следующий участок. Повторный Shift по последней точке и Esc убирают один будущий участок. Начать полёт также можно кнопкой карточки. Пробел — пауза; колесо — масштаб карты; перетаскивание — перемещение.</p><button class="modal-start" id="startExploring">Продолжить →</button>',
   );
   $('startExploring').onclick = () => $('infoDialog').close();
 }

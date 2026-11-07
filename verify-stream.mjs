@@ -31,8 +31,10 @@ await run(`(async()=>{const r=testEntry;var o=await ExtendedCatalog.resolve({id:
 context.unknownEntry=search.find(r=>r[4]==='unknown');
 await run(`(async()=>{const r=unknownEntry;var o=await ExtendedCatalog.resolve({id:r[0],tile:r[5]});assert.equal(o.navigable,false);assert.equal(o.p3,null);assert.ok(o.atlasOnly);assert.equal(MapDetails.visible(o,24),false);assert.ok(!Number.isFinite(MapLayout.project(o).x));state.selected=o.id;ExtendedCatalog.capture(state);var saved=JSON.parse(JSON.stringify(state));ExtendedCatalog.pinned.clear();state=restore(saved);assert.equal(state.selected,o.id,'unknown selection also survives reload');})();`);
 console.log('PASS lazy lookup, finite 3D coordinates, atlas-only unknown positions, bounded saved references and selection restore');
-await run(`(async()=>{const r=testEntry,o=await ExtendedCatalog.resolve({id:r[0],tile:r[5]});state=initial();state.nextTargets=[{id:o.id,setup:FlightSetup.defaults()}];state.multiplayer=true;state.trafficSeed=73;ExtendedCatalog.capture(state);const saved=JSON.parse(JSON.stringify(state));assert.ok(saved.catalogObjects.some(q=>q.id===o.id),'queue keeps streamed catalogue references');ExtendedCatalog.pinned.clear();ExtendedCatalog.cache.clear();state=restore(saved);assert.equal(state.nextTargets[0].id,o.id);assert.ok(object(o.id)?.navigable);assert.equal(state.multiplayer,true);assert.equal(state.trafficSeed,73);})();`);
-console.log('PASS streamed queued target survives tile eviction/reload with its setup and fleet preference');
+await run(`(async()=>{const r=testEntry,o=await ExtendedCatalog.resolve({id:r[0],tile:r[5]});state=initial();state.nextTargets=[{id:o.id,setup:FlightSetup.defaults()}];state.multiplayer=true;state.trafficSeed=73;ExtendedCatalog.capture(state);const saved=JSON.parse(JSON.stringify(state));assert.ok(saved.catalogObjects.some(q=>q.id===o.id),'queue keeps streamed catalogue references');ExtendedCatalog.pinned.clear();ExtendedCatalog.cache.clear();state=restore(saved);assert.equal(state.itinerary[0].id,o.id);assert.equal(state.nextTargets.length,0);assert.ok(object(o.id)?.navigable);assert.equal(state.multiplayer,true);assert.equal(state.trafficSeed,73);})();`);
+console.log('PASS streamed legacy queued target migrates into the route and survives tile eviction/reload with its setup and fleet preference');
+
+await run(`(async()=>{state=initial();for(const id of ['bode','triangulum','bootes','laniakea','ring','local-void','vela','sgr','3c273'])await ArrivalStars.prepare(object(id));})();`);
 
 run(`
 state=initial();var galaxy=object('bode');state.current=null;state.ship=Space.point(V3.add(galaxy.p3,[2,0,0]));state.selected=galaxy.id;state.expansion=false;state.flightSetup=FlightSetup.normalize({engine:true,sail:false,arrivalFuelPercent:0});state.paused=false;paused=false;speed=1;
@@ -71,6 +73,7 @@ console.log('PASS real worker search across HYG/OpenNGC/ATNF and bounded result 
 
 run(`state=initial();for(const host of ['andromeda','lmc','smc']){const g=object(host),stars=OBJECTS.filter(o=>o.parentGalaxy===host&&o.galaxyMember&&!o.atlasOnly);assert.ok(stars.length>0);assert.ok(stars.every(o=>!o.synthetic&&o.navigable));for(const found of stars){assert.ok(MapDetails.maxSpan(found)>g.galaxy.diameterLy);assert.ok(MapDetails.visible(found,g.galaxy.diameterLy*2));assert.ok(MapDetails.visible(found,24));}}
 for(const id of ['bootes','laniakea','ring','local-void']){const body=object(id),star=ExtendedCatalog.arrivalStar(body);assert.ok(star?.synthetic&&star.navigable);assert.equal(JSON.stringify(star.p3),JSON.stringify(body.p3));assert.equal(object(star.id),undefined);}
-for(const id of ['vela','sgr','3c273']){const star=ExtendedCatalog.arrivalStar(object(id));assert.ok(star?.synthetic);assert.equal(star.parentObject,id);assert.equal(object(star.id),undefined);}
+for(const id of ['vela','3c273']){const star=ExtendedCatalog.arrivalStar(object(id));assert.ok(star?.synthetic);assert.equal(star.parentObject,id);assert.equal(object(star.id),undefined);}
 `);
-console.log('PASS real stars in M31/LMC/SMC retain their visibility; extended arrival stars stay hidden and compact non-stellar stops also have hidden arrival stars');
+run(`assert.ok(!ExtendedCatalog.arrivalStar(object('sgr')).synthetic);assert.ok(Space.distance(ExtendedCatalog.arrivalStar(object('sgr')),object('sgr'))<5);`);
+console.log('PASS real galaxy stars retain visibility; fictional fallbacks stay hidden; the black-hole stopping target is an existing nearby star');

@@ -567,7 +567,6 @@ const MapLandmarks = {
     return true;
   },
   available(p, object) {
-    if (p.x < 24 || p.x > width - 24 || p.y < 24 || p.y > height - 24) return false;
     const guard = { x: p.x - 48, y: p.y - 48, w: 96, h: 96 },
       symbol = { x: p.x - 24, y: p.y - 24, w: 48, h: 48 };
     // Labels reserve broad stable columns. Small glyphs can also use the visible
@@ -662,6 +661,9 @@ const MapLabels = {
   },
   overlaps(a, b) {
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  },
+  intersectsViewport(box) {
+    return this.overlaps(box, {x:0,y:0,w:width,h:height});
   },
   begin() {
     const key = [
@@ -788,10 +790,7 @@ const MapLabels = {
           const x = p.align === 'right' ? p.x - w : p.align === 'center' ? p.x - w / 2 : p.x,
             box = { x: x - 4, y: p.y - size - 5, w: w + 8, h };
           if (
-            box.x < 8 ||
-            box.x + box.w > width - 8 ||
-            box.y < 8 ||
-            box.y + box.h > height - 8 ||
+            !this.intersectsViewport(box) ||
             this.boxes.some((b) => this.overlaps(box, b)) ||
             (q.sparse && !MapLandmarks.labelClear(box, q.object))
           )

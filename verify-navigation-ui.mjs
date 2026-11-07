@@ -8,9 +8,10 @@ OrbitalArrival.enabled=false;
 resize();state=initial();Cosmology.sync(state);cam={x:0,y:0,span:24};followShip=false;updateShipButton();
 const centreIcon=$('shipBtn').innerHTML;focusShip();assert.equal(followShip,true);assert.notEqual($('shipBtn').innerHTML,centreIcon);
 focusShip();assert.equal(followShip,false);assert.equal($('shipBtn').innerHTML,centreIcon);focusShip();assert.equal(followShip,true);
-zoomAtPointer({preventDefault(){},deltaY:100,clientX:120,clientY:150});assert.equal(followShip,true);assert.ok(cam.span>24);
+const focusedSpan=cam.span;
+zoomAtPointer({preventDefault(){},deltaY:100,clientX:120,clientY:150});assert.equal(followShip,true);assert.ok(cam.span>focusedSpan);
 let p=screen(state.ship);assert.ok(Math.abs(p.x-width/2)<1e-8&&Math.abs(p.y-height/2)<1e-8);
-zoomAtPointer({preventDefault(){},deltaY:-100,clientX:800,clientY:500});assert.equal(followShip,true);assert.ok(Math.abs(cam.span-24)<1e-10);
+zoomAtPointer({preventDefault(){},deltaY:-100,clientX:800,clientY:500});assert.equal(followShip,true);assert.ok(Math.abs(cam.span-focusedSpan)<1e-10);
 // Galactic/intergalactic endpoints must be clipped to finite viewport pixels at stellar zoom.
 state=initial();state.selected='mom-z14';launch(true);tickPhysics(state.flight.engine.burnProper);assert.equal(state.phase,'cruise');
 for(const fraction of [0,.1,.5,.99])for(const span of [.00006,24,130000]){

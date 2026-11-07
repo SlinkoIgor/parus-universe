@@ -1,0 +1,445 @@
+{
+  "retrieved": "2026-11-07",
+  "source": "https://en.wikipedia.org/wiki/Caldwell_catalogue",
+  "pageSha256": "32fd897256492feef70790f692c2aec3357d1773d807f88dbea161b67c907eca",
+  "observingSource": "https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-caldwell-catalog/",
+  "observingEvidence": "Backyard astronomers can observe Caldwell objects with modest ground-based telescopes; some are more challenging than others. No photometry or angular size is inferred from membership.",
+  "entries": [
+    {
+      "caldwell": 1,
+      "identifier": "NGC 188"
+    },
+    {
+      "caldwell": 2,
+      "identifier": "NGC 40"
+    },
+    {
+      "caldwell": 3,
+      "identifier": "NGC 4236"
+    },
+    {
+      "caldwell": 4,
+      "identifier": "NGC 7023"
+    },
+    {
+      "caldwell": 5,
+      "identifier": "IC 342"
+    },
+    {
+      "caldwell": 6,
+      "identifier": "NGC 6543"
+    },
+    {
+      "caldwell": 7,
+      "identifier": "NGC 2403"
+    },
+    {
+      "caldwell": 8,
+      "identifier": "NGC 559"
+    },
+    {
+      "caldwell": 9,
+      "identifier": "Sh2-155"
+    },
+    {
+      "caldwell": 10,
+      "identifier": "NGC 663"
+    },
+    {
+      "caldwell": 11,
+      "identifier": "NGC 7635"
+    },
+    {
+      "caldwell": 12,
+      "identifier": "NGC 6946"
+    },
+    {
+      "caldwell": 13,
+      "identifier": "NGC 457"
+    },
+    {
+      "caldwell": 14,
+      "identifier": "NGC 869 & NGC 884"
+    },
+    {
+      "caldwell": 15,
+      "identifier": "NGC 6826"
+    },
+    {
+      "caldwell": 16,
+      "identifier": "NGC 7243"
+    },
+    {
+      "caldwell": 17,
+      "identifier": "NGC 147"
+    },
+    {
+      "caldwell": 18,
+      "identifier": "NGC 185"
+    },
+    {
+      "caldwell": 19,
+      "identifier": "IC 5146"
+    },
+    {
+      "caldwell": 20,
+      "identifier": "NGC 7000"
+    },
+    {
+      "caldwell": 21,
+      "identifier": "NGC 4449"
+    },
+    {
+      "caldwell": 22,
+      "identifier": "NGC 7662"
+    },
+    {
+      "caldwell": 23,
+      "identifier": "NGC 891"
+    },
+    {
+      "caldwell": 24,
+      "identifier": "NGC 1275"
+    },
+    {
+      "caldwell": 25,
+      "identifier": "NGC 2419"
+    },
+    {
+      "caldwell": 26,
+      "identifier": "NGC 4244"
+    },
+    {
+      "caldwell": 27,
+      "identifier": "NGC 6888"
+    },
+    {
+      "caldwell": 28,
+      "identifier": "NGC 752"
+    },
+    {
+      "caldwell": 29,
+      "identifier": "NGC 5005"
+    },
+    {
+      "caldwell": 30,
+      "identifier": "NGC 7331"
+    },
+    {
+      "caldwell": 31,
+      "identifier": "IC 405"
+    },
+    {
+      "caldwell": 32,
+      "identifier": "NGC 4631"
+    },
+    {
+      "caldwell": 33,
+      "identifier": "NGC 6992"
+    },
+    {
+      "caldwell": 34,
+      "identifier": "NGC 6960"
+    },
+    {
+      "caldwell": 35,
+      "identifier": "NGC 4889"
+    },
+    {
+      "caldwell": 36,
+      "identifier": "NGC 4559"
+    },
+    {
+      "caldwell": 37,
+      "identifier": "NGC 6885"
+    },
+    {
+      "caldwell": 38,
+      "identifier": "NGC 4565"
+    },
+    {
+      "caldwell": 39,
+      "identifier": "NGC 2392"
+    },
+    {
+      "caldwell": 40,
+      "identifier": "NGC 3626"
+    },
+    {
+      "caldwell": 41,
+      "identifier": "Mel 25"
+    },
+    {
+      "caldwell": 42,
+      "identifier": "NGC 7006"
+    },
+    {
+      "caldwell": 43,
+      "identifier": "NGC 7814"
+    },
+    {
+      "caldwell": 44,
+      "identifier": "NGC 7479"
+    },
+    {
+      "caldwell": 45,
+      "identifier": "NGC 5248"
+    },
+    {
+      "caldwell": 46,
+      "identifier": "NGC 2261"
+    },
+    {
+      "caldwell": 47,
+      "identifier": "NGC 6934"
+    },
+    {
+      "caldwell": 48,
+      "identifier": "NGC 2775"
+    },
+    {
+      "caldwell": 49,
+      "identifier": "NGC 2237"
+    },
+    {
+      "caldwell": 50,
+      "identifier": "NGC 2244"
+    },
+    {
+      "caldwell": 51,
+      "identifier": "IC 1613"
+    },
+    {
+      "caldwell": 52,
+      "identifier": "NGC 4697"
+    },
+    {
+      "caldwell": 53,
+      "identifier": "NGC 3115"
+    },
+    {
+      "caldwell": 54,
+      "identifier": "NGC 2506"
+    },
+    {
+      "caldwell": 55,
+      "identifier": "NGC 7009"
+    },
+    {
+      "caldwell": 56,
+      "identifier": "NGC 246"
+    },
+    {
+      "caldwell": 57,
+      "identifier": "NGC 6822"
+    },
+    {
+      "caldwell": 58,
+      "identifier": "NGC 2360"
+    },
+    {
+      "caldwell": 59,
+      "identifier": "NGC 3242"
+    },
+    {
+      "caldwell": 60,
+      "identifier": "NGC 4038"
+    },
+    {
+      "caldwell": 61,
+      "identifier": "NGC 4039"
+    },
+    {
+      "caldwell": 62,
+      "identifier": "NGC 247"
+    },
+    {
+      "caldwell": 63,
+      "identifier": "NGC 7293"
+    },
+    {
+      "caldwell": 64,
+      "identifier": "NGC 2362"
+    },
+    {
+      "caldwell": 65,
+      "identifier": "NGC 253"
+    },
+    {
+      "caldwell": 66,
+      "identifier": "NGC 5694"
+    },
+    {
+      "caldwell": 67,
+      "identifier": "NGC 1097"
+    },
+    {
+      "caldwell": 68,
+      "identifier": "NGC 6729"
+    },
+    {
+      "caldwell": 69,
+      "identifier": "NGC 6302"
+    },
+    {
+      "caldwell": 70,
+      "identifier": "NGC 300"
+    },
+    {
+      "caldwell": 71,
+      "identifier": "NGC 2477"
+    },
+    {
+      "caldwell": 72,
+      "identifier": "NGC 55"
+    },
+    {
+      "caldwell": 73,
+      "identifier": "NGC 1851"
+    },
+    {
+      "caldwell": 74,
+      "identifier": "NGC 3132"
+    },
+    {
+      "caldwell": 75,
+      "identifier": "NGC 6124"
+    },
+    {
+      "caldwell": 76,
+      "identifier": "NGC 6231"
+    },
+    {
+      "caldwell": 77,
+      "identifier": "NGC 5128"
+    },
+    {
+      "caldwell": 78,
+      "identifier": "NGC 6541"
+    },
+    {
+      "caldwell": 79,
+      "identifier": "NGC 3201"
+    },
+    {
+      "caldwell": 80,
+      "identifier": "NGC 5139"
+    },
+    {
+      "caldwell": 81,
+      "identifier": "NGC 6352"
+    },
+    {
+      "caldwell": 82,
+      "identifier": "NGC 6193"
+    },
+    {
+      "caldwell": 83,
+      "identifier": "NGC 4945"
+    },
+    {
+      "caldwell": 84,
+      "identifier": "NGC 5286"
+    },
+    {
+      "caldwell": 85,
+      "identifier": "IC 2391"
+    },
+    {
+      "caldwell": 86,
+      "identifier": "NGC 6397"
+    },
+    {
+      "caldwell": 87,
+      "identifier": "NGC 1261"
+    },
+    {
+      "caldwell": 88,
+      "identifier": "NGC 5823"
+    },
+    {
+      "caldwell": 89,
+      "identifier": "NGC 6087 [ a ]"
+    },
+    {
+      "caldwell": 90,
+      "identifier": "NGC 2867"
+    },
+    {
+      "caldwell": 91,
+      "identifier": "NGC 3532"
+    },
+    {
+      "caldwell": 92,
+      "identifier": "NGC 3372"
+    },
+    {
+      "caldwell": 93,
+      "identifier": "NGC 6752"
+    },
+    {
+      "caldwell": 94,
+      "identifier": "NGC 4755"
+    },
+    {
+      "caldwell": 95,
+      "identifier": "NGC 6025"
+    },
+    {
+      "caldwell": 96,
+      "identifier": "NGC 2516"
+    },
+    {
+      "caldwell": 97,
+      "identifier": "NGC 3766"
+    },
+    {
+      "caldwell": 98,
+      "identifier": "NGC 4609"
+    },
+    {
+      "caldwell": 99,
+      "identifier": "-"
+    },
+    {
+      "caldwell": 100,
+      "identifier": "IC 2944"
+    },
+    {
+      "caldwell": 101,
+      "identifier": "NGC 6744"
+    },
+    {
+      "caldwell": 102,
+      "identifier": "IC 2602"
+    },
+    {
+      "caldwell": 103,
+      "identifier": "NGC 2070"
+    },
+    {
+      "caldwell": 104,
+      "identifier": "NGC 362"
+    },
+    {
+      "caldwell": 105,
+      "identifier": "NGC 4833"
+    },
+    {
+      "caldwell": 106,
+      "identifier": "NGC 104"
+    },
+    {
+      "caldwell": 107,
+      "identifier": "NGC 6101"
+    },
+    {
+      "caldwell": 108,
+      "identifier": "NGC 4372"
+    },
+    {
+      "caldwell": 109,
+      "identifier": "NGC 3195"
+    }
+  ]
+}

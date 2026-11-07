@@ -182,7 +182,14 @@ const OrbitalMotion={
  draw(){
   const sun=OBJECTS.find(o=>o.id==='sol');
   if(cam.span<.01&&ExtendedCatalog.matchesMap(sun)&&!state.destroyed.includes('sol')){
-   for(const q of this.planets){const r=q.a*this.AU*width/cam.span;if(r<2)continue;const phase=this.phase(q);this.traceCurve(E=>this.planetPoint(q,E),{curvature:r,knots:[phase],heightAt:E=>sun.p3[2]+this.vector(q,E)[2]});const v=this.vector(q,phase),p=screen(this.planetPoint(q,phase));if(!MapSlice.includes({p3:sun.p3.map((n,i)=>n+v[i])})||p.x<-20||p.x>width+20||p.y<-20||p.y>height+20)continue;circle(p.x,p.y,2.5,'#454545',1);MapLabels.point({key:'planet-'+q.name,name:q.name,detail:fmt(Math.hypot(...v)/this.AU,2)+' а.е. от Солнца',p,priority:65,opacity:1});}
+   for(const q of this.planets){
+    const r=q.a*this.AU*width/cam.span;if(r<2)continue;
+    const phase=this.phase(q);this.traceCurve(E=>this.planetPoint(q,E),{curvature:r,knots:[phase],heightAt:E=>sun.p3[2]+this.vector(q,E)[2]});
+    const v=this.vector(q,phase),p=screen(this.planetPoint(q,phase));
+    if(!MapSlice.includes({p3:sun.p3.map((n,i)=>n+v[i])}))continue;
+    if(p.x>=-3&&p.x<=width+3&&p.y>=-3&&p.y<=height+3)circle(p.x,p.y,2.5,'#454545',1);
+    MapLabels.point({key:'planet-'+q.name,name:q.name,detail:fmt(Math.hypot(...v)/this.AU,2)+' а.е. от Солнца',p,priority:65,opacity:1});
+   }
   }
   if(this.alphaAnchor){
    for(const id of ['proxima','alpha','hyg-71453']){const o=ExtendedCatalog.get(id);if(!o||!ExtendedCatalog.matchesMap(o,true))continue;const curve=this.alphaCurve(id),r=curve?.radius*width/cam.span;if(!(r>=2))continue;this.traceCurve(curve.pointAt,{curvature:r,knots:[curve.current],heightAt:curve.heightAt});}

@@ -363,7 +363,7 @@ function drawObjects() {
       MapLabels.point({
         key: 'object-' + o.id,
         object: o,
-        name: o.id === 'sol' ? 'СОЛНЦЕ / ЗЕМЛЯ' : o.name,
+        name: o.id === 'sol' ? 'СОЛНЦЕ' : o.name,
         detail: () =>
           (o.id === (state.flight?.target || state.selected) ? 'ЦЕЛЬ · ' : '') +
           routeLabelDistance(o),
@@ -462,7 +462,7 @@ function drawObjects() {
       MapLabels.point({
         key: 'object-' + o.id,
         object: o,
-        name: o.id === 'sol' ? 'СОЛНЦЕ / ЗЕМЛЯ' : o.name,
+        name: o.id === 'sol' ? 'СОЛНЦЕ' : o.name,
         detail: () =>
           (o.id === (state.flight?.target || state.selected) ? 'ЦЕЛЬ · ' : '') +
           routeLabelDistance(o),
@@ -562,12 +562,10 @@ function drawPhysicalSegment(from, to, color = '#767676', lw = 0.8, dash = [5, 6
   const segment = routeScreenSegment(from, to);
   if (segment) line(segment.a.x, segment.a.y, segment.b.x, segment.b.y, color, lw, dash);
 }
-function drawRouteDistance(from, target) {
+function drawSegmentDistance(from, target, d) {
   const middle = routeScreenSegment(from, target, 0.5, 0.5),
     segment = middle && routeScreenSegment(from, target);
   if (!segment) return;
-  const f = state.flight,
-    d = f?.summary?.distance ?? f?.distance ?? Cosmology.physicalDistance(from, target);
   if (!Number.isFinite(d)) return;
   let angle = Math.atan2(segment.b.y - segment.a.y, segment.b.x - segment.a.x);
   if (angle > Math.PI / 2) angle -= Math.PI;
@@ -575,14 +573,32 @@ function drawRouteDistance(from, target) {
   ctx.save();
   ctx.translate(middle.a.x, middle.a.y);
   ctx.rotate(angle);
+  ctx.font = '11px "Golos Text",Arial,sans-serif';
   ctx.textBaseline = 'bottom';
-  text(distanceText(d), 0, -6, 11, '#555555', 'center', 'sans');
+  ctx.textAlign = 'center';
+  const caption = distanceText(d),
+    bounds = ctx.measureText(caption),
+    left = bounds.actualBoundingBoxLeft ?? bounds.width / 2,
+    right = bounds.actualBoundingBoxRight ?? bounds.width / 2,
+    ascent = bounds.actualBoundingBoxAscent ?? 11,
+    descent = bounds.actualBoundingBoxDescent ?? 0;
+  ctx.fillStyle = paint('#f8f8f8');
+  ctx.fillRect(-left - 1, -6 - ascent - 1, left + right + 2, ascent + descent + 2);
+  text(caption, 0, -6, 11, '#555555', 'center', 'sans');
   ctx.restore();
+}
+function drawRouteDistance() {
+  const legs=Route.legs();
+  if(legs.length){for(const leg of legs)drawSegmentDistance(leg.from,leg.to,leg.distance);return;}
+  const target=object(state.selected);
+  if(!target?.navigable||target.id===state.current)return;
+  drawSegmentDistance(state.ship,target,Cosmology.physicalDistance(state.ship,target));
 }
 function drawRoute() {
   FlightHistory.draw();
-  const f = state.flight,
-    target = object(f ? f.target : state.selected);
+  const f = state.flight;
+  if (!f && state.itinerary.length) return;
+  const target = object(f ? f.target : state.selected);
   if (!target || target.id === state.current || !target.navigable) return;
   const from = f ? f.from : state.ship;
   if (f) {
@@ -595,7 +611,6 @@ function drawRoute() {
       if (segment) line(segment.a.x, segment.a.y, segment.b.x, segment.b.y, '#767676', 1, dash);
     }
   } else drawPhysicalSegment(from, target);
-  drawRouteDistance(from, target);
   FlightMarks.draw(f);
 }
 function sailGeometry(radius, braking = false) {
@@ -605,7 +620,7 @@ function sailGeometry(radius, braking = false) {
 function drawShip(time) {
   const p = screen(state.ship),
     f = state.flight,
-    target = f ? object(f.target) : object(state.selected),
+    target = f ? object(f.target) : Route.endpoint(state.itinerary[0]) || object(state.selected),
     ahead = f ? screen(FlightView.at(f, f.covered / f.distance + 1)) : screen(target),
     angle =
       Number.isFinite(ahead.x) && Number.isFinite(ahead.y)
