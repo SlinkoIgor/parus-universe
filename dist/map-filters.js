@@ -12,6 +12,16 @@ const MapFilters = {
     nearby: ['Соседи Солнца · до 25 св. лет', 'Звёзды с известной каталожной дальностью не более 25 световых лет от Солнца.', ['star', 'home']],
     multiple: ['Двойные и кратные звёзды', 'Компоненты систем, представленных в каталоге. Принадлежность к системе не означает, что её орбита известна.', ['star']],
     remnants: ['Компактные объекты', 'Белые карлики, пульсары и чёрные дыры, включая сверхмассивные. Белые карлики определяются по собственному классу или спектру.', ['star', 'pulsar', 'blackhole']],
+    'pre-telescope': ['Известны до Галилея · до 1609', 'Туманности, скопления и галактики из исторической таблицы SEDS, известные до телескопических наблюдений Галилея. Это проверенная часть атласа, а не полный список древнего неба.', ['star', 'stellar-cluster', 'nebula', 'galaxy']],
+    galileo: ['В телескоп Галилея · 1610', 'Ясли (M44) и Плеяды (M45): Галилей рассмотрел в них отдельные звёзды. Сами скопления известны с древности; это не их открытие.', ['stellar-cluster']],
+    'messier-discoveries': ['Открытия Шарля Мессье', 'Объекты, открытие которых историческая таблица SEDS приписывает самому Мессье. Объекты других первооткрывателей из его каталога сюда не входят.', ['star', 'stellar-cluster', 'nebula', 'galaxy']],
+    'before-herschel': ['До обзора Гершеля · 1782', 'Объекты из исторической таблицы SEDS, известные до начала систематического обзора Уильяма Гершеля в сентябре 1782 года. Спорные отождествления исключены.', ['star', 'stellar-cluster', 'nebula', 'galaxy']],
+    'brightest-stars': ['Ярчайшие звёзды · V ≤ 1,5', 'Индивидуальная каталожная яркость V не слабее 1,5 с Земли. Суммарная фотометрия неразрешённых пар исключена.', ['star']],
+    'planetary-nebulae': ['Планетарные туманности', 'Газовые оболочки звёзд с собственным классом PN в OpenNGC. Название историческое: к планетам эти туманности не относятся.', ['nebula']],
+    'supernova-remnants': ['Остатки сверхновых', 'Туманности с собственным каталожным классом SNR. Пульсар внутри остатка — отдельный объект.', ['nebula']],
+    'globular-clusters': ['Шаровые звёздные скопления', 'Скопления с собственным классом GCl или явным типом «шаровое скопление». Не включает скопления галактик.', ['stellar-cluster']],
+    'nearby-galaxies': ['Галактический двор · до 15 млн св. лет', 'Галактики с принятой каталожной дальностью не более 15 миллионов световых лет. Это отбор по расстоянию, а не по членству в Местной группе.', ['galaxy']],
+    'early-universe': ['Ранняя Вселенная · z ≥ 6', 'Галактики и квазары с каталожным красным смещением z ≥ 6. Метод измерения и неопределённость сохраняются в исходных карточках.', ['galaxy', 'quasar']],
   },
   catalogs: {
     all: ['Все каталоги', ''],
@@ -70,7 +80,7 @@ const MapFilters = {
       default: return false;
     }
   },
-  matchesCollection(o, collection) {
+  matchesCollection(o, collection = this.collection) {
     switch (collection) {
       case 'all': return true;
       case 'naked-eye': return o.kind === 'star' && !o.synthetic && !o.unresolvedSourcePhotometry &&
@@ -83,8 +93,32 @@ const MapFilters = {
         !!(o.stellarSystem || o.boundSystemPrimary || ExtendedCatalog.systemByMember.has(o.id));
       case 'remnants': return ['pulsar', 'blackhole'].includes(o.kind) ||
         o.kind === 'star' && !o.synthetic && (/бел[а-яё]*\s+карлик/i.test(o.type || '') || /^D(?:[ABCOQXZ0-9]|$)/i.test(o.spectral || ''));
+      case 'pre-telescope': case 'galileo': case 'messier-discoveries': case 'before-herschel':
+        return this.historical(o, collection);
+      case 'brightest-stars': return this.matchesCollection(o, 'naked-eye') && o.apparentV <= 1.5;
+      case 'planetary-nebulae': return o.kind === 'nebula' && this.catalogType(o, 'PN');
+      case 'supernova-remnants': return o.kind === 'nebula' && this.catalogType(o, 'SNR');
+      case 'globular-clusters': return o.kind === 'cluster' &&
+        (this.catalogType(o, 'GCl') || /ШАРОВОЕ\s+СКОПЛЕНИЕ/i.test(o.type || ''));
+      case 'nearby-galaxies': return o.kind === 'galaxy' && !o.synthetic &&
+        Number.isFinite(o.d) && o.d >= 0 && o.d <= 15e6;
+      case 'early-universe': return ['galaxy', 'quasar'].includes(o.kind) && !o.synthetic &&
+        Number.isFinite(o.redshift) && o.redshift >= 6;
       default: return false;
     }
+  },
+  catalogType(o, type) {
+    return o.catalogType === type || (o.type || '').split('·').pop().trim() === type;
+  },
+  historical(o, collection) {
+    if (o.synthetic || !['home', 'star', 'cluster', 'nebula', 'galaxy'].includes(o.kind)) return false;
+    const data = typeof MAP_COLLECTION_HISTORY === 'undefined' ? null : MAP_COLLECTION_HISTORY.members;
+    if (!data) return false;
+    // Only the object's own identifiers: never inherit the discovery of a host or neighbour.
+    const messier = String(o.messier || '').replace(/^0+(?=\d)/, '');
+    const ngc = /^(NGC|IC)\s*0*(\d+)$/i.exec(o.ngc || '');
+    return ['id:'+o.id, 'M'+messier, ngc && ngc[1].toUpperCase()+Number(ngc[2])]
+      .some(key => key && data[key]?.includes(collection));
   },
   promotes(o) { return this.narrow && this.promoted.has(o?.id) && this.matches(o); },
   collapsedStar(o, span) {
@@ -218,6 +252,9 @@ const MapFilters = {
         input.type = 'checkbox'; input.value = value; input.dataset.filterGroup = group;
         input.id = 'map-filter-'+group+'-'+value;
         const title = document.createElement('strong'); title.textContent = group === 'classes' ? this.classNames[value] : this[group][value][0]; text.append(title);
+        if (group !== 'classes') {
+          label.title = this[group][value][1]; input.setAttribute('aria-description', this[group][value][1]);
+        }
         if (group === 'classes' && value === 'void') {
           const note = document.createElement('small'); note.className = 'map-filter-note'; note.textContent = 'по умолчанию выкл'; text.append(note);
         }
@@ -239,7 +276,9 @@ const MapFilters = {
       let previous;
       try { previous = JSON.parse(localStorage.getItem('parus-map-filters-v2')); } catch {}
       if (previous && !Array.isArray(previous)) {
-        const migrate = group => Array.isArray(previous[group]) && this.options(group).every(k => previous[group].includes(k)) ? [] : previous[group];
+        // v2 had five collections. Adding options must not revive its former unrestricted set.
+        const oldOptions = {collections:['naked-eye','messier','nearby','multiple','remnants'],catalogs:this.options('catalogs')};
+        const migrate = group => Array.isArray(previous[group]) && oldOptions[group].every(k => previous[group].includes(k)) ? [] : previous[group];
         this.change(previous.classes,migrate('collections'),migrate('catalogs'),false);
       } else {
         let legacy;

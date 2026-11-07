@@ -1,6 +1,9 @@
+import './verify-map-collections.mjs';
 import fs from 'node:fs';
 const harness = fs.readFileSync('verify-map.mjs', 'utf8').split('\nrun(`')[0] + '\nexport {context,run};';
 const {context, run} = await import('data:text/javascript,' + encodeURIComponent(harness) + '#map-filters');
+// These catalogues are ordinary browser scripts, outside the harness's data-app list.
+run(['distant-catalog-data','distant-catalog'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'));
 context.savedPreferences = new Map();
 context.localStorage = {
   getItem: key => context.savedPreferences.get(key) ?? null,
@@ -111,6 +114,8 @@ console.log('PASS native three-state master in every tab, optional facet default
 `);
 
 context.savedPreferences.delete('parus-map-filters-v3');
+context.savedPreferences.set('parus-map-filters-v2',JSON.stringify({classes:['star'],collections:['naked-eye','messier','nearby','multiple','remnants'],catalogs:[]}));
+run(`MapFilters.setup();assert.equal(MapFilters.values('collections').length,0,'old five-value v2 unrestricted set stays unrestricted after adding collections');`);
 context.savedPreferences.set('parus-map-filters-v2',run(`JSON.stringify({classes:MapFilters.defaults('classes'),collections:MapFilters.options('collections'),catalogs:MapFilters.options('catalogs')})`));
 run(`MapFilters.setup();assert.equal(MapFilters.values('collections').length,0);assert.equal(MapFilters.values('catalogs').length,0);assert.ok(!MapFilters.values('classes').includes('void'));`);
 context.savedPreferences.set('parus-map-filters-v2',JSON.stringify({classes:['star','galaxy'],collections:['nearby','messier'],catalogs:['hyg','opengc']}));
@@ -147,6 +152,16 @@ cam={x:0,y:0,span:130000};hitObjects=[];MapLabels.begin();drawObjects();
 assert.equal(hitObjects.filter(h=>['home','star'].includes(h.o.kind)).length,1,'galactic scale has one stellar icon');
 MapFilters.change('all','messier','all');const obsolete=MapFilters.pending;MapFilters.change('all','nearby','all');await Promise.all([obsolete,MapFilters.pending]);
 assert.ok([...MapFilters.objects.values()].every(o=>MapFilters.matchesCollection(o,'nearby')),'stale load cannot pollute the new selection');
+MapFilters.change('all','galileo','all');await MapFilters.pending;
+assert.equal(MapFilters.total,2);assert.ok(MapFilters.narrow);
+assert.ok(MapFilters.objects.has('messier-45'),'Pleiades load from their actual catalogue tile');
+assert.ok(MapFilters.matches(object('opengc-ngc2632')),'Praesepe and Pleiades form the same selection');
+for(const collection of ['pre-telescope','messier-discoveries','before-herschel','brightest-stars','planetary-nebulae','supernova-remnants','globular-clusters']) {
+ MapFilters.change('all',collection,'all');await MapFilters.pending;
+ assert.ok(MapFilters.total>0&&MapFilters.narrow,'complete new small selection: '+collection);
+ assert.equal(MapFilters.objects.size,MAP_FILTER_DATA.buckets.filter(b=>MapFilters.bucketMatches(b)).reduce((n,b)=>n+b[3],0),'all new streamed members load: '+collection);
+ assert.ok([...MapFilters.objects.values()].every(o=>MapFilters.matchesCollection(o,collection)));
+}
 assert.equal(JSON.stringify([...ExtendedCatalog.pinned.keys()]),pins,'filter references never pin expedition objects');
 assert.equal(JSON.stringify([state,OBJECTS.map(o=>[o.id,o.p3,o.d,o.apparentV])]),physical,'complete selection loading preserves physical catalogue and flight');
 console.log('PASS complete streamed selections, every scale/projection, glyph collisions, neighbour names, one galactic stellar icon and stale-load protection without expedition changes');

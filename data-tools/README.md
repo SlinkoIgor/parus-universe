@@ -6,6 +6,14 @@ Current expansion generator: `build-full-catalog.py`. Existing curated core: `cu
 
 Distant supplement: `python3 build-distant-catalog.py` reproduces `../dist/distant-catalog-data.js` and `distant-catalog-audit.json` without network access. CCPC-II fields/units and extracted JADES DR4 v1.2 `Obs_info` rows, URLs and SHA-256 values are retained in `distant-sources/`. FITS re-extraction requires astropy and `--extract-from DIR`; original file hashes are checked. Identity, conflict policy and source limitations: [universe-overview.md](../docs/universe-overview.md). This supplement preserves existing tile revisions and adopted positions.
 
+Historical map collections: from the repository root, `node data-tools/build-map-collection-history.mjs`
+reproduces `dist/map-collection-history.js` and its HTML cache key without network
+access or dependence on the filter UI. Discovery dates are absent from the
+scientific catalogues; the separate factual snapshot `map-collection-history.json`
+supplies historical collections with source references, original date precision
+and uncertainty. This generator does not rewrite catalogue tiles, coordinates or
+expedition saves. Definitions and coverage: [map-visualization.md](../docs/map-visualization.md).
+
 Full HYG 4.1 / OpenNGC / ATNF snapshots → 152010 generated atlas records (+40 nuclear stars at runtime), bounded spatial tiles, lazy search worker index, approximate positions and atlas-only uncertain records and catalog system links. Keep source snapshots in ignored `raw/`; derived streaming directories are ignored too and installed from a pinned release archive. See [catalogue artifacts](../docs/catalog-artifacts.md) for installation and packaging, and `../README-AGENT.md` for regeneration, source paths, uncertainty, persistence and validation. Audit: `full-catalog-audit.json`. Run `node verify-stream.mjs`, `node verify-map.mjs`, `node verify.mjs`.
 
 The legacy curated audit `selection-audit.json` still verifies all 652 IAU names and the original nearest30 / brightest500 core. Licenses/provenance: `../dist/catalog-sources.json` and `../THIRD_PARTY_NOTICES.md`.

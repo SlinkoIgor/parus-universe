@@ -180,3 +180,16 @@ its CfA mirror (Wenger et al. 2000), with bibliographic provenance and available
 uncertainties retained. Full HYG 4.1 proper motions are used under the existing
 HYG attribution/license. These presentation data do not replace the scientific
 catalogue and are not relicensed as game code. No DSS pixels are redistributed.
+
+### Historical observing collections
+
+Factual discovery/observation dates and attributions are from Hartmut Frommert
+and Christine Kronberg, SEDS, [Discovery Table of the Deep Sky Objects](https://messier.obspm.fr/xtra/history/dis-tab.html),
+Observatoire de Paris mirror, source version August 16, 2007. Historical notes,
+uncertain identities, source URL and SHA-256 are retained in
+`data-tools/map-collection-history.json`. The separate presentation overlay
+does not claim complete discovery histories or replace scientific records.
+NASA's [Hubble Messier Catalog](https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/)
+supplies the M31 first-written-report correction and M44/M45 telescope-observation
+context. No source photographs or page artwork are bundled for these collections;
+source rights remain with their authors.

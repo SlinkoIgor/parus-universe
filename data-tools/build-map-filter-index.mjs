@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import {readMapCatalog} from './map-radial-catalog.mjs';
 
 const {c,rows,core,pointer,manifest} = await readMapCatalog({supplement:true});
-vm.runInContext(['black-hole-catalog-data','black-hole-catalog','map-geometry-data','map-geometry','map-filters']
+vm.runInContext(['black-hole-catalog-data','black-hole-catalog','map-geometry-data','map-geometry','map-collection-history','map-filters']
   .map(n => fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
 const filters = c.MapFilters, coreIds = new Set(core.map(o => o.id));
 const catalog = vm.runInContext('ExtendedCatalog',c);

@@ -1,0 +1,1607 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-07",
+  "sources": {
+    "seds": {
+      "url": "https://messier.obspm.fr/xtra/history/dis-tab.html",
+      "title": "Discovery Table of the Deep Sky Objects — Hartmut Frommert / Christine Kronberg, SEDS; Observatoire de Paris mirror",
+      "sourceUpdated": "2007-08-16",
+      "sha256": "a424aa8eb670165138c14223d67a5ecd51dca5b06796d4559356106d6fe660a5"
+    },
+    "nasa-m31": {
+      "url": "https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-31/",
+      "title": "NASA Hubble Messier 31: first known written report, 964"
+    },
+    "nasa-m44": {
+      "url": "https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-44/",
+      "title": "NASA Hubble Messier 44: Galileo resolved individual stars"
+    },
+    "nasa-m45": {
+      "url": "https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-45/",
+      "title": "NASA Hubble Messier 45: known since antiquity; Galileo’s first telescopic observation"
+    }
+  },
+  "units": "Historical calendar years, negative for BCE; no year or date is invented for prehistory. knownByYear is a conservative upper bound on a recorded observation, not an exact discovery date.",
+  "coverage": "Full 110 Messier entries and the other deep-sky entries in the SEDS table. Not a complete discovery history of the sky or of the game catalogue. Doubtful identities/dates are omitted from historical time selections. Old conjectures remain in notes. Missing catalogue objects are not assigned positions.",
+  "herschelCutoff": "1782-09: beginning of Herschel’s systematic deep-sky survey; the last dated discovery in the table is M107, April 1782.",
+  "galileo": {
+    "keys": [
+      "M44",
+      "M45"
+    ],
+    "sources": [
+      "nasa-m44",
+      "nasa-m45"
+    ],
+    "epoch": 1610,
+    "meaning": "Telescopic resolution/observation, not discovery of the already-known clusters; reported in Sidereus Nuncius (1610)."
+  },
+  "records": [
+    {
+      "key": "M45",
+      "dateLabel": "pre-hist",
+      "knownByYear": null,
+      "precision": "prehistory",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "(mentioned by Homer c. 750 B.C., Amos c. 750 B.C., Hesiod c. 720-700 BC, Book of Job c. 1,600-300 B.C., MUL-APIN c. 1,100-300 B.C., Nebra disk 1,600 c. B.C.)"
+    },
+    {
+      "key": "Mel25",
+      "dateLabel": "pre-hist",
+      "knownByYear": null,
+      "precision": "prehistory",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "(mentioned by Homer c. 750 B.C., Hesiod c. 720-700 BC; cataloged by Hodierna I.2, 1654)"
+    },
+    {
+      "key": "id:lmc",
+      "dateLabel": "pre-hist",
+      "knownByYear": null,
+      "precision": "prehistory",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "(Southern Hemisphere; Al Sufi, 964 AD; Vespucci, 1503-4 ?; Magellan, 1519)"
+    },
+    {
+      "key": "id:smc",
+      "dateLabel": "pre-hist",
+      "knownByYear": null,
+      "precision": "prehistory",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "(Southern Hemisphere; Vespucci, 1503-4 ?; Magellan, 1519)"
+    },
+    {
+      "key": "M44",
+      "dateLabel": "300-250 BC",
+      "knownByYear": -250,
+      "precision": "range",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Aratus/Theophrastus; Hipparchos 130 BC. Recognized as cluster by Galileo 1609."
+    },
+    {
+      "key": "NGC884",
+      "dateLabel": "130 BC",
+      "knownByYear": -130,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Hipparchus"
+    },
+    {
+      "key": "NGC869",
+      "dateLabel": "130 BC",
+      "knownByYear": -130,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Hipparchus"
+    },
+    {
+      "key": "M7",
+      "dateLabel": "138 AD",
+      "knownByYear": 138,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Ptolemy, Halley No. 29 1678, Lac II.14 1752 Jun 15"
+    },
+    {
+      "key": "Mel111",
+      "dateLabel": "138 AD",
+      "knownByYear": 138,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Ptolemy, Melotte 1915. Cluster: Trumpler 1938."
+    },
+    {
+      "key": "M31",
+      "dateLabel": "964 AD",
+      "knownByYear": 964,
+      "precision": "year-or-date",
+      "source": "nasa-m31",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "First known written report in al-Sufi’s Book of Fixed Stars (964); this supersedes the older <905 entry in the SEDS table.",
+      "originalDateLabel": "< 905 AD",
+      "originalDateSource": "seds"
+    },
+    {
+      "key": "IC2391",
+      "dateLabel": "964 AD",
+      "knownByYear": 964,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Al Sufi; Lac II.5 1752 Feb 11"
+    },
+    {
+      "key": "Cr399",
+      "dateLabel": "964 AD",
+      "knownByYear": 964,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Al Sufi; Hodierna < 1654"
+    },
+    {
+      "key": "M42",
+      "dateLabel": "1610",
+      "knownByYear": 1610,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Peiresc; Cysatus 1611; Hodierna <1654; Huygens 1656"
+    },
+    {
+      "key": "Mel20",
+      "dateLabel": "<1654",
+      "knownByYear": 1654,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Hodierna I.4; Eddington, 1910"
+    },
+    {
+      "key": "NGC6231",
+      "dateLabel": "<1654",
+      "knownByYear": 1654,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Hodierna I.7, Lac. II.13 1751-52"
+    },
+    {
+      "key": "M6",
+      "dateLabel": "<1654",
+      "knownByYear": 1654,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Hodierna II.4, de Chéseaux No. 1, 1745-46, Lacaille III.12, 1752 Jun 16"
+    },
+    {
+      "key": "M8",
+      "dateLabel": "<1654",
+      "knownByYear": 1654,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Hodierna II.6, Flamsteed 1680 (No. 2446), De Cheseaux No. 8 1745-46; Le Gentil 1749, Lacaille III.13, 1752 Apr 6; Messier 1764 May 23"
+    },
+    {
+      "key": "M36",
+      "dateLabel": "<1654",
+      "knownByYear": 1654,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Hodierna II.7, Le Gentil 1749"
+    },
+    {
+      "key": "M37",
+      "dateLabel": "<1654",
+      "knownByYear": 1654,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Hodierna II.7, Messier 1764 Sep 2, Bode (#13) 1774 Nov 2"
+    },
+    {
+      "key": "M38",
+      "dateLabel": "<1654",
+      "knownByYear": 1654,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Hodierna II.7, Le Gentil 1749"
+    },
+    {
+      "key": "M47",
+      "dateLabel": "<1654",
+      "knownByYear": 1654,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Hodierna IV.1, Messier 1771 Feb 19 (but missed) W. Herschel H VIII.38 1785 Feb 4"
+    },
+    {
+      "key": "M41",
+      "dateLabel": "<1654",
+      "knownByYear": 1654,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Hodierna IV.2, Flamsteed 1702 Feb 16; perhaps seen by Aristotle 325 BC."
+    },
+    {
+      "key": "NGC2362",
+      "dateLabel": "<1654",
+      "knownByYear": 1654,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Hodierna V.1, W. Herschel H VII.17 1785 Mar  6"
+    },
+    {
+      "key": "M33",
+      "dateLabel": "1764",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Conservative bound: documented Messier observation in 1764; earlier Hodierna attribution is uncertain. Hodierna IV.4 (?), Messier 1764 Aug 25, Bode (#5) 1775 Aug 18",
+      "originalDateLabel": "<1654",
+      "originalDateSource": "seds"
+    },
+    {
+      "key": "NGC752",
+      "dateLabel": "<1654",
+      "knownByYear": 1654,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": true,
+      "messierDiscovery": false,
+      "notes": "Hodierna IV.4 (?), W. Herschel VII.32 1786 Sep 21"
+    },
+    {
+      "key": "M34",
+      "dateLabel": "1764",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Conservative bound: documented Messier observation in 1764; earlier Hodierna attribution is uncertain. Hodierna IV.12 (?), Messier 1764 Aug 25, Bode (#7) 1774 Sep 2",
+      "originalDateLabel": "<1654",
+      "originalDateSource": "seds"
+    },
+    {
+      "key": "NGC2451",
+      "dateLabel": "<1654",
+      "knownByYear": 1654,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": true,
+      "messierDiscovery": false,
+      "notes": "Hodierna V.2 (?)"
+    },
+    {
+      "key": "NGC2169",
+      "dateLabel": "<1654",
+      "knownByYear": 1654,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": true,
+      "messierDiscovery": false,
+      "notes": "Hodierna IV.10 ??, W. Herschel H VIII.24 1784 Oct 15"
+    },
+    {
+      "key": "NGC2175",
+      "dateLabel": "<1654",
+      "knownByYear": 1654,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": true,
+      "messierDiscovery": false,
+      "notes": "Hodierna IV.11 ??, Bruhns?, Auwers No. 21 (NGC)"
+    },
+    {
+      "key": "M22",
+      "dateLabel": "1665 Aug 26",
+      "knownByYear": 1665,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Ihle (Hevelius may have seen it before)"
+    },
+    {
+      "key": "NGC5139",
+      "dateLabel": "1677",
+      "knownByYear": 1677,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Halley, Lac. I.5 1752 Feb 17"
+    },
+    {
+      "key": "M11",
+      "dateLabel": "1681",
+      "knownByYear": 1681,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Kirch; resolved by Derham 1733"
+    },
+    {
+      "key": "NGC2244",
+      "dateLabel": "1690",
+      "knownByYear": 1690,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Flamsteed"
+    },
+    {
+      "key": "M5",
+      "dateLabel": "1702 May  5",
+      "knownByYear": 1702,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Kirch, Messier May 23, 1764"
+    },
+    {
+      "key": "M13",
+      "dateLabel": "1714",
+      "knownByYear": 1714,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Halley"
+    },
+    {
+      "key": "M43",
+      "dateLabel": "1731",
+      "knownByYear": 1731,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "de Mairan; Bode (with M42=# 10) late 1775"
+    },
+    {
+      "key": "M1",
+      "dateLabel": "1731",
+      "knownByYear": 1731,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Bevis; Messier 1758 Aug 21"
+    },
+    {
+      "key": "IC4665",
+      "dateLabel": "1745-46",
+      "knownByYear": 1746,
+      "precision": "range",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "de Chéseaux No. 2; Bode <1782; C. Herschel 1783 Jul 31; Bailey 1908"
+    },
+    {
+      "key": "NGC6633",
+      "dateLabel": "1745-46",
+      "knownByYear": 1746,
+      "precision": "range",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "de Chéseaux No. 3; C. Herschel H VIII.72 1783"
+    },
+    {
+      "key": "M16",
+      "dateLabel": "1745-46",
+      "knownByYear": 1746,
+      "precision": "range",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "de Chéseaux No. 4; nebula: Messier 1764 Jun 3"
+    },
+    {
+      "key": "M25",
+      "dateLabel": "1745-46",
+      "knownByYear": 1746,
+      "precision": "range",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "de Chéseaux No. 5; Messier 1764 Jun 20"
+    },
+    {
+      "key": "M35",
+      "dateLabel": "1745-46",
+      "knownByYear": 1746,
+      "precision": "range",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "de Chéseaux No. 12; in Bevis' Atlas 1750; Messier 1764 Aug 30"
+    },
+    {
+      "key": "M71",
+      "dateLabel": "1745-46",
+      "knownByYear": 1746,
+      "precision": "range",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "de Chéseaux No. 13; Koehler 1772-8; Méchain 1780 Jun 28"
+    },
+    {
+      "key": "M4",
+      "dateLabel": "1745-46",
+      "knownByYear": 1746,
+      "precision": "range",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "de Chéseaux No. 19; Lac I.9 1752 Apr 13"
+    },
+    {
+      "key": "M17",
+      "dateLabel": "1745-46",
+      "knownByYear": 1746,
+      "precision": "range",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "de Chéseaux No. 20; Messier 1764 Jun 3"
+    },
+    {
+      "key": "M15",
+      "dateLabel": "1746 Sep  7",
+      "knownByYear": 1746,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Maraldi; Messier 1764 Jun 3, Bode (#71) 1774 Sep 23"
+    },
+    {
+      "key": "M2",
+      "dateLabel": "1746 Sep 11",
+      "knownByYear": 1746,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Maraldi; Messier 1760 Sep 11, Bode (#70) 1775 Sep 22"
+    },
+    {
+      "key": "M32",
+      "dateLabel": "1749 Oct 29",
+      "knownByYear": 1749,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Le Gentil; Messier 1757 and 1764 Aug 3"
+    },
+    {
+      "key": "NGC6712",
+      "dateLabel": "1749 Jul  9",
+      "knownByYear": 1749,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Le Gentil; W. Herschel H I.47 1784 Jun 16"
+    },
+    {
+      "key": "NGC104",
+      "dateLabel": "1751 Sep 14",
+      "knownByYear": 1751,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille I.1"
+    },
+    {
+      "key": "NGC2070",
+      "dateLabel": "1751 Dec  5",
+      "knownByYear": 1751,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille I.2"
+    },
+    {
+      "key": "NGC2516",
+      "dateLabel": "1752 Jan  4",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille II.3"
+    },
+    {
+      "key": "NGC3293",
+      "dateLabel": "1752 Jan 25",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille II.8"
+    },
+    {
+      "key": "NGC3532",
+      "dateLabel": "1752 Jan 25",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille II.10"
+    },
+    {
+      "key": "IC2488",
+      "dateLabel": "1752 Jan 25",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille III.4"
+    },
+    {
+      "key": "NGC3372",
+      "dateLabel": "1752 Jan 25",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille III.6"
+    },
+    {
+      "key": "NGC3228",
+      "dateLabel": "1752 Feb 11",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille II.7"
+    },
+    {
+      "key": "NGC2547",
+      "dateLabel": "1752 Feb 15",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille III.2"
+    },
+    {
+      "key": "vdBH47",
+      "dateLabel": "1752 Feb 17",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": true,
+      "messierDiscovery": false,
+      "notes": "Lacaille III.3; IC 2395 ? Bailey 1908; van den Bergh/Hagen 1975"
+    },
+    {
+      "key": "Tr10",
+      "dateLabel": "1752 Feb 19",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": true,
+      "messierDiscovery": false,
+      "notes": "Lacaille II.6; Trumpler 1930"
+    },
+    {
+      "key": "M83",
+      "dateLabel": "1752 Feb 23",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille I.6, Messier 1781 Mar 18"
+    },
+    {
+      "key": "NGC5281",
+      "dateLabel": "1752 Mar  3",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille I.7"
+    },
+    {
+      "key": "IC2602",
+      "dateLabel": "1752 Mar  3",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille II.9"
+    },
+    {
+      "key": "NGC4755",
+      "dateLabel": "1752 Mar  5",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille II.12"
+    },
+    {
+      "key": "Cr228",
+      "dateLabel": "1752 Mar  5",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": true,
+      "messierDiscovery": false,
+      "notes": "Lacaille III.5; Collinder 1931"
+    },
+    {
+      "key": "NGC3766",
+      "dateLabel": "1752 Mar  5",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille III.7"
+    },
+    {
+      "key": "NGC6025",
+      "dateLabel": "1752 Mar  5",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille III.10"
+    },
+    {
+      "key": "NGC4833",
+      "dateLabel": "1752 Mar 17",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille I.4"
+    },
+    {
+      "key": "NGC2477",
+      "dateLabel": "1752 Mar 19",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille I.3"
+    },
+    {
+      "key": "NGC6242",
+      "dateLabel": "1752 Mar 19",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille I.10"
+    },
+    {
+      "key": "NGC5662",
+      "dateLabel": "1752 May 17",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille III.8"
+    },
+    {
+      "key": "M55",
+      "dateLabel": "1752 Jun 16",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille I.14, Messier 1778 Jul 24"
+    },
+    {
+      "key": "NGC6397",
+      "dateLabel": "1752 Jul 18",
+      "knownByYear": 1752,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille III.11"
+    },
+    {
+      "key": "NGC6124",
+      "dateLabel": "1751-52",
+      "knownByYear": 1752,
+      "precision": "range",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille I.8"
+    },
+    {
+      "key": "NGC2546",
+      "dateLabel": "1751-52",
+      "knownByYear": 1752,
+      "precision": "range",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Lacaille II.4"
+    },
+    {
+      "key": "Cr140",
+      "dateLabel": "1751-52",
+      "knownByYear": 1752,
+      "precision": "range",
+      "source": "seds",
+      "uncertain": true,
+      "messierDiscovery": false,
+      "notes": "Lacaille II.2; Collinder 1931"
+    },
+    {
+      "key": "M3",
+      "dateLabel": "1764 May  3",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M9",
+      "dateLabel": "1764 May 28",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M10",
+      "dateLabel": "1764 May 29",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier, Bode (# 33) 1774 Aug 14"
+    },
+    {
+      "key": "M12",
+      "dateLabel": "1764 May 30",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier, Bode (# 32) 1774 Aug 14"
+    },
+    {
+      "key": "M14",
+      "dateLabel": "1764 Jun  1",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M18",
+      "dateLabel": "1764 Jun  3",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M19",
+      "dateLabel": "1764 Jun  5",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M20",
+      "dateLabel": "1764 Jun  5",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M21",
+      "dateLabel": "1764 Jun  5",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M23",
+      "dateLabel": "1764 Jun 20",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M24",
+      "dateLabel": "1764 Jun 20",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier (may be not counted, because starcloud)"
+    },
+    {
+      "key": "M26",
+      "dateLabel": "1764 Jun 20",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M27",
+      "dateLabel": "1764 Jul 12",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M28",
+      "dateLabel": "1764 Jul 27",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M29",
+      "dateLabel": "1764 Jul 29",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier, Bode (#69) 1774 Dec 5"
+    },
+    {
+      "key": "M30",
+      "dateLabel": "1764 Aug  3",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M39",
+      "dateLabel": "1764 Oct 24",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier, Bode (#75) 1774 Oct 27; Burnham: Le Gentil 1750 ? Aristotle 325 BC ?"
+    },
+    {
+      "key": "M40",
+      "dateLabel": "1764 Oct 24",
+      "knownByYear": 1764,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier (Double star, thus may not be counted)"
+    },
+    {
+      "key": "M46",
+      "dateLabel": "1771 Feb 19",
+      "knownByYear": 1771,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M48",
+      "dateLabel": "1771 Feb 19",
+      "knownByYear": 1771,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier (but missed); Bode <1782; Caroline Herschel 1783"
+    },
+    {
+      "key": "M49",
+      "dateLabel": "1771 Feb 19",
+      "knownByYear": 1771,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M62",
+      "dateLabel": "1771 Jun  7",
+      "knownByYear": 1771,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier (measured 1779 Jun 4)"
+    },
+    {
+      "key": "M50",
+      "dateLabel": "1772 Apr  5",
+      "knownByYear": 1772,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier; perhaps seen by G.D. Cassini 1711, Bode (#16) 1774 Dec 2"
+    },
+    {
+      "key": "M110",
+      "dateLabel": "1773 Aug 10",
+      "knownByYear": 1773,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier (not measured; added 1966 Glyn Jones), Caroline Herschel H V.18 1783 Aug 27"
+    },
+    {
+      "key": "M51",
+      "dateLabel": "1773 Oct 13",
+      "knownByYear": 1773,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier (NGC 5194 only; 5195 seen by Méchain 1781), Bode (#25) 1774 Jan 5"
+    },
+    {
+      "key": "M52",
+      "dateLabel": "1774 Sep 7",
+      "knownByYear": 1774,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M81",
+      "dateLabel": "1774 Dec 31",
+      "knownByYear": 1774,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Bode (#17), Koehler (# 8A) 1772-78, Méchain 1779 Aug"
+    },
+    {
+      "key": "M82",
+      "dateLabel": "1774 Dec 31",
+      "knownByYear": 1774,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Bode (#18), Koehler (# 8B) 1772-78, Méchain 1779 Aug"
+    },
+    {
+      "key": "M53",
+      "dateLabel": "1775 Feb 3",
+      "knownByYear": 1775,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Bode (#26), Messier 1777 Feb 26"
+    },
+    {
+      "key": "M92",
+      "dateLabel": "1777 Dec 27",
+      "knownByYear": 1777,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Bode (#76), Messier 1781 Mar 18"
+    },
+    {
+      "key": "M54",
+      "dateLabel": "1778 Jul 24",
+      "knownByYear": 1778,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M67",
+      "dateLabel": "<1779",
+      "knownByYear": 1779,
+      "precision": "upper-bound",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Koehler (#19), Messier 1780 Apr 6"
+    },
+    {
+      "key": "M57",
+      "dateLabel": "1779 Jan",
+      "knownByYear": 1779,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Darquier, Messier 1779 Jan 31"
+    },
+    {
+      "key": "M56",
+      "dateLabel": "1779 Jan 19",
+      "knownByYear": 1779,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M64",
+      "dateLabel": "1779 Mar 23",
+      "knownByYear": 1779,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Pigott, Bode (#77) 1779 Apr 4, Messier 1780 Mar 1"
+    },
+    {
+      "key": "M59",
+      "dateLabel": "1779 Apr 11",
+      "knownByYear": 1779,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Koehler, Messier 1779 Apr 15"
+    },
+    {
+      "key": "M60",
+      "dateLabel": "1779 Apr 11",
+      "knownByYear": 1779,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Koehler, Oriani 1779 Apr 12, Messier 1779 Apr 15"
+    },
+    {
+      "key": "M58",
+      "dateLabel": "1779 Apr 15",
+      "knownByYear": 1779,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M61",
+      "dateLabel": "1779 May 5",
+      "knownByYear": 1779,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Oriani, Messier 1779 May 11 (saw it May 5!)"
+    },
+    {
+      "key": "M63",
+      "dateLabel": "1779 Jun 14",
+      "knownByYear": 1779,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain"
+    },
+    {
+      "key": "M78",
+      "dateLabel": "1780 \"begin\"",
+      "knownByYear": 1780,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain"
+    },
+    {
+      "key": "M65",
+      "dateLabel": "1780 Mar 1",
+      "knownByYear": 1780,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M66",
+      "dateLabel": "1780 Mar 1",
+      "knownByYear": 1780,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M68",
+      "dateLabel": "1780 Apr 9",
+      "knownByYear": 1780,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M75",
+      "dateLabel": "1780 Aug 27",
+      "knownByYear": 1780,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1780 Oct 5"
+    },
+    {
+      "key": "M72",
+      "dateLabel": "1780 Aug 30",
+      "knownByYear": 1780,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1780 Oct 4"
+    },
+    {
+      "key": "M69",
+      "dateLabel": "1780 Aug 31",
+      "knownByYear": 1780,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier; probably not Lac I.11 (1751-52)"
+    },
+    {
+      "key": "M70",
+      "dateLabel": "1780 Aug 31",
+      "knownByYear": 1780,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M76",
+      "dateLabel": "1780 Sep 5",
+      "knownByYear": 1780,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1780 Oct 21"
+    },
+    {
+      "key": "M74",
+      "dateLabel": "1780 Sep end",
+      "knownByYear": 1780,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1780 Oct 18"
+    },
+    {
+      "key": "M73",
+      "dateLabel": "1780 Oct 4",
+      "knownByYear": 1780,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier (may not be counted, 4 stars)"
+    },
+    {
+      "key": "M79",
+      "dateLabel": "1780 Oct 26",
+      "knownByYear": 1780,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1780 Dec 17"
+    },
+    {
+      "key": "M77",
+      "dateLabel": "1780 Oct 29",
+      "knownByYear": 1780,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1780 Dec 17"
+    },
+    {
+      "key": "M80",
+      "dateLabel": "1781 Jan 4",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier, Méchain 1781 Jan 27"
+    },
+    {
+      "key": "M97",
+      "dateLabel": "1781 Feb 16",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1781 Mar 24"
+    },
+    {
+      "key": "M108",
+      "dateLabel": "1781 Feb 19",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1781 Mar 24 (added 1953 O. Gingerich) W Herschel H V.46 1789 Apr 17"
+    },
+    {
+      "key": "M85",
+      "dateLabel": "1781 Mar 4",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1781 Mar 18"
+    },
+    {
+      "key": "M109",
+      "dateLabel": "1781 Mar 12",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1781 Mar 24 (added 1953 O. Gingerich); W Herschel H IV.61 1789 Apr 12"
+    },
+    {
+      "key": "M98",
+      "dateLabel": "1781 Mar 15",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1781 Apr 13"
+    },
+    {
+      "key": "M99",
+      "dateLabel": "1781 Mar 15",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1781 Apr 13"
+    },
+    {
+      "key": "M100",
+      "dateLabel": "1781 Mar 15",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1781 Apr 13"
+    },
+    {
+      "key": "M84",
+      "dateLabel": "1781 Mar 18",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M86",
+      "dateLabel": "1781 Mar 18",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M87",
+      "dateLabel": "1781 Mar 18",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M88",
+      "dateLabel": "1781 Mar 18",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M89",
+      "dateLabel": "1781 Mar 18",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M90",
+      "dateLabel": "1781 Mar 18",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M91",
+      "dateLabel": "1781 Mar 18",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier, but missed, W Herschel H II.120 1784 Apr 8"
+    },
+    {
+      "key": "M93",
+      "dateLabel": "1781 Mar 20",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": true,
+      "notes": "Messier"
+    },
+    {
+      "key": "M95",
+      "dateLabel": "1781 Mar 20",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1781 Mar 24"
+    },
+    {
+      "key": "M96",
+      "dateLabel": "1781 Mar 20",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1781 Mar 24"
+    },
+    {
+      "key": "NGC5195",
+      "dateLabel": "1781 Mar 20",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain  (Messier mentions with M51)"
+    },
+    {
+      "key": "M94",
+      "dateLabel": "1781 Mar 22",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain, Messier 1781 Mar 24"
+    },
+    {
+      "key": "M105",
+      "dateLabel": "1781 Mar 24",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain (added 1947 H.S. Hogg) W Herschel H I.17 1784 Mar 11"
+    },
+    {
+      "key": "M101",
+      "dateLabel": "1781 Mar 27",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain (Messier 1781)"
+    },
+    {
+      "key": "M102",
+      "dateLabel": "1781 Mar-Apr",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": true,
+      "messierDiscovery": false,
+      "notes": "Méchain? (disclaimed), Messier? 1781 (position), W Herschel H I.215 1788 May 5 missed and still dubious: may be duplication of M101, or NGC 5866."
+    },
+    {
+      "key": "M103",
+      "dateLabel": "1781 Mar-Apr",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain (Messier 1781 added position)"
+    },
+    {
+      "key": "M104",
+      "dateLabel": "1781 May 11",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain (added 1921 Flammarion) W Herschel H I.43 1784 May 9"
+    },
+    {
+      "key": "M106",
+      "dateLabel": "1781 Jul",
+      "knownByYear": 1781,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain (added 1947 H.S. Hogg) W Herschel H V.43 1788 Mar 9"
+    },
+    {
+      "key": "M107",
+      "dateLabel": "1782 Apr",
+      "knownByYear": 1782,
+      "precision": "year-or-date",
+      "source": "seds",
+      "uncertain": false,
+      "messierDiscovery": false,
+      "notes": "Méchain (added 1947 H.S. Hogg) W Herschel H VI.40 1793 May 12"
+    }
+  ]
+}
