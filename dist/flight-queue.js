@@ -185,6 +185,12 @@ const FlightQueue = {
 
 const QuickFlight = {
   options: ['engine', 'sail', 'collector', 'burst'],
+  reserveNoticeKey: null,
+  notifyReserve(p) {
+    const note = FlightBuilder.reserveNote(p), key = note ? JSON.stringify([p.sourceId, p.targetId, note]) : null;
+    if (key && key !== this.reserveNoticeKey) toast(note, 14000);
+    this.reserveNoticeKey = key;
+  },
   issueLabel(p) {
     if (p.valid) return 'Запас ' + fmt(p.arrivalFuelKg / p.setup.capacityKg * 100, 1) + '%';
     if (p.unreachable) return 'Недостижимо';
@@ -202,7 +208,7 @@ const QuickFlight = {
     $('quickResult').hidden = !visible;
     $('quickSpeedRow').hidden = true;
     $('configureFlight').classList.toggle('is-compact', visible);
-    if (!visible) return;
+    if (!visible) { this.reserveNoticeKey = null; return; }
     const {context, source, setup: c} = this.current(), used = new Set(context.destroyed), star = FlightSetup.available(source, used);
     const stellar = !!source && ['star', 'home'].includes(source.kind), burstIssue = FlightSetup.burstIssue(source, used);
     UIContent.text($('quickSource'), source?.name || 'Текущая позиция');
@@ -221,15 +227,16 @@ const QuickFlight = {
         : 'Разгон светом вспышки; включает парус. Звезда будет уничтожена';
     });
     const p = browsing ? FlightQueue.forecast(context) : MissionPlanner.preview();
-    this.issueReason = p.valid ? FlightBuilder.reserveNote(p) : p.reason;
+    this.notifyReserve(p);
+    this.issueReason = p.valid ? '' : p.reason;
     $('quickIssue').hidden = !this.issueReason;
     $('quickSpeedRow').hidden = !!this.issueReason;
     UIContent.text($('quickSpeed'), p.valid ? percentC(p.peakBeta) : '—');
     UIContent.text($('quickIssueLabel'), this.issueReason ? this.issueLabel(p) : '');
     $('quickIssue').title = this.issueReason || '';
     $('quickIssue').setAttribute('aria-label', this.issueReason || '');
-    // Keep diagnostics in the same fixed result row as speed. Full explanations
-    // open on demand instead of inserting paragraphs above/below the controls.
+    // Reserve adjustments use the arrival notification area; keep speed visible.
+    // Unavailable plans still explain their cause from the fixed result row.
     $('flightHint').hidden = true;
     $('horizonNotice').hidden = true;
     UIContent.text($('configureFlightLabel'), 'Подробный план ↗');

@@ -1,10 +1,10 @@
 'use strict';
 // Catalogue search, object cards and informational dialogs.
-function toast(text) {
+function toast(text, duration = 4200) {
   $('toast').textContent = text;
   $('toast').hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => ($('toast').hidden = true), 4200);
+  toastTimer = setTimeout(() => ($('toast').hidden = true), duration);
 }
 let catalogRevision = 0,
   catalogTimer;

@@ -193,6 +193,8 @@ const FlightBuilder = {
         (!e.checkValidity() ||
           (e.value === '' && !['massSolar', 'luminositySolar'].includes(e.dataset.setup))),
     );
+    const reservePlan = !this.readOnly && !invalid && OrbitalArrival.enabled && c.arrivalFuelPercent === 50
+      ? MissionPlanner.preview(c, true) : null;
     if (!this.readOnly && !invalid) {
       this.fuelBounds = MissionPlanner.fuelLimit(c);
       c.arrivalFuelPercent = Math.min(
@@ -200,8 +202,13 @@ const FlightBuilder = {
         Math.max(0, c.arrivalFuelPercent || 0),
       );
       c.fill = c.arrivalFuelPercent > 0;
+      if (reservePlan?.reserveTimeLimited) {
+        c.arrivalFuelPercent = reservePlan.setup.arrivalFuelPercent;
+        c.fill = true;
+        QuickFlight.notifyReserve(reservePlan);
+      }
     }
-    const p = legacy ? null : this.readOnly ? state.flight.mission : MissionPlanner.preview(c),
+    const p = legacy ? null : this.readOnly ? state.flight.mission : reservePlan?.reserveTimeLimited ? reservePlan : MissionPlanner.preview(c),
       eta = legacy ? FlightEstimate.get() : p,
       profile = legacy ? FlightProfile.get(eta) : null,
       valid = (legacy ? !!eta : p.valid) && !invalid;
@@ -867,8 +874,18 @@ const FlightBuilder = {
   },
   reserveNote(p) {
     if (!p?.valid || !p.reserveLimited) return '';
-    const actual = p.arrivalFuelKg / p.setup.capacityKg * 100;
-    return 'Для этого перелёта доступно ' + fmt(actual, 1) + '% бака вместо ' + fmt(p.requestedArrivalFuelPercent, 0) + '%.';
+    if (p.reserveTimeLimited) {
+      const comparison = p.reserveComparison;
+      return 'Остаток на финише снижен с 50% до 25%: полёт займёт ' + durationText(comparison.fastProper) +
+        ' вместо ' + durationText(comparison.slowProper) + ' на борту — в ' + fmt(comparison.speedup, 0) +
+        ' раз быстрее. Сохранение 50% бака ограничивало разгон, чтобы оставить топливо на торможение.';
+    }
+    const actual = Math.round(p.arrivalFuelKg / p.setup.capacityKg * 1000) / 10,
+      requested = Math.round(p.requestedArrivalFuelPercent * 10) / 10;
+    if (!(actual < requested)) return '';
+    const percent = n => fmt(n, Number.isInteger(n) ? 0 : 1) + '%';
+    return 'На финише останется ' + percent(actual) + ' бака вместо ' + percent(requested) +
+      ': больший запас недостижим с текущим планом и топливом.';
   },
   renderCard(target, arrived, eta) {
     const f = state.flight,

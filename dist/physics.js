@@ -924,6 +924,15 @@ const MissionPlanner={
   return{...shared,valid:true,reason:'',model:this.model,acceleration:a,accelerationEnd:end,coast,coastEpoch,brake:stop,reserveKg,proper,earth,totalDistance,peakBeta:end.beta,arrivalFuelKg:Math.max(0,stop.finalMass-this.dry),capturedKg:stop.captured,burnedKg:end.burned+stop.burned,sourceLuminosityW:a.luminosityW,orbitFrame:arrival?OrbitalArrival.frame(stop.plan,origin,target):null,vacuumComparison:vacuum?.valid?{proper:vacuum.proper,burnedKg:vacuum.burned,arrivalFuelKg:vacuum.finalMass-this.dry}:null};
  },
  planPreferred(input,source,target,fuel,origin,epoch,expansion,startBeta=0,orbit=null){
+  const args=[source,target,fuel,origin,epoch,expansion,startBeta,orbit],slow=this.planAvailableReserve(input,...args);
+  // Compare the same trip and propulsion, changing only the arrival reserve.
+  // A barely attainable half tank can otherwise force centuries of coasting.
+  if(!slow.valid||FlightSetup.normalize(input).arrivalFuelPercent!==50||slow.setup.arrivalFuelPercent<=25)return slow;
+  const fast=this.plan({...slow.setup,arrivalFuelPercent:25,fill:true},...args);
+  if(!fast.valid||!(fast.proper>0)||!(slow.proper>=100*fast.proper))return slow;
+  return{...fast,requestedArrivalFuelPercent:50,reserveLimited:true,reserveTimeLimited:true,reserveComparison:{slowProper:slow.proper,slowEarth:slow.earth,fastProper:fast.proper,fastEarth:fast.earth,speedup:slow.proper/fast.proper}};
+ },
+ planAvailableReserve(input,source,target,fuel,origin,epoch,expansion,startBeta=0,orbit=null){
   const c=FlightSetup.resolve(input,source),args=[source,target,fuel,origin,epoch,expansion,startBeta,orbit],requested=c.arrivalFuelPercent,p=this.plan(input,...args);
   if(p.valid||p.burstUnavailable||!(requested>0)||p.rangeBlocked||p.cosmic&&expansion&&Cosmology.beyondHorizon(p.distance,epoch))return p;
   let fast=this.plan({...c,arrivalFuelPercent:0,fill:false},...args),lo=0;
@@ -936,8 +945,8 @@ const MissionPlanner={
   const percent=Math.floor(lo*100)/100,q=this.plan({...c,arrivalFuelPercent:percent,fill:percent>0},...args);
   return{...(q.valid?q:best),requestedArrivalFuelPercent:requested,reserveLimited:true};
  },
- preview(input=null){
-  const source=state.planningSource||object(state.current),automatic=input===null,c=automatic?FlightSetup.read():FlightSetup.normalize(input);
+ preview(input=null,automatic=input===null){
+  const source=state.planningSource||object(state.current),c=input===null?FlightSetup.read():FlightSetup.normalize(input);
   const target=object(state.selected),cosmic=Cosmology.isCosmic(source||state.ship,target),epoch=cosmic?Math.floor((state.cosmicTime||0)/1000)*1000:0;
   const key=JSON.stringify([automatic,c,source?.id,target?.id,state.orbit?source?.p3:state.ship.p3,state.matter,epoch,state.expansion,state.destroyed,OrbitalArrival.enabled]);
   if(!this.cache.has(key)){if(this.cache.size>64)this.cache.clear();this.cache.set(key,(automatic&&OrbitalArrival.enabled?this.planPreferred(c,source,target,state.matter*1000,state.ship,epoch,state.expansion!==false):this.plan(c,source,target,state.matter*1000,state.ship,epoch,state.expansion!==false)));}return this.cache.get(key);
@@ -1000,7 +1009,8 @@ const MissionPlanner={
   const burstIssue=p.setup?.sail&&p.setup?.burst?FlightSetup.burstIssue(object(p.sourceId)):'';
   if(burstIssue){toast(burstIssue);return;}
   // Rebuild with the exact launch epoch; the cached preview may use an idle bucket.
-  const plan=planned||this.plan(p.setup,object(state.current),object(state.selected),state.matter*1000,state.ship,state.cosmicTime||0,state.expansion!==false);if(!plan.valid){toast(plan.reason);return;}
+  let plan=planned||this.plan(p.setup,object(state.current),object(state.selected),state.matter*1000,state.ship,state.cosmicTime||0,state.expansion!==false);if(!plan.valid){toast(plan.reason);return;}
+  if(!planned&&p.reserveLimited)plan={...plan,requestedArrivalFuelPercent:p.requestedArrivalFuelPercent,reserveLimited:true,...(p.reserveTimeLimited?{reserveTimeLimited:true,reserveComparison:p.reserveComparison}:{})};
   if(state.transferSetup&&state.transferSetup.starId!==plan.targetId)state.transferSetup=null;
   const rollback=FlightHistory.pending||FlightHistory.snapshot();FlightHistory.pending=null;
   const source=object(plan.sourceId),target=object(plan.targetId),from={...state.ship,p3:[...state.ship.p3]};
@@ -1011,6 +1021,7 @@ const MissionPlanner={
   if(plan.jettisonKg>0)log('Перед стартом сброшено '+fmt(plan.jettisonKg,3)+' кг вещества; бак сохранён.');
   log('Составной полёт: '+FlightSetup.acceleration(plan.setup)+'; торможение: '+FlightSetup.braking(plan.setup)+'. '+(plan.setup.fill?'С сохранением вещества.':'Быстрое прибытие.'));
   state.current=null;state.orbit=null;state.beta=plan.acceleration.rows[0].beta;paused=false;this.activateStage(state.flight,0);Simulation.smoothedFactor=Math.min(1,state.flight.replayRate);state.acceleration=plan.acceleration.rows[0].a;FlightMarks.plan();renderUI();if(focusRoute)fitRoute(target);persist();
+  const reserveNotice=FlightBuilder.reserveNote(plan);if(reserveNotice)toast(reserveNotice,14000);
  },
  step(dt){
   const f=state.flight,p=f.mission,index=f.missionStage||0,stages=this.stages(p),stage=stages[index],oldTime=f.stageElapsed||0,left=Math.max(0,stage.proper-oldTime);

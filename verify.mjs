@@ -18,6 +18,7 @@ import './verify-preboost.mjs';
 import './verify-burst-once.mjs';
 
 import './verify-flight-policy.mjs';
+import './verify-reserve-policy.mjs';
 import './verify-max-range.mjs';
 
 import './verify-telemetry-scale.mjs';
