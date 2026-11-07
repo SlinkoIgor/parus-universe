@@ -555,6 +555,23 @@ function drawPhysicalSegment(from, to, color = '#767676', lw = 0.8, dash = [5, 6
   const segment = routeScreenSegment(from, to);
   if (segment) line(segment.a.x, segment.a.y, segment.b.x, segment.b.y, color, lw, dash);
 }
+function drawRouteDistance(from, target) {
+  const middle = routeScreenSegment(from, target, 0.5, 0.5),
+    segment = middle && routeScreenSegment(from, target);
+  if (!segment) return;
+  const f = state.flight,
+    d = f?.summary?.distance ?? f?.distance ?? Cosmology.physicalDistance(from, target);
+  if (!Number.isFinite(d)) return;
+  let angle = Math.atan2(segment.b.y - segment.a.y, segment.b.x - segment.a.x);
+  if (angle > Math.PI / 2) angle -= Math.PI;
+  if (angle < -Math.PI / 2) angle += Math.PI;
+  ctx.save();
+  ctx.translate(middle.a.x, middle.a.y);
+  ctx.rotate(angle);
+  ctx.textBaseline = 'bottom';
+  text(distanceText(d), 0, -6, 11, '#555555', 'center', 'sans');
+  ctx.restore();
+}
 function drawRoute() {
   FlightHistory.draw();
   const f = state.flight,
@@ -571,6 +588,7 @@ function drawRoute() {
       if (segment) line(segment.a.x, segment.a.y, segment.b.x, segment.b.y, '#767676', 1, dash);
     }
   } else drawPhysicalSegment(from, target);
+  drawRouteDistance(from, target);
   FlightMarks.draw(f);
 }
 function sailGeometry(radius, braking = false) {
