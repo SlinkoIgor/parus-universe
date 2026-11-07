@@ -54,6 +54,20 @@ const MapAnnotations = {
     const boxAt = (offset) => ({ x: x - 4, y: y + offset - size - 4, w: w + 8, h: size + 10 });
     let offset = 0,
       box = boxAt(0);
+    if (q.filtered) {
+      const placements = [
+        {x:p.x+15,y:p.y+23}, {x:p.x-w-15,y:p.y+23},
+        {x:p.x+15,y:p.y-14}, {x:p.x-w-15,y:p.y-14},
+      ];
+      const free = placements.find(v => {
+        const b = {x:v.x-4,y:v.y-size-4,w:w+8,h:size+10};
+        return b.x>=8 && b.x+b.w<=width-8 && b.y>=8 && b.y+b.h<=height-8 &&
+          ![...MapLabels.boxes,...obstacles,...(this.filteredGlyphs || []).filter(g => g.id!==q.object.id)]
+            .some(other => MapLabels.overlaps(b,other));
+      });
+      if (!free) return;
+      x = free.x; offset = free.y-y; box = boxAt(offset);
+    }
     if (!moving && !q.object?.notableLandmark && (!q.object||MapDetails.level(q.object)<3) && this.notableBoxes?.some(b=>MapLabels.overlaps(box,b))) return;
     if (q.object?.notableLandmark && MapLabels.boxes.some(b=>MapLabels.overlaps(box,b))) return;
     const origin = q.object && MapDetails.origin(q.object);
@@ -111,7 +125,7 @@ const MapAnnotations = {
     const queued = MapLabels.queue
         .filter(
           (q) =>
-            !q.object ||
+            !q.object || !globalThis.MapFilters?.promotes(q.object) &&
             (q.key.startsWith('galaxy-') &&
               !this.entries.has(q.object.id) &&
               MapDetails.mapLabelName(q.object)),
@@ -122,8 +136,20 @@ const MapAnnotations = {
             : q,
         ),
       items = [];
+    const filtered = new Map();
+    if (globalThis.MapFilters?.narrow) {
+      for (const h of [...hitObjects,...RegionMap.hits,...MapLabels.contours]) {
+        const o = h.o || h.object;
+        if (!o || !MapFilters.promotes(o) || filtered.has(o.id)) continue;
+        const p = h.p || screen(o);
+        if (p.x<0 || p.y<0 || p.x>width || p.y>height) continue;
+        filtered.set(o.id,{key:'object-'+o.id,name:MapDetails.mapLabelName(o),object:o,p,
+          rank:this.entries.get(o.id)?.rank ?? 100000,alpha:ExtendedCatalog.opacity(o),filtered:true});
+      }
+    }
     for (const [id, entry] of this.entries) {
       const o = ExtendedCatalog.get(id);
+      if (globalThis.MapFilters?.promotes(o)) continue;
       if (!o || !MapDetails.visible(o, cam.span) || !ExtendedCatalog.matchesMap(o)) continue;
       if (o.notableLandmark) continue;
       const name = MapDetails.mapLabelName(o);
@@ -143,11 +169,13 @@ const MapAnnotations = {
       });
     }
     for (const o of OBJECTS) {
+      if (globalThis.MapFilters?.promotes(o)) continue;
       if (!o.notableLandmark || !MapDetails.visible(o,cam.span) || !ExtendedCatalog.matchesMap(o)) continue;
       const p=screen(o),name=MapDetails.mapLabelName(o, o.id === state.selected),alpha=ExtendedCatalog.opacity(o);
       if(!name||alpha<=.03||p.x<0||p.x>width||p.y<0||p.y>height)continue;
       items.push({key:'object-'+o.id,name,object:o,p,alpha,rank:0,labelBelow:true});
     }
+    items.push(...filtered.values());
     items.sort(
       (a, b) =>
         Number(MapDetails.origin(b.object)) - Number(MapDetails.origin(a.object)) ||
@@ -163,6 +191,8 @@ const MapAnnotations = {
     this.hits = [];
     this.originBox = null;
     this.notableBoxes=[];
+    this.filteredGlyphs = globalThis.MapFilters?.narrow ? hitObjects.map(h =>
+      ({id:h.o.id,x:h.p.x-10,y:h.p.y-10,w:20,h:20})) : [];
     MapLabels.boxes = [];
     MapLabels.uiCount = 0;
     MapLabels.placed = [];

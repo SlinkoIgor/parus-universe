@@ -1009,25 +1009,33 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
 
 .stellar-photo-overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.stellar-photo-overlay circle{fill:none;stroke:#fff;stroke-width:1;vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 1px #000)}.stellar-photo-field.unavailable .stellar-photo-overlay{display:none}.stellar-photo-north b{display:inline-block;font:inherit}.stellar-photo-astrometry{font-size:10px}
 
-/* Map filters share the atlas select styling and affect only map objects. */
+/* Filters use the same left drawer as search. */
 .map-filter-button{position:relative;display:grid;place-items:center;flex:none;width:36px;height:36px;padding:0}
 .map-actions .map-filter-button svg{width:20px;height:20px;stroke-width:1.5;stroke-linecap:round}
 .map-filter-button.has-filters,.map-filter-button[aria-expanded="true"]{background:var(--ink);color:var(--paper);--button-hover-bg:var(--button-solid-hover)}
 .map-filter-count{position:absolute;top:-5px;right:-5px;display:grid;place-items:center;min-width:15px;height:15px;padding:0 3px;border:1px solid var(--ink);background:var(--paper);color:var(--ink);font:8px var(--mono)}
-.map-filters{position:fixed;z-index:11;right:26px;top:72px;width:min(338px,calc(100vw - 32px));max-height:calc(100dvh - 88px);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:20px;background:var(--paper);border:1px solid var(--ink);box-shadow:4px 4px 0 var(--tone-0001)}
-.map-filters-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.map-filters h2{margin:0;font:500 19px var(--sans);letter-spacing:-.4px}
-.map-filters-intro{font:11px/1.6 var(--sans);color:var(--muted);margin:10px 0 20px}
-.map-filters .catalog-filter{margin:18px 0 0;letter-spacing:.5px}
-.map-filters select{font:11px var(--sans);letter-spacing:0}
-.map-filter-note{font:10px/1.7 var(--sans);color:var(--muted);margin:8px 0 0}
-.map-filters footer{border-top:1px solid var(--line);margin-top:20px;padding-top:14px}
-.map-filters footer p{font:10px/1.7 var(--sans);color:var(--muted);margin:0 0 14px}
-.map-filters footer button{width:100%;border:1px solid var(--line);padding:10px;font:11px var(--sans)}
+.map-filters{z-index:11}
+.map-filter-tabs{display:flex;flex:none;gap:15px}
+.map-filter-tabs button{padding:0 0 12px;min-height:40px;font:11px var(--sans);white-space:nowrap;color:var(--muted);border-bottom:2px solid transparent}
+.map-filter-tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--ink)}
+.map-filter-tab-count{display:inline-block;margin-left:5px;font:9px var(--mono);color:var(--muted)}
+.map-filter-scroll{flex:1;min-height:0;padding-right:8px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-bottom:12px}
+.map-filter-toolbar{position:sticky;top:0;z-index:1;background:var(--paper);display:flex;align-items:center;gap:12px;min-height:52px;border-bottom:1px solid var(--line)}
+.map-filter-all{display:flex;flex:1;align-items:center;gap:12px;min-height:44px;cursor:pointer;font:12px var(--sans)}
+.map-filter-option{display:flex;align-items:center;gap:12px;min-height:48px;padding:12px 0;cursor:pointer}
+.map-filter-option:hover,.map-filter-option:focus-within{background:var(--button-surface-hover)}
+.map-filter-option input,.map-filter-all input{flex:none;width:16px;height:16px;margin:0;accent-color:var(--ink);cursor:pointer}
+.map-filter-option>span{display:flex;flex:1;align-items:baseline;flex-wrap:wrap;gap:4px 8px;min-width:0}
+.map-filter-option strong{display:block;font:400 12px/1.5 var(--sans)}
+.map-filter-note{color:var(--muted);font:10px/1.5 var(--sans)}
+.map-filter-status{flex:none;padding-top:10px;margin:0;font:10px/1.6 var(--sans);color:var(--ink)}
 @media(max-width:700px){
  .map-filter-button{width:29px;height:29px}
  .map-actions .map-filter-button svg{width:17px;height:17px}
- .map-filters{right:16px;top:58px;max-height:calc(100dvh - 74px);padding:18px}
- .map-filters .catalog-filter select{min-height:42px}
- .map-filters footer button{min-height:42px}
+ .map-filter-tabs{gap:12px}
+ .map-filter-tabs button{font-size:10px}
+}
+@media(max-height:500px){
+ .map-filters{padding-top:10px;padding-bottom:10px}
+ .map-filters .drawer-heading h2{margin:4px 0 10px;font-size:25px}
 }

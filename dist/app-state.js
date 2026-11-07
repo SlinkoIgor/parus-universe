@@ -3,7 +3,7 @@
 let state,
   paused = false,
   speed = 1,
-  filter = 'all', // Map object class; independent of the atlas search.
+  filter = 'all', // Legacy single-class hint; MapFilters owns multiple map selections.
   searchFilter = 'all',
   toastTimer,
   hover = null,

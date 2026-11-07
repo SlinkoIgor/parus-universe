@@ -41,17 +41,17 @@ const ExtendedCatalog = {
     // Keep bulk survey envelopes out of the overview, including pinned/saved
     // targets. Atlas search and explicit class filters retain the full catalog.
     if (
-      selected === 'all' &&
+      !globalThis.MapFilters && selected === 'all' &&
       o.cosmicCatalog &&
       !o.cosmicLandmark &&
       (o.kind === 'void' || o.cosmicSubtype === 'supercluster')
     )
       return false;
     return (
-      this.matches(o.kind, selected, o) &&
+      (globalThis.MapFilters?.anchor(o) || this.matches(o.kind, selected, o)) &&
       (!globalThis.MapFilters || MapFilters.matches(o)) &&
       (categoryOnly || !o.id || !globalThis.MapSlice || MapSlice.includes(o)) &&
-      (categoryOnly || this.isSystemMember(o) || !globalThis.MapLayers || MapLayers.admits(o))
+      (categoryOnly || this.isSystemMember(o) || globalThis.MapFilters?.promotes(o) || globalThis.MapFilters?.anchor(o) || !globalThis.MapLayers || MapLayers.admits(o))
     );
   },
   opacity(o, detail = true, geometry = false) {
@@ -60,6 +60,7 @@ const ExtendedCatalog = {
       (geometry ? 1 : (globalThis.MapSlice?.opacity(o) ?? 1)) *
       (this.coreIndex?.has(o.id) ||
       this.pinned.has(o.id) ||
+      globalThis.MapFilters?.promotes(o) ||
       globalThis.MapLayers?.visibleMap.has(o.id)
         ? 1
         : (this.transitions.get(o.id)?.alpha ?? 1))
@@ -174,6 +175,7 @@ const ExtendedCatalog = {
     return (
       this.coreIndex?.get(id) ||
       this.pinned.get(id) ||
+      globalThis.MapFilters?.objects.get(id) ||
       globalThis.MapLayers?.get(id) ||
       this.visibleMap.get(id) ||
       this.identityTarget(id)
@@ -186,6 +188,7 @@ const ExtendedCatalog = {
     const o=this.decode(row);this.identityCache.set(id,o);this.prepareGalaxy(o);return o;
   },
   background(o) {
+    if (globalThis.MapFilters?.promotes(o)) return false;
     if (this.isSystemMember(o)) return false;
     return (
       !o.stellarSystem &&
@@ -629,6 +632,7 @@ const ExtendedCatalog = {
     return promise;
   },
   nodesForView(view, w, h) {
+    if (globalThis.MapFilters?.narrow) return [];
     if (globalThis.MapVisibility?.active) return MapVisibility.filesForView(view, w, h);
     const manifest =
       globalThis.MapSlice?.mode === 'slice'
@@ -1103,6 +1107,7 @@ const ExtendedCatalog = {
     const buckets = this.backgroundBuckets(),
       seen = new Set();
     const sources = [
+      globalThis.MapFilters?.objects.values() || [],
       globalThis.MapLayers?.visible || [],
       this.visible,
       this.pinned.values(),

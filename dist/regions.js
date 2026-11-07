@@ -89,6 +89,7 @@ const RegionMap={
  hits:[],curves:new WeakMap(),anchors:new WeakMap(),spines:new WeakMap(),
  pixelRadius(o){return Math.max(o.region.major,o.region.minor)*Cosmology.regionScale(o)*.5*width/cam.span;},
  asPoint(o){
+  if(globalThis.MapFilters?.promotes(o)&&o.region&&this.pixelRadius(o)<4)return true;
   const cache=MapDetails.framePoints;if(cache?.has(o))return cache.get(o);
   const point=this.pointGeometry(o);cache?.set(o,point);return point;
  },
@@ -185,7 +186,7 @@ const RegionMap={
   else if(runs.length){ctx.beginPath();for(const run of runs)trace(run);ctx.stroke();}
  },
  draw(){
-  const layers=globalThis.MapLayers,fade=[...ExtendedCatalog.transitions.values()].some(q=>q.o.region&&(!layers?.active||!layers.manages(q.o))&&q.alpha!==q.to),key=[cam.span,width,height,dpr,theme,state.selected,globalThis.MapFilters?.key||filter,globalThis.MapSlice?.mode,globalThis.MapSlice?.centerZ,ExtendedCatalog.pinned.size,OBJECTS.length,fade?performance.now():0].join(':'),cache=this.renderCache,scale=Cosmology.scale(),pad=96;
+  const layers=globalThis.MapLayers,fade=[...ExtendedCatalog.transitions.values()].some(q=>q.o.region&&(!layers?.active||!layers.manages(q.o))&&q.alpha!==q.to),key=[cam.span,width,height,dpr,theme,state.selected,globalThis.MapFilters?.key,filter,globalThis.MapSlice?.mode,globalThis.MapSlice?.centerZ,ExtendedCatalog.pinned.size,OBJECTS.length,fade?performance.now():0].join(':'),cache=this.renderCache,scale=Cosmology.scale(),pad=96;
   const cosmicShift=cache?Math.abs(scale/cache.scale-1)*(2+Math.hypot(cam.x,cam.y)/cam.span)*Math.max(width,height):Infinity,dx=cache?(cache.x-cam.x)*width/cam.span:0,dy=cache?(cache.y-cam.y)*width/cam.span:0;
   if(cache&&cache.key===key&&cache.points===ExtendedCatalog.visible&&cache.layers===layers?.visible&&cosmicShift<.15&&Math.abs(dx)<=pad&&Math.abs(dy)<=pad){
    // Reuse a padded raster while panning. Move only disposable screen geometry;
@@ -200,7 +201,7 @@ const RegionMap={
  },
  blit(cache){ctx.drawImage(cache.canvas,(cache.pad-cache.shiftX)*dpr,(cache.pad-cache.shiftY)*dpr,width*dpr,height*dpr,0,0,width,height);},
  render(target,padding=0){const ctx=target;this.hits=[];
-  const objects=[...new Map([...ExtendedCatalog.visible,...(globalThis.MapLayers?.visible||[]),...ExtendedCatalog.pinned.values(),...OBJECTS].map(o=>[o.id,o])).values()];
+  const objects=[...new Map([...ExtendedCatalog.visible,...(globalThis.MapLayers?.visible||[]),...ExtendedCatalog.pinned.values(),...(globalThis.MapFilters?.objects.values()||[]),...OBJECTS].map(o=>[o.id,o])).values()];
   ctx.save();try{for(const o of objects.filter(o=>o.region&&!o.atlasOnly&&ExtendedCatalog.matchesMap(o,true)&&(!MapLayers.active||MapLayers.admits(o))&&MapDetails.visible(o,cam.span)&&ExtendedCatalog.opacity(o,true,true)>.015).sort((a,b)=>b.region.major-a.region.major)){
    const r=o.region,c=screen(this.center(o)),scale=width/cam.span*Cosmology.regionScale(o),polyline=r.shape==='polyline';
    const stellar=StellarClusters.is(o),nebula=o.kind==='nebula',area=stellar?StellarClusters.view(o).area:nebula?Nebulae.view(o).area:1;

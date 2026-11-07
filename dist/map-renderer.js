@@ -85,7 +85,6 @@ function galaxyProjection(g) {
   return { center, r: (g.diameterLy * 0.5 * width) / cam.span };
 }
 function drawGalaxyBackground() {
-  if (!ExtendedCatalog.matchesMap({kind:'galaxy'})) return;
   for (const g of GALAXIES) {
     const body=object(g.id);if(!body||!MapDetails.visible(body,cam.span)||!ExtendedCatalog.matchesMap(body,true)||!MapGeometry.intersectsView(body,0,2))continue;
     const geometry=MapGeometry.view(body),center=screen(body),scale=width/cam.span*Cosmology.regionScale(body);
@@ -208,7 +207,7 @@ function drawSymbol(o, p, selected = false) {
   ctx.strokeStyle = paint(ink);
   ctx.lineWidth = 1.25;
   if (globalThis.MapVisibility?.active && MapDetails.level(o) >= 3) {
-    circle(0, 0, 1.2, ink, 0.7);
+    circle(0, 0, globalThis.MapFilters?.promotes(o) ? 3.5 : 1.2, ink, 0.7);
   } else if (destroyed) {
     circle(0, 0, 9, ink, 0.7, [2, 3]);
     line(-5, -5, 5, 5, ink, 0.8);
@@ -245,7 +244,7 @@ function drawSymbol(o, p, selected = false) {
       line(-2, 0, 2, 0, ink, 0.8);
       line(0, -2, 0, 2, ink, 0.8);
     } else {
-      circle(0, 0, Math.max(0.8, r), ink, 0.9);
+      circle(0, 0, Math.max(globalThis.MapFilters?.promotes(o) ? 3.5 : 0.8, r), ink, 0.9);
     }
   } else if (o.kind === 'pulsar' || o.kind === 'quasar') {
     circle(0, 0, 5, ink);
@@ -317,23 +316,24 @@ function drawObjects() {
   hitObjects = [];
   const departure = state.flight?.fromId || state.current,
     occupied = new Map();
-  const nearby = (p) => {
-    const x = Math.floor(p.x / 24),
-      y = Math.floor(p.y / 24);
+  const glyphRadius = o => o.kind === 'home' ? 23 : ['pulsar','quasar'].includes(o.kind) ? 20 : o.kind === 'blackhole' ? 18 : o.kind === 'star' ? 10 : 8;
+  const nearby = (p, radius = 12) => {
+    const x = Math.floor(p.x / 48),
+      y = Math.floor(p.y / 48);
     for (let dx = -1; dx <= 1; dx++)
       for (let dy = -1; dy <= 1; dy++)
         if (
           (occupied.get(x + dx + ',' + (y + dy)) || []).some(
-            (q) => Math.hypot(p.x - q.x, p.y - q.y) < 24,
+            (q) => Math.hypot(p.x - q.x, p.y - q.y) < radius + q.radius,
           )
         )
           return true;
     return false;
   };
-  const reserve = (p) => {
-    const key = Math.floor(p.x / 24) + ',' + Math.floor(p.y / 24);
+  const reserve = (p, radius = 12) => {
+    const key = Math.floor(p.x / 48) + ',' + Math.floor(p.y / 48);
     if (!occupied.has(key)) occupied.set(key, []);
-    occupied.get(key).push(p);
+    occupied.get(key).push({...p,radius});
   };
   const priority = (o) =>
     o.id === 'sgr' && cam.span < 2
@@ -391,7 +391,7 @@ function drawObjects() {
     return { o, sparse, bg };
   };
   const candidates = new Map(
-    [...OBJECTS, ...ExtendedCatalog.pinned.values()].map((o) => [o.id, { o }]),
+    [...OBJECTS, ...ExtendedCatalog.pinned.values(), ...(globalThis.MapFilters?.objects.values() || [])].map((o) => [o.id, { o }]),
   );
   for (const source of [ExtendedCatalog.visible, MapLayers.visible])
     for (const o of source) {
@@ -423,6 +423,8 @@ function drawObjects() {
   }
   visible.sort(
     (a, b) =>
+      (globalThis.MapFilters?.narrow ? Number(MapDetails.origin(b.o)) - Number(MapDetails.origin(a.o)) : 0) ||
+      (globalThis.MapFilters?.narrow ? Number(MapFilters.anchor(b.o)) - Number(MapFilters.anchor(a.o)) : 0) ||
       Number(!!b.o.notableLandmark) - Number(!!a.o.notableLandmark) ||
       (b.o.landmarkPriority||0) - (a.o.landmarkPriority||0) ||
       b.level - a.level ||
@@ -442,6 +444,11 @@ function drawObjects() {
   const nuclearHosts=new Set(visible.filter(q=>q.o.blackHoleCatalog&&q.o.parentGalaxy).map(q=>q.o.parentGalaxy));
   if(globalThis.BlackHoleCatalog)BlackHoleCatalog.renderedHosts=nuclearHosts;
   for (const { o, p, sparse, bg, mass, level, rank } of visible) {
+    // A small explicit selection replaces the catalogue's ordinary density cut.
+    // Its glyphs share one collision grid, independent of whether text fits.
+    if (globalThis.MapFilters?.narrow && (MapFilters.promotes(o) || MapFilters.anchor(o))) {
+      if (nearby(p, glyphRadius(o))) continue;
+    }
     if(nuclearHosts.has(o.id)){
       // One shared centre glyph represents both identities. Retain the host's
       // spatial hit record through zoom; the preceding nucleus wins a tie.
@@ -503,7 +510,7 @@ function drawObjects() {
       queueLabel(o, p, ExtendedCatalog.opacity(o) * RegionMap.pointOpacity(o));
       continue;
     }
-    if (!bg) reserve(p);
+    if (!bg) reserve(p, globalThis.MapFilters?.narrow ? glyphRadius(o) : 12);
     const selected = o.id === state.selected,
       opacity = ExtendedCatalog.opacity(o) * RegionMap.pointOpacity(o);
     ctx.save();

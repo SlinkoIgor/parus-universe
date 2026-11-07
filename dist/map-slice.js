@@ -61,7 +61,7 @@ const MapSlice={
   status.title=index.error||'';
   // The complete atlas stays searchable. Only its map is sliced.
   $('mapModeNotice').hidden=this.mode!=='slice';
-  $('mapModeNotice').textContent=this.mode==='slice'?'Срез параллелен плоскости Млечного Пути. Толщина везде одинакова — половина ширины карты. При фокусировке срез проходит через выбранный объект; перемещение карты его высоту не меняет. Атлас показывает весь каталог.':'';
+  $('mapModeNotice').textContent=this.mode==='slice'?'Срез параллелен плоскости Млечного Пути. Толщина везде одинакова — половина ширины карты. При фокусировке срез проходит через выбранный объект; перемещение карты его высоту не меняет. Поиск показывает весь каталог.':'';
  },
  setup(){
   let mode='full';try{mode=localStorage.getItem('parus-map-mode');}catch{}

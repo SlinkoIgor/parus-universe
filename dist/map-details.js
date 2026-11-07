@@ -228,6 +228,7 @@ const MapDetails = {
     return o.kind;
   },
   mapLabelName(o, selected = false) {
+    if (globalThis.MapFilters?.promotes(o) && !o.synthetic) return o.stellarLabel || o.mapLabel || o.name;
     // Selection may reveal the full designation; it never makes it a proper name.
     if (selected && !o.synthetic) return o.mapLabel || o.name;
     // Sourced stellar names include surname numbers (Wolf 359), Flamsteed
@@ -363,6 +364,8 @@ const MapDetails = {
   // Match the fixed hierarchy's 1440px reference ranges in the fallback too.
   // Ruler rounding never changes the visibility of the network.
   opacity(o, span, viewportWidth = width) {
+    if (globalThis.MapFilters?.collapsedStar(o, span)) return 0;
+    if (globalThis.MapFilters?.promotes(o)) return 1;
     if (ExtendedCatalog.isSystemMember(o)) return 1;
     if (this.origin(o)) return 1;
     const cached = this.frameOpacity?.get(o);
@@ -416,6 +419,7 @@ const MapDetails = {
     );
   },
   sparse(o, span) {
+    if (globalThis.MapFilters?.collapsedStar(o, span)) return false;
     if (this.origin(o) || o.kind === 'blackhole' || globalThis.MapVisibility?.active) return false;
     return span > this.maxSpan(o) * 0.8 && this.discoverable(o);
   },
@@ -770,7 +774,12 @@ const MapLabels = {
         size = q.size || 9;
       const mainWidth = this.measure(name, size + 'px "Golos Text",Arial,sans-serif'),
         detailWidth = detail ? this.measure(detail, '7px "IBM Plex Mono",monospace') : 0;
-      const candidates = q.key.startsWith('galaxy-') ? q.candidates.slice(0, 1) : q.candidates;
+      const candidates = q.key.startsWith('galaxy-') ? q.candidates.slice(0, 1) :
+        q.object && globalThis.MapFilters?.promotes(q.object) && q.p
+          ? [{x:q.p.x+12,y:q.p.y+25,align:'left'},
+             {x:q.p.x-12,y:q.p.y+25,align:'right'},
+             {x:q.p.x+12,y:q.p.y-12,align:'left'},
+             {x:q.p.x-12,y:q.p.y-12,align:'right'}] : q.candidates;
       let placed = false;
       for (const caption of detail ? (q.object ? [detail, null] : [detail]) : [null]) {
         const w = Math.max(mainWidth, caption ? detailWidth : 0) + 12,
@@ -787,7 +796,7 @@ const MapLabels = {
             (q.sparse && !MapLandmarks.labelClear(box, q.object))
           )
             continue;
-          if (!this.dynamic(q.key)) this.slots.set(q.key, q.candidates.indexOf(p));
+          if (!this.dynamic(q.key)) this.slots.set(q.key, candidates.indexOf(p));
           this.boxes.push(box);
           this.placed.push({ key: q.key, ...box });
           const active = this.emphasized(q.object), alpha = active ? 1 : q.opacity ?? 1;

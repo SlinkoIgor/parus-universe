@@ -26,7 +26,7 @@ function catalogRows(items, total, loading = false, error = '') {
     b.className = 'catalog-item';
     const quality =
       entry.atlasOnly || entry.positionQuality === 'unknown'
-        ? ' · ТОЛЬКО АТЛАС'
+        ? ' · ТОЛЬКО ПОИСК'
         : entry.positionQuality === 'approximate'
           ? ' · ПРИБЛИЗИТЕЛЬНО'
           : entry.synthetic
@@ -370,7 +370,7 @@ function showObject(id = state.selected) {
       ? '<button class="map-size-action" id="viewGalaxy">Показать галактику в масштабе <span>↗</span></button>'
       : '';
   let html =
-    '<div class="modal-eyebrow">АТЛАС / ОБ ОБЪЕКТЕ</div><h2>' +
+    '<div class="modal-eyebrow">КАТАЛОГ / ОБ ОБЪЕКТЕ</div><h2>' +
     o.name +
     '</h2>' +
     stellarSkyPhoto(o) +
@@ -400,7 +400,7 @@ function showObject(id = state.selected) {
     html += row(
       'Размер',
       o.atlasOnly
-        ? 'Объект доступен только в атласе; масштабный контур на карте не строится.'
+        ? 'Объект доступен только в поиске; масштабный контур на карте не строится.'
         : 'Индивидуальный физический размер неизвестен. Точка обозначает положение; её диаметр на экране условный.',
     );
   if (o.kind === 'nebula')
@@ -536,7 +536,7 @@ function showObject(id = state.selected) {
       '<button class="map-size-action" id="viewNuclearCluster">Звёзды и орбиты у Стрельца A* ↗</button>';
   if (o.atlasOnly)
     html +=
-      '<p class="object-note">Только атлас: положение недостаточно точное. На карте объект не размещён.</p>';
+      '<p class="object-note">Доступен в поиске: положение недостаточно точное. На карте объект не размещён.</p>';
   html +=
     '<p class="object-note">Оценки округлены. M☉ — масса Солнца; L☉ — его полная светимость, L☉,V и L☉,B — светимость Солнца в соответствующей полосе. Это собственное излучение, а не видимая яркость с Земли.</p>';
   if (f.visual)
