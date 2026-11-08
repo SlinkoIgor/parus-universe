@@ -9,15 +9,31 @@ FlightSetup.sync();
 ArrivalStars.primeRoutes();
 paused = !!state.paused;
 speed = state.timeScale > 0 && TIME_RATES.includes(state.timeScale) ? state.timeScale : 1;
+Simulation.restoreClock(state);
 if (state.flight && state.phase !== 'flyby') Route.configure();
 if (state.flight && !state.flight.markers?.length) FlightMarks.plan();
 let lastFrame = performance.now();
+const RuntimeLoop = {
+  lastInteraction: lastFrame, lastDraw: lastFrame, idleAfter: 30000, idleInterval: 100,
+  wake() { this.lastInteraction = performance.now(); },
+  shouldDraw(now) {
+    return !document.hidden && (now - this.lastInteraction < this.idleAfter ||
+      cameraGoal || pointer.down || Route.feedbackPending ||
+      (!paused && (state.flight || effects.length)) || now - this.lastDraw >= this.idleInterval);
+  },
+};
+// Observers only: normal controls keep their own handlers and scroll behaviour.
+for (const name of ['pointerdown', 'pointermove', 'wheel', 'keydown'])
+  document.addEventListener(name, () => RuntimeLoop.wake(), {capture:true, passive:true});
+for (const name of ['focus', 'resize']) window.addEventListener(name, () => RuntimeLoop.wake());
 function frame(now) {
   Cosmology.sync(state);
   const realDt = Math.max(0, (now - lastFrame) / 1000);
   lastFrame = now;
-  Simulation.advance(realDt);
-  if (!document.hidden) {
+  Simulation.advance(realDt, 6);
+  if (RuntimeLoop.shouldDraw(now)) {
+    const drawDt = Math.max(0, (now - RuntimeLoop.lastDraw) / 1000);
+    RuntimeLoop.lastDraw = now;
     if (cameraGoal) {
       // The endpoint of a zoom follows the live ship too. A fixed world-space
       // endpoint can never settle once the ship has moved during the zoom.
@@ -54,7 +70,7 @@ function frame(now) {
       drawReachability();
       Route.draw();
       drawRoute();
-      drawEffects(Math.min(realDt, 0.1));
+      drawEffects(Math.min(drawDt, 0.1));
       ExtendedCatalog.drawSystems();
       OrbitalMotion.draw();
       NuclearStars.draw();
@@ -440,10 +456,11 @@ window.addEventListener('keydown', (e) => {
 });
 function syncClock() {
   const now = performance.now();
-  Simulation.advance(Math.max(0, (now - lastFrame) / 1000));
+  Simulation.advance(Math.max(0, (now - lastFrame) / 1000), 6);
   lastFrame = now;
 }
 document.addEventListener('visibilitychange', () => {
+  RuntimeLoop.wake();
   syncClock();
   persist();
 });

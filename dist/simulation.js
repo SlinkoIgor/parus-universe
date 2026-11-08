@@ -22,24 +22,53 @@ const Simulation={
  },
  replayRate(){return speed*(this.slowMotionEnabled?(this.smoothedFactor??this.slowMotionFactor()):1);},
  wallDebt:0,
- advance(realSeconds){
-  if(paused)return;let remaining=realSeconds+this.wallDebt;this.wallDebt=0;
-  for(let i=0;remaining>1e-12&&i<8192;i++){
-   const slice=Math.min(remaining,1/60),target=this.slowMotionFactor();
+ wallQueue:[],
+ pendingClock(){
+  // wallDebt remains compatible with existing reset/rollback callers.
+  return this.wallDebt>1e-12?(this.wallQueue.length?this.wallQueue:[{seconds:this.wallDebt,rate:speed}]):[];
+ },
+ captureClock(s){
+  const pending=this.pendingClock();
+  if(pending.length)s.pendingRealTime=pending.map(q=>({...q}));else delete s.pendingRealTime;
+ },
+ restoreClock(s){
+  this.wallQueue=(Array.isArray(s.pendingRealTime)?s.pendingRealTime:[])
+   .filter(q=>Number.isFinite(q?.seconds)&&q.seconds>0&&Number.isFinite(q.rate)&&q.rate>0)
+   .map(q=>({seconds:q.seconds,rate:q.rate}));
+  this.wallDebt=this.wallQueue.reduce((sum,q)=>sum+q.seconds,0);
+ },
+ advance(realSeconds,budgetMs=Infinity){
+  if(paused)return;
+  const queue=this.pendingClock(),tail=queue.at(-1),started=Number.isFinite(budgetMs)?performance.now():0;
+  if(realSeconds>0){if(tail?.rate===speed)tail.seconds+=realSeconds;else queue.push({seconds:realSeconds,rate:speed});}
+  for(let i=0;queue.length&&i<8192;i++){
+   const pending=queue[0];
+   // Stationary clocks and circular parking orbits have an analytic update.
+   // Replaying an idle night in 1/60-second slices only builds a huge backlog.
+   if(!state.flight&&!this.slowMotionEnabled){
+    const years=pending.seconds*pending.rate;
+    if(!OrbitalArrival.idle(years)){state.proper+=years;state.earth+=years;Cosmology.elapse(state,years);}
+    this.smoothedFactor=1;queue.shift();continue;
+   }
+   // Keep the original physical slices; yield between them so a sleeping tab
+   // cannot monopolise the main thread while catching up with a long flight.
+   if(i>0&&Number.isFinite(budgetMs)&&performance.now()-started>=budgetMs)break;
+   const slice=Math.min(pending.seconds,1/60),target=this.slowMotionFactor();
    // Ease the logarithm: a factor of 1000 should not jump in one frame.
    const previous=this.slowMotionEnabled?(this.smoothedFactor??target):1;
    this.smoothedFactor=Math.exp(Math.log(previous)+(Math.log(target)-Math.log(previous))*(-Math.expm1(-slice/.4)));
    if(Math.abs(Math.log(this.smoothedFactor/target))<1e-6)this.smoothedFactor=target;
-   const rate=this.replayRate();let years=slice*rate;
+   const rate=pending.rate*(this.slowMotionEnabled?this.smoothedFactor:1);let years=slice*rate;
    for(let transitions=0;years>1e-15&&transitions<64;transitions++){
     if(!state.flight){if(OrbitalArrival.idle(years)){years=0;break;}state.proper+=years;state.earth+=years;Cosmology.elapse(state,years);years=0;break;}
     const f=state.flight,elapsed=globalThis.FlightTips?.elapsed(f);
     const used=this.step(years);if(!(used>=0&&Number.isFinite(used)))throw new Error('Invalid replay step');
     globalThis.FlightTips?.advance(f,elapsed,used/rate);years=Math.max(0,years-used);
    }
-   if(years>1e-15)this.debt+=years;remaining=Math.max(0,remaining-slice);
+   if(years>1e-15)this.debt+=years;
+   pending.seconds=Math.max(0,pending.seconds-slice);if(pending.seconds<=1e-12)queue.shift();
   }
-  this.wallDebt=remaining;
+  this.wallQueue=queue;this.wallDebt=queue.reduce((sum,q)=>sum+q.seconds,0);
  },
  tick(years){
   let remaining=years+this.debt;this.debt=0;

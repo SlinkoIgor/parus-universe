@@ -3,6 +3,9 @@
 // Bound groups translate as a whole: their internal separations do not scale with a(t).
 const Cosmology={
  H0:67.4/3.0856775814913673e19*31557600,omegaM:.315,omegaL:.685,time:0,enabled:true,cache:new Map(),cacheLimit:32768,
+ localGroup:Object.freeze({id:'local-group',p3:Object.freeze([0,0,0]),map:Object.freeze({x:0,y:0})}),
+ catalogObject(id,extended=true){return (typeof MapDetails!=='undefined'&&MapDetails.frameObjects
+  ?MapDetails.frameObjects.get(id):OBJECTS.find(q=>q.id===id))||(extended?ExtendedCatalog.get(id):undefined);},
  logA(t=this.time){const x=1.5*this.H0*Math.sqrt(this.omegaL)*Math.max(0,t),b=1/Math.sqrt(this.omegaL);return 2/3*(x<20?Math.log(Math.cosh(x)+b*Math.sinh(x)):x+Math.log((1+b)/2));},
  scale(t=this.time){return Math.exp(Math.min(80,this.logA(t)));},
  sync(s){this.time=Math.max(0,s.cosmicTime||0);this.enabled=s.expansion!==false;},
@@ -12,17 +15,17 @@ const Cosmology={
   // A nearby game star shares its host's translation, not an independent
   // cosmological expansion of a 0.12 ly transfer. This is a local reference
   // frame around the landmark, not a claim that an entire wall is bound.
-  if(o.synthetic&&o.parentObject){const host=OBJECTS.find(q=>q.id===o.parentObject)||ExtendedCatalog.get(o.parentObject);if(host&&host!==o&&host.parentObject!==o.id)return this.group(host,depth+1);}
+  if(o.synthetic&&o.parentObject){const host=this.catalogObject(o.parentObject);if(host&&host!==o&&host.parentObject!==o.id)return this.group(host,depth+1);}
   // Ship coordinates are anonymous Space.point records. While parked or on a
   // local leg, carry the same reference frame as the station/source object.
-  if(typeof state==='object'&&state?.ship===o){const id=state.current||(!state.flight?.cosmic?state.flight?.fromId:null),host=id&&(OBJECTS.find(q=>q.id===id)||ExtendedCatalog.get(id));if(host&&host!==o)return this.group(host,depth+1);}
-  if(Math.hypot(...o.p3)<4e6)return{id:'local-group',p3:[0,0,0],map:{x:0,y:0}};
+  if(typeof state==='object'&&state?.ship===o){const id=state.current||(!state.flight?.cosmic?state.flight?.fromId:null),host=id&&this.catalogObject(id);if(host&&host!==o)return this.group(host,depth+1);}
+  if(Math.hypot(...o.p3)<4e6)return this.localGroup;
   if(o.boundSystemPrimary&&o.systemAnchorP3)return{id:'bound:'+o.boundSystemPrimary,p3:o.systemAnchorP3,map:MapLayout.base(o.systemAnchorP3)};
-  if(o.parentGalaxy&&o.parentGalaxy!=='milkyway'){const g=OBJECTS.find(g=>g.id===o.parentGalaxy)||ExtendedCatalog.get(o.parentGalaxy);if(g&&g!==o)return this.group(g,depth+1);}
+  if(o.parentGalaxy&&o.parentGalaxy!=='milkyway'){const g=this.catalogObject(o.parentGalaxy);if(g&&g!==o)return this.group(g,depth+1);}
   const saved=o.id&&this.cache.get(o.id);if(saved)return saved;
   let anchor=o;
   // Only individually identified virialised clusters are treated as bound, not superclusters/voids.
-  for(const id of ['virgo','coma']){const c=OBJECTS.find(q=>q.id===id);if(c?.p3&&Space.distance(c,o)<(id==='virgo'?5.05e6:10.1e6)){anchor=c;break;}}
+  for(const id of ['virgo','coma']){const c=this.catalogObject(id,false);if(c?.p3&&Space.distance(c,o)<(id==='virgo'?5.05e6:10.1e6)){anchor=c;break;}}
   if(anchor===o&&o.kind!=='galaxy'){
    // Preserve the first catalogue identity and galaxy order. Repeating a full
    // OBJECTS scan for every previously seen galaxy made a cold projection

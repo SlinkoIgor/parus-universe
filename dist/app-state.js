@@ -385,6 +385,7 @@ const FlightHistory = {
 
 function persist() {
   try {
+    Simulation.captureClock(state);
     ExtendedCatalog.capture(state);
     state.paused = paused;
     state.timeScale = speed;

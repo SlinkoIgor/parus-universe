@@ -63,6 +63,7 @@ const checks = [
   'verify-new-tasks.mjs',
   'verify-flight-tracks.mjs',
   'verify-runtime-performance.mjs',
+  'verify-idle-runtime.mjs',
   'verify-map-interaction-performance.mjs',
   'verify-filament-performance.mjs',
   'verify-wishlist.mjs',
