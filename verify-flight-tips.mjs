@@ -163,7 +163,7 @@ FlightTips.use('double-click');assert.equal($('toast').hidden,true,'learning a c
 FlightTips.render();assert.equal($('toast').hidden,true,'one phase never swaps to a second tip');
 for(let i=0;i<2*FlightTips.entries.length-1;i++){brake(20);FlightTips.render();assert.ok($('toast').hidden||!$('toast').textContent.includes('Двойной клик'));}
 assert.deepEqual(counts(),learnedCounts());
-FlightTips.use('pulsars');const learned=JSON.stringify(state.flightTips.used);
+FlightTips.use('black-holes');const learned=JSON.stringify(state.flightTips.used);
 state=initial();FlightTips.clear();assert.deepEqual(counts(),allCounts(0),'a new expedition resets impressions');
 assert.equal(JSON.stringify(state.flightTips.used),learned,'new expeditions remember learned functions');
 brake(20);FlightTips.render();assert.ok($('toast').textContent.includes('Shift'),'only unknown functions remain eligible');
@@ -172,7 +172,7 @@ console.log('PASS twice-per-expedition cap, complete exhaustion, visible-only ac
 reset();state.selected='andromeda';launch();
 const rollback=JSON.stringify(state.flight.rollback),p2=state.flight.mission;
 Simulation.tick(p2.accelerationEnd.proper+p2.coast.proper+p2.brake.proper*.01);
-$('toast').hidden=true;renderUI();FlightTips.use('pulsars');
+$('toast').hidden=true;renderUI();FlightTips.use('black-holes');
 const beforeCancel=JSON.stringify(state.flightTips);FlightHistory.cancel();
 assert.equal(state.flight,null);assert.equal(JSON.stringify(state.flightTips),beforeCancel,'cancel cannot refund shows or forget learning');
 assert.equal(state.proper,JSON.parse(rollback).proper);assert.equal(state.matter,JSON.parse(rollback).matter);
@@ -193,24 +193,23 @@ state=restore(JSON.parse(JSON.stringify(state)));assert.equal(state.flightTips.u
 FlightHistory.cancel();assert.equal(state.flightTips.used['black-holes'],true);
 console.log('PASS successful route/Shift actions and actual black-hole manoeuvre suppress their matching tips');
 
-reset();state.flightSetup=FlightSetup.normalize({engine:true,sail:false,arrivalFuelPercent:0});
-const pulsarStar=ExtendedCatalog.syntheticArrivalStar(object('vela'));ExtendedCatalog.pin(pulsarStar);
-state.current=pulsarStar.id;state.ship=Space.point(pulsarStar.p3);state.selected='sol';launch();
-assert.ok(state.flight);assert.equal(state.flightTips.used.pulsars,true,'actual return from a pulsar arrival to Sun is learned');
-reset();state.selected='sol';launch();assert.ok(!state.flightTips.used.pulsars,'failed launch is not a pulsar return');
-state.current='proxima';state.ship=Space.point(object('proxima').p3);state.selected='sol';state.visited.push('vela');launch();
-assert.ok(!state.flightTips.used.pulsars,'an unrelated past pulsar visit is not a return from one');
-const leg={fromId:'alpha',target:'proxima',requestedTarget:'vela'};
-assert.equal(FlightTips.isPulsarReturn({fromId:'proxima',target:'sol'},leg),true,'known arrival star retains the requested pulsar identity');
-console.log('PASS pulsar-return detection, redirected arrival star and no false learning from visits or failed starts');
+reset();state.selected='andromeda';launch();
+const retiredPhysical=JSON.stringify([state.flight,state.ship,state.matter,state.proper,state.earth]);
+const retired=JSON.parse(JSON.stringify(state));retired.flightTips.shown.pulsars=2;retired.flightTips.used.pulsars=true;
+retired.flightTips.shown.collector=1;retired.flight.flightTip={id:'pulsars'};
+state=restore(retired);assert.equal(state.flight.flightTip,undefined);
+assert.equal(state.flightTips.shown.pulsars,undefined);assert.equal(state.flightTips.used.pulsars,undefined);
+assert.equal(state.flightTips.shown.collector,1);assert.ok(!FlightTips.entries.some(t=>t.id==='pulsars'));
+assert.equal(JSON.stringify([state.flight,state.ship,state.matter,state.proper,state.earth]),retiredPhysical,'retiring a saved tip preserves the physical flight');
+console.log('PASS removed pulsar tip and its saved receipt/counters cannot return, while remaining counters and the physical flight stay intact');
 
 reset();const old=JSON.parse(JSON.stringify(state));delete old.flightTips;
 state=restore(old);assert.deepEqual(counts(),allCounts(0));assert.ok(!Object.values(state.flightTips.used).some(Boolean));
 old.itinerary=[{id:'proxima',mode:'stop'},{id:'alpha',mode:'stop'}];old.journal.push({t:0,text:'Пролёт: Стрелец A*. Поворот 1°.'});
 state=restore(old);assert.equal(state.flightTips.used['shift-route'],false,'an old route does not prove Shift use');assert.equal(state.flightTips.used['black-holes'],true);
 assert.equal(state.flightTips.used['double-click'],false,'old saves do not invent unrecorded input history');
-const malformed=FlightTips.normalize({shown:{'double-click':-1,'shift-route':99,'black-holes':NaN,pulsars:1.9},used:{pulsars:'true'},next:-10});
-assert.deepEqual(Object.values(malformed.shown).slice(0,4),[0,2,0,1]);assert.ok(Object.values(malformed.shown).slice(4).every(n=>n===0));assert.equal(malformed.used.pulsars,false);assert.equal('next' in malformed,false,'legacy rotation index is retired');
+const malformed=FlightTips.normalize({shown:{'double-click':-1,'shift-route':99,'black-holes':NaN,supernova:1.9},used:{supernova:'true'},next:-10});
+assert.deepEqual(Object.values(malformed.shown).slice(0,4),[0,2,0,1]);assert.ok(Object.values(malformed.shown).slice(4).every(n=>n===0));assert.equal(malformed.used.supernova,false);assert.equal('next' in malformed,false,'legacy rotation index is retired');
 reset();const originalGet=localStorage.getItem,originalSet=localStorage.setItem;let stored;
 try {
  localStorage.getItem=key=>key==='parus-flight-tip-used'?stored:null;
@@ -238,10 +237,10 @@ assert.equal(state.captured,0);assert.equal(state.flightTips.used['gas-collectio
 console.log('PASS collector/gas explanations stay unlearned, executed supernova action is learned and cancellation preserves it');
 
 reset();const prior=JSON.parse(JSON.stringify(state));
-prior.flightTips={shown:{'double-click':2,'pulsars':1},used:{'shift-route':true},next:3};
+prior.flightTips={shown:{'double-click':2,'black-holes':1,'pulsars':1},used:{'shift-route':true},next:3};
 prior.destroyed=['alpha'];prior.captured=.0001;
 prior.journal.push({t:1,text:'Составной полёт: тяга + парус + коллектор; торможение: тяга + парус.'});
-state=restore(prior);assert.equal(state.flightTips.shown['double-click'],2);assert.equal(state.flightTips.shown.pulsars,1);
+state=restore(prior);assert.equal(state.flightTips.shown['double-click'],2);assert.equal(state.flightTips.shown['black-holes'],1);assert.equal(state.flightTips.shown.pulsars,undefined);
 for(const id of ['supernova','collector','gas-collection']) {
  assert.equal(state.flightTips.shown[id],0,'new entries start with no impressions');
  assert.equal(state.flightTips.used[id],id==='supernova','old actions teach only actionable tips');
@@ -270,7 +269,7 @@ brake(20);FlightTips.render();assert.equal($('toast').hidden,true,'an empty elig
 console.log('PASS random choice at both bounds, learned/exhausted filtering, saved choice stability, two-show removal and empty pool');
 
 Math.random=()=>0;
-const actions=['double-click','shift-route','black-holes','pulsars','supernova'];
+const actions=['double-click','shift-route','black-holes','supernova'];
 const explanations=['collector','gas-collection','braking-refill','stellar-luminosity','collector-survival'];
 assert.deepEqual(FlightTips.entries.filter(t=>t.learnable).map(t=>t.id),actions);
 for(const id of explanations) {

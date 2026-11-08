@@ -1,94 +1,96 @@
 // Main physics/integration regression suite for the current kilogram model.
-import './verify-propulsion.mjs';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 
-import './verify-composed.mjs';
+// Identical data: imports cache the same mutable browser/physics harness.
+// A fresh process makes the full run match each standalone check. Run them
+// sequentially so numerical/performance checks do not compete for the CPU.
+const checks = [
+  'verify-propulsion.mjs',
+  'verify-composed.mjs',
+  'verify-planner.mjs',
+  'verify-time-controls.mjs',
+  'verify-flight-tips.mjs',
+  'verify-orbits.mjs',
+  'verify-departure-access.mjs',
+  'verify-boss-local.mjs',
+  'verify-flash-reception.mjs',
+  'verify-collector-survival.mjs',
+  'verify-preboost.mjs',
+  'verify-burst-once.mjs',
+  'verify-flight-policy.mjs',
+  'verify-reserve-policy.mjs',
+  'verify-max-range.mjs',
+  'verify-telemetry-scale.mjs',
+  'verify-diffraction.mjs',
+  'verify-flight-menu.mjs',
+  'verify-atlas-transitions.mjs',
+  'verify-catalog-registry.mjs',
+  'verify-map-filters.mjs',
+  'verify-map-hierarchy.mjs',
+  'verify-map-landmarks.mjs',
+  'verify-map-discovery.mjs',
+  'verify-map-names.mjs',
+  'verify-stellar-cluster-map.mjs',
+  'verify-milkyway-layout.mjs',
+  'verify-map-class-symbols.mjs',
+  'verify-map-slice.mjs',
+  'verify-map-radial.mjs',
+  'verify-system-coordinates.mjs',
+  'verify-stellar-catalog.mjs',
+  'verify-system-view.mjs',
+  'verify-sky-guide.mjs',
+  'verify-sky-dss.mjs',
+  'verify-sky-photos.mjs',
+  'verify-orbit-paths.mjs',
+  'verify-extended-geometry.mjs',
+  'verify-galaxy-structure.mjs',
+  'verify-map-continuity.mjs',
+  'verify-landmark-continuity.mjs',
+  'verify-map-render-cache.mjs',
+  'verify-map-visibility.mjs',
+  'verify-map-annotations.mjs',
+  'verify-sparse-labels.mjs',
+  'verify-area-labels.mjs',
+  'verify-atlas-expansion.mjs',
+  'verify-black-hole-visibility.mjs',
+  'verify-structure-labels.mjs',
+  'verify-galaxy-identities.mjs',
+  'verify-map-overview.mjs',
+  'verify-universe.mjs',
+  'verify-current-reach.mjs',
+  'verify-reach-reuse.mjs',
+  'verify-new-tasks.mjs',
+  'verify-flight-tracks.mjs',
+  'verify-runtime-performance.mjs',
+  'verify-map-interaction-performance.mjs',
+  'verify-filament-performance.mjs',
+  'verify-wishlist.mjs',
+  'verify-route-camera.mjs',
+  'verify-ship-camera.mjs',
+  'verify-quick-flight.mjs',
+  'verify-text-selection.mjs',
+  'verify-shift-routes.mjs',
+  'verify-unified-routes.mjs',
+  'verify-route-feedback.mjs',
+  'verify-route-search.mjs',
+  'verify-route-presentation.mjs',
+];
 
-import './verify-planner.mjs';
-
-import './verify-time-controls.mjs';
-import './verify-flight-tips.mjs';
-
-import './verify-orbits.mjs';
-
-import './verify-departure-access.mjs';
-
-import './verify-boss-local.mjs';
-import './verify-flash-reception.mjs';
-import './verify-collector-survival.mjs';
-import './verify-preboost.mjs';
-import './verify-burst-once.mjs';
-
-import './verify-flight-policy.mjs';
-import './verify-reserve-policy.mjs';
-import './verify-max-range.mjs';
-
-import './verify-telemetry-scale.mjs';
-
-import './verify-diffraction.mjs';
-
-import './verify-flight-menu.mjs';
-
-import './verify-atlas-transitions.mjs';
-import './verify-catalog-registry.mjs';
-import './verify-map-filters.mjs';
-
-import './verify-map-hierarchy.mjs';
-
-import './verify-map-landmarks.mjs';
-
-import './verify-map-discovery.mjs';
-
-import './verify-map-names.mjs';
-
-import './verify-stellar-cluster-map.mjs';
-
-import './verify-milkyway-layout.mjs';
-
-import './verify-map-class-symbols.mjs';
-
-import './verify-map-slice.mjs';
-import './verify-map-radial.mjs';
-import './verify-system-coordinates.mjs';
-import './verify-stellar-catalog.mjs';
-import './verify-system-view.mjs';
-import './verify-sky-guide.mjs';
-import './verify-sky-dss.mjs';
-import './verify-sky-photos.mjs';
-import './verify-orbit-paths.mjs';
-import './verify-extended-geometry.mjs';
-import './verify-map-continuity.mjs';
-import './verify-landmark-continuity.mjs';
-import './verify-map-render-cache.mjs';
-import './verify-map-visibility.mjs';
-import './verify-map-annotations.mjs';
-import './verify-sparse-labels.mjs';
-import './verify-area-labels.mjs';
-import './verify-atlas-expansion.mjs';
-import './verify-black-hole-visibility.mjs';
-import './verify-structure-labels.mjs';
-import './verify-galaxy-identities.mjs';
-import './verify-map-overview.mjs';
-import './verify-universe.mjs';
-
-import './verify-current-reach.mjs';
-import './verify-reach-reuse.mjs';
-
-import './verify-new-tasks.mjs';
-
-import './verify-flight-tracks.mjs';
-
-import './verify-runtime-performance.mjs';
-import './verify-map-interaction-performance.mjs';
-import './verify-filament-performance.mjs';
-
-import './verify-wishlist.mjs';
-import './verify-route-camera.mjs';
-import './verify-ship-camera.mjs';
-import './verify-quick-flight.mjs';
-import './verify-text-selection.mjs';
-
-import './verify-shift-routes.mjs';
-import './verify-unified-routes.mjs';
-import './verify-route-feedback.mjs';
-import './verify-route-search.mjs';
-import './verify-route-presentation.mjs';
+const started = performance.now(), failed = [], cwd = fileURLToPath(new URL('.',import.meta.url));
+for (const [index,check] of checks.entries()) {
+  console.log(`RUN ${index+1}/${checks.length} ${check}`);
+  const start = performance.now();
+  const result = spawnSync(process.execPath,[check],{cwd,stdio:'inherit'});
+  const elapsed = ((performance.now()-start)/1000).toFixed(1);
+  if (result.status === 0) console.log(`PASS suite ${check} (${elapsed}s)`);
+  else {
+    failed.push(check);
+    console.error(`FAIL suite ${check} (${elapsed}s): ${result.error?.message || result.signal || 'exit '+result.status}`);
+  }
+}
+const elapsed = ((performance.now()-started)/1000).toFixed(1);
+if (failed.length) {
+  console.error(`FAIL ${failed.length}/${checks.length} suites (${elapsed}s): ${failed.join(', ')}`);
+  process.exitCode = 1;
+} else console.log(`PASS all ${checks.length} suites (${elapsed}s)`);

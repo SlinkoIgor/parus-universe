@@ -498,7 +498,7 @@ function showObject(id = state.selected) {
         distanceText(o.p3[2]) +
           '<small>Координата вне плоскости карты, относительно Солнца</small>',
       );
-    if (o.raDeg !== undefined)
+    if (SkyGuide.canChart(o))
       html += row(
         'Направление J2000',
         fmt(o.raDeg, 4) +
@@ -507,7 +507,7 @@ function showObject(id = state.selected) {
           '°<small>Прямое восхождение / склонение</small>',
       );
   }
-  if (!o.p3 && Number.isFinite(o.raDeg))
+  if (!o.p3 && SkyGuide.canChart(o))
     html += row('Направление J2000', fmt(o.raDeg, 4) + '° / ' + fmt(o.decDeg, 4) + '°');
   if (o.catalogDistanceLy != null)
     html += row(

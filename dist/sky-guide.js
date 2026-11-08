@@ -27,16 +27,19 @@ const SkyGuide = {
   },
   observing(o) {
     if (!this.hasDirection(o)) return null;
-    // These are conservative finding-chart limits, not measured visibility.
+    // Finding charts are for naked-eye targets and the Sun's stellar neighbours.
+    // The 25 ly radius matches the existing nearby-stars collection.
     // Never borrow a host galaxy's brightness for its black hole/pulsar.
     if (!['star','nebula','cluster','galaxy','quasar'].includes(o.kind)) return null;
     const v=this.magnitude(o), stellar=o.kind==='star'||o.kind==='quasar',
       major=o.angularMajorArcmin, minor=o.angularMinorArcmin,
       surface=v!==null&&major>0&&minor>0 ? v+2.5*Math.log10(Math.PI*major*minor*900) : null;
-    const collection=this.visualCollection(o),evidence=this.observingEvidence(o);
-    if (!collection && !evidence && (v===null || v>(stellar?14:13) || (!stellar&&surface!==null&&surface>23))) return null;
-    return {v, surface, collection, evidence, nakedEye:!!evidence?.nakedEye||stellar&&v<=6.5,
-      text:evidence?.nakedEye?'Видно глазом на тёмном небе':stellar ? this.visibility(o).text : 'Для наблюдения — бинокль или любительский телескоп'};
+    const collection=this.visualCollection(o),evidence=this.observingEvidence(o),
+      nakedEye=!!evidence?.nakedEye || v!==null && v<=6.5 && (stellar || surface===null || surface<=23),
+      nearby=o.kind==='star' && Number.isFinite(o.d) && o.d>=0 && o.d<=25;
+    if (!nakedEye && !nearby) return null;
+    return {v, surface, collection, evidence, nakedEye, nearby,
+      text:evidence?.nakedEye?'Видно глазом на тёмном небе':stellar ? this.visibility(o).text : 'Видно глазом на тёмном небе'};
   },
   canChart(o) { return !!this.observing(o); },
   constellation(ra, dec) {
@@ -184,8 +187,22 @@ const SkyGuide = {
       '<p class="sky-guide-note">Широты показывают, где каждая область может подниматься над горизонтом в течение суток. У границы диапазона объекты едва достигают горизонта. Для наблюдения нужны подходящие сезон, время ночи и открытый горизонт.</p>'+
       (near?'<p class="sky-guide-landmarks">Яркие ориентиры: '+near+'. Указаны угловые расстояния на небе.</p>':'')+
       (close?'<p class="sky-guide-note">Тесные компоненты этой системы глазом сливаются в одну точку. Яркость компонента сама по себе не означает, что его можно различить отдельно.</p>':'')+
-      '<p class="sky-guide-note">На схеме — взаимное положение звёзд. Высота над горизонтом и поворот созвездия зависят от места, даты и времени. Слабые звёзды требуют тёмного неба и телескопа примерно 200–250 мм. Для туманностей и галактик важна также поверхностная яркость; фотографические детали и цвета в окуляре обычно не видны.</p>'+
+      '<p class="sky-guide-note">На схеме — взаимное положение звёзд. Высота над горизонтом и поворот созвездия зависят от места, даты и времени. Слабые ближайшие звёзды требуют оптики. Для туманностей и галактик важна также поверхностная яркость; фотографические детали и цвета в окуляре обычно не видны.</p>'+
       '<details class="sky-guide-source"><summary>Координаты и данные</summary>'+(v.evidence?'<p>Видимость глазом подтверждена <a href="'+esc(v.evidence.source)+'" target="_blank" rel="noopener">'+esc(v.evidence.publisher)+' ↗</a>. Нужны тёмное небо и подходящая широта наблюдения.</p>':'')+(v.collection?'<p>Цель каталога '+v.collection+'. Доступность для любительского наблюдения: <a href="https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-'+(v.collection==='Мессье'?'messier':'caldwell')+'-catalog/" target="_blank" rel="noopener">NASA ↗</a>. Некоторые цели требуют очень тёмного неба, фильтров или большого телескопа.</p>':'')+'<p>J2000 · RA '+o.raDeg.toFixed(5)+'° · Dec '+o.decDeg.toFixed(5)+'°. Звёзды: <a href="https://cdsarc.cds.unistra.fr/viz-bin/cat/V/137D" target="_blank" rel="noopener">XHIP</a>; названия и линии: <a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noopener">d3-celestial</a>; границы созвездий: <a href="https://cdsarc.cds.unistra.fr/viz-bin/cat/VI/42" target="_blank" rel="noopener">IAU / Roman 1987</a>. Соединительные линии — традиционная схема созвездия.</p></details></section>';
+  },
+  hasObservatoryPhoto(o) {
+    if (!o || o.synthetic) return false;
+    // The identity index is available before publisher metadata or image pixels.
+    if (SkyPhotos.ids(o).some(id=>!SkyPhotos.surveys.has(id))) return true;
+    if (!this.curatedPhotoTargets) {
+      this.curatedPhotoTargets=new Set(SKY_GUIDE_DATA.media.flatMap(p=>[
+        ...p.objects.map(id=>'id:'+id),
+        ...(p.identifiers||[]).flatMap(id=>(p.kind==='deep-sky'?['nebula','cluster','galaxy']:[p.kind])
+          .map(kind=>kind+':'+this.catalogueKey(id)))
+      ]));
+    }
+    return this.curatedPhotoTargets.has('id:'+o.id) ||
+      this.identityKeys(o).some(id=>this.curatedPhotoTargets.has(o.kind+':'+id));
   },
   media(o) {
     if (!o || o.synthetic) return [];

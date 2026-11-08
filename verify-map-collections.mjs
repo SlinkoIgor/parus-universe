@@ -3,7 +3,14 @@ const harness = fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0] + '
 const {context,run} = await import('data:text/javascript,'+encodeURIComponent(harness)+'#map-collections');
 run(['distant-catalog-data','distant-catalog'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'));
 run(`
-assert.equal(Object.keys(MapFilters.collections).length-1,15,'ten additional collections');
+assert.equal(Object.keys(MapFilters.collections).length-1,16,'historical and photographic collections');
+assert.equal(SkyPhotos.cache.size,0,'photo collection works before lazy publisher metadata');
+for(const id of ['sirius','proxima','hyg-27253','lmc','andromeda','orion','sgr'])
+ assert.ok(MapFilters.matchesCollection(object(id),'photos'),'own observatory image: '+id);
+assert.ok(!MapFilters.matchesCollection(object('barnard'),'photos'),'a published DSS field alone is not a beautiful observatory image');
+assert.ok(!MapFilters.matchesCollection({...object('sirius'),synthetic:true},'photos'));
+for(const kind of ['star','nebula','cluster'])assert.ok(!MapFilters.matchesCollection({id:'photo-host-member',kind,galaxyMember:true,parentGalaxy:'andromeda',aliases:['M31','Andromeda']},'photos'),'host membership is not an own photograph');
+assert.equal(MapFilters.selectionLimit(),300,'ordinary collection budget stays bounded');
 for(const id of ['andromeda','lmc','smc','opengc-ngc2632','opengc-ngc6475','opengc-ngc0869','opengc-ngc0884','opengc-ic2391'])
  assert.ok(MapFilters.matchesCollection(object(id),'pre-telescope'),id);
 for(const id of ['orion','opengc-ngc1952','crab','bh-andromeda','bh-m87','sirius'])

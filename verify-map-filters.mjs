@@ -277,6 +277,25 @@ for(const collection of ['pre-telescope','messier-discoveries','before-herschel'
  assert.equal(MapFilters.objects.size,MAP_FILTER_DATA.buckets.filter(b=>MapFilters.bucketMatches(b)).reduce((n,b)=>n+b[3],0),'all new streamed members load: '+collection);
  assert.ok([...MapFilters.objects.values()].every(o=>MapFilters.matchesCollection(o,collection)));
 }
+MapFilters.change('all','photos','all');await MapFilters.pending;
+assert.ok(MapFilters.total>300&&MapFilters.narrow,'the complete photo collection exceeds the ordinary small-selection budget');
+assert.ok(!MapFilters.loadError);
+assert.equal(MapFilters.promoted.size,MapFilters.total,'every mapped photo identity is retained regardless of currently visible tiles');
+assert.equal(MapFilters.objects.size,MAP_FILTER_DATA.buckets.filter(b=>MapFilters.bucketMatches(b)).reduce((n,b)=>n+b[3],0));
+assert.ok([...MapFilters.objects.values()].every(o=>SkyGuide.hasObservatoryPhoto(o)&&!o.atlasOnly));
+assert.ok(MapFilters.objects.has('opengc-ngc1365'),'unloaded photograph-bearing galaxy comes from its original tile');
+assert.ok(MapFilters.promoted.has('lmc')&&!MapFilters.promoted.has('barnard'),'actual observatory shots qualify, survey-only records do not');
+assert.equal(SkyPhotos.cache.size,0,'selecting the photo collection never fetches image metadata or pixels');
+const realPhotoPredicate=SkyGuide.hasObservatoryPhoto;
+SkyGuide.hasObservatoryPhoto=()=>{throw Error('Per-frame photo catalogue join');};
+for(const o of [...OBJECTS,...MapFilters.objects.values()])assert.equal(MapFilters.matches(o),MapFilters.anchor(o)||MapFilters.promoted.has(o.id));
+SkyGuide.hasObservatoryPhoto=realPhotoPredicate;
+const photoRevision=MAP_FILTER_DATA.photoRevision;MAP_FILTER_DATA.photoRevision='stale-photo-index';
+MapFilters.refreshSelection();assert.ok(!MapFilters.narrow,'a stale photo membership index cannot claim completeness');
+MAP_FILTER_DATA.photoRevision=photoRevision;
+MapFilters.change('all','photos','all');const obsoletePhotos=MapFilters.pending;
+MapFilters.change('all','galileo','all');await Promise.all([obsoletePhotos,MapFilters.pending]);
+assert.ok([...MapFilters.objects.values()].every(o=>MapFilters.matchesCollection(o,'galileo')),'late photo tile responses cannot repopulate another collection');
 assert.equal(JSON.stringify([...ExtendedCatalog.pinned.keys()]),pins,'filter references never pin expedition objects');
 assert.equal(JSON.stringify([state,OBJECTS.map(o=>[o.id,o.p3,o.d,o.apparentV])]),physical,'complete selection loading preserves physical catalogue and flight');
 console.log('PASS complete streamed selections, every scale/projection, glyph collisions, neighbour names, one galactic stellar icon and stale-load protection without expedition changes');

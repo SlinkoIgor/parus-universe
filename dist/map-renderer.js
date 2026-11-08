@@ -84,6 +84,69 @@ function galaxyProjection(g) {
   const center = screen(g);
   return { center, r: (g.diameterLy * 0.5 * width) / cam.span };
 }
+// Decorative morphology restored from the original chart. These strokes are
+// schematic, separate from sourced outlines, catalogue positions and picking.
+const GalaxyStructure = {
+  cache: new WeakMap(),
+  curves(g) {
+    const curves=[],ring=(radius,wave=null)=>curves.push({closed:true,speed:14,at:t=>{
+      const a=t*Math.PI*2,r=radius*(wave?1+.13*Math.sin(a*3+wave.ring)+.09*Math.cos(a*5):1);
+      return[Math.cos(a)*r,Math.sin(a)*r];
+    }}),line=(a,b)=>curves.push({speed:2,at:t=>a.map((v,i)=>v+(b[i]-v)*t)});
+    if(g.shape==='spiral'){
+      ring(.17);ring(.06);
+      const count=g.id==='milkyway'?4:2;
+      for(let arm=0;arm<count;arm++)curves.push({speed:6,at:t=>{
+        const r=.1+t*.9,a=t*5+arm*Math.PI*2/count;
+        return[Math.cos(a)*r,Math.sin(a)*r];
+      }});
+    }else if(g.shape==='elliptical'){
+      for(const radius of [.1,.22,.4,.65,.84])ring(radius);
+      if(g.id==='centaurus'){line([-.8,-.08],[.8,-.08]);line([-.8,.04],[.8,.04]);}
+    }else if(g.shape==='irregular'){
+      for(let i=0;i<3;i++)ring(.35+i*.2,{ring:i});
+      line([-.45,0],[.35,0]);
+    }
+    return curves;
+  },
+  projected(o,{mode=MapSlice.mode,centerZ=MapSlice.centerZ,halfThickness=MapSlice.halfThicknessAt(),tolerance=cam.span/width*.2,viewport=null}={}) {
+    const m=MapGeometry.model(o),g=o.galaxy;
+    if(!m||!g||!['disk','footprint','sphere'].includes(m.kind))return[];
+    // Unknown-depth size envelopes get a chart symbol at the catalogue plane.
+    // Known disk/optical axes use the very same XYZ basis as their outline.
+    const a=m.a||[1,0,0],b=m.b||[0,1,0],R=m.radius,S=m.minorRadius||R;
+    const lo=mode==='slice'?centerZ-halfThickness-o.p3[2]:-Infinity,hi=mode==='slice'?centerZ+halfThickness-o.p3[2]:Infinity;
+    if(m.kind==='sphere'&&(lo>0||hi<0))return[];
+    const level=Math.floor(Math.log2(Math.max(1e-20,tolerance))),key=JSON.stringify([g.shape,g.id,R,S,a,b,lo,hi,level,viewport]);
+    let cache=this.cache.get(o);if(!cache)this.cache.set(o,cache=new Map());
+    if(cache.has(key))return cache.get(key);
+    const paths=[];
+    for(const curve of this.curves(g)){
+      const at=t=>{const [x,y]=curve.at(t);return a.map((v,i)=>v*x*R+b[i]*y*S);};
+      const bounds=(l,h)=>{const v=at((l+h)/2),r=Math.max(R,S)*curve.speed*(h-l)/2;return[v[0]-r,-v[1]-r,v[0]+r,-v[1]+r];};
+      const times=MapGeometry.tessellate(t=>{const v=at(t);return{x:v[0],y:-v[1]};},0,1,32,2**level,viewport,bounds),vertices=times.map(at);
+      if(mode!=='slice')paths.push({closed:!!curve.closed,points:vertices.map(v=>({x:v[0],y:-v[1]}))});
+      else{
+        let path=null;
+        for(const pair of MapGeometry.clip3(vertices,lo,hi,false)){
+          const points=pair.map(v=>({x:v[0],y:-v[1]})),tail=path?.points.at(-1);
+          if(tail&&Math.hypot(tail.x-points[0].x,tail.y-points[0].y)<R*1e-10)path.points.push(points[1]);
+          else{path={closed:false,points};paths.push(path);}
+        }
+      }
+    }
+    cache.set(key,paths);while(cache.size>2)cache.delete(cache.keys().next().value);
+    return paths;
+  },
+  draw(o,center,scale,selected) {
+    // Avoid unreadable internal marks when the whole galaxy is only a glyph.
+    if(MapGeometry.model(o).radius*scale<12)return;
+    const pad=2,viewport=[(-pad-center.x)/scale,(-pad-center.y)/scale,(width+pad-center.x)/scale,(height+pad-center.y)/scale];
+    const paths=this.projected(o,{tolerance:.2/scale,viewport}).map(path=>({...path,points:path.points.map(p=>({x:center.x+p.x*scale,y:center.y+p.y*scale}))}));
+    ctx.save();ctx.setLineDash([]);ctx.strokeStyle=paint(selected?'#969696':'#b6b6b6');ctx.lineWidth=.85;
+    RegionMap.strokePaths(ctx,RegionMap.clipPaths(paths,2,false).runs);ctx.restore();
+  },
+};
 function drawGalaxyBackground() {
   for (const g of GALAXIES) {
     const body=object(g.id);if(!body||!MapDetails.visible(body,cam.span)||!ExtendedCatalog.matchesMap(body,true)||!MapGeometry.intersectsView(body,0,2))continue;
@@ -94,7 +157,8 @@ function drawGalaxyBackground() {
     const selected=g.id===state.selected||(g.id==='milkyway'&&state.selected==='sgr'),opacity=MapDetails.opacity(body,cam.span);
     ctx.save();ctx.globalAlpha=opacity;ctx.strokeStyle=paint(selected?'#555555':'#777777');ctx.lineWidth=1.1;ctx.setLineDash([3,5]);ctx.beginPath();
     const paths=geometry.paths.map(path=>({...path,points:path.points.map(p=>({x:center.x+p.x*scale,y:center.y+p.y*scale}))}));
-    RegionMap.strokePaths(ctx,RegionMap.clipPaths(paths,2).runs);ctx.restore();
+    RegionMap.strokePaths(ctx,RegionMap.clipPaths(paths,2).runs);
+    GalaxyStructure.draw(body,center,scale,selected);ctx.restore();
     MapLabels.contours.push({id:g.id,object:body,points,paths,closed:true,container:true});
     if(Math.max(box.w,box.h)>36&&Math.max(box.w,box.h)<Math.max(width,height)*6){
       const anchor=geometry.points.reduce((a,p)=>p.y>a.y?p:a,geometry.points[0]);

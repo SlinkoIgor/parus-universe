@@ -74,8 +74,12 @@ for(const id of ['sirius','procyon']){
 const oldSystems=ExtendedCatalog.systemList,oldLine=ctx.lineTo;let links=0;
 ExtendedCatalog.systemList=[...data.systems,{id:'audit-no-orbit',members:['wolf','ross'],primary:'wolf'}];ctx.lineTo=()=>links++;
 ExtendedCatalog.drawSystems();assert.equal(links,0);ctx.lineTo=oldLine;ExtendedCatalog.systemList=oldSystems;
-const photo=stellarSkyPhoto(object('hyg-118493'));assert.ok(photo.includes('archive.stsci.edu/cgi-bin/dss_search'));
-assert.ok(photo.includes('r='+object('hyg-118493').raDeg)&&photo.includes('d='+object('hyg-118493').decDeg));
+const photoObject=object('hyg-118493'),photo=stellarSkyPhoto(photoObject),preparedPhoto=SKY_DSS_DATA.core[photoObject.id];
+const photoURL=new URL(photo.match(/data-dss-src="([^"]+)"/)[1].replace(/&amp;/g,'&'));
+assert.equal(photoURL.hostname,'archive.stsci.edu');assert.equal(photoURL.pathname,'/cgi-bin/dss_search');
+assert.equal(SkyDSS.identifier(photoObject),preparedPhoto.input[2],'the photographic record belongs to this stellar component');
+assert.equal(Number(photoURL.searchParams.get('r')),preparedPhoto.position[0],'DSS uses the prepared photographic direction');
+assert.equal(Number(photoURL.searchParams.get('d')),preparedPhoto.position[1],'the simulation epoch cannot recenter an archival plate');
 assert.ok(photo.includes('J2000')&&photo.includes('10′ × 10′')&&photo.includes('Снимок сейчас недоступен'));
 assert.equal(stellarSkyPhoto({...object('sirius'),synthetic:true}),'');
 assert.ok(stellarOrbitFacts(gl).includes('долгота узла'));
@@ -116,7 +120,10 @@ for(const id of ['betelgeuse','hyg-101767','member-r136a1']){
  const o=object(id);assert.ok(o&&!data.auditTargets.includes(id),'real star beyond nearby selection');
  assert.ok(stellarSkyPhoto(o).includes('archive.stsci.edu'),'DSS is not restricted to nearby selection');
 }
-for(const bad of [{raDeg:360},{raDeg:-1},{decDeg:91},{decDeg:NaN}])assert.equal(stellarSkyPhoto({...object('sirius'),...bad}),'');
+for(const bad of [{raDeg:360},{raDeg:-1},{decDeg:91},{decDeg:NaN}]){
+ const gallery=stellarSkyPhoto({...object('sirius'),...bad});
+ assert.ok(!/data-photo="(?:dss|chart-wide|chart-close)"/.test(gallery),'invalid directions cannot create a sky chart or DSS field');
+}
 console.log('PASS '+movingTracks+' published tracks under the real simulation clock, pause/reload, whole-ellipse camera bounds in both modes and DSS outside the nearby selection');
 state=initial();state.selected='hyg-82565';state.catalogGeometry=MapLayout.version;state.catalogRevision='old';
 state.catalogObjects=[{id:'hyg-82565',kind:'galaxy',name:'Gl 644A',d:27000,p3:[27000,0,0],mapPosition:{x:27000,y:0},mapGeometry:MapLayout.version}];

@@ -3,7 +3,22 @@
 // Only the identity index is loaded at startup; publisher metadata is lazy.
 const SkyPhotos = {
   cache: new Map(), pending: new Map(), failed: new Set(),
+  surveys: new Set(SKY_PHOTO_INDEX.surveys||[]),
+  stellarDesignation(value) {
+    const text=String(value).normalize('NFKD').trim().replace(/^(?:NAME|V\*|\*)\s+/i,''),
+      match=text.match(/^(V\d+|[A-Za-zα-ω]+|\d+)(\d*)\s+([A-Za-z]+)(?:\s+([A-Z]))?$/),rules=SKY_PHOTO_INDEX.nameRules;
+    if(!match||!rules?.constellations[match[3].toLowerCase()])return '';
+    const [,name,number,con,component]=match,
+      greek=name.length>1&&name===name.toUpperCase()?null:rules.greek[name.toLowerCase()];
+    let prefix;
+    if(greek)prefix='bayer'+greek+number;
+    else if(/^(?:[A-Z]{1,2}|V\d+)$/.test(name)&&!number)prefix='var'+name.toLowerCase();
+    else if(/^\d+$/.test(name)&&!number)prefix='flam'+name;
+    else return '';
+    return prefix+rules.constellations[con.toLowerCase()]+(component||'').toLowerCase();
+  },
   key(s) {
+    const designation=this.stellarDesignation(s);if(designation)return designation;
     return String(s).trim().replace(/^(?:NAME|V\*|\*)\s+/i,'').toLowerCase()
       .replace(/messier/g,'m').replace(/gliese/g,'gj').replace(/\bgl\s*(?=\d)/g,'gj')
       .replace(/\b(ngc|ic|m|hip|hd|hr|gj)\s*0*(\d+)/g,'$1$2')
@@ -27,6 +42,9 @@ const SkyPhotos = {
       if(o.unresolvedSourcePhotometry)return [];
       names=[...(o.iauNames||[]),o.hip&&'HIP '+o.hip,o.hd&&'HD '+o.hd,
         ...this.ownNames(o).filter(s=>/^(?:HIP|HD|HR|GJ|Gl|2MASS|IRAS|TYC|LHS|Ross|Wolf|WASP|Kepler|TOI|TRAPPIST|K2)\s*[-\d]/i.test(s)||
+          // SIMBAD's explicitly typed own designation retains its component.
+          // Untyped search aliases such as Proxima's «α Cen» remain excluded.
+          /^(?:\*|V\*)\s+/.test(s)&&!!this.stellarDesignation(s)||
           // Plain proper names are useful for streamed HYG records. Generic
           // Bayer/system names and inherited host identifiers are excluded.
           /^[a-z][a-z'’ -]{3,}$/i.test(s)&&! /^(?:NAME|alpha|beta|gamma|delta|epsilon|alf|alp|bet|gam|del|eps)\b/i.test(s))];
@@ -38,7 +56,7 @@ const SkyPhotos = {
     }
     return [...new Set(names.filter(Boolean).map(s=>kind+':'+this.key(s)))];
   },
-  ids(o) { return [...new Set(this.keys(o).flatMap(k=>SKY_PHOTO_INDEX.targets[k]||[]))]; },
+  ids(o) { return [...new Set(this.keys(o).flatMap(k=>SKY_PHOTO_INDEX.targets[k]||[]))].sort((a,b)=>Number(this.surveys.has(a))-Number(this.surveys.has(b))); },
   publisher(id) { return id.match(/^astropix-([a-z0-9_]+)-/)?.[1]; },
   media(o) { return this.ids(o).map(id=>this.cache.get(this.publisher(id))?.[id]).filter(Boolean); },
   missing(o) { return [...new Set(this.ids(o).map(id=>this.publisher(id)).filter(p=>!this.cache.has(p)))]; },

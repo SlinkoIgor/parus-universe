@@ -7,6 +7,7 @@ const MapFilters = {
     'stellar-cluster', 'galaxy-cluster', 'structure', 'void', 'horizon'],
   collections: {
     all: ['Все объекты', ''],
+    photos: ['Красивые снимки', 'Объекты со снимками Hubble, Webb, ESO и других обсерваторий. Карты неба и обзорные поля DSS не учитываются.', ['home','star','pulsar','blackhole','quasar','nebula','galaxy','cluster','stellar-cluster','galaxy-cluster']],
     'naked-eye': ['Звёзды, видимые глазом', 'Каталожная яркость V ≤ 6 с Земли. Нужны тёмное небо и подходящая широта; неразрешённая пара не считается двумя видимыми звёздами.', ['star']],
     messier: ['Объекты Мессье · M1–M110', 'Туманности, скопления и галактики с номером Мессье. Записи без надёжного положения остаются в поиске; M40 — оптическая пара без единой дальности.', ['star', 'stellar-cluster', 'nebula', 'galaxy']],
     nearby: ['Соседи Солнца · до 25 св. лет', 'Звёзды с известной каталожной дальностью не более 25 световых лет от Солнца.', ['star', 'home']],
@@ -32,6 +33,11 @@ const MapFilters = {
   promoted: new Set(),
   narrow: false,
   limit: 300,
+  collectionLimits: {photos:2000},
+  selectionLimit() {
+    return this.activeGroup==='collections' && this.values('collections').length===1 ?
+      this.collectionLimits[this.values('collections')[0]] || this.limit : this.limit;
+  },
   revision: 0,
   options(group) {
     return group === 'classes' ? Object.keys(this.classNames) : Object.keys(this[group]).filter(k => k !== 'all');
@@ -77,6 +83,9 @@ const MapFilters = {
   matchesCollection(o, collection = this.collection) {
     switch (collection) {
       case 'all': return true;
+      // Complete selections already carry their reviewed catalogue identities.
+      case 'photos': return !o?.synthetic && (this.narrow && this.collection==='photos' ?
+        this.promoted.has(o?.id) : SkyGuide.hasObservatoryPhoto(o));
       case 'naked-eye': return o.kind === 'star' && !o.synthetic && !o.unresolvedSourcePhotometry &&
         Number.isFinite(o.apparentV) && o.apparentV <= 6;
       // Use the object's own designation: M87* is not Messier 87, nor is the Crab pulsar M1.
@@ -134,10 +143,14 @@ const MapFilters = {
     if (!data || data.version !== 3 || data.catalogRevision !== EXTENDED_BOOT.revision ||
         data.collections.join() !== this.options('collections').join() ||
         data.catalogs.join() !== this.options('catalogs').join()) return;
+    if (this.activeGroup==='collections' && this.values('collections').includes('photos') &&
+        (data.photoRevision!==SKY_PHOTO_INDEX.revision || data.guideRevision!==SKY_GUIDE_DATA.revision)) return;
     const buckets = data.buckets.filter(b => this.bucketMatches(b));
     const core = OBJECTS.filter(o => !o.atlasOnly && !o.supersededBy && !MapGeometry.unlocated(o) && !this.anchor(o) && this.matches(o));
     this.total = core.length + buckets.reduce((n,b) => n + b[3], 0);
-    if (this.total > Math.min(this.limit, data.limit)) return;
+    const limit=this.selectionLimit(), indexedLimit=this.activeGroup==='collections' && this.values('collections').length===1 ?
+      data.collectionLimits?.[this.values('collections')[0]] || data.limit : data.limit;
+    if (this.total > Math.min(limit,indexedLimit)) return;
     this.narrow = true;
     const refs = buckets.flatMap(b => b[4] || []);
     const requested = new Set(refs.map(r => r[0]));

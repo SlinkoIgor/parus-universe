@@ -67,9 +67,14 @@ for (const e of data.entries) {
 }
 assert.deepEqual(data.entries.filter(e=>!e.defaultSelected).map(e=>e.id).sort(),['sdss-superclusters','sdss-voids']);
 assert.ok(entries.get('phat-ap').defaultSelected,'atlas-only source stays enabled despite having no mapped rows');
-vm.runInContext(['map-filter-data','map-filters'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
+vm.runInContext(['sky-guide-data','sky-photos-index','sky-photos','sky-guide','map-filter-data','map-filters'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
 const filterData = vm.runInContext('MAP_FILTER_DATA',c);
 const coreIds = new Set(vm.runInContext('OBJECTS.map(o=>o.id)',c));
+const photoMask=1<<filterData.collections.indexOf('photos');
+const expectedPhotoIds=objects.filter(o=>!coreIds.has(o.id)&&!o.atlasOnly&&!c.MapGeometry.unlocated(o)&&c.SkyGuide.hasObservatoryPhoto(o)).map(o=>o.id).sort();
+const photoBuckets=filterData.buckets.filter(b=>b[1]&photoMask);
+assert.deepEqual([...photoBuckets.flatMap(b=>b[4].map(r=>r[0]))].sort(),expectedPhotoIds,'every mapped photo identity has a complete original-tile reference');
+assert.equal(photoBuckets.reduce((n,b)=>n+b[3],0),expectedPhotoIds.length);
 for (const e of data.entries) {
   const expected = objects.filter(o=>!coreIds.has(o.id)&&!o.atlasOnly&&!c.MapGeometry.unlocated(o)&&registry.matches(o,e.id)).length;
   const actual = filterData.buckets.filter(b=>b[2].includes(e.id)).reduce((n,b)=>n+b[3],0);

@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import {buildCatalogRegistry} from './build-catalog-registry.mjs';
 
 const {c,rows,core,pointer,manifest} = await buildCatalogRegistry();
-vm.runInContext(['map-collection-history','map-filters']
+vm.runInContext(['sky-guide-data','sky-photos-index','sky-photos','sky-guide','map-collection-history','map-filters']
   .map(n => fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
 const filters = c.MapFilters, coreIds = new Set(core.map(o => o.id));
 const catalog = vm.runInContext('ExtendedCatalog',c);
@@ -26,12 +26,16 @@ for (const row of rows) {
   let bucket = buckets.get(key);
   if (!bucket) buckets.set(key,bucket=[kind,...masks,0,[],defaultHidden]);
   bucket[3]++;
-  if (bucket[3] <= filters.limit) {
+  const referenceLimit=Math.max(filters.limit,...filters.options('collections').map((k,i)=>
+    masks[0] & (1<<i) ? filters.collectionLimits[k] || filters.limit : filters.limit));
+  if (bucket[3] <= referenceLimit) {
     if (!files.has(o.id)) throw Error('Missing leaf reference: '+o.id);
     bucket[4].push([o.id,files.get(o.id)]);
   } else bucket[4] = null;
 }
 const data = {version:3,catalogRevision:manifest.revision,limit:filters.limit,
+  collectionLimits:filters.collectionLimits,
+  photoRevision:vm.runInContext('SKY_PHOTO_INDEX.revision',c),guideRevision:vm.runInContext('SKY_GUIDE_DATA.revision',c),
   collections:filters.options('collections'),catalogs:filters.options('catalogs'),
   buckets:[...buckets.values()].sort((a,b) => a.slice(0,3).join('|').localeCompare(b.slice(0,3).join('|')) || Number(a[5])-Number(b[5]))};
 const content = "'use strict';\n// Generated membership counts; full records remain in their original catalogue tiles.\nconst MAP_FILTER_DATA="+JSON.stringify(data)+';\n';

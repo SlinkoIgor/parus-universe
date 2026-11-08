@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';const {context,run}=await import('data:text/javascript,'+encodeURIComponent(harness));
+const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';const {context,run}=await import('data:text/javascript,'+encodeURIComponent(harness)+'#atlas-transitions');
 context.testHTML=fs.readFileSync('dist/index.html','utf8');
 await run(`(async()=>{
 state=initial();Cosmology.sync(state);resize();
@@ -11,17 +11,17 @@ const place=(o,x,y=o.mapPosition.y)=>{Object.assign(o,Space.point([x,-y,0]));o.d
 for(const o of samples)place(o,o.mapPosition.x);
 OBJECTS.splice(0,OBJECTS.length);GALAXIES.splice(0,GALAXIES.length);ExtendedCatalog.visible=samples;ExtendedCatalog.pinned.clear();ExtendedCatalog.pinned.set(samples[0].id,samples[0]);ExtendedCatalog.pinned.set(samples[1].id,samples[1]);cam={x:0,y:0,span:1000};
 for(const [f,expected] of [['star',[0]],['pulsar',[1]],['blackhole',[2]],['quasar',[3]],['nebula',[4]],['galaxy',[5]],['stellar-cluster',[6]],['galaxy-cluster',[7]],['structure',[8,10,11]],['void',[9]],['horizon',[12]],['all',samples.map((_,i)=>i)]]){
- filter=f;state.current=samples[0].id;state.selected=samples[1].id;MapLabels.begin();drawObjects();ExtendedCatalog.draw();
+ MapFilters.change(f,'all','all',false);state.current=samples[0].id;state.selected=samples[1].id;MapLabels.begin();drawObjects();ExtendedCatalog.draw();
  const ids=new Set(hitObjects.map(h=>h.o.id));assert.deepEqual([...ids].sort(),expected.map(i=>samples[i].id).sort(),'foreground, selected/current and streamed map filter '+f);
  assert.equal(state.selected,samples[1].id,'filter changes display, not navigation');
 }
 OBJECTS.splice(0,OBJECTS.length,...originalObjects);GALAXIES.splice(0,GALAXIES.length,...originalGalaxies);ExtendedCatalog.visible=[];ExtendedCatalog.pinned.clear();
 for(const f of ['star','pulsar','blackhole','quasar','galaxy','stellar-cluster','galaxy-cluster','structure','void']){
- filter=f;cam={x:0,y:0,span:7e8};MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawObjects();ExtendedCatalog.draw();
+ MapFilters.change(f,'all','all',false);cam={x:0,y:0,span:7e8};MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawObjects();ExtendedCatalog.draw();
  assert.ok(hitObjects.every(h=>ExtendedCatalog.matchesMap(h.o)));assert.ok(RegionMap.hits.every(h=>ExtendedCatalog.matchesMap(h.o)));
  if(f!=='galaxy')assert.ok(!MapLabels.queue.some(q=>q.key.startsWith('galaxy-')));
 }
-filter='all';ExtendedCatalog.transitions.clear();ExtendedCatalog.cache=new Map();
+MapFilters.change('all','all','all',false);ExtendedCatalog.transitions.clear();ExtendedCatalog.cache=new Map();
 const a=samples[0],b=samples[1],c=samples[2];ExtendedCatalog.adoptCut([a,b],0);ExtendedCatalog.advanceVisibility(1000);assert.equal(ExtendedCatalog.transitions.get(a.id).alpha,1);
 place(b,-1e12);ExtendedCatalog.adoptCut([a,c],1000);assert.equal(ExtendedCatalog.transitions.get(a.id).alpha,1,'shared representative never blinks');assert.equal(ExtendedCatalog.transitions.get(b.id).alpha,1,'old point retained');assert.equal(ExtendedCatalog.transitions.get(c.id).alpha,0,'new point fades in');
 ExtendedCatalog.advanceVisibility(1250);const oldAlpha=ExtendedCatalog.transitions.get(b.id).alpha;assert.ok(oldAlpha>0&&oldAlpha<1);assert.ok(ExtendedCatalog.transitions.get(c.id).alpha>0&&ExtendedCatalog.transitions.get(c.id).alpha<1);

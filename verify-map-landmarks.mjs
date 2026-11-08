@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';
-const {context,run}=await import('data:text/javascript,'+encodeURIComponent(harness));
+const {context,run}=await import('data:text/javascript,'+encodeURIComponent(harness)+'#map-landmarks');
 const boot=run('MAP_LAYER_BOOT'),files=new Map();
 context.loadLayers=file=>{if(!files.has(file))files.set(file,JSON.parse(fs.readFileSync('dist/'+boot.dataRoot+'/'+file)));return files.get(file);};
 run(`{
-state=initial();state.expansion=false;Cosmology.sync(state);filter='all';width=1440;height=1000;MapLayers.active=true;
+state=initial();state.expansion=false;Cosmology.sync(state);MapFilters.change('all','all','all',false);width=1440;height=1000;MapLayers.active=true;
 const landmarkCoordinates=JSON.stringify(OBJECTS.map(o=>[o.id,o.p3,o.mapPosition]));
 function settleLandmarkLayers(){MapLayers.lastUpdate=-Infinity;for(const files of MapLayers.filesForView(cam,width,height).values())for(const file of files)if(!MapLayers.cache.has(file))MapLayers.cache.set(file,loadLayers(file).map(r=>ExtendedCatalog.decode(r)));MapLayers.update(performance.now());}
 function landmarkChart(){MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawHorizonBoundary();drawReachability();drawObjects();ExtendedCatalog.draw();drawShip(0);MapLabels.draw();return hitObjects.filter(h=>h.sparse).map(h=>h.o.id);}
@@ -20,9 +20,12 @@ for(const id of sparseStars){assert.equal(MapDetails.visible(object(id),cam.span
 const standard=()=>JSON.stringify({points:hitObjects.filter(h=>!h.sparse).map(h=>h.o.id),regions:RegionMap.hits.map(h=>h.o.id),labels:MapLabels.placed.filter(q=>!MapLabels.queue.find(l=>l.key===q.key)?.sparse)});
 landmarkChart();const withLandmarks=standard(),originalLandmark=MapDetails.landmark;MapDetails.landmark=()=>false;landmarkChart();assert.equal(standard(),withLandmarks);MapDetails.landmark=originalLandmark;
 for(const span of [129000,130000,131000]){cam={x:0,y:0,span};settleLandmarkLayers();landmarkChart();assert.equal(hitObjects.filter(h=>h.o.kind==='star').length,0,'no stellar cloud returns on the Milky Way overview');assert.ok(hitObjects.some(h=>h.o.id==='sol'),'home remains the sole stellar reference');}
-filter='structure';cam={x:0,y:0,span:1.15e11};settleLandmarkLayers();landmarkChart();assert.ok(!hitObjects.some(h=>h.sparse),'class filters also apply to exceptions');
-filter='galaxy';settleLandmarkLayers();landmarkChart();assert.ok(hitObjects.some(h=>h.o.id==='mom-z14'));assert.ok(hitObjects.every(h=>h.o.kind==='galaxy'));
-filter='all';cam={x:0,y:0,span:2500};settleLandmarkLayers();MapLayers.admitted.clear();MapLayers.ready.set('stellar-cluster',false);landmarkChart();assert.ok(!hitObjects.some(h=>h.sparse&&h.o.kind==='star'),'exceptions wait for the full coarser context');
+MapFilters.setGroup('classes',['structure']);cam={x:0,y:0,span:1.15e11};settleLandmarkLayers();landmarkChart();assert.ok(!hitObjects.some(h=>h.sparse),'class filters also apply to exceptions');
+MapFilters.setGroup('classes',['galaxy']);settleLandmarkLayers();landmarkChart();
+for(const id of ['mom-z14','jades-z14'])assert.ok(hitObjects.some(h=>h.o.id===id),id+' remains visible with the galaxy class selected');
+assert.ok(hitObjects.some(h=>h.o.id==='sol'),'the home reference survives an explicit class filter');
+assert.ok(hitObjects.every(h=>MapFilters.anchor(h.o)||h.o.kind==='galaxy'),'only galaxies and permanent references survive the galaxy filter');
+MapFilters.change('all','all','all',false);cam={x:0,y:0,span:2500};settleLandmarkLayers();MapLayers.admitted.clear();MapLayers.ready.set('stellar-cluster',false);landmarkChart();assert.ok(!hitObjects.some(h=>h.sparse&&h.o.kind==='star'),'exceptions wait for the full coarser context');
 MapLayers.ready.set('stellar-cluster',true);
 cam={x:0,y:0,span:1e9};settleLandmarkLayers();MapLayers.admitted.clear();MapLayers.ready.set('filament',false);assert.equal(MapLayers.admits(object('polaris')),false,'landmarks wait for visible filaments');assert.equal(MapLayers.admits(object('omega')),false,'curated managed clusters also wait for visible filaments');
 width=390;assert.equal(MapLayers.admits(object('polaris')),true,'resize hides the filament class without blocking landmarks');width=1440;assert.equal(MapLayers.admits(object('polaris')),true,'resize cannot erase an already admitted landmark');

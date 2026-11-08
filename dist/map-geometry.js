@@ -27,7 +27,7 @@ const MapGeometry={
   const r=o.region||o.regionData,g=o.galaxy,angular=o.kind==='galaxy'&&o.angularMajorArcmin>0&&o.d>0,diameter=g?.diameterLy||(angular?2*o.d*Math.tan(o.angularMajorArcmin*Math.PI/21600):o.diameterLy);
   if(r?.sizeUnknown||!r&&!g&&!angular&&(o.sizeEstimated||o.sizeUnknown))return null;
   if(r?.shape==='polyline')return r.offsets3?.length===r.points.length?{kind:'spine',offsets:r.offsets3,source:r.url,note:r.note}:null;
-  if(o.id==='milkyway')return{kind:'disk',a:[1,0,0],b:[0,1,0],radius:diameter/2,source:o.coordinateSource,note:'Модель диска в галактической плоскости; диаметр — характерный оптический размер. Спиральные рукава не восстановлены.'};
+  if(o.id==='milkyway')return{kind:'disk',a:[1,0,0],b:[0,1,0],radius:diameter/2,source:o.coordinateSource,note:'Модель диска в галактической плоскости; диаметр — характерный оптический размер. Спиральные рукава показаны схематично.'};
   const disk=this.models[o.id];
   if(o.kind==='galaxy'&&disk&&diameter>0){const basis=this.basis(o,disk.positionAngleDeg),i=disk.inclinationDeg*Math.PI/180;
    if(basis)return{kind:'disk',a:basis.major,b:basis.minor.map((v,j)=>v*Math.cos(i)-basis.line[j]*Math.sin(i)),radius:diameter/2,source:disk.reference,note:disk.note+' Контур — круговая модель диска оптического масштаба, не измеренная граница.'};

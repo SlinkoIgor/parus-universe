@@ -24,13 +24,13 @@ API = 'https://www.astropix.org/advanced_search.json'
 BANDS = {'Optical': 'оптика', 'Infrared': 'ИК', 'Ultraviolet': 'УФ', 'X-ray': 'рентген',
          'Gamma-ray': 'гамма', 'Radio': 'радио', 'Millimeter': 'миллиметровый диапазон'}
 # AVM's Observation tag is necessary, but old archives sometimes misclassify
-# comparison plates, finder fields, spectra and artwork. Exclude these too.
-REJECT = re.compile(r'chart|annotat|\blabel(?:led|ed|s)?\b|spectrum|spectra\b|spectroscopic|'
-                    r'artist|illustrat|diagram|simulation|schematic|\bgraph\b|\bplot\b|'
-                    r'comparison|compared|\bmontage\b|\bcollage\b|\bDSS\b|digitized sky|'
-                    r'digitised sky|location of|positions? of|zoom(?:ing)? (?:in|into)|'
+# comparison plates, annotated charts, spectra and artwork. Exclude these too.
+REJECT = re.compile(r'\bcharts?\b|\bannotat\w*|\blabel(?:led|ed|s)?\b|\bspectrum\b|spectra\b|spectroscopic|'
+                    r'\bartists?\b|\billustrat\w*|diagram|simulation|schematic|\bgraph\b|\bplot\b|'
+                    r'comparison|compared|\bmontage\b|\bcollage\b|location of|positions? of|zoom(?:ing)? (?:in|into)|'
                     r'light curve|evolution of|timeline|3-d |3d |reconstruction of the orbit', re.I)
 PLOT = re.compile(r'measurements|phase.folded|frequency comb|first fringes|observations\+model|\bmodel\b', re.I)
+SURVEY = re.compile(r'\bDSS\b|digit[ai][sz]ed sky survey', re.I)
 
 
 def clean(value):
@@ -41,19 +41,74 @@ def sequence(values):
     return list(dict.fromkeys(clean(v) for v in values or [] if clean(v)))
 
 
+def rejection_reason(row):
+    """Keep every rejection auditable, instead of treating absent photos as absent observations."""
+    title, caption = clean(row.get('title')), clean(row.get('description'))
+    if row.get('image_type') != 'Observation':
+        return 'not-observation'
+    for field in ['object_name', 'image_credit', 'usage_rights', 'title']:
+        if not (sequence(row.get(field)) if field == 'object_name' else clean(row.get(field))):
+            return 'missing-' + field
+    # These are the clean photographs we want, not the annotated variants.
+    filtered_title = re.sub(r'\b(?:unannotated|non[- ]annotated|not[- ]annotated|without annotations?)\b', '', title, flags=re.I)
+    if REJECT.search(filtered_title) or PLOT.search(filtered_title):
+        return 'non-photo-title'
+    if any(re.fullmatch(r'spectrum|spectra|chart', n, re.I) for n in sequence(row.get('object_name'))):
+        return 'non-photo-identifier'
+    if re.search(r'error bars|vertical axis|this (?:chart|graph|plot)|'
+                 r'(?:picture|image|chart).{0,55}(?:part of a spectrum|represents the spectrum)|'
+                 r'first raw data.{0,80}\bspectrum\b', caption, re.I):
+        return 'plot-or-spectrum'
+    if re.search(r'^(?:this (?:image|illustration|artist)|an? artist).*?(?:illustration|impression|concept)', caption, re.I):
+        return 'illustration-or-mixed-artwork'
+    if not re.fullmatch(r'[a-z0-9_-]+', row.get('publisher_id', '')) or not re.fullmatch(r'[A-Za-z0-9_.-]+', row.get('image_id', '')):
+        return 'invalid-archive-path'
+    return None
+
+
+def survey_image(row):
+    # A mere reference to DSS in a caption does not make a Hubble/VLT photo a
+    # survey plate. Check the actual facility or an explicit opening statement
+    # about this image (e.g. the DSS release accompanying Hubble's HD 140283 work).
+    facilities = sequence(row.get('telescope_facility'))
+    opening = clean(row.get('description')).split('. ', 1)[0]
+    return bool(facilities and all(SURVEY.search(f) for f in facilities) or
+                re.match(r'^This (?:is|image|picture)\b', opening, re.I) and SURVEY.search(opening) or
+                not facilities and SURVEY.search(clean(row.get('title'))))
+
+
+def primary_survey_stars(row):
+    """Repair planet-tagged finder fields only when the title names the star.
+
+    Some ESO releases tag a photograph of the star's field with its planet's
+    AVM name. Never strip a planet suffix on a direct planet image. Retain the
+    original AVM identifiers and attach the explicit primary-title evidence.
+    """
+    title, opening = clean(row.get('title')), clean(row.get('description')).split('. ', 1)[0]
+    names = sequence(row.get('object_name'))
+    if any(not re.fullmatch(r'.+ [b-z]', name) for name in names):
+        return []
+    if not survey_image(row) or not re.search(r'\b(?:sky|image|field|view)\b.*\baround\b', title, re.I) or not re.search(r'\bstar\b|\bdwarf\b', title + ' ' + opening, re.I):
+        return []
+    result = []
+    for name in names:
+        match = re.fullmatch(r'(.+) [b-z]', name)
+        if not match:
+            continue
+        host = match[1]
+        pattern = re.escape(host.replace('’', "'")).replace(r'\ ', r'\s+').replace("'", "['’]")
+        if re.search(r'(?<![\w])' + pattern + r'(?![\w]|\s+[b-z]\b)', title, re.I):
+            result.append(dict(identifier=host, kind='star', title=title, openingCaption=opening,
+                               method='DSS stellar field: planetary AVM tag, explicitly named star in primary title'))
+    return result
+
+
 def convert(row):
     title, caption = clean(row.get('title')), clean(row.get('description'))
     names = sequence(row.get('object_name'))
     credit, rights = clean(row.get('image_credit')), clean(row.get('usage_rights'))
     publisher, image = row.get('publisher_id', ''), row.get('image_id', '')
-    if (row.get('image_type') != 'Observation' or not names or not credit or not rights or not title
-            or REJECT.search(title) or PLOT.search(title)
-            or any(re.fullmatch(r'spectrum|spectra|chart', n, re.I) for n in names)
-            or re.search(r'digit[ai][sz]ed sky survey|\bDSS\b|error bars|vertical axis|this (?:chart|graph|plot)|'
-                         r'(?:picture|image|chart).{0,55}(?:part of a spectrum|represents the spectrum)', caption, re.I)
-            or re.search(r'^(?:this (?:image|illustration|artist)|an? artist).*?(?:illustration|impression|concept)', caption, re.I)
-            or not re.fullmatch(r'[a-z0-9_-]+', publisher)
-            or not re.fullmatch(r'[A-Za-z0-9_.-]+', image)):
+    if rejection_reason(row):
         return None
     source = row.get('reference_url') or ''
     if source.startswith('http://'):
@@ -63,6 +118,7 @@ def convert(row):
     facilities = sequence(row.get('telescope_facility'))
     instruments = sequence(row.get('telescope_instrument'))
     bands = sequence(row.get('spectral_band'))
+    survey, primary = survey_image(row), primary_survey_stars(row)
     # AstroPix preserves AVM identifier case in JSON, but its archive paths
     # are lowercase (notably WISE and NRAO). This applies to every publisher.
     asset = image.lower()
@@ -71,8 +127,9 @@ def convert(row):
     # the scientific catalogue and independently of finder-chart eligibility.
     return dict(id=f'astropix-{publisher}-{image}', publisher=publisher, imageId=image,
                 identifiers=names, subjects=sequence(row.get('subject')),
-                title=names[0] + ' — ' + (' / '.join(facilities[:2]) or clean(row.get('publisher'))),
+                title=title,
                 archiveTitle=title,
+                mediaKind='survey' if survey else 'observation', primaryStellarIdentifications=primary,
                 instrument=' / '.join(facilities[:4]) or clean(row.get('publisher')),
                 detectors=instruments,
                 band=(' / '.join(BANDS.get(b, b) for b in bands) or 'Архивное наблюдение') + ' · обработанные цвета',
@@ -80,9 +137,11 @@ def convert(row):
                 url=f'https://www.astropix.org/archive/{publisher}/{asset}/{publisher}_{asset}_1280.jpg',
                 source=source, archive=f'https://www.astropix.org/image/{publisher}/{image}',
                 credit=credit, rights=rights,
-                description='Наблюдение обсерватории: объект или его окружение. Кадр может показывать только часть объекта. Цвета зависят от фильтров и обработки; это не вид в окуляре.',
+                description=('Оптический снимок из архива DSS, опубликованный обсерваторией. Цвета зависят от фильтров и обработки; это не вид в окуляре.' +
+                             (' Звезда показана в трёх положениях по разным экспозициям — видно её собственное движение.' if survey and re.search(r'three different exposures', caption, re.I) else '')
+                             if survey else 'Наблюдение обсерватории: объект или его окружение. Кадр может показывать только часть объекта. Цвета зависят от фильтров и обработки; это не вид в окуляре.'),
                 sourceCaption=caption[:1800],
-                identification=dict(method='AVM Subject.Name and Subject.Category; no free-text or sky-proximity join',
+                identification=dict(method='AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join',
                                     type=row['image_type'], astropixId=row['astropix_id'],
                                     metadataSha256=hashlib.sha256(json.dumps(row, sort_keys=True).encode()).hexdigest()))
 
@@ -127,7 +186,9 @@ def main():
     assert len(records) >= 5000 and len({p['id'] for p in records}) == len(records)
     result = dict(version=1, source='https://www.astropix.org/page/developers',
                   imagePolicy='https://www.astropix.org/page/image_policies',
-                  inputCount=len(rows), pages=pages, records=sorted(records, key=lambda p: p['id']))
+                  inputCount=len(rows), pages=pages,
+                  filterSummary=dict(accepted=len(records), rejected=dict(sorted(Counter(rejection_reason(q) for q in rows if rejection_reason(q)).items()))),
+                  records=sorted(records, key=lambda p: p['id']))
     temporary = args.output.with_suffix('.tmp')
     temporary.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
     temporary.replace(args.output)

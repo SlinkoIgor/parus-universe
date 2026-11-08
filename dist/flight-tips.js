@@ -10,7 +10,6 @@ const FlightTips = {
     {id:'double-click', learnable:true, text:'Двойной клик запускает полёт к объекту. Если маршрут уже задан, объект становится его последней точкой. Во время полёта двойной клик добавляет следующий участок.'},
     {id:'shift-route', learnable:true, text:'Чтобы построить маршрут из нескольких точек, удерживайте Shift и выбирайте объекты на карте.'},
     {id:'black-holes', learnable:true, text:'Чёрные дыры можно использовать для гравитационных манёвров.'},
-    {id:'pulsars', learnable:true, text:'Пульсары можно использовать для возвращения к Солнцу.'},
     {id:'supernova', learnable:true, text:'Для перелетов на длинные расстояния используйте "взрыв сверхновой". Звезда при этом будет уничтожена.'},
     {id:'collector', text:'Коллектор собирает свет звезды и направляет его узким пучком на парус.'},
     {id:'gas-collection', text:'Во время торможения парус собирает межзвездный газ в топливный бак.'},
@@ -54,21 +53,12 @@ const FlightTips = {
     }
     return b;
   },
-  isPulsarReturn(f, previous) {
-    if (f?.target !== 'sol') return false;
-    const source = object(f.fromId);
-    return source?.kind === 'pulsar' || object(source?.arrivalHost)?.kind === 'pulsar' ||
-      (previous?.target === f.fromId && object(previous.requestedTarget)?.kind === 'pulsar');
-  },
   restoreProgress(saved) {
     const p = saved.flightTips = this.normalize(saved.flightTips), f = saved.flight;
     // Infer knowledge only from actions that existing saves can actually prove.
     if ((saved.phase === 'flyby' && object(f?.target)?.kind === 'blackhole' && f?.encounter?.plan) ||
         saved.journal?.some(entry => entry.text?.startsWith('Пролёт: ')))
       p.used['black-holes'] = true;
-    const history = saved.flightHistory || [];
-    if (history.some((leg, i) => this.isPulsarReturn(leg, history[i - 1])) ||
-        this.isPulsarReturn(f, history.at(-1))) p.used.pulsars = true;
     if (saved.destroyed?.some(id => id !== 'sol')) p.used.supernova = true;
     p.used = this.known(p.used);
     if (f?.flightTip && !this.entries.some(t => t.id === f.flightTip.id && p.shown[t.id] > 0))
@@ -86,7 +76,6 @@ const FlightTips = {
   },
   noteLaunch() {
     state.flight.noticeElapsed = 0;
-    if (this.isPulsarReturn(state.flight, state.flightHistory.at(-1))) this.use('pulsars');
   },
   elapsed(f) {
     if (!f) return 0;

@@ -97,7 +97,10 @@ for(const mode of ['full','radial'])for(const o of [m31,m87,object('cygnus'),gai
  MapSlice.mode=mode;cam={...MapLayout.project(o),span:Math.min(o.population==='supermassive'?1e6:1000,MapDetails.maxSpan(o)*.5)};cameraGoal=null;
  MapLabels.begin();drawGalaxyBackground();RegionMap.draw();drawObjects();MapLabels.draw();
  assert.ok(hitObjects.some(h=>h.o.id===o.id),'visible glyph: '+mode+'/'+o.id);
- assert.equal(MapLabels.placed.some(q=>q.key==='object-'+o.id),!!MapDetails.mapLabelName(o,o.id===state.selected),'caption follows proper-name/selection policy: '+mode+'/'+o.id);
+ const hasCaption=MapLabels.placed.some(q=>q.key==='object-'+o.id);
+ if(MapDetails.mapLabelName(o,o.id===state.selected))assert.ok(hasCaption,'proper-name/selection caption: '+mode+'/'+o.id);
+ // Sparse numeric captions still yield to collisions, including the host name.
+ else if(hasCaption)assert.ok(MapAnnotations.sparseView(),'numeric captions require a clear sparse view: '+mode+'/'+o.id);
  if(o.parentGalaxy){const p=screen(o),first=hitObjects.find(h=>Math.hypot(h.p.x-p.x,h.p.y-p.y)<1e-8);assert.equal(first.o.id,o.id,'nucleus wins picking at the shared centre');}
  const span=MapDetails.maxSpan(o)*width/1440,limits=[1.05,1,.95,.85,.75,.3].map(f=>MapDetails.opacity(o,span*f));assert.equal(limits[0],0);assert.equal(limits.at(-1),1);
  for(let i=1;i<limits.length;i++)assert.ok(limits[i]>=limits[i-1]);

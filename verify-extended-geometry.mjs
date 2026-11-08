@@ -22,9 +22,9 @@ const summary=run(`(()=>{
   counts[m.kind]=(counts[m.kind]||0)+1;const family=MapDetails.group(o);(families[family]??={})[m.kind]=((families[family]||{})[m.kind]||0)+1;
   if(m.kind==='footprint')assert.ok(Number.isFinite(o.positionAngleDeg),'never substitute PA=0 for an unknown angle');
   if(m.kind==='sphere')assert.match(m.note,/не восстановлен/,'a size model must disclose unknown shape');
-  for(const mode of ['full','radial']){const g=MapGeometry.projected(o,{mode,slice:false,tolerance:1000,steps:96}),b=MapGeometry.indexBounds(o,mode);assert.ok(g.bounds[0]>=b[0]-1e-4&&g.bounds[1]>=b[1]-1e-4&&g.bounds[2]<=b[2]+1e-4&&g.bounds[3]<=b[3]+1e-4,'conservative index contains source geometry: '+o.id+' '+mode);}
+  const b=MapGeometry.indexBounds(o);
+  for(const mode of ['full','radial']){const g=MapGeometry.projected(o,{mode,slice:false,tolerance:1000,steps:96});assert.ok(g.bounds[0]>=b[0]-1e-4&&g.bounds[1]>=b[1]-1e-4&&g.bounds[2]<=b[2]+1e-4&&g.bounds[3]<=b[3]+1e-4,'conservative local bounds contain source geometry in every projection: '+o.id+' '+mode);}
   assert.deepEqual(MapGeometry.projected(o,{mode:'radial',slice:false,tolerance:1000,steps:96}).paths,MapGeometry.projected(o,{mode:'full',slice:false,tolerance:1000,steps:96}).paths,'radial translation preserves every local shape: '+o.id);
-  assert.deepEqual(MapGeometry.indexBounds(o,'full'),MapGeometry.indexBounds(o,'radial'));
   if(m.kind==='spine'){
    const r=o.region;assert.equal(r.offsets3.length,r.points.length);spines.push(o);sourceVertices+=r.offsets3.length;
    // Compare source XY vertices and edges directly: anchor placement must

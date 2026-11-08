@@ -1,0 +1,448 @@
+{
+  "version": 1,
+  "description": "Selected original API fields for regression checks; not a complete metadata record. Production metadata SHA-256 uses the full API row.",
+  "cases": [
+    {
+      "source": "https://www.astropix.org/image/eso/eso1837d",
+      "expectedRejection": null,
+      "input": {
+        "astropix_id": 21406,
+        "title": "Widefield image of the sky around Barnard’s Star showing its motion",
+        "description": "This wide-field image shows the surroundings of the red dwarf known as Barnard’s Star in the constellation of Ophiuchus (the Serpent-Bearer). This picture was created from material forming part of the Digitized Sky Survey 2. The centre of the image shows Barnard’s Star captured in three different exposures. The star is the fastest moving star in the night sky and its large apparent motion can be seen as its position changes between successive observations — shown in red, yellow and blue.",
+        "object_name": [
+          "Barnard's Star b"
+        ],
+        "image_credit": "ESO/Digitized Sky Survey 2 Acknowledgement: Davide De MartinE — Red Dots",
+        "usage_rights": "Creative Commons Attribution 4.0 International License",
+        "publisher_id": "eso",
+        "image_id": "eso1837d",
+        "publisher": "European Southern Observatory",
+        "reference_url": "https://www.eso.org/public/images/eso1837d/",
+        "telescope_facility": [
+          "Digitized Sky Survey 2",
+          "Digitized Sky Survey 2",
+          "Digitized Sky Survey 2"
+        ],
+        "telescope_instrument": [
+          "None",
+          "None",
+          "None"
+        ],
+        "spectral_band": [
+          "Optical",
+          "Optical",
+          "Optical"
+        ],
+        "image_release_date": "2018-11-14T19:00:00",
+        "image_type": "Observation",
+        "subject": [
+          "B.3.7.1"
+        ]
+      }
+    },
+    {
+      "source": "https://www.astropix.org/image/eso/eso1517c",
+      "expectedRejection": null,
+      "input": {
+        "astropix_id": 16217,
+        "title": "Wide-field view of the sky around the star 51 Pegasi",
+        "description": "This image shows the sky around the star 51 Pegasi in the northern constellation of Pegasus (The Winged Horse).  In 1995 the first exoplanet to be discovered was detected orbiting this star. Twenty years later this object was also the first exoplanet to be be directly detected spectroscopically in visible light. This image was created from photographic material forming part of the Digitized Sky Survey 2.",
+        "object_name": [
+          "51 Pegasi b"
+        ],
+        "image_credit": "ESO/Digitized Sky Survey 2",
+        "usage_rights": "Creative Commons Attribution 4.0 International License",
+        "publisher_id": "eso",
+        "image_id": "eso1517c",
+        "publisher": "European Southern Observatory",
+        "reference_url": "https://www.eso.org/public/images/eso1517c/",
+        "telescope_facility": [
+          "Digitized Sky Survey 2",
+          "Digitized Sky Survey 2",
+          "Digitized Sky Survey 2"
+        ],
+        "telescope_instrument": [
+          "None",
+          "None",
+          "None"
+        ],
+        "spectral_band": [
+          "Infrared",
+          "Optical",
+          "Optical"
+        ],
+        "image_release_date": "2015-04-22T12:00:00",
+        "image_type": "Observation",
+        "subject": [
+          "B.3.7.1"
+        ]
+      }
+    },
+    {
+      "source": "https://www.astropix.org/image/esahubble/opo0625b",
+      "expectedRejection": null,
+      "input": {
+        "astropix_id": 28260,
+        "title": "Beta Pictoris - Star with Disk - Not Annotated",
+        "description": "Detailed images of the nearby star Beta Pictoris, taken by NASA/ESA Hubble Space Telescope, confirm the existence of not one but two dust disks encircling the star. The images offer tantalizing new evidence for at least one Jupiter-size planet orbiting Beta Pictoris. The finding ends a decade of scientific speculation that an odd warp in the young star's debris disk may actually be another inclined disk. The recent Hubble Advanced Camera for Surveys view - the best visible-light image of Beta Pictoris - clearly shows a distinct secondary disk that is tilted by about 4 degrees from the main disk. The secondary disk is visible out to roughly 24 billion miles (almost 40 billion kilometres) from the star, and probably extends even farther, said astronomers. This Hubble image of Beta Pictoris clearly shows a primary dust disk and a much fainter secondary dust disk. Astronomers used the Advanced Camera's coronagraph to block out the light from the bright star.",
+        "object_name": [
+          "Beta Pictoris"
+        ],
+        "image_credit": "NASA, ESA, D. Golimowski (Johns Hopkins University), D. Ardila (IPAC), J. Krist (JPL), M. Clampin (GSFC), H. Ford (JHU), and G. Illingworth (UCO/Lick) and the ACS Science Team",
+        "usage_rights": "Creative Commons Attribution 4.0 International License",
+        "publisher_id": "esahubble",
+        "image_id": "opo0625b",
+        "publisher": "ESA/Hubble",
+        "reference_url": "https://www.spacetelescope.org/images/opo0625b/",
+        "telescope_facility": [
+          "Hubble Space Telescope",
+          "Hubble Space Telescope",
+          "Hubble Space Telescope"
+        ],
+        "telescope_instrument": [
+          "ACS",
+          "ACS",
+          "ACS"
+        ],
+        "spectral_band": [
+          "Infrared",
+          "Optical",
+          "Optical"
+        ],
+        "image_release_date": "2006-06-27T19:00:00",
+        "image_type": "Observation",
+        "subject": [
+          "B.3.7.1"
+        ]
+      }
+    },
+    {
+      "source": "https://www.astropix.org/image/esahubble/opo0702b",
+      "expectedRejection": null,
+      "input": {
+        "astropix_id": 28226,
+        "title": "Hubble's Snapshot of Debris Disk Around Young Star - Unannotated",
+        "description": "Taken with NASA/ESA Hubble Space Telescope, this image shows light reflected off dust in a debris disk around the young star AU Microscopii.",
+        "object_name": [
+          "AU Microscopii",
+          "GJ 803",
+          "HD197481"
+        ],
+        "image_credit": "NASA/ESA, J. R. Graham and P. Kalas (University of California, Berkeley), and B. Matthews (Hertzberg Institute of Astrophysics)",
+        "usage_rights": "Creative Commons Attribution 4.0 International License",
+        "publisher_id": "esahubble",
+        "image_id": "opo0702b",
+        "publisher": "ESA/Hubble",
+        "reference_url": "https://www.spacetelescope.org/images/opo0702b/",
+        "telescope_facility": [
+          "Hubble Space Telescope",
+          "Hubble Space Telescope",
+          "Hubble Space Telescope",
+          "Hubble Space Telescope"
+        ],
+        "telescope_instrument": [
+          "ACS",
+          "WFPC2",
+          "ACS",
+          "ACS"
+        ],
+        "spectral_band": [
+          "Optical",
+          "Optical",
+          "Optical",
+          "Optical"
+        ],
+        "image_release_date": "2007-01-07T18:00:00",
+        "image_type": "Observation",
+        "subject": [
+          "B.3.2.1.4",
+          "B.3.7.2"
+        ]
+      }
+    },
+    {
+      "source": "https://www.astropix.org/image/eso/eso0844a",
+      "expectedRejection": null,
+      "input": {
+        "astropix_id": 28527,
+        "title": "The globular cluster Omega Centauri*",
+        "description": "The globular cluster Omega Centauri — with as many as ten million stars — is seen in all its splendour in this image captured with the WFI camera from ESO's La Silla Observatory. The image shows only the central part of the cluster — about the size of the full moon on the sky (half a degree). North is up, East is to the left. This colour image is a composite of B, V and I filtered images. Note that because WFI is equipped with a mosaic detector, there are two small gaps in the image which were filled with lower quality data from the Digitized Sky Survey. Can you find them? NGC 5139 is another designation of this cluster.",
+        "object_name": [
+          "NGC 5139",
+          "Omega Centauri"
+        ],
+        "image_credit": "ESO",
+        "usage_rights": "Creative Commons Attribution 4.0 International License",
+        "publisher_id": "eso",
+        "image_id": "eso0844a",
+        "publisher": "European Southern Observatory",
+        "reference_url": "https://www.eso.org/public/images/eso0844a/",
+        "telescope_facility": [
+          "MPG/ESO 2.2-metre telescope",
+          "MPG/ESO 2.2-metre telescope",
+          "MPG/ESO 2.2-metre telescope"
+        ],
+        "telescope_instrument": [
+          "WFI",
+          "WFI",
+          "WFI"
+        ],
+        "spectral_band": [
+          "Optical",
+          "Optical",
+          "Infrared"
+        ],
+        "image_release_date": "2008-12-02T00:00:00",
+        "image_type": "Observation",
+        "subject": [
+          "B.3.6.4.2"
+        ]
+      }
+    },
+    {
+      "source": "https://www.astropix.org/image/esahubble/potw1551a",
+      "expectedRejection": null,
+      "input": {
+        "astropix_id": 18391,
+        "title": "Infant stars artistic outburst",
+        "description": "The artistic outburst of an extremely young star, in the earliest phase of formation, is captured in this spectacular image from the NASA/ESA Hubble Space Telescope. The colourful wisps, found in the lower left of the image, are painted onto the sky by a young star cocooned in the partially illuminated cloud of obscuring dust seen to the upper right. Pictured punching through the enshrouding dust is an extremely hot, blue jet of gas released by the young star. As this jet speeds through space, it collides with cooler surrounding material. The result is the colourful object to the lower left, produced as the cooler material is heated by the jet (opo9524a, potw1307a). This wispy object is known as HH34 and it is an example of a HerbigHaro (HH) object. It resides approximately 1400 light-years away near the Orion Nebula, a large star formation region within the Milky Way. HH objects exist for a cosmically brief time  typically thousands of years  with changes seen in observations taken only a few years apart (heic1113). Although the jet extends the entire length between the infant star and HH34, only a fraction of it appears visible. This part of the jet possesses an intricate structure of knots and ripples, thought to be caused by the different outbursts catching up and ramming into each other over time.",
+        "object_name": [
+          "HH 34"
+        ],
+        "image_credit": "ESA/Hubble & NASA",
+        "usage_rights": "Creative Commons Attribution 4.0 International License",
+        "publisher_id": "esahubble",
+        "image_id": "potw1551a",
+        "publisher": "ESA/Hubble",
+        "reference_url": "https://www.spacetelescope.org/images/potw1551a/",
+        "telescope_facility": [
+          "Hubble Space Telescope",
+          "Hubble Space Telescope",
+          "Hubble Space Telescope",
+          "Hubble Space Telescope",
+          "Hubble Space Telescope"
+        ],
+        "telescope_instrument": [
+          "WFC3",
+          "WFPC2",
+          "WFPC2",
+          "WFPC2",
+          "WFPC2"
+        ],
+        "spectral_band": [
+          "Infrared",
+          "Optical",
+          "Optical",
+          "Optical",
+          "Optical"
+        ],
+        "image_release_date": "2015-12-21T06:00:00",
+        "image_type": "Observation",
+        "subject": [
+          "B.3.1.1"
+        ]
+      }
+    },
+    {
+      "source": "https://www.astropix.org/image/eso/eso1024c",
+      "expectedRejection": "non-photo-title",
+      "input": {
+        "astropix_id": 15957,
+        "title": "Planet around Beta Pictoris (annotated)",
+        "description": "For the first time, astronomers have been able to directly follow the motion of an exoplanet as it moves to the other side of its host star. The planet has the smallest orbit so far of all directly imaged exoplanets, lying as close to its host star as Saturn is to the Sun. The team of astronomers used the NAOS-CONICA instrument (or NACO), mounted on one of the 8.2-metre Unit Telescopes of ESO's Very Large Telescope (VLT), to study the immediate surroundings of Beta Pictoris in 2003, 2008 and 2009. In 2003 a faint source inside the disc was seen, but it was not possible to exclude the remote possibility that it was a background star. In new images taken in 2008 and spring 2009 the source had disappeared! The most recent observations, taken during autumn 2009, revealed the object on the other side of the disc after having been hidden either behind or in front of the star. This confirmed that the source indeed was an exoplanet and that it was orbiting its host star. It also provided insights into the size of its orbit around the star. The above annotated composite shows the reflected light on the dust disc in the outer part, as observed in 1996 with the ADONIS instrument on ESO's 3.6-metre telescope. In the central part, the observations obtained in 2003 and autumn 2009 with NACO of the planet are shown. The possible orbit of the planet is also indicated, albeit with the inclination angle exaggerated.",
+        "object_name": [
+          "Beta Pictoris"
+        ],
+        "image_credit": "ESO/A.-M. Lagrange",
+        "usage_rights": "Creative Commons Attribution 4.0 International License",
+        "publisher_id": "eso",
+        "image_id": "eso1024c",
+        "publisher": "European Southern Observatory",
+        "reference_url": "https://www.eso.org/public/images/eso1024c/",
+        "telescope_facility": [
+          "ESO 3.6-metre telescope",
+          "Very Large Telescope"
+        ],
+        "telescope_instrument": [
+          "ADONIS",
+          "NACO"
+        ],
+        "spectral_band": [
+          "Infrared",
+          "Infrared"
+        ],
+        "image_release_date": "2010-06-10T20:00:00",
+        "image_type": "Observation",
+        "subject": [
+          "B.3.7.1"
+        ]
+      }
+    },
+    {
+      "source": "https://www.astropix.org/image/eso/eso0311b",
+      "expectedRejection": "non-photo-title",
+      "input": {
+        "astropix_id": 28510,
+        "title": "Spectrum of OGLE-TR-3",
+        "description": "The chart displays a small portion of a high-dispersion spectrum of OGLE-TR-3, obtained with the UVES spectrograph at the 8.2-m VLT KUEYEN telescope at the Paranal Observatory (Chile). It is divided into five adjacent wavelength intervals and represents the mean of ten 1-hour spectral exposures. The fully drawn curve shows the spectrum of the \"best fitting\" stellar model from which the composition, temperature, mass, age of OGLE-TR-3  were deduced.",
+        "object_name": [
+          "OGLE-TR-3"
+        ],
+        "image_credit": "ESO",
+        "usage_rights": "Creative Commons Attribution 4.0 International License",
+        "publisher_id": "eso",
+        "image_id": "eso0311b",
+        "publisher": "European Southern Observatory",
+        "reference_url": "https://www.eso.org/public/images/eso0311b/",
+        "telescope_facility": [
+          "Very Large Telescope"
+        ],
+        "telescope_instrument": [
+          "UVES"
+        ],
+        "spectral_band": [
+          "Optical"
+        ],
+        "image_release_date": "2003-04-22T00:00:00",
+        "image_type": "Observation",
+        "subject": [
+          "B.3.7.1"
+        ]
+      }
+    },
+    {
+      "source": "https://www.astropix.org/image/esahubble/heic2006b",
+      "expectedRejection": "non-photo-title",
+      "input": {
+        "astropix_id": 23946,
+        "title": "Illustration of Hubbles Observation of Fomalhaut bs Expanding Dust Cloud",
+        "description": "Illustration from the Hubble Space Telescopes observations of Fomalhaut bs expanding dust cloud from 2004 to 2013. The cloud was produced in a collision between two large bodies orbiting the bright nearby star Fomalhaut. This is the first time such a catastrophic event around another star has been imaged.",
+        "object_name": [
+          "Fomalhaut b"
+        ],
+        "image_credit": "NASA, ESA, and A. Gáspár and G. Rieke (University of Arizona)",
+        "usage_rights": "Creative Commons Attribution 4.0 International License",
+        "publisher_id": "esahubble",
+        "image_id": "heic2006b",
+        "publisher": "ESA/Hubble",
+        "reference_url": "https://esahubble.org/images/heic2006b/",
+        "telescope_facility": [
+          "Hubble Space Telescope",
+          "Hubble Space Telescope",
+          "Hubble Space Telescope",
+          "Hubble Space Telescope"
+        ],
+        "telescope_instrument": [
+          "STIS ",
+          "ACS",
+          "ACS",
+          "ACS"
+        ],
+        "spectral_band": [
+          "Optical",
+          "Optical",
+          "Optical",
+          "Optical"
+        ],
+        "image_release_date": "2020-04-20T21:00:00",
+        "image_type": "Observation",
+        "subject": [
+          "B.3.7.1"
+        ]
+      }
+    },
+    {
+      "source": "https://www.astropix.org/image/eso/ann22009b",
+      "expectedRejection": "plot-or-spectrum",
+      "input": {
+        "astropix_id": 24862,
+        "title": "First raw image obtained by NIRPS",
+        "description": "The Near Infrared Planet Searcher (NIRPS) instrument, installed on ESO's 3.6-metre telescope, had its first light in mid-2022. Here we see the first raw data from the instrument, the spectrum of Barnard's star. Each horizontal line corresponds to a narrow region of light where both the absorption lines from the star and the absorption from the Earth's atmosphere are visible. The dotted lines correspond to the so-called comb spectrum, a \"ruler\" that is used as a reference for the horizontal lines, so scientists can know which wavelengths of light they correspond to.",
+        "object_name": [
+          "NIRPS"
+        ],
+        "image_credit": "ESO/NIRPS consortium",
+        "usage_rights": "Creative Commons Attribution 4.0 International License",
+        "publisher_id": "eso",
+        "image_id": "ann22009b",
+        "publisher": "European Southern Observatory",
+        "reference_url": "https://www.eso.org/public/images/ann22009b/",
+        "telescope_facility": [],
+        "telescope_instrument": [],
+        "spectral_band": [],
+        "image_release_date": "2022-06-27T15:00:00",
+        "image_type": "Observation",
+        "subject": [
+          "E.8.1.3"
+        ]
+      }
+    },
+    {
+      "source": "https://www.astropix.org/image/eso/eso1324a",
+      "expectedRejection": null,
+      "input": {
+        "astropix_id": 16138,
+        "title": "VLT image of exoplanet HD 95086 b",
+        "description": "This image from ESO's Very Large Telescope (VLT) shows the newly discovered planet HD95086 b, next to its parent star. The observations were made using NACO, the adaptative optics instrument for the VLT in infrared light, and using a technique called differential imaging, which improves the contrast between the planet and its dazzling host star. The star itself has been removed from the picture during processing to enhance the view of the faint exoplanet and its position is marked. The exoplanet appears at the lower left. The blue circle is the size of the orbit of Neptune in the Solar System. The star HD 95086 has similar properties to Beta Pictoris and HR 8799 around which giant planets have previously been imaged at separations between 8 and 68 astronomical units. These stars are all young, more massive than the Sun, and surrounded by a debris disc.",
+        "object_name": [
+          "HD 95086 b"
+        ],
+        "image_credit": "ESO/J. Rameau",
+        "usage_rights": "Creative Commons Attribution 4.0 International License",
+        "publisher_id": "eso",
+        "image_id": "eso1324a",
+        "publisher": "European Southern Observatory",
+        "reference_url": "https://www.eso.org/public/images/eso1324a/",
+        "telescope_facility": [
+          "Very Large Telescope"
+        ],
+        "telescope_instrument": [
+          "NACO"
+        ],
+        "spectral_band": [
+          "Infrared"
+        ],
+        "image_release_date": "2013-06-03T12:00:00",
+        "image_type": "Observation",
+        "subject": [
+          "B.3.7.1"
+        ]
+      }
+    },
+    {
+      "source": "https://www.astropix.org/image/galex/glx2007-04r_img02",
+      "expectedRejection": "missing-usage_rights",
+      "input": {
+        "astropix_id": 27326,
+        "title": "It's a Bird, It's a Plane, No It's Mira!",
+        "description": "A close-up view of a star racing through space faster than a speeding bullet can be seen in this image from NASA's Galaxy Evolution Explorer. The star, called Mira (pronounced My-rah), is traveling at 130 kilometers per second, or 291,000 miles per hour. As it hurls along, it sheds material that will be recycled into new stars, planets and possibly even life.\n\nIn this image, Mira is moving from left to right. It is visible as the pinkish dot in the bulb shape at right. The yellow dot below is a foreground star. Mira is traveling so fast that it's creating a bow shock, or build-up of gas, in front of it, as can be seen here at right.\n\nLike a boat traveling through water, a bow shock forms ahead of the star in the direction of its motion. Gas in the bow shock is heated and then mixes with the cool hydrogen gas in the wind that is blowing off Mira. This heated hydrogen gas then flows around behind the star, forming a wake.\n\nWhy is the wake of material glowing? When the hydrogen gas is heated, it transitions into a higher-energy state, which then loses energy by emitting ultraviolet light Ð a process called fluorescence. The Galaxy Evolution Explorer has special instruments that can detect this ultraviolet light.\n\nA similar fluorescence process is responsible for the Northern Lights -- a glowing, green aurora that can be seen from northern latitudes. However, in that case nitrogen and oxygen gas are fluorescing with visible light.\n\nStreams and a loop of material can also be seen coming off Mira. Astronomers are still investigating what these streams are, but they suspect that they are denser parts of Mira's wind perhaps flowing out of the star's poles.\n\nThis image consists of data captured by both the far- and near-ultraviolet detectors on the Galaxy Evolution Explorer between November 18 and December 15, 2006. It has a total exposure time of about 3 hours.\n\n",
+        "object_name": [
+          "Mira"
+        ],
+        "image_credit": "NASA/JPL-Caltech/C. Martin (Caltech)/M. Seibert(OCIW)",
+        "usage_rights": null,
+        "publisher_id": "galex",
+        "image_id": "glx2007-04r_img02",
+        "publisher": "Galaxy Evolution Explorer",
+        "reference_url": null,
+        "telescope_facility": [
+          "GALEX",
+          "GALEX"
+        ],
+        "telescope_instrument": [
+          "FUV",
+          "NUV"
+        ],
+        "spectral_band": [
+          "Ultraviolet",
+          "Ultraviolet"
+        ],
+        "image_release_date": "2007-08-15",
+        "image_type": "Observation",
+        "subject": [
+          "B.3.1.4."
+        ]
+      }
+    }
+  ]
+}

@@ -51,12 +51,31 @@ assert.equal(SkyGuide.visibility({...object('sirius'),apparentV:6.25}).text,'Н�
 assert.equal(SkyGuide.finder({...object('sirius'),synthetic:true}),'');
 assert.equal(SkyGuide.finder(object('sol')),'');assert.ok(SkyGuide.finder(object('andromeda')).includes('Андромеда'));
 assert.ok(SkyGuide.canChart(object('proxima')));
-for(const id of ['opengc-ngc3372','opengc-ngc4755','opengc-ngc7000','opengc-ngc6960'])assert.ok(SkyGuide.canChart(object(id)),'Caldwell visibility without invented V: '+id);
-assert.ok(SkyGuide.observing(object('opengc-ngc3372')).v===null,'Caldwell membership never fabricates a magnitude');assert.ok(!SkyGuide.canChart(object('trappist')));
+for(const id of ['opengc-ngc3372','opengc-ngc4755','opengc-ngc7000','opengc-ngc6960'])assert.ok(!SkyGuide.canChart(object(id)),'Caldwell membership alone does not establish naked-eye visibility: '+id);
+assert.equal(SkyGuide.magnitude(object('opengc-ngc3372')),null,'Caldwell membership never fabricates a magnitude');assert.ok(!SkyGuide.canChart(object('trappist')));
 assert.equal(SkyGuide.chart(object('trappist')),'');
-for(const o of [{...object('sirius'),apparentV:14.01},{...object('sirius'),apparentV:null,hip:null},object('sgr'),object('crab'),object('bh-m87'),object('jades-z14'),{...object('andromeda'),id:'faint',ngc:null,messier:null,aliases:[],apparentV:13.01},{...object('andromeda'),id:'diffuse',ngc:null,messier:null,aliases:[],apparentV:10,angularMajorArcmin:400,angularMinorArcmin:300}]) {assert.equal(SkyGuide.canChart(o),false);assert.equal(SkyGuide.finder(o),'');assert.ok(!SkyGuide.gallery(o).includes('data-photo="chart-'));}
-assert.ok(SkyGuide.canChart({...object('sirius'),apparentV:14}));
-for(const id of ['andromeda','orion','omega','opengc-ngc6720','3c273'])assert.ok(SkyGuide.canChart(object(id)),id+' is an amateur visual target');
+for(const o of [{...object('sirius'),d:26,apparentV:6.51},{...object('sirius'),d:26,apparentV:null,hip:null},object('sgr'),object('crab'),object('bh-m87'),object('jades-z14'),object('opengc-ngc6720'),object('3c273'),{...object('andromeda'),apparentV:6.51},{...object('andromeda'),id:'diffuse',ngc:null,messier:null,aliases:[],apparentV:5,angularMajorArcmin:400,angularMinorArcmin:300}]) {assert.equal(SkyGuide.canChart(o),false);assert.equal(SkyGuide.finder(o),'');assert.ok(!SkyGuide.gallery(o).includes('data-photo="chart-'));}
+assert.ok(SkyGuide.canChart({...object('sirius'),d:26,apparentV:6.5}),'naked-eye threshold includes V=6.5');
+for(const id of ['andromeda','orion','omega','lmc','smc'])assert.ok(SkyGuide.observing(object(id)).nakedEye,id+' retains naked-eye charts');
+for(const id of ['barnard','proxima','wolf','lalande','hyg-118441','hyg-82565','hyg-118541','hyg-119113']){
+ const o=object(id),view=SkyGuide.observing(o);
+ assert.ok(view.nearby&&!view.nakedEye,'faint stellar neighbour: '+id);
+ assert.ok(SkyGuide.finder(o).includes('Для наблюдения нужна оптика'));
+ assert.ok(SkyGuide.gallery(o).includes('data-photo="chart-wide"')&&SkyGuide.gallery(o).includes('data-photo="chart-close"'));
+ const restored=ExtendedCatalog.decode([o.id,o.name,'star',o.d,o.raDeg,o.decDeg,'catalog','test',[],SkyGuide.magnitude(o),'HYG',{}]);
+ assert.ok(SkyGuide.canChart(restored),'streamed/restored neighbour retains charts: '+id);
+ assert.equal(SkyGuide.canChart({...restored,d:25.001}),false,'same faint star outside neighbourhood: '+id);
+}
+const unknownNeighbour={...object('barnard'),apparentV:null,hip:null};
+assert.ok(SkyGuide.canChart(unknownNeighbour),'unknown photometry does not exclude a measured stellar neighbour');
+assert.equal(SkyGuide.observing(unknownNeighbour).nakedEye,false,'unknown magnitude is never naked-eye evidence');
+assert.ok(SkyGuide.finder(unknownNeighbour).includes('Яркость пока неизвестна'));
+for(const d of [0,25])assert.ok(SkyGuide.canChart({...unknownNeighbour,d}),'inclusive neighbourhood boundary '+d);
+for(const d of [-1,25.001,null,undefined,NaN])assert.equal(SkyGuide.canChart({...unknownNeighbour,d}),false,'unknown/outside distance cannot grant exception: '+d);
+assert.equal(SkyGuide.canChart({...object('3c273'),d:1}),false,'nearby exception is only for stars');
+assert.equal(SkyGuide.canChart({...object('andromeda'),d:1,apparentV:null,hip:null}),false,'nearby galaxies still need naked-eye evidence');
+for(const id of ['3c273','opengc-ngc6720','trappist'])assert.ok(SkyGuide.gallery(object(id)).includes('stellarMedia'),'filtered charts keep photographs: '+id);
+console.log('PASS naked-eye stars/deep-sky targets, published Magellanic evidence, faint 25 ly neighbours, streamed/restored identities, unknowns, boundaries and photographs without charts');
 assert.equal(SkyGuide.finder({...object('sirius'),raDeg:360}),'');
 for(const id of ['proxima','hyg-118441','hyg-82565'])for(const close of [false,true]){
  const o=object(id),v=SkyGuide.magnitude(o),chart=SkyGuide.chart(o,close);
@@ -145,6 +164,12 @@ assert.ok(html.indexOf('stellarMedia')<html.indexOf('Где искать на н
 assert.ok(gallery.indexOf('stellar-photo-field')<gallery.indexOf('stellar-gallery-heading'),'images precede all gallery headings');
 assert.ok(html.includes('stellarGallery')&&html.includes('hubble-sirius')&&html.includes('dss')&&html.includes('H. Bond'));
 assert.ok(SkyGuide.gallery({...object('sirius'),name:'<script>bad</script>'}).includes('&lt;script&gt;bad&lt;/script&gt;'));
+for(const [id,visible] of [['barnard',true],['proxima',true],['andromeda',true],['opengc-ngc6720',false],['3c273',false],['opengc-ngc6960',false]]){
+ showObject(id);const card=$('dialogContent').innerHTML;
+ assert.equal(card.includes('Направление J2000'),visible,'numeric sky direction follows the same visibility rule: '+id);
+ assert.equal(card.includes('Где искать на небе'),visible,'finder follows the same visibility rule: '+id);
+ assert.ok(card.includes('stellarMedia'),'photos remain available: '+id);
+}
 console.log('PASS exact observed-image identities, no companion misassignment, visible credits/bands, preferred Hubble/Webb/ESO plus DSS gallery, distant objects, escaped labels and native card integration');
 console.log('PASS automatic DSS for all '+photographicStars.length+' eligible stars and streamed identities; one carousel with two chart scales and unique SVG clips');
 `);
