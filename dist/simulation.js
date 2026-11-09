@@ -23,6 +23,7 @@ const Simulation={
  replayRate(){return speed*(this.slowMotionEnabled?(this.smoothedFactor??this.slowMotionFactor()):1);},
  wallDebt:0,
  wallQueue:[],
+ clearClock(){this.wallQueue=[];this.wallDebt=this.debt=0;},
  pendingClock(){
   // wallDebt remains compatible with existing reset/rollback callers.
   return this.wallDebt>1e-12?(this.wallQueue.length?this.wallQueue:[{seconds:this.wallDebt,rate:speed}]):[];
@@ -38,7 +39,7 @@ const Simulation={
   this.wallDebt=this.wallQueue.reduce((sum,q)=>sum+q.seconds,0);
  },
  advance(realSeconds,budgetMs=Infinity){
-  if(paused)return;
+  if(paused||state.flight?.routeIssue)return;
   const queue=this.pendingClock(),tail=queue.at(-1),started=Number.isFinite(budgetMs)?performance.now():0;
   if(realSeconds>0){if(tail?.rate===speed)tail.seconds+=realSeconds;else queue.push({seconds:realSeconds,rate:speed});}
   for(let i=0;queue.length&&i<8192;i++){
@@ -59,11 +60,15 @@ const Simulation={
    this.smoothedFactor=Math.exp(Math.log(previous)+(Math.log(target)-Math.log(previous))*(-Math.expm1(-slice/.4)));
    if(Math.abs(Math.log(this.smoothedFactor/target))<1e-6)this.smoothedFactor=target;
    const rate=pending.rate*(this.slowMotionEnabled?this.smoothedFactor:1);let years=slice*rate;
+   let zeroSteps=0;
    for(let transitions=0;years>1e-15&&transitions<64;transitions++){
     if(!state.flight){if(OrbitalArrival.idle(years)){years=0;break;}state.proper+=years;state.earth+=years;Cosmology.elapse(state,years);years=0;break;}
     const f=state.flight,elapsed=globalThis.FlightTips?.elapsed(f);
     const used=this.step(years);if(!(used>=0&&Number.isFinite(used)))throw new Error('Invalid replay step');
-    globalThis.FlightTips?.advance(f,elapsed,used/rate);years=Math.max(0,years-used);
+    if(used===0){if(++zeroSteps>=16)throw new Error('Flight made no progress: '+state.phase);}else zeroSteps=0;
+    globalThis.FlightTips?.advance(f,elapsed,used/rate);
+    if(state.flight?.routeIssue){this.clearClock();return;}
+    years=Math.max(0,years-used);
    }
    if(years>1e-15)this.debt+=years;
    pending.seconds=Math.max(0,pending.seconds-slice);if(pending.seconds<=1e-12)queue.shift();
@@ -71,18 +76,22 @@ const Simulation={
   this.wallQueue=queue;this.wallDebt=queue.reduce((sum,q)=>sum+q.seconds,0);
  },
  tick(years){
-  let remaining=years+this.debt;this.debt=0;
+  if(state.flight?.routeIssue)return;
+  let remaining=years+this.debt,zeroSteps=0;this.debt=0;
   for(let transitions=0;remaining>0&&transitions<256;transitions++){
    if(!state.flight){if(OrbitalArrival.idle(remaining)){remaining=0;break;}state.proper+=remaining;state.earth+=remaining;Cosmology.elapse(state,remaining);remaining=0;break;}
    const f=state.flight,elapsed=globalThis.FlightTips?.elapsed(f),rate=this.replayRate();
    const used=this.step(remaining);if(!(used>=0&&Number.isFinite(used)))throw new Error('Invalid proper-time step');
+   if(used===0){if(++zeroSteps>=16)throw new Error('Flight made no progress: '+state.phase);}else zeroSteps=0;
    globalThis.FlightTips?.advance(f,elapsed,used/rate);
+   if(state.flight?.routeIssue){this.debt=0;return;}
    remaining=Math.max(0,remaining-used);
   }
   // Preserve time even if a very long multi-route update exceeds the work budget.
   this.debt=remaining;
  },
  step(dt){
+  if(state.flight?.routeIssue)return 0;
   if(state.flight?.mission&&state.phase!=='flyby')return MissionPlanner.step(dt);
   const f=state.flight,tol=this.tolerance(f);
   if(state.phase==='flyby')return Route.tick(dt);

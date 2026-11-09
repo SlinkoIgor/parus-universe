@@ -215,9 +215,19 @@ const ExtendedCatalog = {
         const v = globalThis.PARUS_CATALOG_FILES[url];
         return typeof v === 'string' ? JSON.parse(v) : v;
       });
-    return fetch(url + '?v=' + revision, options).then((r) => {
+    // Every catalogue consumer must eventually leave its pending state, even
+    // when the connection stays open without delivering a response or body.
+    const timeout = globalThis.AbortSignal?.timeout?.(15000), signal = options?.signal,
+      request = timeout && (!signal || globalThis.AbortSignal.any)
+        ? {...options, signal: signal ? AbortSignal.any([signal, timeout]) : timeout}
+        : options;
+    return fetch(url + '?v=' + revision, request).then((r) => {
       if (!r.ok) throw Error('Не удалось загрузить ' + path);
       return r.json();
+    }).catch(error => {
+      if (error.name === 'TimeoutError') throw Error('Не удалось дождаться загрузки каталога. Повторите попытку.', {cause:error});
+      if (error.name === 'TypeError') throw Error('Не удалось загрузить каталог. Проверьте соединение и повторите попытку.', {cause:error});
+      throw error;
     });
   },
   astrometryNote(o) {

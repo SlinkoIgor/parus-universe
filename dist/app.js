@@ -16,6 +16,21 @@ let lastFrame = performance.now();
 const RuntimeLoop = {
   lastInteraction: lastFrame, lastDraw: lastFrame, idleAfter: 30000, idleInterval: 100,
   wake() { this.lastInteraction = performance.now(); },
+  advance(now) {
+    const realDt = Math.max(0, (now - lastFrame) / 1000);
+    lastFrame = now;
+    try {
+      Cosmology.sync(state);
+      Simulation.advance(realDt, 6);
+    } catch (error) {
+      // A failed physical step must not be replayed automatically every frame.
+      paused = true;
+      Simulation.clearClock();
+      toast('Ошибка расчёта. Полёт на паузе; можно повторить или отменить его.', 10000, 'warning');
+      throw error;
+    }
+    return realDt;
+  },
   shouldDraw(now) {
     return !document.hidden && (now - this.lastInteraction < this.idleAfter ||
       cameraGoal || pointer.down || Route.feedbackPending ||
@@ -27,10 +42,9 @@ for (const name of ['pointerdown', 'pointermove', 'wheel', 'keydown'])
   document.addEventListener(name, () => RuntimeLoop.wake(), {capture:true, passive:true});
 for (const name of ['focus', 'resize']) window.addEventListener(name, () => RuntimeLoop.wake());
 function frame(now) {
-  Cosmology.sync(state);
-  const realDt = Math.max(0, (now - lastFrame) / 1000);
-  lastFrame = now;
-  Simulation.advance(realDt, 6);
+  // Keep the next frame even if streaming, drawing or a UI forecast throws.
+  requestAnimationFrame(frame);
+  const realDt = RuntimeLoop.advance(now);
   if (RuntimeLoop.shouldDraw(now)) {
     const drawDt = Math.max(0, (now - RuntimeLoop.lastDraw) / 1000);
     RuntimeLoop.lastDraw = now;
@@ -83,6 +97,11 @@ function frame(now) {
       drawHover();
       // Paint the distance backing over objects and their names as well as the grid.
       drawRouteDistance();
+    } catch (error) {
+      // Discard any canvas save/clip left behind by the interrupted layer.
+      canvas.width = canvas.width;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      throw error;
     } finally {
       MapDetails.endFrame();
     }
@@ -96,7 +115,6 @@ function frame(now) {
     persist();
     saveTick = now;
   }
-  requestAnimationFrame(frame);
 }
 
 function zoomAtPointer(e) {
@@ -455,9 +473,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === '-') goCamera(cam.x, cam.y, cam.span * 2, false, true);
 });
 function syncClock() {
-  const now = performance.now();
-  Simulation.advance(Math.max(0, (now - lastFrame) / 1000), 6);
-  lastFrame = now;
+  RuntimeLoop.advance(performance.now());
 }
 document.addEventListener('visibilitychange', () => {
   RuntimeLoop.wake();
@@ -483,6 +499,7 @@ QuickFlight.setup();
 applyTheme(theme);
 updateShipButton();
 resize();
+Route.recoverCompleted();
 renderUI();
 updateMapHeading();
 renderCatalog();

@@ -20,6 +20,21 @@ const Route={
  radiusText(m){return m<1e10?compact(m/1000)+' км':fmt(m/149597870700,3)+' а.е.';},
  isFlyby(f=state.flight){return !!f?.route?.length&&Gravity.canFlyby(object(f.target))&&f.route[f.legIndex]?.mode==='flyby'&&f.legIndex<f.route.length-1;},
  braking(){return !this.isFlyby();},
+ passageComplete(f=state.flight){
+  if(!f?.mission?.passage)return false;
+  return f.encounter?.straight?f.missionStage===1&&f.stageElapsed>=f.mission.coast.proper:state.phase==='flyby'&&f.encounter?.plan?.elapsedProper>=f.encounter?.plan?.proper;
+ },
+ resume(){
+  const f=state.flight;if(!f?.routeIssue||!this.passageComplete(f))return;
+  // An explicit retry must not be ignored by the background-fetch cooldown.
+  if(globalThis.ArrivalStars)ArrivalStars.failedAt=-Infinity;
+  MissionPlanner.continueRoute(f,state.ship,state.beta);
+  if(state.flight!==f)$('infoDialog').close();
+ },
+ recoverCompleted(){
+  const f=state.flight;if(f?.routeIssue||!this.passageComplete(f))return;
+  FlightHistory.complete(f);MissionPlanner.continueRoute(f,state.ship,state.beta,{keepPaused:paused});
+ },
  analyze(nodes=state.itinerary){
   if(MissionPlanner.enabledIdle())return MissionPlanner.analyzeRoute(nodes);
   let from=state.ship,fuel=state.matter,beta=0,valid=nodes.length>0,records=[],departure=object(state.current),usedStars=new Set(state.destroyed);
@@ -30,8 +45,7 @@ const Route={
    const r={id:n.id,mode:n.mode,d,beta,issue};
    if(n.mode==='flyby'){
     const next=object(nodes[i+1]?.id);
-    if(!Gravity.canFlyby(o)){r.issue='Гравитационный поворот доступен только у чёрной дыры.';valid=false;}
-    else if(!next?.p3){r.issue='Пролёт требует следующей точки маршрута.';valid=false;}
+    if(Gravity.passageIssue(o,next)){r.issue=Gravity.passageIssue(o,next);valid=false;}
     else{const angle=V3.angle(V3.sub(o.p3,from.p3),V3.sub(next.p3,o.p3)),sol=Gravity.solve(o.gravity,beta,angle);Object.assign(r,sol,{required:angle});if(!sol.ok){r.issue=sol.reason;valid=false;}else if(!sol.straight&&sol.rp*5>Math.min(d,distance(o,next))*.001*LY){r.issue='Область пролёта перекрывает соседнюю точку.';valid=false;}}
    }else if(beta>0){const stop=Magnetic.stopping(fuel,beta,100,GasMedium.forLeg(from,o,state.sail));fuel=Math.max(0,stop.magnetic.finalMass/1000-Rocket.dryMass-stop.engine.budget);beta=0;}
    records.push(r);if(o){from=o;departure=ExtendedCatalog.arrivalStar(o,[...usedStars])||o;}
@@ -39,22 +53,24 @@ const Route={
   return{valid,records};
  },
  show(){
-  const active=!!state.flight,nodes=active?this.ensureActive():state.itinerary,first=active?state.flight.legIndex+1:0,analysis=active?null:this.analyze(nodes);this.preview=analysis;
+  const active=!!state.flight,nodes=active?this.ensureActive():state.itinerary,first=active?state.flight.legIndex+1:0,analysis=active?null:this.analyze(nodes),locked=active&&state.flight.mission?.passage;this.preview=analysis;
   const esc=FlightQueue.escape;
   let html='<div class="modal-eyebrow">НАВИГАЦИЯ / 3D → 2D</div><h2>Маршрут.</h2><p>Shift + клик добавляет участок маршрута. Двойной клик добавляет последнюю точку и запускает полёт; во время полёта он добавляет следующий участок. Повторный Shift + клик по последней точке и Esc убирают один будущий участок.</p>';
   if(!nodes.length)html+='<p class="route-empty">Добавьте первую точку на карте или через поиск. Для пролёта у чёрной дыры укажите следующую точку.</p>';
+  if(state.flight?.routeIssue)html+='<p class="route-issue">Маршрут приостановлен. '+esc(state.flight.routeIssue.reason)+' Измените будущие участки и продолжите полёт.</p>';
   html+='<ol class="route-list">'+nodes.map((n,i)=>{
    const o=object(n.id),r=analysis?.records[i],editable=i>=first;
    let detail=r?distanceText(r.d)+' · подлёт ≈ '+percentC(r.beta):!active?'ПЛАНИРУЕТСЯ':i===state.flight.legIndex?'ТЕКУЩАЯ ТОЧКА':i<state.flight.legIndex?'ПРОЙДЕНА':'ВПЕРЕДИ';
    if(r&&i<nodes.length-1&&!Gravity.canFlyby(o))detail+=o.kind==='star'||ExtendedCatalog.arrivalStar(o)?'<br>После остановки — '+(state.departureMode==='engine'?'собственная тяга':'разгон парусом')+(state.departureMode!=='engine'&&state.destroyed.includes(o.id)?' недоступен: звезда уже использована; будет использован двигатель.':'.'):'<br>Гравитационный поворот — только у чёрных дыр.';
    if(r&&n.mode==='flyby'){detail+='<br>Поворот в 3D: '+(r.required!==undefined?this.angleText(r.required):'—')+' · максимум '+(r.maxAngle!==undefined?this.angleText(Math.min(Math.PI,r.maxAngle)):'—');if(r.ok&&!r.straight)detail+='<br>Сближение: '+this.radiusText(r.rp);if(o.gravity?.assumed)detail+='<br>Масса и радиус — типовая модель, не измерение.';}
    let actions='<small>'+(n.mode==='flyby'?'ГРАВИТАЦИОННЫЙ ПРОЛЁТ':'ОСТАНОВКА')+'</small>';
-   if(editable)actions='<div class="route-node-actions"><button data-mode="'+i+'" '+(!Gravity.canFlyby(o)&&n.mode!=='flyby'?'disabled':'')+'>'+(n.mode==='flyby'?'Пролёт ↝':'Остановка ■')+'</button><button data-up="'+i+'" '+(i===first||(active&&state.flight.mission?.passage&&i===first+1)?'disabled':'')+'>↑</button><button data-down="'+i+'" '+(i===nodes.length-1||(active&&state.flight.mission?.passage&&i===first)?'disabled':'')+'>↓</button><button data-remove="'+i+'" aria-label="Удалить участок '+(i+1)+'">×</button></div>';
+   if(editable)actions='<div class="route-node-actions"><button data-mode="'+i+'" '+(!Gravity.canFlyby(o)&&n.mode!=='flyby'?'disabled':'')+'>'+(n.mode==='flyby'?'Пролёт ↝':'Остановка ■')+'</button><button data-up="'+i+'" '+(i===first||(locked&&i===first+1)?'disabled':'')+'>↑</button><button data-down="'+i+'" '+(i===nodes.length-1||(locked&&i===first)?'disabled':'')+'>↓</button><button data-remove="'+i+'" aria-label="Удалить участок '+(i+1)+'">×</button></div>';
    return '<li class="route-node '+(r?.issue?'invalid':'')+'"><div class="route-node-name"><span>'+String(i+1).padStart(2,'0')+'</span><b>'+esc(o.name)+'</b></div><p>'+detail+(r?.issue?'<br><strong>'+esc(r.issue)+'</strong>':'')+'</p>'+actions+'</li>';
   }).join('')+'</ol><div class="route-actions"><button class="map-size-action" id="addRoutePoint" '+(nodes.length-first>=this.limit?'disabled':'')+'>Добавить точку через поиск +</button>';
   if(!active)html+='<button class="modal-start" id="startRoute" '+(!analysis.valid?'disabled':'')+'>Начать маршрут →</button>';
+  if(state.flight?.routeIssue)html+='<button class="modal-start" id="resumeRoute">Продолжить маршрут →</button>';
   html+='</div>';
-  if(active)html+='<p>Участок '+(state.flight.legIndex+1)+' из '+nodes.length+'. Автопилот выполняет маршрут.</p><button class="map-size-action" id="cancelRoute" '+(!this.future().length?'disabled':'')+'>Убрать будущие участки</button>';
+  if(active)html+='<p>Участок '+(state.flight.legIndex+1)+' из '+nodes.length+'. '+(state.flight.routeIssue?'Полёт на паузе; позиция и скорость сохранены.':'Автопилот выполняет маршрут.')+'</p><button class="map-size-action" id="cancelRoute" '+(!this.future().length?'disabled':'')+'>Убрать будущие участки</button>';
   html+='<p class="object-note">Остановка гасит скорость. Выбранные средства разгона и торможения применяются ко всему маршруту. Любая остановка происходит у звезды. Внутри протяжённой цели выбирается известная звезда, ближайшая к её опорной точке; у точечной цели — звезда ближе 5 св. лет. Если подходящей звезды нет, при прибытии открывается игровая. При пролёте скорость сохраняется. Для поворота у чёрной дыры учитывается граница захвата. Прогноз уточняется при подлёте по фактической скорости. Вращение, приливное разрушение, нагрев и магнитосфера не моделируются. Неподвижный объект не даёт бесплатного прироста скорости.</p><button class="text-action" id="routeTheory">Как считаются углы и проекция ↗</button>';
   showDialog(html);
   $('dialogContent').onclick=e=>{
@@ -62,14 +78,15 @@ const Route={
    let i=Number(d.mode??d.up??d.down??d.remove);if(!Number.isInteger(i)||i<first||i>=nodes.length)return;
    if(d.remove!==undefined){if(!this.remove(i))return;}
    else if(d.mode!==undefined){if(!Gravity.canFlyby(object(nodes[i].id))&&nodes[i].mode!=='flyby')return;nodes[i].mode=nodes[i].mode==='stop'?'flyby':'stop';this.changed();}
-   else if(d.up!==undefined&&i>first&&!(active&&state.flight.mission?.passage&&i===first+1)){[nodes[i-1],nodes[i]]=[nodes[i],nodes[i-1]];this.changed();}
-   else if(d.down!==undefined&&i<nodes.length-1&&!(active&&state.flight.mission?.passage&&i===first)){[nodes[i],nodes[i+1]]=[nodes[i+1],nodes[i]];this.changed();}
+   else if(d.up!==undefined&&i>first&&!(locked&&i===first+1)){[nodes[i-1],nodes[i]]=[nodes[i],nodes[i-1]];this.changed();}
+   else if(d.down!==undefined&&i<nodes.length-1&&!(locked&&i===first)){[nodes[i],nodes[i+1]]=[nodes[i+1],nodes[i]];this.changed();}
    else return;
    this.show();
   };
   $('addRoutePoint').onclick=()=>{this.picking=true;$('infoDialog').close();$('search').value='';openCatalog();toast('Выберите следующую точку маршрута.',4200,'route');};
   if(!active)$('startRoute').onclick=()=>this.start();
   else $('cancelRoute').onclick=()=>{syncClock();this.clearFuture();this.show();};
+  if(state.flight?.routeIssue)$('resumeRoute').onclick=()=>{this.resume();if(state.flight?.routeIssue)this.show();};
   $('routeTheory').onclick=()=>showNavigationTheory();
  },
  nodes(){return state.flight?state.flight.route||[]:state.itinerary;},
@@ -180,7 +197,7 @@ const Route={
   }
  },
  drawEncounter(){
-  if(state.phase!=='flyby')return;const p=state.flight.encounter.plan,s=Gravity.atProper(p,p.elapsedProper||0),cx=width<700?width*.72:width*.48,cy=height*.30,scale=62/p.rp;
+  if(state.phase!=='flyby'||state.flight.routeIssue)return;const p=state.flight.encounter.plan,s=Gravity.atProper(p,p.elapsedProper||0),cx=width<700?width*.72:width*.48,cy=height*.30,scale=62/p.rp;
   // Explicit local diagram, independent of the interstellar map scale.
   ctx.save();ctx.beginPath();ctx.rect(cx-86,cy-86,172,172);ctx.clip();
   for(let i=1;i<p.rows.length;i++){const a=p.rows[i-1],b=p.rows[i];line(cx+Math.cos(a.phi)*a.r*scale,cy-Math.sin(a.phi)*a.r*scale,cx+Math.cos(b.phi)*b.r*scale,cy-Math.sin(b.phi)*b.r*scale,'#666666',1);}

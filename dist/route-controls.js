@@ -60,11 +60,18 @@ Object.assign(Route, {
   },
   renderDraft() {
     const f=state.flight,target=object(state.selected),browsing=FlightQueue.browsing();
+    $('repairRoute').hidden=!f?.routeIssue||browsing;
     this.renderApproach();this.renderActions();
     const nodes=this.nodes(),draft=!f&&nodes.length>0;
     if(draft||browsing)this.renderDistance();
     const p=(browsing?FlightQueue.forecast():f?.mission)||(!f&&target?.navigable?MissionPlanner.preview():null),star=p?.arrivalStar;
     $('routeDraftIssue').hidden=true;
+    if(f?.routeIssue){
+      const next=object(nodes[(f.legIndex||0)+1]?.id);
+      $('routeDraftIssue').hidden=false;UIContent.text($('routeDraftIssue'),'Следующая точка'+(next?' «'+next.name+'»':'')+' недоступна: '+f.routeIssue.reason);
+      if(!browsing){UIContent.text($('phaseTag'),'МАРШРУТ ПРИОСТАНОВЛЕН');UIContent.text($('progressRemaining'),'Измените маршрут, чтобы продолжить полёт.');}
+      return;
+    }
     if(!draft){
       if(f&&nodes.at(-1)?.mode==='flyby'){
         $('routeDraftIssue').hidden=false;UIContent.text($('routeDraftIssue'),'Для пролёта добавьте следующую точку маршрута.');
@@ -86,3 +93,4 @@ Object.assign(Route, {
 });
 $('blackHoleArrival').onclick=e=>{const b=e.target.closest('button[data-approach]');if(b)Route.approach(b.dataset.approach);};
 $('cancelRouteDraft').onclick=()=>Route.cancelDraft();
+$('repairRoute').onclick=()=>Route.show();

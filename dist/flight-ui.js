@@ -183,6 +183,7 @@ function renderDepartureDiagram(forecast, wind) {
   );
 }
 function renderUI() {
+  if(state.flight?.routeIssue)paused=true;
   if(Route.feedbackPending){Route.renderFeedback();return;}
   globalThis.MapSlice?.renderSelection();
   FlightSetup.sync();

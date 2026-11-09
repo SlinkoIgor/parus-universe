@@ -994,7 +994,12 @@ const MissionPlanner={
  stages(p){return[{phase:p.setup.sail&&p.acceleration.hasLight?'launch':'thrust',proper:p.accelerationEnd.proper},{phase:'cruise',proper:p.coast.proper},{phase:'brake',proper:p.brake.proper}];},
  stageSample(p,index,proper){
   if(index===0){const q=this.sampleAcceleration(p.acceleration,Math.min(proper,p.accelerationEnd.proper));return{...q,captured:0,heat:q.burned*(1-ShipPhysics.efficiency)*Rocket.c**2};}
-  if(index===1){const q=p.cosmic?Cosmology.coast(p.accelerationEnd.beta,proper,p.coastEpoch,p.expansion):{proper,earth:proper*Math.cosh(p.accelerationEnd.eta),distance:proper*Math.sinh(p.accelerationEnd.eta),path:proper*Math.sinh(p.accelerationEnd.eta),beta:p.accelerationEnd.beta};return{...q,comoving:q.distance,distance:q.path,mass:p.accelerationEnd.mass,captured:0,burned:0,heat:0,a:0};}
+  if(index===1){
+   // Reuse the certified coast endpoint. Near light speed, converting rounded
+   // beta back through rapidity shifts the endpoint enough to miss arrival.
+   const fraction=p.coast.proper>0?proper/p.coast.proper:0,q=p.cosmic?Cosmology.coast(p.accelerationEnd.beta,proper,p.coastEpoch,p.expansion):{proper,earth:p.coast.earth*fraction,distance:p.coast.distance*fraction,path:p.coast.path*fraction,beta:p.coast.beta};
+   return{...q,comoving:q.distance,distance:q.path,mass:p.accelerationEnd.mass,captured:0,burned:0,heat:0,a:0};
+  }
   const b=p.brake;if(b.kind==='orbit')return OrbitalArrival.sample(b.plan,proper);
   const q=b.kind==='hybrid'?HybridBrake.sampleProper(b.plan,proper):this.engineAt(b.plan,proper),comoving=b.kind==='hybrid'?(p.cosmic?FlightPath.distance(b.plan,Magnetic,proper,b.epoch,p.expansion):q.distance):this.enginePath(b.plan,proper,b.epoch,p.cosmic,p.expansion);
   return{...q,comoving,a:q.properAcceleration??q.a??0};
@@ -1130,6 +1135,7 @@ Object.assign(MissionPlanner,{
   for(let n=0;n<60;n++){const mid=(lo+hi)/2;if(Cosmology.coast(beta,mid,epoch,expansion).distance<d)lo=mid;else hi=mid;}return Cosmology.coast(beta,(lo+hi)/2,epoch,expansion);
  },
  passage(c,source,target,next,fuel,origin,epoch,expansion,beta=0){
+  const issue=Gravity.passageIssue(target,next);if(issue)return this.invalid(issue);
   const burstIssue=c.sail&&c.burst?FlightSetup.burstIssue(source):'';
   if(burstIssue)return this.invalid(burstIssue,{burstUnavailable:true});
   const d=Space.distance(origin,target),cosmic=Cosmology.isCosmic(source||origin,target),prepared=c.dump?0:Math.min(c.capacityKg,fuel),a=this.acceleration(c,source,prepared,d,epoch,cosmic,expansion,beta);
@@ -1152,8 +1158,6 @@ Object.assign(MissionPlanner,{
   for(let i=0;i<nodes.length;i++){
    const n=nodes[i],target=object(n.id),next=object(nodes[i+1]?.id),c=this.legSetup(n.setup||settings,source,used);let p;
    if(!target?.navigable||!origin?.p3)p=this.invalid('Нет физических координат.');
-   else if(n.mode==='flyby'&&!Gravity.canFlyby(target))p=this.invalid('Для гравитационного манёвра недостаточно данных о массе чёрной дыры.');
-   else if(n.mode==='flyby'&&!next)p=this.invalid('Для пролёта выберите следующую точку маршрута.');
    else p=n.mode==='flyby'?this.passage(c,source,target,next,fuel,origin,epoch,state.expansion!==false,beta):(OrbitalArrival.enabled?this.planPreferred(c,source,target,fuel,origin,epoch,state.expansion!==false,beta,orbit,[...used]):this.plan(c,source,target,fuel,origin,epoch,state.expansion!==false,beta,orbit,false,[...used]));
    const r={id:n.id,mode:n.mode,d:p.distance??(target?.p3?Space.distance(origin,target):0),beta:p.peakBeta||beta,issue:p.valid?'':p.reason};
    if(!p.valid){valid=false;records.push(r);break;}
@@ -1164,6 +1168,7 @@ Object.assign(MissionPlanner,{
   return{valid,records,proper,earth};
  },
  routeLeg(nodes,index,source,origin,beta=0){
+  if(!nodes[index])return this.invalid('Добавьте следующую точку маршрута.');
   const c=this.legSetup(nodes[index].setup||(OrbitalArrival.enabled?FlightSetup.preferred():FlightSetup.read()),source),target=object(nodes[index].id),epoch=state.cosmicTime||0;if(beta>0)c.dump=false;
   return nodes[index].mode==='flyby'?this.passage(c,source,target,object(nodes[index+1]?.id),state.matter*1000,origin,epoch,state.expansion!==false,beta):(OrbitalArrival.enabled?this.planPreferred(c,source,target,state.matter*1000,origin,epoch,state.expansion!==false,beta):this.plan(c,source,target,state.matter*1000,origin,epoch,state.expansion!==false,beta));
  },
@@ -1172,18 +1177,46 @@ Object.assign(MissionPlanner,{
   const p=this.routeLeg(nodes,0,source,state.ship);if(!p.valid){toast(p.reason,4200,'warning');return;}FlightHistory.pending=rollback;$('infoDialog').close();this.launch(p,{nodes,index:0});state.itinerary=[];log('Составной маршрут: '+nodes.map(n=>object(n.id).name).join(' → '));persist();
  },
  routeWaits:new WeakSet(),
- continueRoute(old,from=state.ship,beta=0){
+ routeFailure(old,reason,notify=true){
+  const changed=old.routeIssue?.reason!==reason;
+  if(state.flight===old){
+   old.routeIssue={reason};paused=true;Simulation.clearClock();renderUI();persist();
+  }else if(!state.flight){
+   state.itinerary=old.route.slice(old.legIndex+1).map(n=>({...n}));
+   if(state.itinerary.length)state.selected=state.itinerary[0].id;
+   renderUI();persist();
+  }
+  if(notify&&changed)toast('Следующий участок недоступен: '+reason,4200,'warning');
+ },
+ continueRoute(old,from=state.ship,beta=0,{keepPaused=false}={}){
   if(this.routeWaits.has(old))return;
-  if(!old.route?.length||old.legIndex>=old.route.length-1)return;
+  if(!old.route?.length||old.legIndex>=old.route.length-1&&!old.routeIssue)return;
   const index=old.legIndex+1,source=object(beta>0?old.target:state.current)||object(old.target),p=this.routeLeg(old.route,index,source,from,beta);if(!p.valid){
-   const target=object(old.route[index].id);
-   if(globalThis.ArrivalStars?.issue(target)){
-    const expedition=state,active=state.flight,current=state.current;this.routeWaits.add(old);
-    ArrivalStars.prepare(target).then(()=>{this.routeWaits.delete(old);if(state===expedition&&state.flight===active&&state.current===current&&!ArrivalStars.issue(target))this.continueRoute(old,from,beta);});
-   }else {if(!state.flight){state.itinerary=old.route.slice(index).map(n=>({...n}));state.selected=state.itinerary[0].id;renderUI();persist();}toast('Следующий участок недоступен: '+p.reason,4200,'warning');}
+   const target=object(old.route[index]?.id);
+   if(target&&old.route[index]?.mode!=='flyby'&&globalThis.ArrivalStars?.issue(target)&&ArrivalStars.pending.has(ArrivalStars.key(target,state.destroyed))){
+    const expedition=state,active=state.flight,current=state.current,mission=old.mission,resumePaused=keepPaused&&paused;
+    const stillCurrent=()=>state===expedition&&state.flight===active&&state.current===current&&old.mission===mission;
+    this.routeWaits.add(old);
+    ArrivalStars.prepare(target).then(()=>{
+     this.routeWaits.delete(old);
+     // Cancelling/replanning can mutate this same flight object in place.
+     if(!stillCurrent())return;
+     if(active===old)paused=resumePaused;
+     // Recalculate the current route after either success or failure. A failed
+     // fetch now takes routeFailure, rather than retrying the completed flyby.
+     this.continueRoute(old,from,beta,{keepPaused});
+    }).catch(error=>{
+     this.routeWaits.delete(old);
+     console.error('Route continuation failed',error);
+     if(stillCurrent())this.routeFailure(old,'Ошибка подготовки следующего участка. Повторите попытку.');
+    });
+    if(active===old)this.routeFailure(old,p.reason,false);
+   }else this.routeFailure(old,p.reason);
    return;
   }
+  const resumePaused=keepPaused&&paused;
   state.selected=old.route[index].id;state.ship=Space.point(from.p3);FlightHistory.complete(old);state.flight=null;FlightHistory.pending=old.rollback;this.launch(p,{nodes:old.route,index},{focusRoute:false});
+  if(resumePaused){paused=true;renderUI();persist();}
  }
 });
 
