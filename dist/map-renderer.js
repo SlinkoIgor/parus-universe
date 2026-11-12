@@ -487,7 +487,7 @@ function drawObjects() {
   }
   visible.sort(
     (a, b) =>
-      (globalThis.MapFilters?.narrow ? Number(MapDetails.origin(b.o)) - Number(MapDetails.origin(a.o)) : 0) ||
+      (globalThis.MapFilters?.narrow || globalThis.MapFilters?.promoted.size ? Number(MapDetails.origin(b.o)) - Number(MapDetails.origin(a.o)) : 0) ||
       (globalThis.MapFilters?.narrow ? Number(MapFilters.anchor(b.o)) - Number(MapFilters.anchor(a.o)) : 0) ||
       Number(!!b.o.notableLandmark) - Number(!!a.o.notableLandmark) ||
       (b.o.landmarkPriority||0) - (a.o.landmarkPriority||0) ||
@@ -505,12 +505,12 @@ function drawObjects() {
   );
   // Keep the host's resolved contour, but let its nucleus own the coincident
   // point and click target. No anonymous galaxy dot covers the black-hole ring.
-  const nuclearHosts=new Set(visible.filter(q=>q.o.blackHoleCatalog&&q.o.parentGalaxy).map(q=>q.o.parentGalaxy));
+  const nuclearHosts=new Set(visible.filter(q=>q.o.kind==='blackhole').map(q=>MapDetails.blackHoleHost(q.o)?.id).filter(Boolean));
   if(globalThis.BlackHoleCatalog)BlackHoleCatalog.renderedHosts=nuclearHosts;
   for (const { o, p, sparse, bg, mass, level, rank } of visible) {
-    // A small explicit selection replaces the catalogue's ordinary density cut.
-    // Its glyphs share one collision grid, independent of whether text fits.
-    if (globalThis.MapFilters?.narrow && (MapFilters.promotes(o) || MapFilters.anchor(o))) {
+    // Complete small classes also survive inside a large photographic selection.
+    // Their glyphs share one collision grid, independent of whether text fits.
+    if (globalThis.MapFilters?.promotes(o) || globalThis.MapFilters?.narrow && MapFilters.anchor(o)) {
       if (nearby(p, glyphRadius(o))) continue;
     }
     if(nuclearHosts.has(o.id)){
@@ -574,7 +574,7 @@ function drawObjects() {
       queueLabel(o, p, ExtendedCatalog.opacity(o) * RegionMap.pointOpacity(o));
       continue;
     }
-    if (!bg) reserve(p, globalThis.MapFilters?.narrow ? glyphRadius(o) : 12);
+    if (!bg) reserve(p, globalThis.MapFilters?.narrow || globalThis.MapFilters?.promotes(o) ? glyphRadius(o) : 12);
     const selected = o.id === state.selected,
       opacity = ExtendedCatalog.opacity(o) * RegionMap.pointOpacity(o);
     ctx.save();

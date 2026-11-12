@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const harness = fs.readFileSync('verify-map.mjs', 'utf8').split('\nrun(`')[0].replace('setAttribute(){}','setAttribute(k,v){(this.attributes ||= {})[k]=v}getAttribute(k){return this.attributes?.[k]}') + '\nexport {context,run};';
 const {context, run} = await import('data:text/javascript,' + encodeURIComponent(harness) + '#map-filters');
 // These catalogues are ordinary browser scripts, outside the harness's data-app list.
-run(['distant-catalog-data','distant-catalog'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'));
+run(['distant-catalog-data','distant-catalog','universe-map'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'));
 context.savedPreferences = new Map();
 context.localStorage = {
   getItem: key => context.savedPreferences.get(key) ?? null,
@@ -240,6 +240,7 @@ console.log('PASS v1–v4 migration, former unrestricted sets, explicit full sou
 context.readFilterJSON = file => JSON.parse(fs.readFileSync('dist/'+file.replace(/^catalog-data\//,'catalog-data/'+JSON.parse(fs.readFileSync('dist/catalog-data/current.json','utf8')).revision+'/'),'utf8'));
 context.fetch = () => { throw Error('unexpected network access'); };
 run(fs.readFileSync('dist/map-visibility-data.js','utf8')+'\n'+fs.readFileSync('dist/map-visibility.js','utf8'));
+run(['map-label-data','map-annotations'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'));
 await run(`(async()=>{
 ExtendedCatalog.readJSON=async file=>readFilterJSON(file);
 const pins=JSON.stringify([...ExtendedCatalog.pinned.keys()]),physical=JSON.stringify([state,OBJECTS.map(o=>[o.id,o.p3,o.d,o.apparentV])]);
@@ -278,23 +279,49 @@ for(const collection of ['pre-telescope','messier-discoveries','before-herschel'
  assert.ok([...MapFilters.objects.values()].every(o=>MapFilters.matchesCollection(o,collection)));
 }
 MapFilters.change('all','photos','all');await MapFilters.pending;
-assert.ok(MapFilters.total>300&&MapFilters.narrow,'the complete photo collection exceeds the ordinary small-selection budget');
+assert.ok(MapFilters.total>=10000&&!MapFilters.narrow,'large photo collections preserve the ordinary map density hierarchy');
 assert.ok(!MapFilters.loadError);
-assert.equal(MapFilters.promoted.size,MapFilters.total,'every mapped photo identity is retained regardless of currently visible tiles');
-assert.equal(MapFilters.objects.size,MAP_FILTER_DATA.buckets.filter(b=>MapFilters.bucketMatches(b)).reduce((n,b)=>n+b[3],0));
-assert.ok([...MapFilters.objects.values()].every(o=>SkyGuide.hasObservatoryPhoto(o)&&!o.atlasOnly));
-assert.ok(MapFilters.objects.has('opengc-ngc1365'),'unloaded photograph-bearing galaxy comes from its original tile');
-assert.ok(MapFilters.promoted.has('lmc')&&!MapFilters.promoted.has('barnard'),'actual observatory shots qualify, survey-only records do not');
+assert.equal(MapFilters.photoMembers.size,MapFilters.total,'every mapped photo identity is retained regardless of currently visible tiles');
+assert.ok(MapFilters.promoted.size>0&&MapFilters.promoted.size<=MapFilters.collectionLimits.photos,'small photographic classes remain complete within a bounded budget');
+assert.ok(MapFilters.objects.size>0&&MapFilters.objects.size<MapFilters.promoted.size,'only the streamed members of small classes preload, not twelve thousand galaxies');
+assert.ok(![...MapFilters.objects.values()].some(o=>o.kind==='galaxy'),'the large galaxy population retains spatial loading');
+for(const id of ['sgr','bh-m87','gaia-bh3','betelgeuse','orion','crab'])assert.ok(MapFilters.promotes(object(id)),'large galaxy count cannot hide a smaller photographic class: '+id);
+for(const o of MapFilters.objects.values())assert.ok(MapFilters.promotes(o)&&SkyGuide.hasObservatoryPhoto(o),'all streamed promoted records have their own photographs');
+assert.ok(MapFilters.photoMembers.has('opengc-ngc1365'),'unloaded photograph-bearing galaxies are in the full selection');
+assert.ok(MapFilters.photoMembers.has('lmc')&&!MapFilters.photoMembers.has('barnard'),'actual observatory shots qualify, survey-only records do not');
 assert.equal(SkyPhotos.cache.size,0,'selecting the photo collection never fetches image metadata or pixels');
+assert.equal(SkyImaging.cache.size,0,'large SGA collection also needs no metadata or pixel downloads');
+MapFilters.sync();assert.equal($('mapFilterStatus').textContent,'Объектов: '+MapFilters.total);
+// Membership alone did not catch the original regression: Sgr A* was in the
+// index but opacity was zero. Exercise real glyphs, captions and hit targets
+// beyond the ordinary scale limit, without selecting the photographed target.
+const photoPreviousSelection=state.selected;state.selected='alpha';
+for(const mode of ['full','radial','slice']){
+ MapSlice.mode=mode;const target=object('sgr'),p=MapLayout.project(target);
+ cam={x:p.x,y:p.y,span:1e6};MapDetails.beginFrame();MapLabels.begin();RegionMap.draw();drawObjects();MapLabels.draw();
+ assert.ok(cam.span>MapDetails.maxSpan(target));
+ assert.equal(MapDetails.opacity(target,cam.span),1,'photographed nucleus survives the ordinary zoom cutoff: '+mode);
+ assert.ok(hitObjects.some(h=>h.o.id==='sgr'),'unselected Sgr A* has a clickable glyph: '+mode);
+ assert.ok(MapAnnotations.admitted.includes('sgr'),'unselected Sgr A* enters caption placement before collision checks: '+mode);
+ assert.ok(hitObjects.every(h=>MapFilters.anchor(h.o)||MapFilters.photoMembers.has(h.o.id)));
+ MapDetails.endFrame();
+}
+MapSlice.mode='full';state.selected=photoPreviousSelection;
 const realPhotoPredicate=SkyGuide.hasObservatoryPhoto;
 SkyGuide.hasObservatoryPhoto=()=>{throw Error('Per-frame photo catalogue join');};
-for(const o of [...OBJECTS,...MapFilters.objects.values()])assert.equal(MapFilters.matches(o),MapFilters.anchor(o)||MapFilters.promoted.has(o.id));
+for(const o of OBJECTS)assert.equal(MapFilters.matches(o),MapFilters.anchor(o)||MapFilters.photoMembers.has(o.id));
 SkyGuide.hasObservatoryPhoto=realPhotoPredicate;
 const photoRevision=MAP_FILTER_DATA.photoRevision;MAP_FILTER_DATA.photoRevision='stale-photo-index';
 MapFilters.refreshSelection();assert.ok(!MapFilters.narrow,'a stale photo membership index cannot claim completeness');
+assert.equal(MapFilters.photoMembers,null);
 MAP_FILTER_DATA.photoRevision=photoRevision;
+const imagingRevision=MAP_FILTER_DATA.imagingRevision;MAP_FILTER_DATA.imagingRevision='stale-sga-index';
+MapFilters.refreshSelection();assert.equal(MapFilters.photoMembers,null,'stale SGA membership cannot claim a current complete domain');
+MAP_FILTER_DATA.imagingRevision=imagingRevision;
 MapFilters.change('all','photos','all');const obsoletePhotos=MapFilters.pending;
 MapFilters.change('all','galileo','all');await Promise.all([obsoletePhotos,MapFilters.pending]);
+assert.equal(MapFilters.photoMembers,null,'switching collections clears the large indexed photo domain');
+assert.ok(!MapFilters.promoted.has('sgr')&&!MapFilters.objects.has('sgr'),'switching collections clears the partial photographic classes');
 assert.ok([...MapFilters.objects.values()].every(o=>MapFilters.matchesCollection(o,'galileo')),'late photo tile responses cannot repopulate another collection');
 assert.equal(JSON.stringify([...ExtendedCatalog.pinned.keys()]),pins,'filter references never pin expedition objects');
 assert.equal(JSON.stringify([state,OBJECTS.map(o=>[o.id,o.p3,o.d,o.apparentV])]),physical,'complete selection loading preserves physical catalogue and flight');

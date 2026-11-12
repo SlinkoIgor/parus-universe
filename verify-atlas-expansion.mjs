@@ -38,7 +38,7 @@ assert.equal(MapDetails.typeName(object('m87')),'Галактика','the host i
 const denseOffsets=Array.from({length:130001},(_,i)=>[i,0,0]),denseSpine={id:'dense-spine-regression',kind:'filament',p3:[0,0,0],region:{shape:'polyline',major:130000,minor:1,offsets3:denseOffsets,points:denseOffsets.map(p=>p.slice(0,2))}};
 assert.deepEqual(MapGeometry.projected(denseSpine,{mode:'full',slice:false}).bounds.map(n=>n||0),[0,0,130000,0],'dense path bounds do not exhaust the JavaScript argument stack');
 assert.equal(new Set(OBJECTS.map(o=>o.id)).size,OBJECTS.length);
-assert.equal(ExtendedCatalog.total,EXTENDED_BOOT.total+(EXTENDED_BOOT.stellarCatalog?.newObjectCount||0)+BlackHoleCatalog.objects.length+NuclearStars.rows.length+UniverseMap.areas.length);
+assert.equal(ExtendedCatalog.total,EXTENDED_BOOT.total-Object.keys(CatalogIdentities.redirects).length+Object.keys(EXTENDED_BOOT.coreIdentityRedirects||{}).length+(EXTENDED_BOOT.stellarCatalog?.newObjectCount||0)+OBJECTS.filter(o=>o.quasarCatalog).length+BlackHoleCatalog.objects.length+NuclearStars.rows.length+UniverseMap.areas.length);
 for(const o of bh){
  assert.ok(o.source.startsWith('https://'));assert.ok(o.facts.refs.length);assert.equal(o.massSource,o.massSource||o.source);
  if(o.atlasOnly){assert.equal(o.p3,null);assert.equal(o.navigable,false);assert.equal(MapDetails.visible(o,1),false);assert.equal(o.gravity,null);}

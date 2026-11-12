@@ -22,6 +22,7 @@ const MapDetails = {
   massCache: new WeakMap(),
   nameCache: new WeakMap(),
   typeName(o) {
+    if(o.catalogIdentityLabel)return o.catalogIdentityLabel;
     if (o.kind === 'blackhole' && (o.blackHolePopulation || o.population) === 'supermassive')
       return o.confirmed === false
         ? 'Кандидат в сверхмассивные чёрные дыры'

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "policy": "Explicitly reviewed game destinations, never automatic identity merging by common name or angular proximity. Components retain their separate source records; the game can represent their whole complex as one destination.",
+  "groups": [
+    {
+      "id": "messier-16-complex",
+      "target": "opengc-ngc6611",
+      "members": ["opengc-ngc6611", "opengc-ic4703"],
+      "name": "Орёл · M16",
+      "type": "ТУМАННОСТЬ И ЗВЁЗДНОЕ СКОПЛЕНИЕ",
+      "label": "Туманность и звёздное скопление",
+      "description": "Туманность Орёл и молодое рассеянное звёздное скопление NGC 6611 образуют комплекс M16. Излучение звёзд заставляет газ светиться; в плотных облаках рождаются новые звёзды. Здесь находятся знаменитые Столпы Творения.",
+      "note": "Комплекс M16: газовая туманность IC 4703 и связанное рассеянное звёздное скопление NGC 6611 показаны одной целью. Это разные компоненты комплекса, а не два независимых облака. Опорное положение и размеры оставлены от исходной записи NGC 6611; отдельные исходные оценки сохранены у компонентов.",
+      "sources": [
+        ["https://github.com/mattiaverga/OpenNGC", "OpenNGC: IC4703, NED notes: This is the nebula associated with the open cluster MESSIER 16 = NGC 6611."],
+        ["https://www.spacetelescope.org/images/potw1101a/", "ESA/Hubble: NGC 6611 and the associated nebula together are also known as Messier 16."]
+      ]
+    }
+  ],
+  "distinct": [
+    {
+      "members": ["opengc-ngc6992", "opengc-ngc6995"],
+      "reason": "OpenNGC assigns Eastern Veil / Network Nebula to separate northern and southern portions of the same extended remnant. Different catalogue regions must not become one identity merely because their common names coincide.",
+      "names": ["Восточная Вуаль · северная часть", "Восточная Вуаль · южная часть"],
+      "source": "https://github.com/mattiaverga/OpenNGC"
+    },
+    {
+      "members": ["opengc-ngc6726", "opengc-ngc6727"],
+      "reason": "Separate reflection nebulae with different positions share the unresolved infrared identifier IRAS 18583-3657. An identifier shared by an extended field is not sufficient identity evidence.",
+      "source": "https://github.com/mattiaverga/OpenNGC"
+    }
+  ]
+}

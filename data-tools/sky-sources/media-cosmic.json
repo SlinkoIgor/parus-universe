@@ -1,0 +1,1468 @@
+[
+  {
+    "id": "cosmic-astropix-chandra-113",
+    "publisher": "chandra",
+    "imageId": "113",
+    "identifiers": [],
+    "subjects": [],
+    "title": "Квазар PKS 1127-145 — Chandra",
+    "archiveTitle": "Chandra Scores A Double Bonus With A Distant Quasar",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Chandra",
+    "detectors": [
+      "ACIS"
+    ],
+    "band": "рентген · обработанные цвета",
+    "date": "2002-02-06",
+    "url": "https://www.astropix.org/archive/chandra/113/chandra_113_1280.jpg",
+    "source": "https://chandra.harvard.edu/photo/2002/1127/",
+    "archive": "https://www.astropix.org/image/chandra/113",
+    "credit": "NASA/CXC/A.Siemiginowska(CfA)/J.Bechtold(U.Arizona)",
+    "rights": "http://chandra.harvard.edu/photo/image_use.html",
+    "description": "Джет квазара протянулся на сотни тысяч световых лет; Chandra наблюдает его рентгеновское излучение. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "Chandra's image of this highly luminous quasar shows an enormous X-ray jet that extends at least a million light years. The jet is likely due to the collision of a beam of high-energy electrons with microwave photons. The high-energy beam is thought to have been produced by explosive activity related to gas swirling around a supermassive black hole. The length of the jet and the observed bright knots of X-ray emission suggest that the explosive activity is long-lived but intermittent. The X-ray light from PKS 1127-145 passes through a galaxy 4 billion light years away, on its way to Earth. This allowed astronomers to estimate that the gas in the intervening galaxy contained a much lower concentration of oxygen relative to hydrogen gas than does our galaxy - about 5 times lower.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 21083,
+      "metadataSha256": "21cd1424bf796403776e6e5f689fcb756e0b794ba74b5fdc91011459cbfbbdbe"
+    },
+    "objects": [
+      "qso-pks1127"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-chandra-289",
+    "publisher": "chandra",
+    "imageId": "289",
+    "identifiers": [],
+    "subjects": [
+      "C.5.3.2.1."
+    ],
+    "title": "Квазар PKS 0637-752 — Chandra",
+    "archiveTitle": "NASA Unveils First Images From Chandra X-Ray Observatory",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Chandra",
+    "detectors": [
+      "ACIS"
+    ],
+    "band": "рентген · обработанные цвета",
+    "date": "1999-08-26",
+    "url": "https://www.astropix.org/archive/chandra/289/chandra_289_1280.jpg",
+    "source": "https://chandra.harvard.edu/photo/1999/0064/",
+    "archive": "https://www.astropix.org/image/chandra/289",
+    "credit": "NASA/CXC/SAO",
+    "rights": "http://chandra.harvard.edu/photo/image_use.html",
+    "description": "Один из первых объектов Chandra: яркое ядро и протяжённый рентгеновский джет. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "PKS 0637-72 is so distant that we see it as it was 6 billion years ago. It is a luminous quasar that radiates with the power of 10 trillion suns. The source of this prodigious energy is believed to be a supermassive black hole. Chandra's X-ray image reveals a powerful X-ray jet extending away from the quasar that stretches across several hundred thousand light years. The jet, also observed by radio telescopes, is probably due to a beam of extremely high-energy particles.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 21172,
+      "metadataSha256": "379206105861ff1b6a958b59f66f18e75b220ffda24d8029f85a69072f824545"
+    },
+    "objects": [
+      "qso-pks0637"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-chandra-527",
+    "publisher": "chandra",
+    "imageId": "527",
+    "identifiers": [],
+    "subjects": [
+      "D.5.3.2.1",
+      "D.5.4.6"
+    ],
+    "title": "Квазар GB 1428+4217 — VLA / Hubble / Chandra",
+    "archiveTitle": "Record-Setting X-ray Jet Discovered",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "VLA / Hubble / Chandra",
+    "detectors": [
+      "VLA",
+      "WFPC2",
+      "ACIS"
+    ],
+    "band": "радио / оптика / рентген · обработанные цвета",
+    "date": "2012-11-28",
+    "url": "https://www.astropix.org/archive/chandra/527/chandra_527_1280.jpg",
+    "source": "https://chandra.harvard.edu/photo/2012/gb1428/",
+    "archive": "https://www.astropix.org/image/chandra/527",
+    "credit": "X-ray: NASA/CXC/NRC/C.Cheung et al; Optical: NASA/STScI; Radio: NSF/NRAO/VLA",
+    "rights": "http://chandra.harvard.edu/photo/image_use.html",
+    "description": "Составное наблюдение: Chandra — синий, VLA — фиолетовый, Hubble — жёлтый. Ядро и джет принадлежат GB 1428+4217; цвета условные. Красное смещение в старой подписи Chandra (≈4,72) отличается от принятого здесь измерения SIMBAD; обе ссылки сохранены.",
+    "sourceCaption": "This composite image shows GB 1428+4217, a quasar that contains the most distant X-ray jet ever observed. This view contains X-rays from Chandra (blue), radio data from the Very Large Array (purple), and optical data from Hubble (yellow). The jet, whose shape is very similar in the X-ray and radio data, was produced by a giant black hole, at the center of a galaxy, pulling in matter at a rapid rate. The energy released as particles fall toward the black hole generates intense radiation and powerful beams of high-energy particles that blast away from the black hole at nearly the speed of light. GB 1428+4217 is located about 12.4 billion light years from Earth, surpassing the distance of previously discovered X-ray jets.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 20814,
+      "metadataSha256": "58b87d60bfdea247a38f22dc1cccd093448d5d501af3742c12e11ab659e383ed"
+    },
+    "objects": [
+      "qso-gb1428"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-chandra-466",
+    "publisher": "chandra",
+    "imageId": "466",
+    "identifiers": [],
+    "subjects": [
+      "D.5.1.7",
+      "D.5.3.2.1",
+      "D.5.5.3"
+    ],
+    "title": "Квазар 3C 186 — Chandra / Gemini",
+    "archiveTitle": "Precocious Galaxy Cluster Identified by Chandra",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Chandra / Gemini",
+    "detectors": [
+      "ACIS",
+      "GMOS-N"
+    ],
+    "band": "рентген / оптика · обработанные цвета",
+    "date": "2010-10-26",
+    "url": "https://www.astropix.org/archive/chandra/466/chandra_466_1280.jpg",
+    "source": "https://chandra.harvard.edu/photo/2010/3c186/",
+    "archive": "https://www.astropix.org/image/chandra/466",
+    "credit": "X-ray: NASA/CXC/SAO/A.Siemiginow",
+    "rights": "http://chandra.harvard.edu/photo/image_use.html",
+    "description": "Квазар в окружении горячего газа далёкого скопления галактик. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "This composite image contains a new, deep image from Chandra (blue) showing emission from gas surrounding the point-like quasar near the center of the galaxy cluster known as 3C 186. Optical data from the Gemini telescope (yellow) show the stars and galaxies in the field of view. Chandra X-ray spectra reveal that the temperature of the gas drops from 80 million degrees on the outskirts of the cluster down to 30 million in the core. This drop in temperature occurs because intense X-ray emission from the gas cools it. 3C 186 is the most distant such object observed, and could provide insight into the triggering of quasars and the growth of galaxy clusters.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 20874,
+      "metadataSha256": "a668ca79861c638d193c55c274eaf682ba915f6fc34de41f2bf9dae1a64c57db"
+    },
+    "objects": [
+      "qso-3c186"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-esahubble-heic0511b",
+    "publisher": "esahubble",
+    "imageId": "heic0511b",
+    "identifiers": [],
+    "subjects": [
+      "D.5.3.2.1"
+    ],
+    "title": "Квазар HE 0450-2958 — Hubble Space Telescope",
+    "archiveTitle": "Looking \"underneath\" the quasar HE0450-2958",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Hubble Space Telescope",
+    "detectors": [
+      "ACS"
+    ],
+    "band": "Архивное наблюдение · обработанные цвета",
+    "date": "2005-09-14",
+    "url": "https://www.astropix.org/archive/esahubble/heic0511b/esahubble_heic0511b_1280.jpg",
+    "source": "https://www.spacetelescope.org/images/heic0511b/",
+    "archive": "https://www.astropix.org/image/esahubble/heic0511b",
+    "credit": "NASA/ESA, ESO, Frédéric Courbin (Ecole Polytechnique Federale de Lausanne, Switzerland) & Pierre Magain (Universite de Liège, Belgium)",
+    "rights": "Creative Commons Attribution 4.0 International License",
+    "description": "Яркий квазар рядом с взаимодействующей галактикой. Вычитание ядра помогает исследовать его окружение. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "This image shows the quasar HE0450-2958 after advanced image processing known as MCS-deconvolution. Thanks to this technique, it is possible to remove the brilliant glare from the quasar itself. The most interesting feature in the image is the nearly total absence of starlight from a host galaxy. The processing also reveal an interesting smaller cloud of gas about 2,500 light-years wide, which the scientist call \"the blob\", just next to the quasar. VLT observations show this cloud to be glowing because it is bathed in the intense radiation coming from the quasar. Most likely, it is the gas from this \"blob\" that feeds the super massive black hole, thereby allowing it to shine as a quasar.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 19121,
+      "metadataSha256": "1e50c152cf798c1e1680c2bc58461bf5e55b6cdf5a6a5cc2961f093a973c0bba"
+    },
+    "objects": [
+      "qso-he0450"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-esahubble-opo9635a1",
+    "publisher": "esahubble",
+    "imageId": "opo9635a1",
+    "identifiers": [],
+    "subjects": [
+      "D.5.3.2.1"
+    ],
+    "title": "Квазар PG 0052+251 — Hubble Space Telescope",
+    "archiveTitle": "Quasar PG 0052+251",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Hubble Space Telescope",
+    "detectors": [
+      "WFPC2"
+    ],
+    "band": "оптика · обработанные цвета",
+    "date": "1996-11-19",
+    "url": "https://www.astropix.org/archive/esahubble/opo9635a1/esahubble_opo9635a1_1280.jpg",
+    "source": "https://www.spacetelescope.org/images/opo9635a1/",
+    "archive": "https://www.astropix.org/image/esahubble/opo9635a1",
+    "credit": "John Bahcall (Institute for Advanced Study, Princeton) Mike Disney (University of Wales) and NASA/ESA",
+    "rights": "Creative Commons Attribution 4.0 International License",
+    "description": "Квазар в спиральной галактике-хозяине, наблюдавшейся Hubble. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "This image shows quasar PG 0052+251, which is 1.4 billion light-years from Earth, at the core of a normal spiral galaxy. Astronomers are surprised to find host galaxies, such as this one, that appear undisturbed by the strong quasar radiation.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 19215,
+      "metadataSha256": "d078118a5fc7021fff240c731ea9dd76aae4528772aaeca4d9057f4460665be9"
+    },
+    "objects": [
+      "qso-pg0052"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-esahubble-opo9635a4",
+    "publisher": "esahubble",
+    "imageId": "opo9635a4",
+    "identifiers": [],
+    "subjects": [
+      "D.5.3.2.1"
+    ],
+    "title": "Квазар PHL 909 — Hubble Space Telescope",
+    "archiveTitle": "Quasar PHL 909",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Hubble Space Telescope",
+    "detectors": [
+      "WFPC2"
+    ],
+    "band": "оптика · обработанные цвета",
+    "date": "1996-11-19",
+    "url": "https://www.astropix.org/archive/esahubble/opo9635a4/esahubble_opo9635a4_1280.jpg",
+    "source": "https://www.spacetelescope.org/images/opo9635a4/",
+    "archive": "https://www.astropix.org/image/esahubble/opo9635a4",
+    "credit": "John Bahcall (Institute for Advanced Study, Princeton) Mike Disney (University of Wales) and NASA/ESA",
+    "rights": "Creative Commons Attribution 4.0 International License",
+    "description": "Яркое активное ядро внутри эллиптической галактики, наблюдавшейся Hubble. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "Quasar PHL 909 is 1.5 billion light-years from Earth and lies at the core of an apparently normal elliptical galaxy.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 19211,
+      "metadataSha256": "7b9847589d065e3c4282fc7ed0ad949dbe6c3c70f9f60ba9eed29d9a9ce2750f"
+    },
+    "objects": [
+      "qso-phl909"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-esahubble-opo9635a5",
+    "publisher": "esahubble",
+    "imageId": "opo9635a5",
+    "identifiers": [],
+    "subjects": [
+      "D.5.3.2.1"
+    ],
+    "title": "Квазар PG 1012+008 — Hubble Space Telescope",
+    "archiveTitle": "Quasar PG 1012+008",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Hubble Space Telescope",
+    "detectors": [
+      "WFPC2"
+    ],
+    "band": "оптика · обработанные цвета",
+    "date": "1996-11-19",
+    "url": "https://www.astropix.org/archive/esahubble/opo9635a5/esahubble_opo9635a5_1280.jpg",
+    "source": "https://www.spacetelescope.org/images/opo9635a5/",
+    "archive": "https://www.astropix.org/image/esahubble/opo9635a5",
+    "credit": "John Bahcall (Institute for Advanced Study, Princeton) Mike Disney (University of Wales) and NASA/ESA",
+    "rights": "Creative Commons Attribution 4.0 International License",
+    "description": "Квазар в системе взаимодействующих галактик, наблюдавшейся Hubble. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "Hubble has captured quasar PG 1012+008, located 1.6 billion light-years from Earth, merging with a bright galaxy (the object just below the quasar). The two objects are 31, 000 light-years apart, but the swirling wisps of dust and gas surrounding the quasar and galaxy provide strong evidence for an interaction between them.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 19212,
+      "metadataSha256": "2dbe2899bb5a61d444dfd38cd19e4a5d0792b08558c8fd1d5c9dbbea52481f3d"
+    },
+    "objects": [
+      "qso-pg1012"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-esahubble-opo0739b",
+    "publisher": "esahubble",
+    "imageId": "opo0739b",
+    "identifiers": [],
+    "subjects": [
+      "D.5.3.2.1"
+    ],
+    "title": "Квазар MC2 1635+119 — Hubble Space Telescope",
+    "archiveTitle": "Quasar MC2 1635+119 and host galaxy",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Hubble Space Telescope",
+    "detectors": [
+      "ACS"
+    ],
+    "band": "оптика · обработанные цвета",
+    "date": "2007-10-25",
+    "url": "https://www.astropix.org/archive/esahubble/opo0739b/esahubble_opo0739b_1280.jpg",
+    "source": "https://www.spacetelescope.org/images/opo0739b/",
+    "archive": "https://www.astropix.org/image/esahubble/opo0739b",
+    "credit": "NASA, ESA, and G. Canalizo (University of California, Riverside)",
+    "rights": "Creative Commons Attribution 4.0 International License",
+    "description": "Hubble выявляет оболочки и следы прежнего слияния в галактике-хозяине квазара. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "This image taken by Hubble shows the host galaxy of the quasar MC2 1635+119. The quasar sits in an indisturbed elliptical galaxy which shows a shell structure indicating a recent merger. An intermediate population of stars is dominating the galaxy and probably the result of a strong star burst at the time of the merging process.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 18598,
+      "metadataSha256": "659045102042b52dc6ff3fefb47ed6b00da10ec44c7eed8cfdb6d8ad9f653002"
+    },
+    "objects": [
+      "qso-mc21635"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-esahubble-opo0739d",
+    "publisher": "esahubble",
+    "imageId": "opo0739d",
+    "identifiers": [],
+    "subjects": [
+      "D.5.3.2.1"
+    ],
+    "title": "Квазар MC2 1635+119 — Hubble Space Telescope",
+    "archiveTitle": "Quasar MC2 1635+119 (Enhanced)",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Hubble Space Telescope",
+    "detectors": [
+      "ACS"
+    ],
+    "band": "оптика · обработанные цвета",
+    "date": "2007-10-25",
+    "url": "https://www.astropix.org/archive/esahubble/opo0739d/esahubble_opo0739d_1280.jpg",
+    "source": "https://www.spacetelescope.org/images/opo0739d/",
+    "archive": "https://www.astropix.org/image/esahubble/opo0739d",
+    "credit": "NASA, ESA, and G. Canalizo (University of California, Riverside)",
+    "rights": "Creative Commons Attribution 4.0 International License",
+    "description": "Hubble выявляет оболочки и следы прежнего слияния в галактике-хозяине квазара. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "This image taken by Hubble shows the quasar MC2 1635+119. The quasar sits in an indisturbed elliptical galaxy which shows a shell structure indicating a recent merger. An intermediate population of stars is dominating the galaxy and probably the result of a strong star burst at the time of the merging process.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 28182,
+      "metadataSha256": "9a001bc81f85a72a71e9f7246df141060add34845bb110aae2d96c932986274c"
+    },
+    "objects": [
+      "qso-mc21635"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-esahubble-opo9837b",
+    "publisher": "esahubble",
+    "imageId": "opo9837b",
+    "identifiers": [],
+    "subjects": [
+      "D.5.1.8",
+      "D.5.3.2.1"
+    ],
+    "title": "Квазар PG 1115+080 — Hubble Space Telescope",
+    "archiveTitle": "Gravitational Lens and Quasar PG1115+080",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Hubble Space Telescope",
+    "detectors": [
+      "NICMOS"
+    ],
+    "band": "ИК · обработанные цвета",
+    "date": "1998-10-26",
+    "url": "https://www.astropix.org/archive/esahubble/opo9837b/esahubble_opo9837b_1280.jpg",
+    "source": "https://www.spacetelescope.org/images/opo9837b/",
+    "archive": "https://www.astropix.org/image/esahubble/opo9837b",
+    "credit": "Christopher D. Impey (University of Arizona)",
+    "rights": "Creative Commons Attribution 4.0 International License",
+    "description": "Гравитационная линза создаёт несколько изображений одного фонового квазара. Направление — положение наблюдаемого линзированного изображения; красное смещение относится к фоновому квазару. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "The light from the single quasar PG 1115+080 is split and distorted in this infrared image. PG 1115+080 is at a distance of about 8 billion light years in the constellation Leo, and it is viewed through an elliptical galaxy lens at a distance of 3 billion light years. The NICMOS frame is taken at a wavelength of 1.6 microns and it shows the four images of the quasar (the two on the left are nearly merging) surrounding the galaxy that causes the light to be lensed. The quasar is a variable light source and the light in each image travels a different path to reach the Earth. The time delay of the variations allows the distance scale to be measured directly. The linear streaks on the image are diffraction artifacts in the NICMOS instrument (NASA/Space Telescope Science Institute).",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 19197,
+      "metadataSha256": "da3226d1c1de58f9d655a16c396cd3635aa9b2d34b4a52c0e764a2891e9c5590"
+    },
+    "objects": [
+      "qso-pg1115"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-esahubble-heic1702a",
+    "publisher": "esahubble",
+    "imageId": "heic1702a",
+    "identifiers": [],
+    "subjects": [
+      "D.5.3.2.1",
+      "D.6.2.1"
+    ],
+    "title": "Квазар HE 0435-1223 — Hubble Space Telescope",
+    "archiveTitle": "Lensed quasar and its surroundings",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Hubble Space Telescope",
+    "detectors": [
+      "ACS",
+      "WFC3"
+    ],
+    "band": "оптика / ИК · обработанные цвета",
+    "date": "2017-01-26",
+    "url": "https://www.astropix.org/archive/esahubble/heic1702a/esahubble_heic1702a_1280.jpg",
+    "source": "https://www.spacetelescope.org/images/heic1702a/",
+    "archive": "https://www.astropix.org/image/esahubble/heic1702a",
+    "credit": "ESA/Hubble, NASA, Suyu et al.",
+    "rights": "Creative Commons Attribution 4.0 International License",
+    "description": "Четыре изображения одного квазара окружают галактику-линзу на переднем плане. Направление — положение наблюдаемого линзированного изображения; красное смещение относится к фоновому квазару. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "HE0435-1223, located in the centre of this wide-field image, is among the five best lensed quasars discovered to date. The foreground galaxy creates four almost evenly distributed images of the distant quasar around it.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 18772,
+      "metadataSha256": "54c03d6e8955e2a971d9c0658171ebb8dcd12e6b1e6b98bde140f285653671f3"
+    },
+    "objects": [
+      "qso-he0435"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-esahubble-heic1702e",
+    "publisher": "esahubble",
+    "imageId": "heic1702e",
+    "identifiers": [],
+    "subjects": [
+      "D.5.3.2.1",
+      "D.6.2.1"
+    ],
+    "title": "Квазар HE 0435-1223 — Hubble Space Telescope",
+    "archiveTitle": "Lensed quasar",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Hubble Space Telescope",
+    "detectors": [
+      "WFC3",
+      "ACS"
+    ],
+    "band": "оптика · обработанные цвета",
+    "date": "2017-01-26",
+    "url": "https://www.astropix.org/archive/esahubble/heic1702e/esahubble_heic1702e_1280.jpg",
+    "source": "https://www.spacetelescope.org/images/heic1702e/",
+    "archive": "https://www.astropix.org/image/esahubble/heic1702e",
+    "credit": "ESA/Hubble, NASA, Suyu et al.",
+    "rights": "Creative Commons Attribution 4.0 International License",
+    "description": "Четыре изображения одного квазара окружают галактику-линзу на переднем плане. Направление — положение наблюдаемого линзированного изображения; красное смещение относится к фоновому квазару. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "HE0435-1223 is among the five best lensed quasars discovered to date. The foreground galaxy creates four almost evenly distributed images of the distant quasar around it.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 18769,
+      "metadataSha256": "651ca91fe47f2e400cf565ed5e1a94def1f3fa385dfc420e34d8bfbf95b594bb"
+    },
+    "objects": [
+      "qso-he0435"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-esahubble-heic1116a",
+    "publisher": "esahubble",
+    "imageId": "heic1116a",
+    "identifiers": [],
+    "subjects": [
+      "D.5.3.2.1",
+      "D.6.2.1"
+    ],
+    "title": "Квазар HE 1104-1805 — Hubble Space Telescope",
+    "archiveTitle": "Gravitationally lensed quasar HE 1104-1805",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Hubble Space Telescope",
+    "detectors": [
+      "NICMOS"
+    ],
+    "band": "ИК · обработанные цвета",
+    "date": "2011-11-04",
+    "url": "https://www.astropix.org/archive/esahubble/heic1116a/esahubble_heic1116a_1280.jpg",
+    "source": "https://www.spacetelescope.org/images/heic1116a/",
+    "archive": "https://www.astropix.org/image/esahubble/heic1116a",
+    "credit": "NASA, ESA and J.A. Muñoz (University of Valencia)",
+    "rights": "Creative Commons Attribution 4.0 International License",
+    "description": "Гравитационная линза раздваивает изображение далёкого квазара. Направление — положение наблюдаемого линзированного изображения; красное смещение относится к фоновому квазару. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "This picture shows a quasar that has been gravitationally lensed by a galaxy in the foreground, which can be seen as a faint shape around the two bright images of the quasar. Observations of one of the images show variations in colour over time. This is caused by stars within the lens galaxy passing through the path of the light from the quasar, magnifying the light from different parts of the quasars accretion disc as they move. This has allowed a team of scientists to reconstruct the colour and temperature profile of the accretion disc with unprecedented precision. The level of detail involved is equivalent to being able to study individual grains of sand on the surface of the Moon while standing on Earth.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 19348,
+      "metadataSha256": "4137ccf869f2e220c7f96166aa003ed7df7c3bc9c830c58dc957a1071c42fd75"
+    },
+    "objects": [
+      "qso-he1104"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-stsci-2023-122a",
+    "publisher": "stsci",
+    "imageId": "2023-122a",
+    "identifiers": [],
+    "subjects": [
+      "E.5.5.3",
+      "E.6.1.1"
+    ],
+    "title": "Квазар J0100+2802 — Webb",
+    "archiveTitle": "EIGER Survey (NIRCam Image)",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Webb",
+    "detectors": [
+      "NIRCam"
+    ],
+    "band": "ИК · обработанные цвета",
+    "date": "2023-06-12",
+    "url": "https://www.astropix.org/archive/stsci/2023-122a/stsci_2023-122a_1280.jpg",
+    "source": "https://webbtelescope.org/contents/news-releases/2023/news-2023-122",
+    "archive": "https://www.astropix.org/image/stsci/2023-122a",
+    "credit": "NASA, ESA, CSA, S. Lilly (Zurich), D. Kashino (Nagoya), J. Matthee, R. Mackenzie, and Alyssa Pagan (STScI)",
+    "rights": "http://stsci.edu/copyright/",
+    "description": "Квазар J0100+2802 освещает межгалактический газ в конце эпохи реионизации. Поле EIGER снято Webb. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "There are more than 20,000 galaxies in this field. This James Webb Space Telescope view is found between the Pisces and Andromeda constellations. Researchers using Webb anchored their observations on quasar J0100+2802, an active supermassive black hole that acts like a beacon. It is at the center of the image above, and appears tiny and pink with six prominent diffraction spikes. The quasar is so luminous that it acts like a flashlight, illuminating the gas between it and the telescope. The team analyzed 117 galaxies that all existed approximately 900 million years after the big bang – focusing on 59 that lie in front of the quasar. The researchers could study not only the galaxies themselves, but also the illuminated gas surrounding them. These galaxies existed just before the end of the Era of Reionization, when the universe contained a patchwork of gas – some opaque and some transparent (or ionized). “As we look back into the teeth of reionization, we see a very distinct change,” explained Simon Lilly of ETH Zürich in Switzerland, who leads this team of researchers. “Galaxies, which are made up of billions of stars, are ionizing the gas around them, effectively transforming it into transparent gas.” Researchers have long sought evidence to explain what happened during this period, when the universe experienced dramatic changes. After the big bang, gas in the universe was incredibly hot and dense. Over hundreds of millions of years, the gas cooled. Then, the universe hit “repeat.” The gas again became hot and ionized – and transparent. The team’s results more concretely define the conditions at this specific “stop” in the universe’s history. “Not only does Webb clearly show that these transparent regions exist around galaxies, we’ve also measured how large they are,” ",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 27408,
+      "metadataSha256": "ee410b25f72c2783a3123bbced07b8115c3ea1eaa23d5681ccfa805127b3fd17"
+    },
+    "objects": [
+      "qso-j0100"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-stsci-2023-122b",
+    "publisher": "stsci",
+    "imageId": "2023-122b",
+    "identifiers": [],
+    "subjects": [
+      "E.5.5.3",
+      "E.6.1.1"
+    ],
+    "title": "Квазар J0100+2802 — Webb",
+    "archiveTitle": "EIGER Survey OIII emitters (NIRCam Image)",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Webb",
+    "detectors": [
+      "NIRCam"
+    ],
+    "band": "ИК · обработанные цвета",
+    "date": "2023-06-12",
+    "url": "https://www.astropix.org/archive/stsci/2023-122b/stsci_2023-122b_1280.jpg",
+    "source": "https://webbtelescope.org/contents/news-releases/2023/news-2023-122",
+    "archive": "https://www.astropix.org/image/stsci/2023-122b",
+    "credit": "NASA, ESA, CSA, S. Lilly (Zurich), D. Kashino (Nagoya), J. Matthee, R. Mackenzie, and Alyssa Pagan (STScI)",
+    "rights": "http://stsci.edu/copyright/",
+    "description": "Квазар J0100+2802 освещает межгалактический газ в конце эпохи реионизации. Поле EIGER снято Webb. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "The James Webb Space Telescope has returned extraordinarily detailed images and spectra of galaxies that existed when the universe was only 900 million years old. “In Webb’s near-infrared image, we can see structures in every individual galaxy that the telescope detected,” shared Jorryt Matthee of ETH Zürich. “Webb is showing us the adventurous youth of these early galaxies.” These galaxies look more chaotic than those in the nearby universe – they are clumpy and often elongated. These galaxies are also younger and are actively forming stars. The stars Webb detected are all more massive, which may lead to an abundance of colorful supernovae shooting off in these galaxies. These results were announced by members of the Emission-line galaxies and Intergalactic Gas in the Epoch of Reionization (EIGER) team. Webb’s NIRCam (Near-Infrared Camera) image and data known as spectra helped the team fully define 117 galaxies in this field.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 27406,
+      "metadataSha256": "74cf59deec519e8c9feb9593ad832814e3df7050d4370d37ffb33f26f8eee61d"
+    },
+    "objects": [
+      "qso-j0100"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-esahubble-opo2504",
+    "publisher": "esahubble",
+    "imageId": "opo2504",
+    "identifiers": [],
+    "subjects": [],
+    "title": "Квазар J0742+2704 — Hubble Space Telescope",
+    "archiveTitle": "Quasar J0742+2704",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Hubble Space Telescope",
+    "detectors": [
+      "WFC3"
+    ],
+    "band": "ИК · обработанные цвета",
+    "date": "2025-01-13",
+    "url": "https://www.astropix.org/archive/esahubble/opo2504/esahubble_opo2504_1280.jpg",
+    "source": "https://esahubble.org/images/opo2504/",
+    "archive": "https://www.astropix.org/image/esahubble/opo2504",
+    "credit": "NASA, ESA, K. Nyland (United States Naval Research Laboratory), J. DePasquale (STScI)",
+    "rights": "Creative Commons Attribution 4.0 International License",
+    "description": "Квазар J0742+2704 в спиральной галактике: Hubble различает её рукава вокруг яркого ядра. Цвета кодируют выбранные диапазоны и обработку, а не вид в окуляре.",
+    "sourceCaption": "Quasar J0742+2704 (center) became the subject of astronomers’ interest after it was discovered to have a newborn jet blasting from the disk around its supermassive black hole in 2020, using the Karl G. Jansky Very Large Array (VLA) radio observatory. This led to follow-up with other observatories in an effort to determine the properties of the galaxy and what may have triggered the jet. While the jet itself cannot be seen in this NASA/ESA Hubble Space Telescope infrared-light image, the spiral shape of J0742+2704 is clear, with faint but detectable arms branching above and below the galaxy center. This was a big surprise to the research team, as quasars hosting jets are typically elliptical-shaped, and it is suspected that messy mergers with other galaxies are what funnel gas toward the black hole and fuel jets. These mergers would also disrupt any spiral formation a galaxy may have had before mixing its contents with another galaxy. Though its intact spiral shape means it has not experienced a major merger, Hubble does show evidence that its lower arm has been disrupted, possibly by the tidal forces of interaction with another galaxy. This could mean that jets can be triggered by a far less involved, dramatic interaction of galaxies than a full merger. The large galaxy to the lower right of the quasar appears to be a ring galaxy, another sign of interaction. Ring galaxies form after a small galaxy passes through the center of a larger galaxy, reconfiguring its gas and dust. The brightest parts of this image — foreground stars and the bright center of the quasar — show the characteristic “starry” spikes produced by Hubble (and other telescopes’) interior structure. They are not actual aspects of the cosmic objects [Image description: Field of yellow galaxies of various ",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 28055,
+      "metadataSha256": "abdc34afad7a25e8b2404993fde64e8132c141cb4bd35cb1977e295494fe8b51"
+    },
+    "objects": [
+      "qso-j0742"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-chandra-65",
+    "publisher": "chandra",
+    "imageId": "65",
+    "identifiers": [],
+    "subjects": [
+      "D.5.3.2.1"
+    ],
+    "title": "Квазар APM 08279+5255 — Chandra",
+    "archiveTitle": "Matter Near Black Hole Gets Second Lease On Life",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Chandra",
+    "detectors": [
+      "ACIS"
+    ],
+    "band": "рентген · обработанные цвета",
+    "date": "2003-03-25",
+    "url": "https://www.astropix.org/archive/chandra/65/chandra_65_1280.jpg",
+    "source": "https://chandra.harvard.edu/photo/2003/apm08279/",
+    "archive": "https://www.astropix.org/image/chandra/65",
+    "credit": "Illustration: CXC/M.Weiss; X-ray: NASA/CXC/PSU/G.Chartas",
+    "rights": "http://chandra.harvard.edu/photo/image_use.html",
+    "description": "На одном материале совмещены наблюдаемое Chandra двойное изображение квазара и рисунок механизма ветра. Рисунок диска — иллюстрация, а не разрешённая фотография аккреционного диска.",
+    "sourceCaption": "Chandra observations reveal evidence of high-speed winds blowing gas away from the supermassive black hole that powers this quasar. As gas swirls in a disk toward the black hole, it is heated to millions of degrees Celsius and produces intense X-radiation. The pressure of the X-rays pushes matter away from the inner part of the disk in much the same way as pressure from a garden hose pushes dirt off a driveway. The double image of APM 08279 is caused by the bending of its light by an intervening galaxy, an effect called gravitational lensing. This effect also magnifies the quasars light by 100 fold, allowing for a detailed study of its properties even though it is 12 billion light years from Earth.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 21067,
+      "metadataSha256": "388225c12b4f043dd57a782eb274cc564d1c76639063dd0aa1cacfc79439f13a"
+    },
+    "objects": [
+      "qso-apm08279"
+    ],
+    "kind": "quasar",
+    "mediaType": "composite",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-3c273-jet",
+    "publisher": "chandra",
+    "imageId": "326",
+    "identifiers": [],
+    "subjects": [
+      "C.5.3.2.1"
+    ],
+    "title": "3C 273 — джет в трёх диапазонах",
+    "archiveTitle": "Black Hole Spills a Kaleidoscope of Color",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Chandra / Hubble / Spitzer",
+    "detectors": [
+      "ACIS",
+      "ACS",
+      "IRAC"
+    ],
+    "band": "рентген / оптика / ИК · обработанные цвета",
+    "date": "2006-06-20",
+    "url": "https://www.astropix.org/archive/chandra/326/chandra_326_1280.jpg",
+    "source": "https://chandra.harvard.edu/photo/2006/3c273/",
+    "archive": "https://www.astropix.org/image/chandra/326",
+    "credit": "NASA/JPL-Caltech/Yale Univ.",
+    "rights": "http://chandra.harvard.edu/photo/image_use.html",
+    "description": "Наблюдения Chandra, Hubble и радиотелескопов показывают разные компоненты одного джета. Цвета условные; это не художественное изображение чёрной дыры.",
+    "sourceCaption": "This image from NASA's Hubble, Chandra and Spitzer space telescopes shows a giant jet of particles that has been shot out from the vicinity of a type of supermassive black hole called a quasar. The jet is enormous, stretching across more than 100,000 light-years of space - a size comparable to our own Milky Way galaxy. Quasars are among the brightest objects in the universe. They consist of supermassive black holes surrounded by turbulent material, which is being heated up as it is dragged toward the black hole. This hot material glows brilliantly, and some of it gets blown off into space in the form of powerful jets. The jet pictured here is streaming out from the first known quasar, called 3C273, discovered in 1963. A kaleidoscope of colors represents the jet's assorted light waves. X-rays, detected by Chandra, are the highest-energy light in the image are seen at far left in blue (the black hole itself is well to the left of the image). Moving from left to right, the light diminishes in energy, and wavelengths increase in size. Visible light recorded by Hubble is displayed in green, and infrared light caught by Spitzer is red. Areas where visible and infrared light overlap appear as yellow. Astronomers were able to use these data to help solve the mystery of how light is produced in quasar jets. Light is created in a few very different ways. For example, the Sun generates most of its light via a process called fusion, in which hydrogen atoms are combined, causing an explosion of light. In the case of this jet, even the most energetic light was unexpectedly found to be the result of charged particles spiraling through a magnetic field, a process known as synchrotron radiation.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 20985,
+      "metadataSha256": "e24f43c7d9e7c0bc9197fd268058fab75354e54dcceefa61e19ef8f6ad16f5aa"
+    },
+    "objects": [
+      "3c273"
+    ],
+    "kind": "quasar",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-planck-planck13-001a",
+    "publisher": "planck",
+    "imageId": "planck13-001a",
+    "identifiers": [],
+    "subjects": [
+      "D.6.1.3"
+    ],
+    "title": "Реликтовое излучение — всё небо Planck",
+    "archiveTitle": "Best Map Ever of the Universe",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "ESA / Planck",
+    "detectors": [],
+    "band": "Микроволны · карта температуры",
+    "date": "2013-03-21",
+    "url": "https://www.astropix.org/archive/planck/planck13-001a/planck_planck13-001a_1280.jpg",
+    "source": "https://planck.ipac.caltech.edu/image/planck13-001a",
+    "archive": "https://www.astropix.org/image/planck/planck13-001a",
+    "credit": "ESA and the Planck Collaboration",
+    "rights": "Public Domain",
+    "description": "Карта микроволнового света, выпущенного около 380 тысяч лет после Большого взрыва. Цвета усиливают крошечные отклонения температуры от среднего ≈2,7 K; это не цвет неба для глаза. Из карты удалены компоненты излучения переднего плана.",
+    "sourceCaption": "This map shows the oldest light in our universe, as detected with the greatest precision yet by the Planck mission. The ancient light, called the cosmic microwave background, was imprinted on the sky when the universe was 370,000 years old. It shows tiny temperature fluctuations that correspond to regions of slightly different densities, representing the seeds of all future structure: the stars and galaxies of today. By analyzing the light patterns in this map, scientists are fine tuning what we know about the universe, including its origins, fate and basic components. Planck is a European Space Agency mission, with significant participation from NASA. NASA's Planck Project Office is based at NASA's Jet Propulsion Laboratory, Pasadena, Calif. JPL contributed mission-enabling technology for both of Planck's science instruments. European, Canadian and U.S. Planck scientists work together to analyze the Planck data. The ancient light, called the cosmic microwave background, was imprinted on the sky when the universe was 370,000 years old. It shows tiny temperature fluctuations that correspond to regions of slightly different densities, representing the seeds of all future structure: the stars and galaxies of today. By analyzing the light patterns in this map, scientists are fine tuning what we know about the universe, including its origins, fate and basic components. Planck is a European Space Agency mission, with significant participation from NASA. NASA's Planck Project Office is based at NASA's Jet Propulsion Laboratory, Pasadena, Calif. JPL contributed mission-enabling technology for both of Planck's science instruments. European, Canadian and U.S. Planck scientists work together to analyze the Planck data.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 13952,
+      "metadataSha256": "a26ce76ad7a97f68f0d5afc02fef19d8a06627e4d31421bf69f3843e73bd0203"
+    },
+    "objects": [
+      "epoch-cmb"
+    ],
+    "kind": "horizon",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-planck-planck13-002a",
+    "publisher": "planck",
+    "imageId": "planck13-002a",
+    "identifiers": [],
+    "subjects": [
+      "D.6.1.3"
+    ],
+    "title": "Planck — развёртка небесной сферы",
+    "archiveTitle": "Planck's Cosmic Microwave Background (CMB) Map",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "ESA / Planck",
+    "detectors": [
+      "LFI-HFI"
+    ],
+    "band": "Микроволны · карта температуры",
+    "date": "2013-04-16",
+    "url": "https://www.astropix.org/archive/planck/planck13-002a/planck_planck13-002a_1280.jpg",
+    "source": "https://planck.ipac.caltech.edu/image/planck13-002a",
+    "archive": "https://www.astropix.org/image/planck/planck13-002a",
+    "credit": "ESA and the Planck Collaboration",
+    "rights": "Public Domain",
+    "description": "Та же реликтовая поверхность в прямоугольной проекции галактических координат. Плоскость Млечного Пути проходит по середине; её излучение вычтено. Температурные неоднородности показаны условными цветами.",
+    "sourceCaption": "This map shows the oldest light in our universe, as detected with the greatest precision yet by the Planck mission. The ancient light, called the cosmic microwave background, or CMB, was imprinted on the sky when the universe was 370,000 years old. It shows tiny temperature fluctuations that correspond to regions of slightly different densities, representing the seeds of all future structure: the stars and galaxies of today. By analyzing the light patterns in this map, scientists are fine tuning what we know about the universe, including its origins, fate and basic components. This map was constructed from an analysis of observations of the sky at wavelengths of light spanning 850 microns to 1 cm (353 GHz to 30 GHz). Additional observations spanning 350 to 550 microns (857 to 545 GHz) helped characterize foreground dust in the Milky Way, which was removed from the final CMB data shown here. This view of the data is in an equirectangular projection suitable for projection onto a sphere, and is useful for full-dome presentations. The projection is in galactic coordinates with the galactic plane running horizontally along the midpoint of the image. Note that most graphics software will map images to the outside of a sphere; since this is the inside projection looking outwards the image should be flipped horizontally when used with such software. Planck is a European Space Agency mission, with significant participation from NASA. NASA's Planck Project Office is based at NASA's Jet Propulsion Laboratory, Pasadena, Calif. JPL contributed mission-enabling technology for both of Planck's science instruments. European, Canadian and U.S. Planck scientists work together to analyze the Planck data. Download layered CMB Map",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 13955,
+      "metadataSha256": "e0c425a5295f1d6e6423beca549b78bd045ca6ef1627c052bcc239baae709b61"
+    },
+    "objects": [
+      "epoch-cmb"
+    ],
+    "kind": "horizon",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-epoch-eiger",
+    "publisher": "stsci",
+    "imageId": "2023-122a",
+    "identifiers": [],
+    "subjects": [
+      "E.5.5.3",
+      "E.6.1.1"
+    ],
+    "title": "Webb — поле EIGER и реионизация",
+    "archiveTitle": "EIGER Survey (NIRCam Image)",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Webb",
+    "detectors": [
+      "NIRCam"
+    ],
+    "band": "ИК · обработанные цвета",
+    "date": "2023-06-12",
+    "url": "https://www.astropix.org/archive/stsci/2023-122a/stsci_2023-122a_1280.jpg",
+    "source": "https://webbtelescope.org/contents/news-releases/2023/news-2023-122",
+    "archive": "https://www.astropix.org/image/stsci/2023-122a",
+    "credit": "NASA, ESA, CSA, S. Lilly (Zurich), D. Kashino (Nagoya), J. Matthee, R. Mackenzie, and Alyssa Pagan (STScI)",
+    "rights": "http://stsci.edu/copyright/",
+    "description": "Поле вокруг квазара J0100+2802. Webb исследовал здесь галактики конца эпохи реионизации и прозрачность газа вокруг них. Это узкое направление с объектами на разных расстояниях, а не фотография всей эпохи.",
+    "sourceCaption": "There are more than 20,000 galaxies in this field. This James Webb Space Telescope view is found between the Pisces and Andromeda constellations. Researchers using Webb anchored their observations on quasar J0100+2802, an active supermassive black hole that acts like a beacon. It is at the center of the image above, and appears tiny and pink with six prominent diffraction spikes. The quasar is so luminous that it acts like a flashlight, illuminating the gas between it and the telescope. The team analyzed 117 galaxies that all existed approximately 900 million years after the big bang – focusing on 59 that lie in front of the quasar. The researchers could study not only the galaxies themselves, but also the illuminated gas surrounding them. These galaxies existed just before the end of the Era of Reionization, when the universe contained a patchwork of gas – some opaque and some transparent (or ionized). “As we look back into the teeth of reionization, we see a very distinct change,” explained Simon Lilly of ETH Zürich in Switzerland, who leads this team of researchers. “Galaxies, which are made up of billions of stars, are ionizing the gas around them, effectively transforming it into transparent gas.” Researchers have long sought evidence to explain what happened during this period, when the universe experienced dramatic changes. After the big bang, gas in the universe was incredibly hot and dense. Over hundreds of millions of years, the gas cooled. Then, the universe hit “repeat.” The gas again became hot and ionized – and transparent. The team’s results more concretely define the conditions at this specific “stop” in the universe’s history. “Not only does Webb clearly show that these transparent regions exist around galaxies, we’ve also measured how large they are,” ",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 27408,
+      "metadataSha256": "ee410b25f72c2783a3123bbced07b8115c3ea1eaa23d5681ccfa805127b3fd17"
+    },
+    "objects": [
+      "epoch-dawn"
+    ],
+    "kind": "horizon",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-esahubble-heic0406a",
+    "publisher": "esahubble",
+    "imageId": "heic0406a",
+    "identifiers": [],
+    "subjects": [
+      "D.5.5.3"
+    ],
+    "title": "Hubble Ultra Deep Field — галактики разных эпох",
+    "archiveTitle": "Hubble sees galaxies galore",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Hubble Space Telescope",
+    "detectors": [
+      "ACS"
+    ],
+    "band": "ИК / оптика · обработанные цвета",
+    "date": "2004-03-09",
+    "url": "https://www.astropix.org/archive/esahubble/heic0406a/esahubble_heic0406a_1280.jpg",
+    "source": "https://www.spacetelescope.org/images/heic0406a/",
+    "archive": "https://www.astropix.org/image/esahubble/heic0406a",
+    "credit": "NASA, ESA, and S. Beckwith (STScI) and the HUDF Team",
+    "rights": "Creative Commons Attribution 4.0 International License",
+    "description": "Глубокое поле содержит почти 10 тысяч галактик на разных расстояниях. Самые далёкие показывают молодую Вселенную; яркие крупные галактики переднего плана гораздо моложе. Не все объекты кадра относятся к космическому рассвету.",
+    "sourceCaption": "Galaxies, galaxies everywhere - as far as the NASA/ESA Hubble Space Telescope can see. This view of nearly 10,000 galaxies is the deepest visible-light image of the cosmos. Called the Hubble Ultra Deep Field, this galaxy-studded view represents a \"deep\" core sample of the universe, cutting across billions of light-years. The snapshot includes galaxies of various ages, sizes, shapes, and colours. The smallest, reddest galaxies, about 100, may be among the most distant known, existing when the universe was just 800 million years old. The nearest galaxies - the larger, brighter, well-defined spirals and ellipticals - thrived about 1 billion years ago, when the cosmos was 13 billion years old. In vibrant contrast to the rich harvest of classic spiral and elliptical galaxies, there is a zoo of oddball galaxies littering the field. Some look like toothpicks; others like links on a bracelet. A few appear to be interacting. These oddball galaxies chronicle a period when the universe was younger and more chaotic. Order and structure were just beginning to emerge. The Ultra Deep Field observations, taken by the Advanced Camera for Surveys, represent a narrow, deep view of the cosmos. Peering into the Ultra Deep Field is like looking through a 2.5 metre-long soda straw. In ground-based photographs, the patch of sky in which the galaxies reside (just one-tenth the diameter of the full Moon) is largely empty. Located in the constellation Fornax, the region is so empty that only a handful of stars within the Milky Way galaxy can be seen in the image. In this image, blue and green correspond to colours that can be seen by the human eye, such as hot, young, blue stars and the glow of Sun-like stars in the disks of galaxies. Red represents near-infrared light, which is invisible to the ",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 19696,
+      "metadataSha256": "b0c8c6773b56db220eb9a2379e52be40238b59e17798b883e273e1cb47c68abf"
+    },
+    "objects": [
+      "epoch-dawn"
+    ],
+    "kind": "horizon",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-astropix-stsci-2023-503a",
+    "publisher": "stsci",
+    "imageId": "2023-503a",
+    "identifiers": [],
+    "subjects": [
+      "D.6.1.1"
+    ],
+    "title": "Webb — инфракрасный взгляд на Ultra Deep Field",
+    "archiveTitle": "Webb Observes Hubble Ultra Deep Field (NIRCam Image)",
+    "mediaKind": "observation",
+    "primaryStellarIdentifications": [],
+    "instrument": "Webb",
+    "detectors": [
+      "NIRCam"
+    ],
+    "band": "ИК · обработанные цвета",
+    "date": "2023-04-12",
+    "url": "https://www.astropix.org/archive/stsci/2023-503a/stsci_2023-503a_1280.jpg",
+    "source": "https://webbtelescope.org/contents/news-releases/2023/news-2023-503",
+    "archive": "https://www.astropix.org/image/stsci/2023-503a",
+    "credit": "NASA, ESA, CSA, STScI, C. Williams (University of Arizona); Image processing: J. DePasquale (STScI)",
+    "rights": "http://stsci.edu/copyright/",
+    "description": "NIRCam наблюдает часть глубокого поля Hubble в инфракрасном свете. Красные слабые точки могут быть далёкими галактиками, но цвет сам по себе не измеряет возраст или красное смещение.",
+    "sourceCaption": "This image of the Hubble Ultra Deep Field was taken by the Near Infrared Camera on NASA’s James Webb Space Telescope. It includes 1.8-micron light shown in blue, 2.1-micron light shown in green, 4.3-micron light shown in yellow, 4.6-micron light shown in orange, and 4.8-micron light shown in red (filters F182M, F210M, F430M, F460M, and F480M). Download the full-resolution version from the Space Telescope Science Institute.",
+    "identification": {
+      "method": "AVM Subject.Name and Subject.Category; primary stellar title evidence for planet-tagged DSS fields; no sky-proximity join",
+      "type": "Observation",
+      "astropixId": 27356,
+      "metadataSha256": "32554436b21839bf90e91b1a142100a64d54253d1c1c3e4f879ab615c1dd17b7"
+    },
+    "objects": [
+      "epoch-dawn"
+    ],
+    "kind": "horizon",
+    "mediaType": "observation",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-universe-timeline",
+    "objects": [
+      "epoch-dark",
+      "epoch-qgp",
+      "epoch-particles",
+      "epoch-plasma",
+      "epoch-beyond",
+      "horizon"
+    ],
+    "identifiers": [],
+    "kind": "horizon",
+    "title": "История наблюдаемой Вселенной — схема NASA",
+    "url": "https://lambda.gsfc.nasa.gov/education/graphic_history/images/Universe_Timeline_2016_2048.jpg",
+    "source": "https://lambda.gsfc.nasa.gov/education/graphic_history/univ_evol.html",
+    "credit": "NASA / LAMBDA Archive / WMAP Science Team",
+    "description": "Обобщённая схема эволюции, а не наблюдаемый снимок ранней плазмы. До последнего рассеяния прямого изображения Вселенной в фотонах нет. Внешняя форма схемы не обозначает край пространства; за горизонтом прямых наблюдений нет.",
+    "mediaType": "diagram",
+    "instrument": "NASA / LAMBDA",
+    "band": "Космологическая модель",
+    "date": "2016",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-hyperion",
+    "objects": [
+      "hyperion"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Гиперион — трёхмерная реконструкция",
+    "url": "https://cdn.eso.org/images/screen/eso1833a.jpg",
+    "source": "https://www.eso.org/public/images/eso1833a/",
+    "credit": "ESO/L. Calçada & Olga Cucciati et al.",
+    "description": "Визуализация по наблюдениям VIMOS/VLT: плотные узлы и соединяющие их области протосверхскопления при z≈2,45. Светящиеся объёмы — реконструкция распределения плотности, не прямая фотография гигантского облака.",
+    "mediaType": "reconstruction",
+    "instrument": "ESO / VLT / VIMOS",
+    "band": "По данным обзоров",
+    "date": "2018",
+    "rights": "CC BY 4.0",
+    "archive": "https://www.eso.org/public/images/eso1833a/",
+    "archiveLabel": "Описание и права",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-classix-sky",
+    "objects": [
+      "quipu",
+      "shapley",
+      "serpens-corona",
+      "hercules-supercluster",
+      "sculptor-pegasus"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Пять сверхструктур — карта CLASSIX",
+    "url": "https://arxiv.org/html/2501.19236v1/SKY_CLASSIX_SGC0306_new.png",
+    "source": "https://arxiv.org/html/2501.19236v1#S2.F4",
+    "credit": "Hans Böhringer, Gayoung Chon, Joachim Trümper, Renee C. Kraan-Korteweg & Norbert Schartel",
+    "description": "Рис. 4 исследования CLASSIX. Цветные точки — скопления: Кипу красный, Шепли синий, Змея — Северная Корона зелёный, Геркулес фиолетовый, Скульптор — Пегас бежевый. Мелкие коричневые точки — галактики 2MASS в диапазоне z=0,03–0,06. Это карта объектов, не оптический снимок.",
+    "mediaType": "map",
+    "instrument": "CLASSIX / ROSAT / 2MASS",
+    "band": "По данным обзоров",
+    "date": "2025",
+    "rights": "© авторы · опубликованный рисунок",
+    "archive": "https://arxiv.org/html/2501.19236v1#S2.F4",
+    "archiveLabel": "Описание и права",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/png"
+    }
+  },
+  {
+    "id": "cosmic-quipu-3d",
+    "objects": [
+      "quipu"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Кипу — объёмное распределение скоплений",
+    "url": "https://arxiv.org/html/2501.19236v1/dim30.svg",
+    "source": "https://arxiv.org/html/2501.19236v1#S4.F5",
+    "credit": "Hans Böhringer, Gayoung Chon, Joachim Trümper, Renee C. Kraan-Korteweg & Norbert Schartel",
+    "description": "Точки — скопления Кипу, цвет кодирует дальность; линии — связи алгоритма поиска группы, а не видимые перемычки вещества. Опубликованный график CLASSIX; масштаб в Мпк.",
+    "mediaType": "map",
+    "instrument": "CLASSIX / ROSAT",
+    "band": "По данным обзоров",
+    "date": "2025",
+    "rights": "© авторы · опубликованный рисунок",
+    "archive": "https://arxiv.org/html/2501.19236v1#S4.F5",
+    "archiveLabel": "Описание и права",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/svg+xml"
+    }
+  },
+  {
+    "id": "cosmic-shapley-wedge",
+    "objects": [
+      "shapley"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Шепли — срез по расстоянию",
+    "url": "https://arxiv.org/html/2501.19236v1/wedge_SS2_new.svg",
+    "source": "https://arxiv.org/html/2501.19236v1#S4.F7",
+    "credit": "Hans Böhringer, Gayoung Chon, Joachim Trümper, Renee C. Kraan-Korteweg & Norbert Schartel",
+    "description": "Красные точки — члены сверхскопления Шепли. Серые — скопления фона; по осям отложены склонение и дальность. Опубликованный график CLASSIX; масштаб в Мпк.",
+    "mediaType": "map",
+    "instrument": "CLASSIX / ROSAT",
+    "band": "По данным обзоров",
+    "date": "2025",
+    "rights": "© авторы · опубликованный рисунок",
+    "archive": "https://arxiv.org/html/2501.19236v1#S4.F7",
+    "archiveLabel": "Описание и права",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/svg+xml"
+    }
+  },
+  {
+    "id": "cosmic-hercules-wedge",
+    "objects": [
+      "serpens-corona",
+      "hercules-supercluster"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Змея — Северная Корона и Геркулес",
+    "url": "https://arxiv.org/html/2501.19236v1/wedge_SS34_new.svg",
+    "source": "https://arxiv.org/html/2501.19236v1#S4.F7",
+    "credit": "Hans Böhringer, Gayoung Chon, Joachim Trümper, Renee C. Kraan-Korteweg & Norbert Schartel",
+    "description": "В этом срезе красным показана Змея — Северная Корона, синим — Геркулес. Линии показывают связи алгоритма, не физические стержни. Опубликованный график CLASSIX; масштаб в Мпк.",
+    "mediaType": "map",
+    "instrument": "CLASSIX / ROSAT",
+    "band": "По данным обзоров",
+    "date": "2025",
+    "rights": "© авторы · опубликованный рисунок",
+    "archive": "https://arxiv.org/html/2501.19236v1#S4.F7",
+    "archiveLabel": "Описание и права",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/svg+xml"
+    }
+  },
+  {
+    "id": "cosmic-sculptor-wedge",
+    "objects": [
+      "sculptor-pegasus"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Скульптор — Пегас: срез по расстоянию",
+    "url": "https://arxiv.org/html/2501.19236v1/wedge_SS5_new.svg",
+    "source": "https://arxiv.org/html/2501.19236v1#S4.F7",
+    "credit": "Hans Böhringer, Gayoung Chon, Joachim Trümper, Renee C. Kraan-Korteweg & Norbert Schartel",
+    "description": "Члены сверхструктуры показаны красным на фоне серых скоплений; положение в глубину получено из красных смещений. Опубликованный график CLASSIX; масштаб в Мпк.",
+    "mediaType": "map",
+    "instrument": "CLASSIX / ROSAT",
+    "band": "По данным обзоров",
+    "date": "2025",
+    "rights": "© авторы · опубликованный рисунок",
+    "archive": "https://arxiv.org/html/2501.19236v1#S4.F7",
+    "archiveLabel": "Описание и права",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/svg+xml"
+    }
+  },
+  {
+    "id": "cosmic-ring-map",
+    "objects": [
+      "ring"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Большое кольцо — карта распределения",
+    "url": "https://assets.lancashire.ac.uk/image/824122457709/image_64lgc6bl453d51767ho6f4i50t/-B1200-FWEBP",
+    "source": "https://www.lancashire.ac.uk/news/big-ring-in-the-sky",
+    "credit": "Alexia Lopez / University of Central Lancashire",
+    "description": "Опубликованная карта кандидата в сверхструктуры: положение поглотителей Mg II восстановлено по спектрам фоновых квазаров. Большое кольцо находится около нуля по горизонтальной оси. Точки и сглаживание — анализ выборки, не светящееся кольцо на фотографии.",
+    "mediaType": "map",
+    "instrument": "UCLan / спектры квазаров SDSS",
+    "band": "По данным обзоров",
+    "date": "2024",
+    "rights": "© Alexia Lopez / UCLan · опубликованная схема",
+    "archive": "https://www.lancashire.ac.uk/news/big-ring-in-the-sky",
+    "archiveLabel": "Описание и права",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/webp"
+    }
+  },
+  {
+    "id": "cosmic-ring-arc-sky",
+    "objects": [
+      "ring",
+      "arc"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Большое кольцо и Гигантская дуга на небе",
+    "url": "https://assets.lancashire.ac.uk/image/824122457709/image_4ee25kcmnl3g7477sorlccmf0g/-B1200-FWEBP",
+    "source": "https://www.lancashire.ac.uk/news/big-ring-in-the-sky",
+    "credit": "Alexia Lopez / UCLan; фон: Stellarium",
+    "description": "Иллюстрация из сообщения исследователей: синее — Большое кольцо, красное — Гигантская дуга. Фон создан в Stellarium. Подсветка показывает предлагаемые контуры; глазом эти структуры так не видны. Их интерпретация как единых физических структур обсуждается.",
+    "mediaType": "diagram",
+    "instrument": "UCLan / Stellarium",
+    "band": "По данным обзоров",
+    "date": "2024",
+    "rights": "© Alexia Lopez / UCLan; Stellarium",
+    "archive": "https://www.lancashire.ac.uk/news/big-ring-in-the-sky",
+    "archiveLabel": "Описание и права",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/webp"
+    }
+  },
+  {
+    "id": "cosmic-laniakea",
+    "objects": [
+      "laniakea",
+      "attractor"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Ланиакея и Великий аттрактор — потоки галактик",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/8/80/LaniakeaBoundaries.jpg",
+    "source": "https://apod.nasa.gov/apod/ap140910.html",
+    "credit": "R. Brent Tully (U. Hawaii) et al., SDvision, DP, CEA/Saclay",
+    "description": "Реконструкция поля скоростей: белые линии — потоки галактик, оранжевая граница — бассейн Ланиакеи, синяя точка — Млечный Путь. Потоки сходятся в области Великого аттрактора. Это модель по измеренным скоростям, не фотография светящихся нитей.",
+    "mediaType": "reconstruction",
+    "instrument": "Cosmicflows / SDvision",
+    "band": "По данным обзоров",
+    "date": "2014",
+    "rights": "CC BY 4.0",
+    "archive": "https://commons.wikimedia.org/wiki/File:LaniakeaBoundaries.jpg",
+    "archiveLabel": "Описание и права",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-great-walls",
+    "objects": [
+      "cfa",
+      "sloan"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Великие стены CfA2 и Слоуна",
+    "url": "https://imagine.gsfc.nasa.gov/features/cosmic/images/gottjuric.jpg",
+    "source": "https://imagine.gsfc.nasa.gov/features/cosmic/sheets_voids_info.html",
+    "credit": "J. Richard Gott III & Mario Jurić / NASA Imagine the Universe",
+    "description": "Схема распределения галактик по обзорам с подписями обеих Великих стен. Третья координата получена из красных смещений. Протяжённые сгущения не являются твёрдыми стенами или единым гравитационно связанным телом.",
+    "mediaType": "map",
+    "instrument": "SDSS / карта красных смещений",
+    "band": "По данным обзоров",
+    "date": "Архив NASA",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-bootes",
+    "objects": [
+      "bootes"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Войд Волопаса — карта соседних галактик",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/f/f0/Boovoid.png",
+    "source": "https://commons.wikimedia.org/wiki/File:Boovoid.png",
+    "credit": "Richard Powell / Atlas of the Universe",
+    "description": "Карта расположения галактик вокруг области пониженной плотности в Волопасе. Пустое место между точками показывает дефицит галактик в выбранном срезе; это не фотография чёрной дыры и не совершенно пустой объём.",
+    "mediaType": "map",
+    "instrument": "Atlas of the Universe",
+    "band": "По данным обзоров",
+    "date": "2007",
+    "rights": "CC BY-SA 2.5",
+    "archive": "https://commons.wikimedia.org/wiki/File:Boovoid.png",
+    "archiveLabel": "Описание и права",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/png"
+    }
+  },
+  {
+    "id": "cosmic-localvoid",
+    "objects": [
+      "local-void"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Местный войд — объёмная реконструкция",
+    "url": "https://arxiv.org/html/1905.08329v1/SDvision_HeartOfLocalVoid_view1234_v003.jpg",
+    "source": "https://arxiv.org/html/1905.08329v1#S2.F2",
+    "credit": "R. Brent Tully, Daniel Pomarède, Romain Graziani, Hélène M. Courtois, Yehuda Hoffman & Edward J. Shaya",
+    "description": "Рис. 2 исследования Cosmicflows-3: тёмные поверхности показывают наиболее разреженные области Местного войда. Красные точки — минимумы плотности; Млечный Путь находится у начала координатных стрелок. Поверхности зависят от реконструкции и порога плотности.",
+    "mediaType": "reconstruction",
+    "instrument": "Cosmicflows-3 / SDvision",
+    "band": "По данным обзоров",
+    "date": "2019",
+    "rights": "© авторы · опубликованный рисунок",
+    "archive": "https://arxiv.org/html/1905.08329v1#S2.F2",
+    "archiveLabel": "Описание и права",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  },
+  {
+    "id": "cosmic-huge-lqg",
+    "objects": [
+      "huge-lqg"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Huge-LQG — пространственная схема группы квазаров",
+    "url": "https://ar5iv.labs.arxiv.org/html/1211.6256/assets/visualisation_Huge-LQG_CCLQG.png",
+    "source": "https://arxiv.org/abs/1211.6256",
+    "credit": "Roger G. Clowes et al.",
+    "description": "Рис. 2: сверху Huge-LQG из 73 квазаров, рядом — группа Clowes–Campusano. Сферы условны: их радиусы выбраны для визуализации связи, а не измерены как размеры квазаров. Интерпретация группы как единой структуры обсуждается.",
+    "mediaType": "reconstruction",
+    "instrument": "SDSS DR7QSO",
+    "band": "По данным обзоров",
+    "date": "2013",
+    "rights": "© авторы · опубликованный рисунок",
+    "archive": "https://arxiv.org/abs/1211.6256",
+    "archiveLabel": "Описание и права",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/png"
+    }
+  },
+  {
+    "id": "cosmic-boss-wall",
+    "objects": [
+      "boss-wall"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Великая стена BOSS — распределение галактик",
+    "url": "https://ar5iv.labs.arxiv.org/html/1602.08498/assets/bgw.svg",
+    "source": "https://arxiv.org/abs/1602.08498",
+    "credit": "H. Lietzen et al.",
+    "description": "Рис. 4: галактики комплекса BOSS Great Wall в декартовых координатах. Разные цвета обозначают отдельные сверхскопления системы. Это трёхмерная карта по красным смещениям, не сплошной снимок стены.",
+    "mediaType": "map",
+    "instrument": "SDSS-III / BOSS CMASS",
+    "band": "По данным обзоров",
+    "date": "2016",
+    "rights": "© авторы · опубликованный рисунок",
+    "archive": "https://arxiv.org/abs/1602.08498",
+    "archiveLabel": "Описание и права",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/svg+xml"
+    }
+  },
+  {
+    "id": "cosmic-coldspot",
+    "objects": [
+      "eridanus-supervoid"
+    ],
+    "identifiers": [],
+    "kind": "structure",
+    "title": "Холодное пятно в направлении Эридана — WMAP",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/48/ColdSpot.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:ColdSpot.jpg",
+    "credit": "Rudnick / NRAO / AUI / NSF; NASA / WMAP",
+    "description": "Овал выделяет холодное пятно на карте температуры реликтового излучения WMAP. Это направление на небе, в котором исследуют супервойд Эридана, а не фотография его границы. Связь супервойда с полной амплитудой пятна остаётся предметом исследований.",
+    "mediaType": "map",
+    "instrument": "NASA / WMAP",
+    "band": "Микроволны · условные цвета температуры",
+    "date": "2007",
+    "rights": "Атрибуция исходной карты: NRAO / NASA; см. источник",
+    "archive": "https://commons.wikimedia.org/wiki/File:ColdSpot.jpg",
+    "archiveLabel": "Описание и права",
+    "availability": {
+      "checked": "2026-11-08",
+      "method": "HEAD",
+      "status": 200,
+      "contentType": "image/jpeg"
+    }
+  }
+]

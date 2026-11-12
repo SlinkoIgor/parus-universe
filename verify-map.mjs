@@ -36,7 +36,7 @@ assert.ok(object('boss-wall').region);assert.ok(object('eridanus-supervoid').reg
 assert.equal(object('local-void').navigable,true);
 assert.equal(new Set(OBJECTS.map(o=>o.id)).size,OBJECTS.length);
 assert.equal(new Set(OBJECTS.flatMap(o=>o.iauNames||[])).size,652);
-assert.equal(CATALOG_COUNTS.all,1067+EXTENDED_BOOT.members.length+NuclearStars.rows.length+BlackHoleCatalog.objects.length+ExtendedCatalog.stellarAddedCount);
+assert.equal(CATALOG_COUNTS.all,1067-Object.keys(CatalogIdentities.redirects).length+EXTENDED_BOOT.members.length+NuclearStars.rows.length+BlackHoleCatalog.objects.length+ExtendedCatalog.stellarAddedCount+OBJECTS.filter(o=>o.quasarCatalog).length);
 
 // Sample actual animation frames with a fixed camera. Moving ship/flight labels
 // must never move stars, displace an atlas label or introduce a trajectory caption.

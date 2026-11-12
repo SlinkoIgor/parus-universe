@@ -4,10 +4,12 @@ import {execFileSync} from 'node:child_process';
 const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';
 const {context,run}=await import('data:text/javascript,'+encodeURIComponent(harness)+'#sky-guide');
 context.URL=URL;
+run(fs.readFileSync('dist/universe-map.js','utf8'));
 context.skyChecks=JSON.parse(fs.readFileSync('data-tools/sky-sources/constellation-checks.json'));
 context.latitudeChecks=JSON.parse(fs.readFileSync('data-tools/sky-sources/latitude-checks.json'));
 run(`
 resize();state=initial();state.expansion=false;paused=true;Cosmology.sync(state);
+assert.equal(MAP_FILTER_DATA.guideRevision,SKY_GUIDE_DATA.revision,'gallery changes require the matching complete photo-filter index');
 assert.equal(SKY_GUIDE_DATA.stars.length,5044);assert.equal(Object.keys(SKY_GUIDE_DATA.constellations).length,88);
 for(const q of skyChecks.cases) assert.equal(SkyGuide.constellation(q.raDeg,q.decDeg),q.constellation,'independent Astropy constellation: '+q.id);
 for(const [id,con] of [['sirius','CMa'],['hyg-113008','PsA'],['vega','Lyr'],['proxima','Cen'],['betelgeuse','Ori']]){
@@ -134,12 +136,26 @@ for(const id of ['orion','andromeda','omega','opengc-ngc6720','opengc-ic4604','3
 for(const o of [{...object('andromeda'),id:'stream-photo',aliases:['NGC 0224'],ngc:null,messier:null},{...object('andromeda'),id:'stream-photo',aliases:['Messier 31'],ngc:null,messier:null}])assert.ok(SkyGuide.media(o).length,'exact NGC/Messier aliases support streamed and restored records');
 assert.ok(!SkyGuide.media({...object('sirius'),id:'unrelated-star',aliases:['NGC 224']}).length,'no picture inheritance across physical classes');
 assert.equal(SkyGuide.gallery({...object('andromeda'),synthetic:true}),'');
-assert.equal(SkyGuide.gallery(object('horizon')),'');assert.equal(SkyGuide.gallery(object('bootes')),'');
+for(const id of ['horizon','bootes']){assert.ok(SkyGuide.gallery(object(id)).includes('stellarMedia'),'published context imagery: '+id);assert.equal(SkyGuide.canChart(object(id)),false);}
 for(const id of ['sgr','bh-m87','vela','crab','jades-z14','mom-z14']){
  assert.ok(SkyGuide.media(object(id)).length,'verified professional observation '+id);
  assert.equal(SkyGuide.canChart(object(id)),false,'invisible target has pictures without a map '+id);
 }
 assert.ok(!SkyGuide.media(object('m87')).some(p=>p.id==='eso-eso1907a'),'EHT black-hole picture is not inherited by the host galaxy');
+const orbits=SKY_GUIDE_DATA.media.find(p=>p.id==='eso-eso1825e-orbits');
+assert.deepEqual(orbits.objects,['sgr']);assert.equal(orbits.format,'video');assert.equal(orbits.mediaType,'observation');
+assert.equal(orbits.availability.status,200);assert.equal(orbits.availability.contentType,'video/mp4');
+assert.ok(orbits.credit==='ESO/MPE'&&orbits.poster.startsWith('https://cdn.eso.org/videos/'));
+const orbitGallery=SkyGuide.gallery(object('sgr')),orbitSlide=orbitGallery.split('data-photo="eso-eso1825e-orbits"')[1].split('</figure>')[0];
+assert.ok(orbitSlide.includes('<video controls playsinline loop preload="none" data-video-src="'+orbits.url+'"'));
+assert.ok(!orbitSlide.includes('<img')&&!orbitSlide.includes('autoplay'),'video is user initiated and never treated as a still image');
+assert.ok(orbitSlide.includes('почти двадцать лет')&&orbitSlide.includes('Сама чёрная дыра в этих кадрах не видна'));
+assert.ok(orbitGallery.indexOf('data-photo="eht-eso2208-eht-mwa"')<orbitGallery.indexOf('data-photo="eso-eso1825e-orbits"'),'orbit movie follows Sgr A EHT portrait');
+for(const id of ['bh-m87','m87','milkyway','s2']){assert.ok(object(id));assert.ok(!SkyGuide.media(object(id)).includes(orbits),'central-star sequence is not inherited by other identities: '+id);}
+assert.equal(object('bh-m87').kind,'blackhole');assert.ok(object('bh-m87').massSolar>1e9);
+assert.ok(SkyGuide.media(object('bh-m87')).some(p=>p.id==='eso-eso1907a'),'M87* retains its first EHT image');
+assert.ok(SkyGuide.hasObservatoryPhoto(object('sgr'))&&SkyGuide.hasObservatoryPhoto(object('bh-m87')),'both EHT black holes remain in the photo collection');
+console.log('PASS observed Sgr A* star-orbit movie: exact target, lazy native player, no autoplay, provenance and separate M87* EHT image');
 assert.ok(!SkyGuide.media({...object('andromeda'),id:'other-galaxy',ngc:'NGC2244',messier:null,aliases:[]}).some(p=>p.objects.includes('andromeda')),'no substring catalogue matches');
 assert.ok(SKY_GUIDE_DATA.media.length>=200,'broad observed-image catalogue');
 const gallery=SkyGuide.gallery(object('sirius'));

@@ -41,6 +41,11 @@ galaxy_hosts={o['id'] for o in core if o.get('kind')=='galaxy' and o.get('galaxy
 byid={o['id']:o for o in core}
 byhyg={str(o['hygId']):o for o in core if o.get('hygId') is not None}
 byngc={o['ngc']:o for o in core if o.get('ngc')}
+identity_policy=json.loads((ROOT/'data-tools/deep-sky-identities.json').read_text())
+core_identity_redirects={ident:g['target'] for g in identity_policy['groups'] for ident in g['members'] if ident!=g['target']}
+for o in core:
+    for component in o.get('catalogComponents',[]):
+        if component.get('ngc'):byngc[component['ngc']]=o
 hyg=list(csv.DictReader((RAW/'hyg_v41.csv').open()))
 ngc=list(csv.DictReader((RAW/'NGC.csv').open(),delimiter=';'))
 cache=json.loads((ROOT/'data-tools/named-astrometry.json').read_text())
@@ -111,6 +116,7 @@ def hubble(z):
 for q in ngc:
     if q['Name']=='NGC5866':q={**q,'M':'102'}
     ident=byngc.get(q['Name'],{}).get('id','opengc-'+norm(q['Name']));rawmap['ngc:'+q['Name']]=ident
+    if 'opengc-'+norm(q['Name']) in core_identity_redirects:continue
     kind='galaxy' if q['Type'] in ('G','GPair','GTrpl','GGroup') else 'cluster' if q['Type'] in ('OCl','GCl','*Ass','Cl+N') else 'star' if q['Type'] in ('*','**','Nova') else 'nebula'
     ra,dec=sex(q['RA'],True),sex(q['Dec']);extraDist=literature['objects'].get(q['Name'],{});d=extraDist.get('distanceMpc');d=d*1e6*PC if d else None
     quality='catalog' if d else 'unknown';method='Индивидуальное литературное расстояние SIMBAD.' if d else 'Расстояние неизвестно; направление показано схематически.'
@@ -583,6 +589,7 @@ OUT=FINAL_OUT
 dump(ROOT/'dist/catalog-data/current.json',{'revision':revision,'dataRoot':DATA_ROOT,'total':summary['total'],'manifest':DATA_ROOT+'/manifest.json'})
 boot={'dataRoot':DATA_ROOT,'cosmicPatches':cosmic_patches,'geometryVersion':geometry_version,'coordinateCorrections':[r for r in records if (not r[11].get('cosmicCatalog') or r[11].get('catalogPositionUpdated')) and (r[11].get('boundSystemPrimary') or r[11].get('redshiftIndependent') or r[11].get('distanceHost') or r[11].get('catalogDistanceLy') is not None or r[10]=='GlobularModels')],'revision':revision,'members':member_rows,'policies':policies,'hiddenIds':[r[0] for r in atlas_only+member_rows if r[11].get('atlasOnly')],'total':summary['total'],'patches':patches,'foreground':foreground,'systems':systems,'renames':renames,'sourceCoverage':coverage,'pulsarCorrections':[r for r in records if r[10]=='ATNF' and (r[11].get('distanceHost') or 'параллакс' in r[7]) and not r[11].get('atlasOnly')],'systemTiles':{i:locations[i] for s in systems for i in s['members'] if i in locations},'rawMap':{k:v for k,v in rawmap.items() if k.startswith('atnf:') and v in byid}}
 boot['identityRedirects']={source:target for source,target,_ in cosmic_audit['matches'] if target in galaxy_hosts or re.fullmatch(r'ungc-messier\d+',source)}
+boot['coreIdentityRedirects']=core_identity_redirects
 # Keep lazy canonical identities available for old named selections even when
 # their target is a streamed row. They remain ordinary catalogue rows, not new
 # objects or additional entries in the census.

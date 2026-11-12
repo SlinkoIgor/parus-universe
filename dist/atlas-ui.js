@@ -132,6 +132,7 @@ function renderCatalog() {
   const core = [...OBJECTS, ...ExtendedCatalog.pinned.values()]
     .filter(
       (o) =>
+        !o.supersededBy &&
         !o.streamed &&
         ExtendedCatalog.matches(o.kind, searchFilter, o) &&
         MapDetails.searchKey(

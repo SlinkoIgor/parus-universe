@@ -5,10 +5,15 @@ const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nex
 const {context,run}=await import('data:text/javascript,'+encodeURIComponent(harness)+'#sky-photos');
 context.URL=URL;
 const index=run('SKY_PHOTO_INDEX'),frozen=JSON.parse(fs.readFileSync('data-tools/sky-sources/media-astropix.json'));
-const frozenPhotos=new Map(frozen.records.map(p=>[p.id,p]));
+const webbFrozen=JSON.parse(fs.readFileSync('data-tools/sky-sources/media-webb.json'));
+const frozenPhotos=new Map([...frozen.records,...webbFrozen.records].map(p=>[p.id,p]));
 const catalogueRoot='dist/'+JSON.parse(fs.readFileSync('dist/catalog-data/current.json')).dataRoot;
 const streamEntry=JSON.parse(fs.readFileSync(catalogueRoot+'/search.json')).find(r=>r[0]==='hyg-102078');
 context.photoStreamRow=JSON.parse(fs.readFileSync(catalogueRoot+'/'+streamEntry[5])).find(r=>r[0]===streamEntry[0]);
+const phatSearch=JSON.parse(fs.readFileSync(catalogueRoot+'/search.json')).filter(r=>r[0].startsWith('phat-ap-'));
+context.phatPhotoRows=[...new Set(phatSearch.map(r=>r[5]))].flatMap(file=>JSON.parse(fs.readFileSync(catalogueRoot+'/'+file))).filter(r=>r[0].startsWith('phat-ap-'));
+const webbStreamEntry=JSON.parse(fs.readFileSync(catalogueRoot+'/search.json')).find(r=>r[0]==='opengc-ngc0628');
+context.webbStreamRow=JSON.parse(fs.readFileSync(catalogueRoot+'/'+webbStreamEntry[5])).find(r=>r[0]===webbStreamEntry[0]);
 assert.ok(index.photoCount>6000&&frozen.inputCount>=9000);
 assert.equal(frozen.filterSummary.accepted,frozen.records.length);
 assert.equal(frozen.inputCount,frozen.filterSummary.accepted+Object.values(frozen.filterSummary.rejected).reduce((a,b)=>a+b,0),'every imported record is retained or has a recorded rejection reason');
@@ -17,7 +22,7 @@ import importlib.util,json,sys
 sys.path.insert(0,'data-tools')
 spec=importlib.util.spec_from_file_location('photos','data-tools/build-sky-photos.py')
 module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
-photos={p['id']:p for p in json.load(open('data-tools/sky-sources/media-astropix.json'))['records']}
+photos={p['id']:p for filename in ['media-astropix.json','media-webb.json'] for p in json.load(open('data-tools/sky-sources/'+filename))['records']}
 spec=importlib.util.spec_from_file_location('photo_import','data-tools/fetch-astropix-media.py')
 photo_import=importlib.util.module_from_spec(spec);spec.loader.exec_module(photo_import)
 checks=json.load(open('data-tools/sky-sources/photo-import-checks.json'))['cases']
@@ -25,6 +30,18 @@ for case in checks:
  row=case['input']
  assert photo_import.rejection_reason(row)==case['expectedRejection'],case['source']
  assert bool(photo_import.convert(row))==(case['expectedRejection'] is None),case['source']
+spec=importlib.util.spec_from_file_location('webb_import','data-tools/fetch-webb-media.py')
+webb_import=importlib.util.module_from_spec(spec);spec.loader.exec_module(webb_import)
+for case in json.load(open('data-tools/sky-sources/webb-import-checks.json'))['cases']:
+ record,reason=webb_import.extract(case['html'],case['imageId'])
+ assert reason==case['expectedRejection'],(case['source'],reason)
+ if record:
+  assert record['identifiers']==case['expectedNames'],(case['source'],record['identifiers'])
+  assert record['credit'] and record['rights']=='CC BY 4.0'
+webb=json.load(open('data-tools/sky-sources/media-webb.json'))
+assert webb['inputCount']==sum(p['count'] for p in webb['pages'])
+assert webb['inputCount']==len(webb['records'])+len(webb['rejected'])
+assert len(webb['records'])>=200 and not any(p['imageId']=='weic2421a' for p in webb['records'])
 assert photo_import.survey_image(next(c['input'] for c in checks if c['input']['image_id']=='eso1837d'))
 assert photos['astropix-eso-eso1837d']['identifiers']==["Barnard's Star b"], 'original wrong AVM tag is preserved, not silently rewritten'
 assert photos['astropix-eso-eso1837d']['primaryStellarIdentifications'][0]['identifier']=="Barnard's Star"
@@ -76,9 +93,10 @@ const all={};for(const [publisher,entry] of Object.entries(index.files)){
  const bytes=fs.readFileSync('dist/'+entry.url.split('?')[0]),data=JSON.parse(bytes);
  assert.equal(Object.keys(data.photos).length,entry.count);
  for(const [id,p] of Object.entries(data.photos)){
-  assert.equal(id,p.id);assert.ok(id.startsWith('astropix-'+publisher+'-'));
-  assert.ok(p.url.startsWith('https://www.astropix.org/archive/')&&p.credit&&p.rights&&p.archive&&p.source.startsWith('https://'));
-  assert.equal(p.url,p.url.toLowerCase(),'IPAC paths are lowercase, including WISE and NRAO');
+  assert.equal(id,p.id);assert.ok(id.startsWith(publisher==='esawebb'?'esawebb-':'astropix-'+publisher+'-'));
+  context.photoValidation={id,publisher,p};assert.ok(run('SkyPhotos.validPhoto(photoValidation.id,photoValidation.publisher,photoValidation.p)'));
+  assert.ok(p.credit&&p.rights&&p.archive&&p.source.startsWith('https://'));
+  if(publisher!=='esawebb')assert.equal(p.url,p.url.toLowerCase(),'IPAC paths are lowercase, including WISE and NRAO');
   assert.equal(p.title,frozenPhotos.get(id).archiveTitle,'caption comes from the source heading, never its first AVM tag');
   all[id]=p;
  }
@@ -99,6 +117,7 @@ for(const review of targetAudit.cases)for(const name of review.otherIdentifiers)
  }
 }
 context.photoFixtures=all;
+context.photoIdentityNames=Object.fromEntries([...frozenPhotos].map(([id,p])=>[id,p.identifiers]));
 run(`
 assert.equal(SkyPhotos.cache.size,0,'no metadata preloaded at startup');
 for(const [a,b] of [['Beta Pictoris','* bet Pic'],['π1 Gruis','* pi1 Gru'],['AU Microscopii','V* AU Mic'],['51 Pegasi','* 51 Peg'],['V2500 Ophiuchi','V* V2500 Oph']])assert.equal(SkyPhotos.key(a),SkyPhotos.key(b));
@@ -153,6 +172,25 @@ for(const kind of ['cluster','nebula','star']){
  assert.equal(SkyGuide.visualCollection(member),null,'host membership is not visual observability');
 }
 for(const [id,p] of Object.entries(photoFixtures)){const publisher=SkyPhotos.publisher(id);if(!SkyPhotos.cache.has(publisher))SkyPhotos.cache.set(publisher,{});SkyPhotos.cache.get(publisher)[id]=p;}
+assert.equal(phatPhotoRows.length,2753,'audit the entire PHAT cluster class');
+let ambiguousPhat=0;
+for(const row of phatPhotoRows){
+ const o=ExtendedCatalog.decode(row),before=JSON.stringify(o.aliases),ambiguous=o.aliases.filter(s=>/^M\\d+$/i.test(s));
+ if(ambiguous.length){ambiguousPhat++;assert.ok(!SkyPhotos.keys(o).some(k=>/^deep-sky:m\\d+$/.test(k)),'PHAT alternate M label is not Messier: '+o.id);}
+ assert.deepEqual(SkyPhotos.ids({...o,memberType:undefined}),SkyPhotos.ids(o),'old PHAT saves retain the source namespace even without a modern class label');
+ for(const pid of SkyPhotos.ids(o))assert.ok(photoIdentityNames[pid].some(n=>/^AP\\s*\\d+$/.test(n)&&o.aliases.some(a=>SkyPhotos.key(a)===SkyPhotos.key(n))),'real PHAT portraits retain an explicit matching AP identity: '+o.id);
+ assert.ok(!SkyGuide.media(o).some(p=>p.id.startsWith('esawebb-')),'PHAT cannot borrow Webb Messier images');
+ assert.equal(JSON.stringify(o.aliases),before,'source aliases remain intact');
+}
+assert.ok(ambiguousPhat>5);
+ExtendedCatalog.pin(ExtendedCatalog.decode(webbStreamRow));
+for(const id of ['orion','whirlpool','opengc-ngc6611','opengc-ngc6720','opengc-ngc0628']){
+ const o=object(id),gallery=SkyGuide.gallery(o),slides=[...gallery.matchAll(/<figure[^>]+data-photo="([^"]+)"/g)].map(m=>m[1]);
+ if(SkyGuide.canChart(o))assert.deepEqual(slides.slice(0,2),['chart-wide','chart-close']);
+ assert.ok(/Webb|JWST/i.test(SkyGuide.media(o)[0].instrument),'Webb is the first photographic frame');
+ assert.ok(SkyPhotos.ids(o).some(p=>p.startsWith('esawebb-')),'direct ESA/Webb observations: '+id);
+}
+assert.ok(!SkyPhotos.ids(object('hyg-108526')).includes('esawebb-weic2421a'),'a coronagraph image of the exoplanet is not a photograph of the blocked star');
 for(const id of ['hyg-80519','hyg-101767','hyg-27253','hyg-10800','andromeda','orion','lmc','smc']){
  const slides=[...SkyGuide.gallery(object(id)).matchAll(/<figure[^>]+data-photo="([^"]+)"/g)].map(m=>m[1]);
  assert.deepEqual(slides.slice(0,2),['chart-wide','chart-close']);assert.ok(slides.some(s=>s.startsWith('astropix-')));
@@ -189,6 +227,20 @@ context.PARUS_CATALOG_FILES['sky-photos-eso.json']=fs.readFileSync('dist/sky-pho
 run('SkyPhotos.failed.clear()');await run("SkyPhotos.ensure(object('hyg-80519'))");
 assert.ok(run("SkyPhotos.media(object('hyg-80519')).length>0"));assert.equal(run('SkyPhotos.pending.size'),0);
 console.log('PASS standalone embedded metadata without network requests, failed embedded data and recovery');
+run('SkyPhotos.cache.clear();SkyPhotos.failed.clear()');
+context.PARUS_CATALOG_FILES=undefined;requests=[];
+context.fetch=async url=>{requests.push(url);return{ok:true,json:async()=>JSON.parse(fs.readFileSync('dist/'+url.split('?')[0]))};};
+await Promise.all([run("SkyPhotos.ensure(object('orion'))"),run("SkyPhotos.ensure(object('whirlpool'))")]);
+assert.equal(requests.filter(u=>u.startsWith('sky-photos-esawebb.json')).length,1,'Webb cards share one lazy publisher request');
+assert.ok(run("SkyPhotos.media(object('whirlpool')).some(p=>p.id.startsWith('esawebb-'))"));
+const webbPhoto=Object.values(all).find(p=>p.id.startsWith('esawebb-'));
+context.webbBad={...webbPhoto,url:'https://cdn.esawebb.org.evil.invalid/archives/images/screen/test.jpg'};
+assert.equal(run('!!SkyPhotos.validPhoto(webbBad.id,"esawebb",webbBad)'),false,'only the actual ESA CDN is accepted');
+run('SkyPhotos.cache.clear();SkyPhotos.failed.clear()');
+context.PARUS_CATALOG_FILES=Object.fromEntries(Object.values(index.files).map(e=>[e.url.split('?')[0],fs.readFileSync('dist/'+e.url.split('?')[0],'utf8')]));
+context.fetch=async()=>{throw Error('Embedded Webb metadata must not use the network');};
+await run("SkyPhotos.ensure(object('whirlpool'))");assert.ok(run("SkyPhotos.cache.has('esawebb')"));
+console.log('PASS 2753 PHAT namespaces, direct Webb identities, chart order, shared lazy ESA loading, strict asset origin and embedded export');
 const files=['dist/sky-photos-index.js','data-tools/sky-sources/photo-target-audit.json',...Object.values(index.files).map(e=>'dist/'+e.url.split('?')[0])];
 const before=files.map(p=>fs.readFileSync(p));execFileSync('python3',['data-tools/build-sky-photos.py']);
 files.forEach((p,i)=>assert.ok(before[i].equals(fs.readFileSync(p))));

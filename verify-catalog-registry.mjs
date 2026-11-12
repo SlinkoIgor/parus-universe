@@ -8,6 +8,7 @@ const registry = c.CatalogRegistry, entries = new Map(data.entries.map(e=>[e.id,
 const byId = new Map(objects.map(o=>[o.id,o]));
 assert.equal(entries.size,data.entries.length);
 assert.equal(data.total,byId.size);
+assert.equal(vm.runInContext('ExtendedCatalog.total',c),byId.size,'search and library share the complete source census, including added quasars');
 for (const o of objects) {
   const memberships = registry.memberships(o);
   assert.ok(memberships.length,'uncovered object: '+o.id);
@@ -30,7 +31,7 @@ for (const [source,ids] of Object.entries({
   literature:['quipu','boss-wall'],
 })) for (const id of ids) assert.ok(registry.matches(byId.get(id),source),id+' / '+source);
 assert.equal(entries.get('nearby').total,869,'all UNGC identities, without unrelated CF4 members');
-assert.equal(entries.get('opengc').total,13970,'OpenNGC identities, without unrelated galaxy surveys');
+assert.equal(entries.get('opengc').total,13969,'OpenNGC destinations: both M16 components share one reviewed complex');
 assert.equal(entries.get('phat-ap').total,2753,'atlas-only PHAT clusters are in the same census');
 assert.equal(entries.get('phat-ap').mapped,0,'unknown depths remain unknown');
 for (const id of ['bh-andromeda','bh-m87']) {
@@ -67,14 +68,46 @@ for (const e of data.entries) {
 }
 assert.deepEqual(data.entries.filter(e=>!e.defaultSelected).map(e=>e.id).sort(),['sdss-superclusters','sdss-voids']);
 assert.ok(entries.get('phat-ap').defaultSelected,'atlas-only source stays enabled despite having no mapped rows');
-vm.runInContext(['sky-guide-data','sky-photos-index','sky-photos','sky-guide','map-filter-data','map-filters'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
+vm.runInContext(['sky-guide-data','sky-photos-index','sky-photos','sky-imaging-index','sky-imaging','sky-guide','map-filter-data','map-filters'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
 const filterData = vm.runInContext('MAP_FILTER_DATA',c);
 const coreIds = new Set(vm.runInContext('OBJECTS.map(o=>o.id)',c));
 const photoMask=1<<filterData.collections.indexOf('photos');
 const expectedPhotoIds=objects.filter(o=>!coreIds.has(o.id)&&!o.atlasOnly&&!c.MapGeometry.unlocated(o)&&c.SkyGuide.hasObservatoryPhoto(o)).map(o=>o.id).sort();
 const photoBuckets=filterData.buckets.filter(b=>b[1]&photoMask);
-assert.deepEqual([...photoBuckets.flatMap(b=>b[4].map(r=>r[0]))].sort(),expectedPhotoIds,'every mapped photo identity has a complete original-tile reference');
+const allPhotoIds=objects.filter(o=>!o.atlasOnly&&!c.MapGeometry.unlocated(o)&&!c.MapFilters.anchor(o)&&c.SkyGuide.hasObservatoryPhoto(o)).map(o=>o.id).sort();
+assert.deepEqual([...filterData.photoIds],allPhotoIds,'the exact full photo domain is independent of viewport tiles and display density');
 assert.equal(photoBuckets.reduce((n,b)=>n+b[3],0),expectedPhotoIds.length);
+// Audit promotion against the full decoded catalogue, independently of the
+// bucket/reference selection used by the browser. Every small class survives
+// the addition of thousands of galaxy photographs.
+const photoClassCounts=new Map();
+for(const id of allPhotoIds){const kind=c.MapFilters.classOf(byId.get(id));photoClassCounts.set(kind,(photoClassCounts.get(kind)||0)+1);}
+const smallPhotoClasses=new Set([...photoClassCounts].filter(([,n])=>n<=c.MapFilters.limit).map(([k])=>k));
+const completePhotoDetails=allPhotoIds.filter(id=>smallPhotoClasses.has(c.MapFilters.classOf(byId.get(id))));
+assert.ok(completePhotoDetails.length<=c.MapFilters.collectionLimits.photos);
+c.MapFilters.activeGroup='collections';c.MapFilters.selection={collections:['photos']};c.MapFilters.refreshSelection();
+assert.equal(c.MapFilters.narrow,false,'bulk galaxies retain normal spatial loading');
+assert.deepEqual([...c.MapFilters.promoted].sort(),completePhotoDetails,'every photographic object of every small class has a complete original reference');
+for(const id of ['sgr','bh-m87','gaia-bh3','betelgeuse','orion','crab'])assert.ok(c.MapFilters.promoted.has(id),id);
+console.log('PASS complete photographic classes: '+JSON.stringify({promoted:completePhotoDetails.length,classes:Object.fromEntries(photoClassCounts)}));
+const sgaFrozen=JSON.parse(fs.readFileSync('data-tools/sky-sources/media-sga.json'));
+const realImagingHas=c.SkyImaging.has;
+c.SkyImaging.has=()=>false;
+const oldPhotoIds=objects.filter(o=>!o.atlasOnly&&!c.MapGeometry.unlocated(o)&&!c.MapFilters.anchor(o)&&c.SkyGuide.hasObservatoryPhoto(o)).map(o=>o.id);
+c.SkyImaging.has=realImagingHas;
+assert.ok(oldPhotoIds.every(id=>filterData.photoIds.includes(id)),'all previously photographed objects remain in the collection');
+const oldPhotoSet=new Set(oldPhotoIds),overlap=sgaFrozen.records.filter(p=>oldPhotoSet.has(p.targetId)).length;
+assert.equal(allPhotoIds.length,oldPhotoIds.length+sgaFrozen.records.length-overlap,'distinct objects, not a sum of overlapping photographs');
+console.log('PASS photo object census: '+JSON.stringify({before:oldPhotoIds.length,sga:sgaFrozen.records.length,overlap,added:allPhotoIds.length-oldPhotoIds.length,total:allPhotoIds.length}));
+for(const p of sgaFrozen.records){
+ const o=byId.get(p.targetId);assert.ok(o&&!o.atlasOnly&&!c.MapGeometry.unlocated(o)&&o.kind==='galaxy',p.targetId);
+ const ownPGC=new Set((o.aliases||[]).flatMap(n=>{const m=/^PGC\s*0*(\d+)$/i.exec(n);return m?[Number(m[1])]:[];}));
+ if(p.method==='exact own PGC')assert.deepEqual([...ownPGC],[p.pgc],'photo uses the current object own PGC, never its host: '+o.id);
+ else assert.equal(String(o.ngc).replace(/^(NGC|IC)0*(\d+)$/i,(_,prefix,n)=>prefix.toUpperCase()+Number(n)),p.galaxy.replace(/^(NGC|IC)0*(\d+)$/i,(_,prefix,n)=>prefix.toUpperCase()+Number(n)));
+ const rad=Math.PI/180,delta=2*Math.asin(Math.min(1,Math.sqrt(Math.sin((o.decDeg-p.decDeg)*rad/2)**2+Math.cos(o.decDeg*rad)*Math.cos(p.decDeg*rad)*Math.sin((o.raDeg-p.raDeg)*rad/2)**2)))/rad*3600;
+ assert.ok(delta<=p.toleranceArcsec+1e-8,'same named galaxy also agrees in sky direction: '+o.id);
+ assert.ok(Math.abs(delta-p.separationArcsec)<1e-6,'stored angular match evidence: '+o.id);
+}
 for (const e of data.entries) {
   const expected = objects.filter(o=>!coreIds.has(o.id)&&!o.atlasOnly&&!c.MapGeometry.unlocated(o)&&registry.matches(o,e.id)).length;
   const actual = filterData.buckets.filter(b=>b[2].includes(e.id)).reduce((n,b)=>n+b[3],0);

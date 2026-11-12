@@ -6,13 +6,14 @@ import crypto from 'node:crypto';
 import {buildCatalogRegistry} from './build-catalog-registry.mjs';
 
 const {c,rows,core,pointer,manifest} = await buildCatalogRegistry();
-vm.runInContext(['sky-guide-data','sky-photos-index','sky-photos','sky-guide','map-collection-history','map-filters']
+vm.runInContext(['sky-guide-data','sky-photos-index','sky-photos','sky-imaging-index','sky-imaging','sky-guide','map-collection-history','map-filters']
   .map(n => fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
 const filters = c.MapFilters, coreIds = new Set(core.map(o => o.id));
 const catalog = vm.runInContext('ExtendedCatalog',c);
 const search = JSON.parse(fs.readFileSync('dist/'+pointer.dataRoot+'/search.json','utf8'));
 const files = new Map(search.map(r => [r[0],r[5]]));
 const buckets = new Map();
+const photoIds=new Set(core.filter(o=>!o.atlasOnly&&!o.supersededBy&&!c.MapGeometry.unlocated(o)&&!filters.anchor(o)&&filters.matchesCollection(o,'photos')).map(o=>o.id));
 for (const row of rows) {
   if (coreIds.has(row[0])) continue;
   const o = catalog.coreIndex.get(row[0]) || catalog.decode(row);
@@ -21,6 +22,7 @@ for (const row of rows) {
   if (!kind) throw Error('Unclassified object: '+o.id);
   const masks = [filters.options('collections').reduce((mask,k,i)=>mask | (filters.matchesCollection(o,k)?1<<i:0),0),
     c.CatalogRegistry.memberships(o).sort()];
+  if(masks[0]&(1<<filters.options('collections').indexOf('photos')))photoIds.add(o.id);
   const defaultHidden = filters.defaultHidden(o);
   const key = JSON.stringify([kind,...masks,defaultHidden]);
   let bucket = buckets.get(key);
@@ -36,6 +38,7 @@ for (const row of rows) {
 const data = {version:3,catalogRevision:manifest.revision,limit:filters.limit,
   collectionLimits:filters.collectionLimits,
   photoRevision:vm.runInContext('SKY_PHOTO_INDEX.revision',c),guideRevision:vm.runInContext('SKY_GUIDE_DATA.revision',c),
+  imagingRevision:vm.runInContext('SKY_IMAGING_INDEX.revision',c),photoIds:[...photoIds].sort(),
   collections:filters.options('collections'),catalogs:filters.options('catalogs'),
   buckets:[...buckets.values()].sort((a,b) => a.slice(0,3).join('|').localeCompare(b.slice(0,3).join('|')) || Number(a[5])-Number(b[5]))};
 const content = "'use strict';\n// Generated membership counts; full records remain in their original catalogue tiles.\nconst MAP_FILTER_DATA="+JSON.stringify(data)+';\n';

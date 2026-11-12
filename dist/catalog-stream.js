@@ -159,8 +159,11 @@ const ExtendedCatalog = {
   },
   get total() {
     return (
-      EXTENDED_BOOT.total +
+      EXTENDED_BOOT.total -
+      // Older immutable snapshots counted the separately imported components.
+      Object.keys(CatalogIdentities.redirects).filter(id=>!EXTENDED_BOOT.coreIdentityRedirects?.[id]).length +
       (EXTENDED_BOOT.stellarCatalog?.newObjectCount || 0) +
+      OBJECTS.filter((o) => o.quasarCatalog).length +
       (globalThis.DistantCatalog?.objects.length || 0) +
       (globalThis.BlackHoleCatalog?.objects.length || 0) +
       (globalThis.UniverseMap?.areas.length || 0) +
@@ -168,10 +171,13 @@ const ExtendedCatalog = {
       [...this.pinned.values()].filter((o) => o.synthetic).length
     );
   },
+  get identityRedirects() {
+    return this.redirectCache??={...EXTENDED_BOOT.identityRedirects,...CatalogIdentities.redirects};
+  },
   get(id) {
     const historical=this.pinned.get(id);
     if(historical?.supersededBy || historical?.historicalStellarNavigation)return historical;
-    id=EXTENDED_BOOT.identityRedirects?.[id]||id;
+    id=this.identityRedirects[id]||id;
     return (
       this.coreIndex?.get(id) ||
       this.pinned.get(id) ||
@@ -907,6 +913,7 @@ const ExtendedCatalog = {
   restore(saved) {
     this.systemView = null;
     this.systemViewRequest++;
+    if(saved.visited)saved.visited=[...new Set(saved.visited.map(id=>CatalogIdentities.redirects[id]||id))];
     // Older versions did not serialize core-star records. Active endpoints
     // still carry their original physical coordinates in the frozen plan.
     saved.catalogObjects ??= [];
@@ -918,7 +925,7 @@ const ExtendedCatalog = {
     }
     const restoring = new Map((saved?.catalogObjects || []).filter(o => o?.id).map(o => [o.id, o]));
     const navigationIds = new Set([
-      saved?.current, saved?.flight?.target, saved?.flight?.fromId,
+      saved?.current, saved?.flight?.target, saved?.flight?.fromId, saved?.flight?.requestedTarget,
       ...(saved?.flight?.route || []).map(n => n.id),
       ...(saved?.flightHistory || []).flatMap(h => [h.fromId, h.target]),
       ...(saved?.itinerary || []).map(n => n.id),
@@ -930,9 +937,20 @@ const ExtendedCatalog = {
       const o = restoring.get(id) || this.coreIndex.get(id), anchor = o && MapLayout.anchorId(o);
       if (anchor) navigationIds.add(anchor);
     }
+    // Old core destinations were usually omitted from catalogObjects. Retain
+    // their original component position privately when an old voyage uses it.
+    for(const id of navigationIds){
+      if(!CatalogIdentities.redirects[id]||restoring.has(id))continue;
+      const source=IMPORTED_CATALOG.objects.find(o=>o.id===id);
+      if(!source||![source.raDeg,source.decDeg,source.d].every(Number.isFinite))continue;
+      const old={...source,...Space.point(Space.fromSky(source.raDeg,source.decDeg,source.d)),
+        navigable:true,mapGeometry:MapLayout.version};
+      old.mapPosition=MapLayout.place(old);old.mapOffset=[0,0];
+      saved.catalogObjects.push(old);restoring.set(id,old);
+    }
     const privateSelection = navigationIds.has(saved?.selected) &&
       restoring.has(saved?.selected);
-    if(saved?.selected && !privateSelection)saved.selected=EXTENDED_BOOT.identityRedirects?.[saved.selected]||saved.selected;
+    if(saved?.selected && !privateSelection)saved.selected=this.identityRedirects[saved.selected]||saved.selected;
     const oldGeometry =
         saved &&
         (saved.catalogGeometry !== MapLayout.version ||
@@ -940,7 +958,7 @@ const ExtendedCatalog = {
       oldCoordinates = (saved?.catalogGeometry ?? 1) < 2;
     for (const o of saved?.catalogObjects || []) {
       if (!o || typeof o.id !== 'string') continue;
-      const successor=EXTENDED_BOOT.identityRedirects?.[o.id];
+      const successor=this.identityRedirects[o.id];
       if(successor){
         // Old active navigation keeps its exact physical estimate and frozen
         // plan. This private compatibility record never becomes a second map

@@ -17,7 +17,14 @@ GROUP = re.compile(r'\b(?:pair|duo|trio|triplet|quartet|quintet|double cluster|t
 def catalogue_aliases(root, key, photos):
     """Read own aliases, without changing or rebuilding scientific catalogues."""
     text = (root / 'dist/catalog-import.js').read_text()
-    core = json.JSONDecoder().raw_decode(text.split('const IMPORTED_CATALOG=', 1)[1])[0]['objects']
+    imported = json.JSONDecoder().raw_decode(text.split('const IMPORTED_CATALOG=', 1)[1])[0]
+    core = imported['objects']
+    groups = imported.get('identityPolicy', {}).get('groups', [])
+    redirects = {ident: g['target'] for g in groups for ident in g['members'] if ident != g['target']}
+    merged = {g['target']: [o for o in core if o['id'] in g['members']] for g in groups}
+    core = [{**o, 'aliases': list(dict.fromkeys(n for component in merged[o['id']]
+             for n in [component.get('ngc'), *component.get('aliases', [])] if n))}
+            if o['id'] in merged else o for o in core if o['id'] not in redirects]
     pointer = json.loads((root / 'dist/catalog-data/current.json').read_text())
     directory = root / 'dist' / pointer['dataRoot']
     search = json.loads((directory / 'search.json').read_text())

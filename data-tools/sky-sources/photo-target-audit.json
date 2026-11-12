@@ -1,9 +1,9 @@
 {
   "version": 1,
   "catalogueRevision": "c240a9fdd8f7",
-  "imageRevision": "24f3da380066",
-  "reviewed": 298,
-  "restricted": 149,
+  "imageRevision": "563bdcbf278d",
+  "reviewed": 301,
+  "restricted": 152,
   "unconfirmed": 18,
   "cases": [
     {
@@ -4785,86 +4785,6 @@
       "openingCaption": "This full mosaic WFPC2 image shows a slightly larger area around NGC 604. The scale of this image is 2.5 arcminutes along the bottom."
     },
     {
-      "id": "astropix-stsci-2005-12b",
-      "source": "https://hubblesite.org/contents/news-releases/2005/news-2005-12",
-      "originalIdentifiers": [
-        "Eagle Nebula",
-        "M16",
-        "NGC 6611",
-        "IC 4703"
-      ],
-      "method": "primary target named in source heading",
-      "primaryIdentifiers": [
-        "Eagle Nebula",
-        "M16",
-        "NGC 6611",
-        "IC 4703"
-      ],
-      "otherIdentifiers": [],
-      "sourceTitle": "The Eagle Has Risen: Stellar Spire in the Eagle Nebula",
-      "openingCaption": "Appearing like a winged fairy-tale creature poised on a pedestal, this object is actually a billowing tower of cold gas and dust rising from a stellar nursery called the Eagle Nebula. The soaring tower is 9.5 light-years or about 57 trillion miles high, about twice the distance from our Sun to the next nearest star. Stars in the Eagle Nebula are born in clouds of cold hydrogen gas that reside in chaotic neighborhoods, where energy from young stars sculpts fantasy-like landscapes in the gas"
-    },
-    {
-      "id": "astropix-stsci-2005-12e",
-      "source": "https://hubblesite.org/contents/news-releases/2005/news-2005-12",
-      "originalIdentifiers": [
-        "Eagle Nebula",
-        "M16",
-        "NGC 6611",
-        "IC 4703"
-      ],
-      "method": "primary target named in source heading",
-      "primaryIdentifiers": [
-        "Eagle Nebula",
-        "M16",
-        "NGC 6611",
-        "IC 4703"
-      ],
-      "otherIdentifiers": [],
-      "sourceTitle": "Eagle Nebula (M16) Pillar Detail: Portion of Top",
-      "openingCaption": "A detail of the Eagle Nebula (M16) showing a portion of a pillar of gas and dust. Light from nearby bright, hot, young stars is sculpting the cloud into intricate forms and causing the gas to glow."
-    },
-    {
-      "id": "astropix-stsci-2005-12g",
-      "source": "https://hubblesite.org/contents/news-releases/2005/news-2005-12",
-      "originalIdentifiers": [
-        "Eagle Nebula",
-        "M16",
-        "NGC 6611",
-        "IC 4703"
-      ],
-      "method": "primary target named in source heading",
-      "primaryIdentifiers": [
-        "Eagle Nebula",
-        "M16",
-        "NGC 6611",
-        "IC 4703"
-      ],
-      "otherIdentifiers": [],
-      "sourceTitle": "Eagle Nebula (M16) Pillar Detail: Portion of Base",
-      "openingCaption": "A detail of the Eagle Nebula (M16) showing a portion of a pillar of gas and dust. Denser clouds are silhouetted against glowing gas and material reflecting light from nearby stars."
-    },
-    {
-      "id": "astropix-stsci-2005-12x",
-      "source": "https://hubblesite.org/contents/news-releases/2005/news-2005-12",
-      "originalIdentifiers": [
-        "Eagle Nebula",
-        "M16",
-        "NGC 6611",
-        "IC 4703"
-      ],
-      "method": "primary target named in source heading",
-      "primaryIdentifiers": [
-        "Eagle Nebula",
-        "M16",
-        "NGC 6611",
-        "IC 4703"
-      ],
-      "otherIdentifiers": [],
-      "sourceTitle": "Wide-Field Image of the Eagle Nebula",
-      "openingCaption": "This wide-field image of the Eagle Nebula was taken at the National Science Foundation's 0.9-meter telescope on Kitt Peak with the NOAO Mosaic CCD camera. It shows the areas seen in greater detail with Hubble's Wide-Field Planetary Camera 2 (WFPC2) in 1995 and Advanced Camera for Surveys (ACS) in 2005."
-    },
-    {
       "id": "astropix-stsci-2006-10b",
       "source": "https://hubblesite.org/contents/news-releases/2006/news-2006-10",
       "originalIdentifiers": [
@@ -5654,6 +5574,125 @@
       ],
       "sourceTitle": "ZTF First Light: Horsehead",
       "openingCaption": "The Horsehead nebula can be seen in this portion of the \"first-light\" image from ZTF. The head of the horse (middle) faces up toward another well-known nebula known as the Flame. Violet to green wavelengths detected by ZTF are represented as cyan, while yellow to deep red wavelengths are shown as red"
+    },
+    {
+      "id": "esawebb-carinanebula3",
+      "source": "https://esawebb.org/images/carinanebula3/",
+      "originalIdentifiers": [
+        "Carina Nebula",
+        "NGC 3324"
+      ],
+      "method": "primary target named in source heading",
+      "primaryIdentifiers": [
+        "Carina Nebula"
+      ],
+      "otherIdentifiers": [
+        "NGC 3324"
+      ],
+      "sourceTitle": "Carina Nebula Jets (NIRCam Narrowband Filters)",
+      "openingCaption": "Scientists taking a “deep dive” into one of the iconic first images from the NASA/ESA/CSA James Webb Space Telescope have discovered dozens of energetic jets and outflows from young stars previously hidden by dust clouds. The discovery marks the beginning of a new era of investigating how stars like our Sun form, and how the radiation from nearby massive stars might affect the development of planets. Dozens of previously hidden jets and outflows from young stars are revealed in this new image from Webb’s Near-Infrared Camera ( NIRCam )"
+    },
+    {
+      "id": "esawebb-potm2207a",
+      "source": "https://esawebb.org/images/potm2207a/",
+      "originalIdentifiers": [
+        "NGC 7317",
+        "NGC 7318",
+        "NGC 7319",
+        "NGC 7320"
+      ],
+      "method": "joint portrait explicitly described in source heading/opening",
+      "primaryIdentifiers": [
+        "NGC 7317",
+        "NGC 7318",
+        "NGC 7319",
+        "NGC 7320"
+      ],
+      "otherIdentifiers": [],
+      "sourceTitle": "Stephan’s Quintet (MIRI Imaging)",
+      "openingCaption": "Webb's Mid-InfraRed Instrument ( MIRI) shows never-before-seen details of Stephan’s Quintet, a visual grouping of five galaxies, in this image. MIRI pierced through dust-enshrouded regions to reveal huge shock waves and tidal tails, gas and stars stripped from the outer regions of the galaxies by interactions. It also unveiled hidden areas of star formation"
+    },
+    {
+      "id": "esawebb-potm2511a",
+      "source": "https://esawebb.org/images/potm2511a/",
+      "originalIdentifiers": [
+        "NGC 4485",
+        "NGC 4490"
+      ],
+      "method": "joint portrait explicitly described in source heading/opening",
+      "primaryIdentifiers": [
+        "NGC 4485",
+        "NGC 4490"
+      ],
+      "otherIdentifiers": [],
+      "sourceTitle": "A dance of dwarf galaxies",
+      "openingCaption": "For this new ESA/Webb Picture of the Month , the NASA/ESA/CSA James Webb Space Telescope has spied a pair of dwarf galaxies engaged in a gravitational dance. These two galaxies are named NGC 4490 and NGC 4485, and they’re located about 24 million light-years away in the constellation Canes Venatici (The Hunting Dogs). Aside from the Milky Way’s own dwarf companions (the Large and Small Magellanic Clouds), this is the closest known interacting dwarf-dwarf system where astronomers have directly observed both a gas bridge and resolved stellar populations"
+    },
+    {
+      "id": "esawebb-weic2205a",
+      "source": "https://esawebb.org/images/weic2205a/",
+      "originalIdentifiers": [
+        "Carina Nebula",
+        "NGC 3324"
+      ],
+      "method": "first named target in source opening",
+      "primaryIdentifiers": [
+        "NGC 3324"
+      ],
+      "otherIdentifiers": [
+        "Carina Nebula"
+      ],
+      "sourceTitle": "NIRCam Image of the “Cosmic Cliffs” in Carina",
+      "openingCaption": "What looks much like craggy mountains on a moonlit evening is actually the edge of a nearby, young, star-forming region NGC 3324 in the Carina Nebula. Captured in infrared light by the Near-Infrared Camera (NIRCam) on the NASA/ESA/CSA James Webb Space Telescope, this image reveals previously obscured areas of star birth. Called the Cosmic Cliffs, the region is actually the edge of a gigantic, gaseous cavity within NGC 3324, roughly 7,600 light-years away"
+    },
+    {
+      "id": "esawebb-weic2205b",
+      "source": "https://esawebb.org/images/weic2205b/",
+      "originalIdentifiers": [
+        "Carina Nebula",
+        "NGC 3324"
+      ],
+      "method": "first named target in source opening",
+      "primaryIdentifiers": [
+        "Carina Nebula"
+      ],
+      "otherIdentifiers": [
+        "NGC 3324"
+      ],
+      "sourceTitle": "Combined NIRCam and MIRI Image of the “Cosmic Cliffs” in Carina",
+      "openingCaption": "Astronomers using the NASA/ESA/CSA James Webb Space Telescope combined the capabilities of the telescope’s two cameras to create a never-before-seen view of a star-forming region in the Carina Nebula. Captured in infrared light by the Near-Infrared Camera (NIRCam) and Mid-Infrared Instrument (MIRI), this combined image reveals previously invisible areas of star birth. What looks much like craggy mountains on a moonlit evening is actually the edge of a nearby, young, star-forming region known as NGC 3324"
+    },
+    {
+      "id": "esawebb-weic2426a",
+      "source": "https://esawebb.org/images/weic2426a/",
+      "originalIdentifiers": [
+        "IC 2163",
+        "NGC 2207"
+      ],
+      "method": "joint portrait explicitly described in source heading/opening",
+      "primaryIdentifiers": [
+        "IC 2163",
+        "NGC 2207"
+      ],
+      "otherIdentifiers": [],
+      "sourceTitle": "Galaxies IC 2163 and NGC 2207 (Webb and Hubble image)",
+      "openingCaption": "The gruesome palette of these galaxies is owed to a mix of mid-infrared light from the NASA/ESA/CSA James Webb Space Telescope, and visible and ultraviolet light from the NASA/ESA Hubble Space Telescope. The pair grazed one another millions of years ago. The smaller spiral on the left, catalogued as IC 2163, passed behind NGC 2207, the larger spiral galaxy at right"
+    },
+    {
+      "id": "esawebb-weic2426b",
+      "source": "https://esawebb.org/images/weic2426b/",
+      "originalIdentifiers": [
+        "IC 2163",
+        "NGC 2207"
+      ],
+      "method": "joint portrait explicitly described in source heading/opening",
+      "primaryIdentifiers": [
+        "IC 2163",
+        "NGC 2207"
+      ],
+      "otherIdentifiers": [],
+      "sourceTitle": "Galaxies IC 2163 and NGC 2207 (Webb MIRI image)",
+      "openingCaption": "The James Webb Space Telescope’s mid-infrared image of galaxies IC 2163 and NGC 2207 recalls the iciness of long-dead bones mixed with eerie vapours. Two large luminous ‘eyes’ lie at the galaxies’ cores, and gauzy spiral arms reach out into the vast distances of space. Webb’s mid-infrared image excels at showing where the cold dust glows throughout these galaxies — and helps pinpoint where stars and star clusters are buried within the dust"
     }
   ]
 }

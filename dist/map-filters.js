@@ -7,7 +7,7 @@ const MapFilters = {
     'stellar-cluster', 'galaxy-cluster', 'structure', 'void', 'horizon'],
   collections: {
     all: ['Все объекты', ''],
-    photos: ['Красивые снимки', 'Объекты со снимками Hubble, Webb, ESO и других обсерваторий. Карты неба и обзорные поля DSS не учитываются.', ['home','star','pulsar','blackhole','quasar','nebula','galaxy','cluster','stellar-cluster','galaxy-cluster']],
+    photos: ['Красивые снимки', 'Снимки Hubble, Webb, ESO и других обсерваторий, фотографии Siena Galaxy Atlas, опубликованные карты и визуализации космических эпох и мегаструктур. Поисковые карты неба и обзорные поля DSS не учитываются.', ['home','star','pulsar','blackhole','quasar','nebula','galaxy','cluster','stellar-cluster','galaxy-cluster','structure','filament','supercluster','wall','ring','arc','void','horizon']],
     'naked-eye': ['Звёзды, видимые глазом', 'Каталожная яркость V ≤ 6 с Земли. Нужны тёмное небо и подходящая широта; неразрешённая пара не считается двумя видимыми звёздами.', ['star']],
     messier: ['Объекты Мессье · M1–M110', 'Туманности, скопления и галактики с номером Мессье. Записи без надёжного положения остаются в поиске; M40 — оптическая пара без единой дальности.', ['star', 'stellar-cluster', 'nebula', 'galaxy']],
     nearby: ['Соседи Солнца · до 25 св. лет', 'Звёзды с известной каталожной дальностью не более 25 световых лет от Солнца.', ['star', 'home']],
@@ -31,6 +31,7 @@ const MapFilters = {
   selection: null,
   objects: new Map(),
   promoted: new Set(),
+  photoMembers: null,
   narrow: false,
   limit: 300,
   collectionLimits: {photos:2000},
@@ -84,8 +85,8 @@ const MapFilters = {
     switch (collection) {
       case 'all': return true;
       // Complete selections already carry their reviewed catalogue identities.
-      case 'photos': return !o?.synthetic && (this.narrow && this.collection==='photos' ?
-        this.promoted.has(o?.id) : SkyGuide.hasObservatoryPhoto(o));
+      case 'photos': return !o?.synthetic && (this.photoMembers ? this.photoMembers.has(o?.id) :
+        this.narrow && this.collection==='photos' ? this.promoted.has(o?.id) : SkyGuide.hasObservatoryPhoto(o));
       case 'naked-eye': return o.kind === 'star' && !o.synthetic && !o.unresolvedSourcePhotometry &&
         Number.isFinite(o.apparentV) && o.apparentV <= 6;
       // Use the object's own designation: M87* is not Messier 87, nor is the Crab pulsar M1.
@@ -123,7 +124,7 @@ const MapFilters = {
     return ['id:'+o.id, 'M'+messier, ngc && ngc[1].toUpperCase()+Number(ngc[2])]
       .some(key => key && data[key]?.includes(collection));
   },
-  promotes(o) { return this.narrow && this.promoted.has(o?.id) && this.matches(o); },
+  promotes(o) { return this.promoted.has(o?.id) && this.matches(o); },
   collapsedStar(o, span) {
     return this.activeGroup === 'collections' && o?.kind === 'star' && span >= 100000 && this.values('collections').length === 1 &&
       this.values('collections')[0] === 'naked-eye';
@@ -136,7 +137,7 @@ const MapFilters = {
   },
   refreshSelection() {
     const revision = ++this.revision;
-    this.objects.clear(); this.promoted.clear(); this.narrow = false; this.loading = false; this.loadError = false;
+    this.objects.clear(); this.promoted.clear(); this.photoMembers=null; this.narrow = false; this.loading = false; this.loadError = false;
     this.masks = {collections:this.options('collections').reduce((mask,k,i)=>mask | (this.values('collections').includes(k)?1<<i:0),0)};
     const data = typeof MAP_FILTER_DATA === 'undefined' ? null : MAP_FILTER_DATA;
     // Never infer a small complete selection from whichever tiles happen to be loaded.
@@ -144,17 +145,33 @@ const MapFilters = {
         data.collections.join() !== this.options('collections').join() ||
         data.catalogs.join() !== this.options('catalogs').join()) return;
     if (this.activeGroup==='collections' && this.values('collections').includes('photos') &&
-        (data.photoRevision!==SKY_PHOTO_INDEX.revision || data.guideRevision!==SKY_GUIDE_DATA.revision)) return;
+        (data.photoRevision!==SKY_PHOTO_INDEX.revision || data.guideRevision!==SKY_GUIDE_DATA.revision ||
+          data.imagingRevision!==SKY_IMAGING_INDEX.revision || !Array.isArray(data.photoIds))) return;
     const buckets = data.buckets.filter(b => this.bucketMatches(b));
     const core = OBJECTS.filter(o => !o.atlasOnly && !o.supersededBy && !MapGeometry.unlocated(o) && !this.anchor(o) && this.matches(o));
     this.total = core.length + buckets.reduce((n,b) => n + b[3], 0);
+    if(this.activeGroup==='collections'&&this.values('collections')[0]==='photos')this.photoMembers=new Set(data.photoIds);
     const limit=this.selectionLimit(), indexedLimit=this.activeGroup==='collections' && this.values('collections').length===1 ?
       data.collectionLimits?.[this.values('collections')[0]] || data.limit : data.limit;
-    if (this.total > Math.min(limit,indexedLimit)) return;
-    this.narrow = true;
-    const refs = buckets.flatMap(b => b[4] || []);
+    this.narrow = this.total <= Math.min(limit,indexedLimit);
+    let detailCore=core,detailBuckets=buckets;
+    if(!this.narrow){
+      if(!this.photoMembers)return;
+      // A large galaxy population must not hide a small photographic class.
+      // Keep complete small classes, with the same bounded reference budget;
+      // the large classes retain their ordinary spatial hierarchy.
+      const counts=new Map();
+      for(const o of core){const kind=this.classOf(o);counts.set(kind,(counts.get(kind)||0)+1);}
+      for(const b of buckets)counts.set(b[0],(counts.get(b[0])||0)+b[3]);
+      const classes=new Set();let used=0;
+      for(const [kind,count] of [...counts].sort((a,b)=>a[1]-b[1]||a[0].localeCompare(b[0])))
+        if(count<=this.limit&&used+count<=Math.min(limit,indexedLimit)){classes.add(kind);used+=count;}
+      detailCore=core.filter(o=>classes.has(this.classOf(o)));
+      detailBuckets=buckets.filter(b=>classes.has(b[0]));
+    }
+    const refs = detailBuckets.flatMap(b => b[4] || []);
     const requested = new Set(refs.map(r => r[0]));
-    this.promoted = new Set([...core.map(o => o.id), ...refs.map(r => r[0])]);
+    this.promoted = new Set([...detailCore.map(o => o.id), ...refs.map(r => r[0])]);
     const files = [...new Set(refs.map(r => r[1]))];
     if (!files.length || typeof fetch !== 'function' && !globalThis.PARUS_CATALOG_FILES) return;
     this.loading = true;
@@ -244,8 +261,8 @@ const MapFilters = {
     $('mapFilterDefault').checked = this.isDefault(this.tab);
     $('mapFilterDefault').title = this.tab === 'catalogs' ? 'Выставить каталоги по умолчанию' : 'Восстановить классы объектов по умолчанию';
     $('mapFilterDefault').setAttribute('aria-controls', this.options(this.tab).map(k => 'map-filter-'+this.tab+'-'+k).join(' '));
-    $('mapFilterStatus').textContent = this.loading ? 'Загружаем все объекты выборки…' : this.loadError ? 'Часть объектов не загрузилась. Смените фильтр, чтобы повторить.' :
-      this.narrow ? (this.total ? 'Объектов: '+this.total : 'Нет объектов по выбранным условиям.') : '';
+    $('mapFilterStatus').textContent = this.loading ? 'Загружаем объекты выборки…' : this.loadError ? 'Часть объектов не загрузилась. Смените фильтр, чтобы повторить.' :
+      this.narrow||this.photoMembers ? (this.total ? 'Объектов: '+this.total : 'Нет объектов по выбранным условиям.') : '';
     $('mapFilterStatus').hidden = !$('mapFilterStatus').textContent;
   },
   pickerOpen() { return false; },

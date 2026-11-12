@@ -97,6 +97,7 @@ function frame(now) {
       drawHover();
       // Paint the distance backing over objects and their names as well as the grid.
       drawRouteDistance();
+      MapVisits.draw();
     } catch (error) {
       // Discard any canvas save/clip left behind by the interrupted layer.
       canvas.width = canvas.width;
@@ -142,6 +143,8 @@ function pickMapTarget(e) {
   const r = canvas.getBoundingClientRect(),
     x = e.clientX - r.left,
     y = e.clientY - r.top;
+  const visits = MapVisits.hit(x, y);
+  if (visits) return visits.objects.length > 1 ? { visits } : { id: visits.objects[0].id };
   const traffic = GalacticTraffic.hit(x, y);
   if (traffic) return { traffic };
   const annotation = globalThis.MapAnnotations?.active && MapAnnotations.hit(x, y);
@@ -190,23 +193,27 @@ canvas.addEventListener('pointermove', (e) => {
     pointer.x = e.clientX;
     pointer.y = e.clientY;
   } else {
+    const visits = MapVisits.hit(x, y);
+    canvas.title = MapVisits.title(visits);
     hover =
+      (visits && visits.objects.length === 1 ? visits.objects[0] : null) ||
       GalacticTraffic.hit(x,y) ||
       (globalThis.MapAnnotations?.active && MapAnnotations.hit(x, y)) ||
       hitObjects.find(({ p, r = 23 }) => Math.hypot(x - p.x, y - p.y) < r)?.o ||
       RegionMap.hit(x, y) ||
       MapLabels.areaHit(x, y) ||
       globalThis.UniverseMap?.hit(x, y);
-    canvas.style.cursor = hover ? 'pointer' : 'crosshair';
+    canvas.style.cursor = visits?.objects.length > 1 ? 'zoom-in' : hover ? 'pointer' : 'crosshair';
   }
 });
 canvas.addEventListener('pointerup', (e) => {
   if (!pointer.down || e.pointerId !== pointer.id) return;
   if (!pointer.moved) {
-    const { id, traffic } = pickMapTarget(e);
+    const { id, traffic, visits } = pickMapTarget(e);
     doubleClickTarget = id && id === clickedMapTarget ? id : null;
     clickedMapTarget = id || null;
-    if (traffic) { if (!zenMode) GalacticTraffic.show(traffic); }
+    if (visits) MapVisits.focus(visits);
+    else if (traffic) { if (!zenMode) GalacticTraffic.show(traffic); }
     else if (id) {
       select(id,false,{deferPreview:true,routeAnchor:!e.shiftKey});
       if (e.shiftKey) {
@@ -224,7 +231,7 @@ canvas.addEventListener('pointercancel', () => {
   clickedMapTarget = doubleClickTarget = null;
   canvas.style.cursor = 'crosshair';
 });
-canvas.addEventListener('pointerleave', () => (hover = null));
+canvas.addEventListener('pointerleave', () => { hover = null; canvas.title = ''; });
 canvas.addEventListener('dblclick', (e) => {
   if (e.button !== 0 || e.shiftKey || pointer.moved || !doubleClickTarget) return;
   const { id } = pickMapTarget(e), target = object(id);

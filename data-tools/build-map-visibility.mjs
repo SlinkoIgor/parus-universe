@@ -41,6 +41,7 @@ for(const mode of ['full','radial']){
  for(const o of objects){const diameter=!o.sizeEstimated&&!o.sizeUnknown?(o.diameterLy||o.galaxy?.diameterLy||0):0;const p=Math.max(1e-6,limits.get(o.id),diameter/8);(pixels[o.id]??=[]).push(completeObject(o)?(hostRange.get(o.id)??-1):p);}
 }
 const dependencies=['data-tools/build-map-visibility.mjs','data-tools/map-radial-catalog.mjs','dist/map-details.js','dist/map-layout.js','dist/map-geometry.js','dist/map-geometry-data.js','dist/map-radial.js','dist/map-radial-data.js','dist/catalog-extended.js','dist/catalog-stream.js','dist/distant-catalog.js','dist/distant-catalog-data.js'];
+dependencies.push('dist/cosmic-catalog.js');
 const revision=crypto.createHash('sha256').update(manifest.revision+radialManifest.revision+dependencies.map(p=>fs.readFileSync(p)).join('')).digest('hex').slice(0,12);
 const root='map-visibility/'+revision,out='dist/'+root;fs.mkdirSync(out,{recursive:true});
 function write(file,value){const content=JSON.stringify(value)+'\n',path='dist/'+file;if(fs.existsSync(path)){if(fs.readFileSync(path,'utf8')!==content)throw Error('Immutable visibility index differs: '+file);return;}fs.writeFileSync(path,content);}

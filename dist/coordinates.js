@@ -15,6 +15,27 @@ for(const o of OBJECTS){
  Object.assign(o,Space.point(Space.fromSky(k.raDeg,k.decDeg,o.d)),{raDeg:k.raDeg,decDeg:k.decDeg,coordinateSource:k.source,navigable:true,coordinateNote:k.coordinateNote||'Каталожное направление J2000; движение за время экспедиции не моделируется.'});
 }
 const originals=OBJECTS.slice();
+// Review complete destinations explicitly. A shared common name alone does
+// not identify two physical regions (e.g. the separate Eastern Veil portions).
+const CatalogIdentities={
+ groups:IMPORTED_CATALOG.identityPolicy?.groups||[],
+ get redirects(){return this.redirectCache??=Object.fromEntries(this.groups.flatMap(g=>g.members.filter(id=>id!==g.target).map(id=>[id,g.target])));},
+ prepare(entry){
+  const group=this.groups.find(g=>g.target===entry.id);
+  if(group){
+   const components=group.members.map(id=>IMPORTED_CATALOG.objects.find(o=>o.id===id));
+   if(components.some(o=>!o))throw Error('Missing component of '+group.id);
+   return {...entry,name:group.name,type:group.type,catalogIdentity:group.id,
+    catalogIdentityLabel:group.label,catalogIdentityDescription:group.description,
+    catalogObjectIds:group.members,catalogComponents:components.map(o=>({...o})),
+    catalogComponentUnits:{d:'ly',raDeg:'deg',decDeg:'deg',diameterLy:'ly',minorDiameterLy:'ly',angularMajorArcmin:'arcmin',angularMinorArcmin:'arcmin',positionAngleDeg:'deg'},
+    catalogIdentityNote:group.note,catalogIdentitySources:group.sources,
+    aliases:[...new Set(components.flatMap(o=>[o.name,o.ngc,...o.aliases||[]]).filter(Boolean))]};
+  }
+  const distinct=IMPORTED_CATALOG.identityPolicy?.distinct.find(g=>g.names&&g.members.includes(entry.id));
+  return distinct?{...entry,name:distinct.names[distinct.members.indexOf(entry.id)],aliases:[...new Set([entry.name,...entry.aliases||[]])]}:entry;
+ },
+};
 // Merging an existing landmark must retain measured angular extents. Reuse the
 // landmark's adopted distance later; do not import a size derived at another d.
 function mergeNebulaSize(target,entry){
@@ -22,12 +43,15 @@ function mergeNebulaSize(target,entry){
  for(const field of ['angularMajorArcmin','angularMinorArcmin','positionAngleDeg'])if(entry[field]!=null)target[field]=entry[field];
  target.angularSizeSource='https://github.com/mattiaverga/OpenNGC';
 }
-for(const entry of IMPORTED_CATALOG.objects){
+for(const sourceEntry of IMPORTED_CATALOG.objects){
+ if(CatalogIdentities.redirects[sourceEntry.id])continue;
+ const entry=CatalogIdentities.prepare(sourceEntry);
  const duplicate=entry.legacyId?originals.find(o=>o.id===entry.legacyId):entry.kind==='star'?originals.find(o=>o.kind==='star'&&known[o.id]&&(entry.hygId!=null&&known[o.id].hygId!=null&&String(known[o.id].hygId)===String(entry.hygId)||(known[o.id].hygId==null&&Number.isFinite(entry.d)&&Math.abs(o.raDeg-entry.raDeg)*Math.cos(entry.decDeg*Math.PI/180)<.02&&Math.abs(o.decDeg-entry.decDeg)<.02&&Math.abs(o.d-entry.d)<o.d*.06))):null;
  if(duplicate){for(const k of ['hygId','hip','hd','ngc','messier','apparentV'])if(entry[k]!==undefined)duplicate[k]=entry[k];mergeNebulaSize(duplicate,entry);duplicate.aliases=[...new Set([...(duplicate.aliases||[]),entry.name,...(entry.aliases||[])])];duplicate.iauNames=[...new Set([...(duplicate.iauNames||[]),...(entry.iauNames||[])])];duplicate.selection=[...new Set([...(duplicate.selection||[]),...(entry.selection||[])])];continue;}
  const located=Number.isFinite(entry.d)&&entry.d>0&&Number.isFinite(entry.raDeg)&&Number.isFinite(entry.decDeg);
  const o={...entry,...(located?Space.point(Space.fromSky(entry.raDeg,entry.decDeg,entry.d)):{p3:null,x:NaN,y:NaN}),navigable:located,index:OBJECTS.length,desc:entry.distanceMethod};
  o.facts={class:entry.type,mass:'Нет индивидуальной оценки в выбранном каталоге.',band:'V',visual:entry.absoluteV==null?null:{absoluteV:entry.absoluteV,solarV:entry.visualLuminositySolar},lumUnknown:entry.visualLuminositySolar==null?entry.luminosityNote:null,note:[entry.luminosityNote,entry.distanceMethod,entry.sizeNote].filter(Boolean).join(' '),refs:[[entry.source,entry.catalog],["catalog-sources.json","Происхождение, преобразования и лицензии"]]};
+ if(entry.catalogIdentityNote){o.desc=entry.catalogIdentityDescription;o.facts.note+=' '+entry.catalogIdentityNote;o.facts.refs.push(...entry.catalogIdentitySources);}
  if(!located)o.coordinateNote='Не хватает надёжного расстояния или направления для полной 3D-позиции. Объект присутствует в атласе; точка физического маршрута недоступна.';
  if(entry.periodSeconds)o.facts.extra=['Период вращения',entry.periodSeconds.toLocaleString('ru-RU',{maximumSignificantDigits:6})+' с'];
  if(entry.kind==='galaxy'&&located&&entry.diameterLy){

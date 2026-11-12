@@ -175,7 +175,7 @@ const MapAnnotations = {
         rank:this.entries.get(o.id)?.rank ?? 100000});
     }
     const filtered = new Map();
-    if (globalThis.MapFilters?.narrow) {
+    if (globalThis.MapFilters?.promoted.size) {
       for (const h of [...hitObjects,...RegionMap.hits,...MapLabels.contours]) {
         const o = h.o || h.object;
         if (!o || !MapFilters.promotes(o) || filtered.has(o.id)) continue;
@@ -249,7 +249,7 @@ const MapAnnotations = {
     this.hits = [];
     this.originBox = null;
     this.notableBoxes=[];
-    this.filteredGlyphs = globalThis.MapFilters?.narrow || localItems.length ? hitObjects.map(h => {
+    this.filteredGlyphs = globalThis.MapFilters?.narrow || globalThis.MapFilters?.promoted.size || localItems.length ? hitObjects.map(h => {
       const r = h.o.id === state.selected || h.o.kind === 'home' ? 23 :
         ['pulsar','quasar'].includes(h.o.kind) ? 20 : h.o.kind === 'blackhole' ? 18 : 10;
       return {id:h.o.id,x:h.p.x-r,y:h.p.y-r,w:2*r,h:2*r};

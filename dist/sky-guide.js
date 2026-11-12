@@ -192,6 +192,8 @@ const SkyGuide = {
   },
   hasObservatoryPhoto(o) {
     if (!o || o.synthetic) return false;
+    if(o.supersededBy){const current=ExtendedCatalog.get(o.supersededBy);if(current)return this.hasObservatoryPhoto(current);}
+    if (typeof SkyImaging!=='undefined' && SkyImaging.has(o)) return true;
     // The identity index is available before publisher metadata or image pixels.
     if (SkyPhotos.ids(o).some(id=>!SkyPhotos.surveys.has(id))) return true;
     if (!this.curatedPhotoTargets) {
@@ -201,18 +203,24 @@ const SkyGuide = {
           .map(kind=>kind+':'+this.catalogueKey(id)))
       ]));
     }
-    return this.curatedPhotoTargets.has('id:'+o.id) ||
+    return (o.catalogObjectIds||[o.id]).some(id=>this.curatedPhotoTargets.has('id:'+id)) ||
       this.identityKeys(o).some(id=>this.curatedPhotoTargets.has(o.kind+':'+id));
   },
   media(o) {
     if (!o || o.synthetic) return [];
+    if(o.supersededBy){const current=ExtendedCatalog.get(o.supersededBy);if(current)return this.media(current);}
     const identifiers=this.identityKeys(o);
-    const curated=SKY_GUIDE_DATA.media.filter(p=>p.objects.includes(o.id) ||
+    const curated=SKY_GUIDE_DATA.media.filter(p=>p.objects.some(id=>(o.catalogObjectIds||[o.id]).includes(id)) ||
       (p.kind===o.kind || p.kind==='deep-sky'&&['nebula','cluster','galaxy'].includes(o.kind)) && p.identifiers?.some(id=>identifiers.includes(this.catalogueKey(id))));
     // One release page can contain several distinct observations. Deduplicate
     // actual image URLs, never the source article shared by those images.
     const seen=new Set(curated.map(p=>p.url));
-    return [...curated,...SkyPhotos.media(o).filter(p=>{if(seen.has(p.url))return false;seen.add(p.url);return true;})];
+    const archive=SkyPhotos.media(o),imaging=typeof SkyImaging==='undefined'?[]:SkyImaging.media(o);
+    const media=[...curated,...[...archive.filter(p=>p.mediaKind!=='survey'),...imaging,...archive.filter(p=>p.mediaKind==='survey')]
+      .filter(p=>{if(seen.has(p.url))return false;seen.add(p.url);return true;})];
+    // Keep the two finding charts in gallery() first; give Webb observations
+    // the first photographic frames rather than burying them behind Hubble.
+    return media.sort((a,b)=>Number(/\b(?:Webb|JWST)\b/i.test(b.instrument))-Number(/\b(?:Webb|JWST)\b/i.test(a.instrument)));
   },
   survey(o) {
     if (!this.hasDirection(o)) return null;
@@ -234,64 +242,117 @@ const SkyGuide = {
     const survey=this.survey(o);
     return [...this.media(o),...(survey?[survey]:[])];
   },
+  epochDiagram(o) {
+    const stages={
+      'epoch-qgp':['Кварки и глюоны','q и g — условные обозначения частиц',0],
+      'epoch-particles':['Адроны → лёгкие ядра','Протоны и нейтроны образуют ядра',1],
+      'epoch-plasma':['Фотоны рассеиваются','Свободные электроны мешают свету пройти напрямую',2],
+      'epoch-dark':['Нейтральный газ','Атомы уже есть · звёзды ещё не зажглись',3],
+      'epoch-beyond':['За горизонтом наблюдений','Что находится дальше — прямых данных нет',4]
+    },q=stages[o?.id];
+    if(!q)return '';
+    const esc=this.escape,[title,subtitle,stage]=q,age=stage===4?'':o.age,
+      dot=(x,y,label,color='#587a9b',r=20)=>'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+color+'"/><text x="'+x+'" y="'+(y+6)+'" text-anchor="middle" fill="white" font-size="18">'+label+'</text>';
+    let drawing='';
+    if(stage===0)for(let i=0;i<18;i++)drawing+=dot(95+(i%6)*122,160+Math.floor(i/6)*68,i%3?'q':'g',i%3?'#6488ab':'#b26f58',17);
+    if(stage===1){
+      drawing=dot(135,226,'p⁺')+dot(182,241,'n','#888')+'<path d="M250 232h110m-16-12 16 12-16 12" stroke="#bbb" stroke-width="3" fill="none"/>';
+      drawing+=dot(458,217,'p⁺')+dot(492,240,'n','#888')+dot(457,256,'n','#888')+dot(492,278,'p⁺');
+      drawing+='<text x="147" y="330" fill="#ddd" text-anchor="middle">Адроны</text><text x="477" y="350" fill="#ddd" text-anchor="middle">Ядро гелия-4</text>';
+    }
+    if(stage===2){
+      for(let i=0;i<7;i++)drawing+=dot(92+i*96,202+i%2*92,i%2?'e⁻':'p⁺',i%2?'#b26f58':'#6488ab',17);
+      drawing+='<path d="M45 325 185 294 310 150 476 294 660 170 755 256" stroke="#e9c977" stroke-width="3" fill="none"/><text x="355" y="370" text-anchor="middle" fill="#e9c977">Путь фотона · условная схема</text>';
+    }
+    if(stage===3)for(let i=0;i<10;i++){
+      const x=88+i%5*153,y=185+Math.floor(i/5)*125;
+      drawing+='<ellipse cx="'+x+'" cy="'+y+'" rx="33" ry="21" stroke="#7c9fb8" fill="none"/>'+dot(x,y,'H','#6488ab',15)+'<circle cx="'+(x+33)+'" cy="'+y+'" r="4" fill="#e9c977"/>';
+    }
+    if(stage===4)drawing='<circle cx="300" cy="255" r="125" fill="#294252" stroke="#c2d4df" stroke-width="2"/><circle cx="300" cy="255" r="5" fill="white"/><text x="300" y="284" text-anchor="middle" fill="white">Наблюдатель</text><text x="300" y="344" text-anchor="middle" fill="#c2d4df" font-size="14">Наблюдаемая область</text><text x="610" y="245" text-anchor="middle" fill="#ddd" font-size="19">Неизвестно</text><path d="M435 255h58" stroke="#ddd" stroke-dasharray="5 5"/><text x="400" y="414" text-anchor="middle" fill="#ccc" font-size="14">Горизонт — предел наблюдений, не край пространства</text>';
+    const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" role="img" aria-label="'+esc(title)+'" style="font-family:Arial,sans-serif"><rect width="800" height="520" fill="#15202b"/><text x="40" y="52" fill="white" font-size="27">'+esc(title)+'</text><text x="40" y="88" fill="#c2d4df" font-size="17">'+esc(subtitle)+'</text>'+drawing+'<text x="40" y="480" fill="#c2d4df" font-size="15">Схема'+(age?' · '+esc(age):'')+' · размеры и расстояния условны</text></svg>';
+    return '<figure class="stellar-photo stellar-epoch-diagram" data-photo="epoch-scheme"><div class="stellar-photo-field">'+svg+'</div><figcaption><strong>'+esc(title)+'</strong><span>Поясняющая схема'+(age?' · '+esc(age):'')+'</span><p>'+esc(o.note)+' Условные символы показывают физический смысл, а не наблюдённое расположение частиц или объектов.</p><a class="stellar-photo-source" href="https://lambda.gsfc.nasa.gov/education/graphic_history/univ_evol.html" target="_blank" rel="noopener">NASA · история Вселенной ↗</a></figcaption></figure>';
+  },
   gallery(o) {
-    const photos=this.photos(o), chartable=this.canChart(o), missing=SkyPhotos.missing(o);
-    if(!photos.length&&!chartable&&!missing.length)return '';
+    const photos=this.photos(o), chartable=this.canChart(o), diagram=this.epochDiagram(o),missing=SkyPhotos.missing(o),imagingMissing=typeof SkyImaging==='undefined'?[]:SkyImaging.missing(o),
+      heading=o.cosmicEpoch||['structure','wall','void','ring','arc'].includes(o.kind)?'Снимки и визуализации':'Небо и снимки',
+      types={observation:'Наблюдение',map:'Карта по данным наблюдений',reconstruction:'Реконструкция по данным',diagram:'Иллюстрация / схема',composite:'Наблюдение и иллюстрация'};
+    if(!photos.length&&!chartable&&!diagram&&!missing.length&&!imagingMissing.length)return '';
     const esc=this.escape, chart=close=>
       '<figure class="stellar-photo stellar-chart" data-photo="'+(close?'chart-close':'chart-wide')+'"><div class="stellar-photo-field stellar-chart-field">'+this.chart(o,close)+'</div>'+
       '<figcaption><strong>'+(close?'Ближе к объекту':'Положение на ночном небе')+'</strong><span>Поисковая схема · вид с Земли · J2000</span><p>'+
       (close?'Выбранный объект в центре поля. Сопоставьте ближайшие звёзды с архивным снимком.':'Широкий обзор неба: найдите знакомые созвездия и проследите линии до отмеченного объекта.')+
       '</p><small>Звёзды: XHIP · названия и линии: d3-celestial</small></figcaption></figure>',
-      photo=p=>'<figure class="stellar-photo" data-photo="'+esc(p.id)+'"><div class="stellar-photo-field"><img '+(p.id==='dss'?'id="stellarSkyImage" data-dss-src="':'data-photo-src="')+esc(p.url)+'" alt="'+esc(p.title)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer">'+
-        '<p class="stellar-photo-loading" role="status">Загрузка снимка…</p>'+
-        '<p class="stellar-photo-error" hidden>Снимок сейчас недоступен. Его можно открыть в архиве по ссылке ниже.</p></div>'+
-        '<figcaption><strong>'+esc(p.title)+'</strong><span>'+esc(p.instrument)+' · '+esc(p.band)+' · <span class="stellar-photo-date">'+esc(p.date)+'</span></span><p'+(p.id==='dss'?' class="stellar-dss-description"':'')+'>'+esc(p.description)+'</p>'+
-        '<a class="stellar-photo-source" href="'+esc(p.source)+'" target="_blank" rel="noopener">Источник и полный снимок ↗</a><small>Фото: '+esc(p.credit)+'</small>'+
-        (p.rights?'<small>Права: '+esc(p.rights)+' · <a href="'+esc(p.archive)+'" target="_blank" rel="noopener">AstroPix ↗</a></small>':'')+'</figcaption></figure>',
-      failed=missing.some(p=>SkyPhotos.failed.has(p)),
-      pending=missing.length?'<figure class="stellar-photo" data-photo="archive-pending"><div class="stellar-photo-field"><p class="'+(failed?'stellar-photo-error':'stellar-photo-loading')+'" role="status">'+(failed?'Архив сейчас недоступен. <button data-photo-retry>Повторить загрузку</button>':'Загрузка снимков обсерваторий…')+'</p></div><figcaption><strong>Снимки обсерваторий</strong><span>Hubble, Webb, ESO и другие телескопы</span><p>Фотографии и подписи из общего архива обсерваторий.</p><a class="stellar-photo-source" href="https://www.astropix.org/" target="_blank" rel="noopener">Архив AstroPix ↗</a></figcaption></figure>':'',
+      photo=p=>'<figure class="stellar-photo" data-photo="'+esc(p.id)+'"><div class="stellar-photo-field">'+
+        (p.format==='video'?'<video controls playsinline loop preload="none" data-video-src="'+esc(p.url)+'" data-video-poster="'+esc(p.poster)+'" aria-label="'+esc(p.title)+'"></video>':
+          '<img '+(p.id==='dss'?'id="stellarSkyImage" data-dss-src="':'data-photo-src="')+esc(p.url)+'" alt="'+esc(p.title)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer">')+
+        '<p class="stellar-photo-loading" role="status"'+(p.format==='video'?' hidden':'')+'>'+(p.format==='video'?'Загрузка видео…':'Загрузка снимка…')+'</p>'+
+        '<p class="stellar-photo-error" hidden>'+(p.format==='video'?'Видео сейчас недоступно.':'Снимок сейчас недоступен.')+' Его можно открыть в архиве по ссылке ниже.</p></div>'+
+        '<figcaption><strong>'+esc(p.title)+'</strong><span>'+(p.format==='video'?'Видео · ':'')+(types[p.mediaType]?esc(types[p.mediaType])+' · ':'')+esc(p.instrument)+' · '+esc(p.band)+' · <span class="stellar-photo-date">'+esc(p.date)+'</span></span><p'+(p.id==='dss'?' class="stellar-dss-description"':'')+'>'+esc(p.description)+'</p>'+
+        '<a class="stellar-photo-source" href="'+esc(p.source)+'" target="_blank" rel="noopener">Источник и '+(p.format==='video'?'полное видео':'полное изображение')+' ↗</a><small>'+(p.format==='video'?'Видео: ':'Изображение: ')+(p.creditUrl?'<a href="'+esc(p.creditUrl)+'" target="_blank" rel="noopener">'+esc(p.credit)+'</a>':esc(p.credit))+'</small>'+
+        (p.rights?'<small>Права: '+esc(p.rights)+' · <a href="'+esc(p.archive)+'" target="_blank" rel="noopener">'+esc(p.archiveLabel||'AstroPix')+' ↗</a></small>':'')+'</figcaption></figure>',
+      failed=missing.some(p=>SkyPhotos.failed.has(p))||imagingMissing.some(p=>SkyImaging.failed.has(p)),
+      pending=missing.length||imagingMissing.length?'<figure class="stellar-photo" data-photo="archive-pending"><div class="stellar-photo-field"><p class="'+(failed?'stellar-photo-error':'stellar-photo-loading')+'" role="status">'+(failed?'Архив сейчас недоступен. <button data-photo-retry>Повторить загрузку</button>':'Загрузка снимков обсерваторий…')+'</p></div><figcaption><strong>Снимки обсерваторий</strong><span>Hubble, Webb, ESO, Siena Galaxy Atlas и другие телескопы</span><p>Фотографии и подписи из архивов обсерваторий.</p></figcaption></figure>':'',
       // Keep both available finding charts together before any photographs.
-      slides=[...(chartable?[chart(false),chart(true)]:[]),...photos.filter(p=>!['dss','survey'].includes(p.id)).map(photo),...(pending?[pending]:[]),...photos.filter(p=>['dss','survey'].includes(p.id)).map(photo)];
-    return '<section class="stellar-gallery" id="stellarMedia" aria-label="Небо и снимки" aria-roledescription="карусель">'+
+      slides=[...(chartable?[chart(false),chart(true)]:[]),...(diagram?[diagram]:[]),...photos.filter(p=>!['dss','survey'].includes(p.id)).map(photo),...(pending?[pending]:[]),...photos.filter(p=>['dss','survey'].includes(p.id)).map(photo)];
+    return '<section class="stellar-gallery" id="stellarMedia" aria-label="'+heading+'" aria-roledescription="карусель">'+
       '<div class="stellar-gallery-viewport"><div class="stellar-gallery-track" id="stellarGallery" tabindex="0" role="region" aria-label="Карты неба и фотографии. Листайте горизонтально">'+slides.join('')+'</div>'+
-      '<div class="stellar-gallery-nav"><button id="stellarGalleryPrev" aria-label="Предыдущий кадр" aria-controls="stellarGallery" disabled>←</button><button id="stellarGalleryNext" aria-label="Следующий кадр" aria-controls="stellarGallery">→</button></div></div><div class="stellar-gallery-heading"><h3 id="stellarGalleryTitle">Небо и снимки</h3><span id="stellarGalleryPosition" aria-live="polite" aria-atomic="true">1 / '+slides.length+'</span></div></section>';
+      '<div class="stellar-gallery-nav"><button id="stellarGalleryPrev" aria-label="Предыдущий кадр" aria-controls="stellarGallery" disabled>←</button><button id="stellarGalleryNext" aria-label="Следующий кадр" aria-controls="stellarGallery">→</button></div></div><div class="stellar-gallery-heading"><h3 id="stellarGalleryTitle">'+heading+'</h3><span id="stellarGalleryPosition" aria-live="polite" aria-atomic="true">1 / '+slides.length+'</span></div></section>';
+  },
+  pauseVideos() {
+    for(const video of this.photoVideos||[])video.pause();
   },
   mount(o) {
     this.photoAbort?.abort();
+    this.pauseVideos();
+    this.photoVideos=[];
     const track=document.getElementById('stellarGallery');
     if(!track)return;
     let active=-1;
     const cards=[...track.querySelectorAll('figure')],prev=document.getElementById('stellarGalleryPrev'),next=document.getElementById('stellarGalleryNext'),
       current=()=>cards.reduce((best,c,i)=>Math.abs(c.offsetLeft-track.scrollLeft)<Math.abs(cards[best].offsetLeft-track.scrollLeft)?i:best,0),
       update=()=>{const i=current();if(i===active)return;active=i;prev.disabled=i===0;next.disabled=i===cards.length-1;document.getElementById('stellarGalleryPosition').textContent=(i+1)+' / '+cards.length;
-        for(const [j,card] of cards.entries()){card.inert=j!==i;card.setAttribute('aria-hidden',String(j!==i));card.setAttribute('aria-label',(j+1)+' из '+cards.length);card.querySelector('figcaption').hidden=j!==i;if(j===i){const img=card.querySelector('img[data-photo-src]');if(img&&!img.getAttribute('src'))img.src=img.dataset.photoSrc;}}},
+        for(const [j,card] of cards.entries()){
+          card.inert=j!==i;card.setAttribute('aria-hidden',String(j!==i));card.setAttribute('aria-label',(j+1)+' из '+cards.length);card.querySelector('figcaption').hidden=j!==i;
+          const video=card.querySelector('video');
+          if(j===i){
+            const img=card.querySelector('img[data-photo-src]');if(img&&!img.getAttribute('src'))img.src=img.dataset.photoSrc;
+            if(video&&!video.getAttribute('src')){video.poster=video.dataset.videoPoster;video.src=video.dataset.videoSrc;}
+          }else if(video)video.pause();
+        }},
       move=delta=>{const i=Math.max(0,Math.min(cards.length-1,current()+delta));track.scrollTo({left:cards[i].offsetLeft,behavior:window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});};
     prev.onclick=()=>move(-1);next.onclick=()=>move(1);track.addEventListener('scroll',update,{passive:true});
-    document.getElementById('stellarMedia').addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();move(e.key==='ArrowRight'?1:-1);}});
+    document.getElementById('stellarMedia').addEventListener('keydown',e=>{if(e.target.closest?.('video'))return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();move(e.key==='ArrowRight'?1:-1);}});
     for(const photo of track.querySelectorAll('img')) {
       const settled=failed=>{photo.hidden=failed;const p=photo.parentElement;p.querySelector('.stellar-photo-loading').hidden=true;p.querySelector('.stellar-photo-error').hidden=!failed;p.classList.toggle('unavailable',failed);};
       photo.onload=()=>settled(false);photo.onerror=()=>settled(true);if(photo.getAttribute?.('src')&&photo.complete)settled(!photo.naturalWidth);
+    }
+    this.photoVideos=[...track.querySelectorAll('video')];
+    for(const video of this.photoVideos){
+      const field=video.parentElement,loading=field.querySelector('.stellar-photo-loading'),error=field.querySelector('.stellar-photo-error');
+      video.onloadstart=video.onwaiting=()=>{loading.hidden=video.paused;};
+      video.onloadeddata=video.oncanplay=video.onplaying=video.onpause=()=>{loading.hidden=true;};
+      video.onerror=()=>{video.hidden=true;loading.hidden=true;error.hidden=false;};
     }
     if(typeof fetch==='function'&&typeof AbortController==='function') {
       this.photoAbort=new AbortController();
       const signal=this.photoAbort.signal,dss=track.querySelector('figure[data-photo="dss"]');
       if(!this.photoDialogClose) {
-        this.photoDialogClose=()=>this.photoAbort?.abort();
+        this.photoDialogClose=()=>{this.photoAbort?.abort();this.pauseVideos();};
         document.getElementById('infoDialog').addEventListener('close',this.photoDialogClose);
       }
       if(dss)SkyDSS.mount(o,dss,signal);
     }
     if(cards.length)update();
     const refresh=async retry=>{
-      if(retry)for(const p of SkyPhotos.missing(o))SkyPhotos.failed.delete(p);
-      const changed=await SkyPhotos.ensure(o);
+      if(retry){for(const p of SkyPhotos.missing(o))SkyPhotos.failed.delete(p);if(typeof SkyImaging!=='undefined')for(const p of SkyImaging.missing(o))SkyImaging.failed.delete(p);}
+      const changed=(await Promise.all([SkyPhotos.ensure(o),typeof SkyImaging==='undefined'?false:SkyImaging.ensure(o)])).some(Boolean);
       // Closing/switching cards during a request must not reopen an old card.
       if(!changed||document.getElementById('stellarGallery')!==track||!track.isConnected)return;
       const selected=cards[current()]?.dataset.photo;
       document.getElementById('stellarMedia').outerHTML=this.gallery(o);
       const replacement=document.getElementById('stellarGallery'),figures=[...replacement.querySelectorAll('figure')],
         target=figures.find(c=>c.dataset.photo===selected)||
-          (selected==='archive-pending'&&figures.find(c=>c.dataset.photo.startsWith('astropix-')))||figures[0];
+          (selected==='archive-pending'&&figures.find(c=>/^(?:astropix-|sga-grz-)/.test(c.dataset.photo)))||figures[0];
       replacement.scrollLeft=target.offsetLeft;
       this.mount(o);
     };

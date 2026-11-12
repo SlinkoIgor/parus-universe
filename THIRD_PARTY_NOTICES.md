@@ -236,3 +236,111 @@ and [Small Magellanic Cloud](https://noirlab.edu/public/images/noao-6051/) pages
 The short factual quotations, source URLs and underlying AVM metadata hashes
 are retained in `data-tools/sky-sources/observing-evidence.json`. No magnitude
 or other measurement is inferred from those statements.
+
+### Siena Galaxy Atlas / DESI Legacy Imaging Surveys photographs
+
+The additional galaxy gallery uses 12,000 published g/r/z observation images
+from the [Siena Galaxy Atlas 2020](https://www.legacysurvey.org/sga/sga2020/)
+(Moustakas et al. 2023), based on the DESI Legacy Imaging Surveys. Catalogue
+metadata are obtained through the public NOIRLab Astro Data Lab TAP service,
+table `sga2020.ellipse`; images remain on the external NERSC SGA-2020 server.
+Only derived identification, provenance, availability and attribution metadata
+are bundled in `data-tools/sky-sources/media-sga.json` and the lazy runtime
+shards. No photographic pixels are redistributed with the application.
+
+As stated in the [Legacy Surveys image policy and acknowledgments](https://www.legacysurvey.org/acknowledgment/),
+Legacy Surveys images are licensed under [Creative Commons Attribution 4.0
+International](https://creativecommons.org/licenses/by/4.0/). The unaltered,
+visible, active credit displayed with every photograph is:
+**Legacy Surveys / D. Lang (Perimeter Institute)**. Images are used as supplied,
+with browser resizing; these data are not relicensed as application code.
+
+The DESI Legacy Imaging Surveys consist of three individual and complementary
+projects: the Dark Energy Camera Legacy Survey (DECaLS), the Beijing-Arizona
+Sky Survey (BASS), and the Mayall z-band Legacy Survey (MzLS). DECaLS, BASS and
+MzLS together include data obtained, respectively, at the Blanco telescope,
+Cerro Tololo Inter-American Observatory, NSF’s NOIRLab; the Bok telescope,
+Steward Observatory, University of Arizona; and the Mayall telescope, Kitt Peak
+National Observatory, NOIRLab. NOIRLab is operated by AURA under a cooperative
+agreement with the National Science Foundation. Pipeline processing and
+analyses were supported by NOIRLab and Lawrence Berkeley National Laboratory.
+Legacy Surveys is supported by the U.S. Department of Energy Office of Science,
+Office of High Energy Physics; NERSC; the U.S. National Science Foundation;
+the National Astronomical Observatories of China; the Chinese Academy of
+Sciences; and the Chinese National Natural Science Foundation. The complete
+Legacy Surveys, DES/DECam, BASS and institutional acknowledgments are available
+at the linked official acknowledgment page.
+
+The Siena Galaxy Atlas was made possible by funding support from the U.S.
+Department of Energy, Office of Science, Office of High Energy Physics under
+Award Number DE-SC0020086 and from the National Science Foundation under grant
+AST-1616414.
+
+## Cosmic epoch / large-structure visuals and photographed quasars
+
+The curated manifest `data-tools/sky-sources/media-cosmic.json` retains the
+individual image URL, source, full credit, rights statement and description.
+Images are linked from their publishers; their pixel files are not bundled.
+Five explanatory epoch SVG diagrams are authored in the application and are
+explicitly labelled as schematic illustrations.
+
+- Planck: ESA and the Planck Collaboration; Hubble/Webb/Chandra/VLA materials:
+  the individual NASA, ESA, CSA, STScI, CXC and NRAO credits and AstroPix rights
+  metadata are retained for each image, including images of quasar host galaxies.
+- [NASA LAMBDA Universe timeline](https://lambda.gsfc.nasa.gov/education/graphic_history/univ_evol.html):
+  NASA / LAMBDA Archive / WMAP Science Team.
+- [CLASSIX figures, Böhringer et al. 2025](https://arxiv.org/abs/2501.19236):
+  Hans Böhringer, Gayoung Chon, Joachim Trümper, Renee C. Kraan-Korteweg and
+  Norbert Schartel. [BOSS Great Wall](https://arxiv.org/abs/1602.08498):
+  H. Lietzen et al. [Huge-LQG](https://arxiv.org/abs/1211.6256): Roger G. Clowes
+  et al. [Local Void](https://arxiv.org/abs/1905.08329): R. Brent Tully, Daniel
+  Pomarède, Romain Graziani, Hélène M. Courtois, Yehuda Hoffman and Edward J. Shaya.
+  These are externally linked published scientific figures; no blanket open
+  licence is asserted for them.
+- [Big Ring / Giant Arc](https://www.lancashire.ac.uk/news/big-ring-in-the-sky):
+  Alexia Lopez / University of Central Lancashire; sky-illustration background:
+  Stellarium. The material is labelled as a map or an illustration.
+- [Hyperion](https://www.eso.org/public/images/eso1833a/):
+  ESO/L. Calçada & Olga Cucciati et al., CC BY 4.0.
+- [Laniakea reconstruction](https://commons.wikimedia.org/wiki/File:LaniakeaBoundaries.jpg):
+  R. Brent Tully (U. Hawaii) et al., SDvision, DP, CEA/Saclay, CC BY 4.0;
+  [NASA APOD source](https://apod.nasa.gov/apod/ap140910.html).
+- [CfA2 and Sloan walls](https://imagine.gsfc.nasa.gov/features/cosmic/sheets_voids_info.html):
+  J. Richard Gott III and Mario Jurić / NASA Imagine the Universe.
+- [Boötes Void map](https://commons.wikimedia.org/wiki/File:Boovoid.png):
+  Richard Powell / Atlas of the Universe, CC BY-SA 2.5; linked without modification.
+- [WMAP Cold Spot](https://commons.wikimedia.org/wiki/File:ColdSpot.jpg):
+  Rudnick / NRAO / AUI / NSF; NASA / WMAP, with the published spot marker.
+  The source page's attribution limitations are retained; the image is not
+  presented as a photograph of the Eridanus supervoid itself.
+
+The photographed-quasar source fixture `data-tools/sky-sources/quasars.json`
+retains SIMBAD source records and the astrometry/redshift publication bibcodes.
+SIMBAD is operated at CDS, Strasbourg, France.
+
+### ESA/Webb outreach observations · 8 November 2026
+
+The separate [ESA/Webb image archive](https://esawebb.org/images/) contributes
+242 frozen observation metadata records (`data-tools/sky-sources/media-webb.json`).
+The source's [usage conditions](https://esawebb.org/copyright/) release images
+and web text under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+Full, unabridged per-image credits are preserved and displayed with the frame;
+ESA, NASA, CSA, STScI and individual teams retain their stated attribution.
+HTML formatting is converted to text; the game adds Russian explanations and
+matches explicit source names to existing catalogue identities. The frozen
+snapshot records page hashes, category/filter evidence, absent Name fields and
+heading/opening evidence, and HTTP image availability. No image pixels are
+bundled: frames load directly from the official ESA/Webb CDN when viewed.
+Source text excerpts used to test the importer, with source URLs/hashes and
+full credits, are in `data-tools/sky-sources/webb-import-checks.json`.
+
+### Galactic-centre stellar motion · 8 November 2026
+
+[ESO eso1825e](https://www.eso.org/public/videos/eso1825e/), “Stars orbiting the
+black hole at the heart of the Milky Way”, is a 20-second VLT/NACO observational
+time-lapse credited **ESO/MPE**. The video and poster load directly from ESO's
+CDN; no media bytes are bundled. The gallery preserves attribution, the original
+source and [ESO's CC BY 4.0 usage conditions](https://www.eso.org/public/outreach/copyright/).
+The Russian caption describes the accelerated observations and does not present
+them as real-time motion or a direct image of the black hole. Frozen provenance
+and source-page hash are in `data-tools/sky-sources/media.json`.

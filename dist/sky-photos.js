@@ -25,13 +25,18 @@ const SkyPhotos = {
       .normalize('NFKD').replace(/[^a-z0-9+.-]/g,'');
   },
   ownNames(o) {
+    if(o.supersededBy){const current=ExtendedCatalog.get(o.supersededBy);if(current)return this.ownNames(current);}
     const names=q=>[q.ngc,q.messier&&'M '+q.messier,...(q.aliases||[])].filter(Boolean),
       host=o.galaxyMember&&o.parentGalaxy&&(typeof object==='function'?object(o.parentGalaxy):
         typeof OBJECTS!=='undefined'?OBJECTS.find(q=>q.id===o.parentGalaxy):null),
       inherited=new Set(host&&host.id!==o.id?names(host).flatMap(s=>[s,s.replace(/^(?:the\s+)?(.+?)\s+galaxy$/i,'$1')]).map(s=>this.key(s)):[]);
     // Cyrillic search labels may contain the host's catalogue code. Removing
     // their letters would silently turn «Андромеда · M31» into an own ID.
-    return names(o).filter(s=>!/[а-яё]/i.test(s)&&!inherited.has(this.key(s)));
+    // PHAT's alternate M### labels are M31 cluster names from its source
+    // table, not Messier numbers. Keep the source aliases for search, while
+    // retaining their PHAT namespace when identifying photographs.
+    const phat=/^phat-ap-/.test(o.id)||o.galaxyMember&&/PHAT/.test(o.memberType||'');
+    return names(o).filter(s=>!/[а-яё]/i.test(s)&&!inherited.has(this.key(s))&&!(phat&&/^M\d+$/i.test(s)));
   },
   keys(o) {
     if (!o || o.synthetic) return [];
@@ -57,7 +62,13 @@ const SkyPhotos = {
     return [...new Set(names.filter(Boolean).map(s=>kind+':'+this.key(s)))];
   },
   ids(o) { return [...new Set(this.keys(o).flatMap(k=>SKY_PHOTO_INDEX.targets[k]||[]))].sort((a,b)=>Number(this.surveys.has(a))-Number(this.surveys.has(b))); },
-  publisher(id) { return id.match(/^astropix-([a-z0-9_]+)-/)?.[1]; },
+  publisher(id) { return id.startsWith('esawebb-')?'esawebb':id.match(/^astropix-([a-z0-9_]+)-/)?.[1]; },
+  validPhoto(id,p,q) {
+    const url=new URL(q.url),source=new URL(q.source);
+    return q.id===id&&this.publisher(id)===p&&source.protocol==='https:'&&q.credit&&q.rights&&
+      (p==='esawebb'?url.origin==='https://cdn.esawebb.org'&&/^\/archives\/images\/screen\/[A-Za-z0-9_.-]+\.jpg$/.test(url.pathname)&&source.origin==='https://esawebb.org':
+        url.origin==='https://www.astropix.org'&&url.pathname.startsWith('/archive/'));
+  },
   media(o) { return this.ids(o).map(id=>this.cache.get(this.publisher(id))?.[id]).filter(Boolean); },
   missing(o) { return [...new Set(this.ids(o).map(id=>this.publisher(id)).filter(p=>!this.cache.has(p)))]; },
   async ensure(o) {
@@ -76,7 +87,7 @@ const SkyPhotos = {
               data=await response.json();
             }
             if(data.version!==1||!data.photos||Object.keys(data.photos).length!==SKY_PHOTO_INDEX.files[p].count)throw Error('Photo metadata version');
-            for(const [id,q] of Object.entries(data.photos))if(q.id!==id||this.publisher(id)!==p||!q.url.startsWith('https://www.astropix.org/archive/')||!q.source.startsWith('https://')||!q.credit||!q.rights)throw Error('Photo metadata record');
+            for(const [id,q] of Object.entries(data.photos))if(!this.validPhoto(id,p,q))throw Error('Photo metadata record');
             this.cache.set(p,data.photos);
           } catch(error) { this.failed.add(p); }
           finally { this.pending.delete(p); }

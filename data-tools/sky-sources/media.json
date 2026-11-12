@@ -489,6 +489,32 @@
     }
   },
   {
+    "id": "eso-eso1825e-orbits",
+    "objects": ["sgr"],
+    "kind": "blackhole",
+    "title": "Звёзды вокруг Стрельца A* — таймлапс ESO",
+    "instrument": "ESO · VLT / NACO",
+    "band": "Инфракрасные наблюдения · 20 секунд",
+    "date": "26 июля 2018",
+    "format": "video",
+    "mediaType": "observation",
+    "url": "https://cdn.eso.org/videos/medium_podcast/eso1825e.mp4",
+    "poster": "https://cdn.eso.org/videos/videoframe/eso1825e.jpg",
+    "source": "https://www.eso.org/public/videos/eso1825e/",
+    "credit": "ESO/MPE",
+    "rights": "CC BY 4.0",
+    "archive": "https://www.eso.org/public/outreach/copyright/",
+    "archiveLabel": "ESO · условия использования",
+    "description": "Ускоренная последовательность инфракрасных наблюдений VLT/NACO: звёзды движутся вокруг сверхмассивной чёрной дыры в центре Млечного Пути. Ролик объединяет почти двадцать лет наблюдений; это не движение в реальном времени. Сама чёрная дыра в этих кадрах не видна. Нажмите ▶ для воспроизведения; доступны пауза, перемотка и полный экран.",
+    "identification": {
+      "method": "Official ESO observational video explicitly identifies stars orbiting the Milky Way central black hole; not the separate simulated-orbits video eso1825f",
+      "objectNames": "Milky Way central supermassive black hole / Sagittarius A*",
+      "pageSha256": "beb39d4306e1d7d6318ec505e0e0e9cfc3ecd9afcd9bb3e8245a45385fa0ce28",
+      "quote": "This time-lapse video from the NACO instrument on ESO's Very Large Telescope in Chile shows stars orbiting the supermassive black hole that lies at the heart of the Milky Way over a period of nearly 20 years."
+    },
+    "availability": {"checked": "2026-11-08", "status": 200, "contentType": "video/mp4", "posterStatus": 200}
+  },
+  {
     "id": "hubble-potw1346a",
     "objects": [
       "3c273"

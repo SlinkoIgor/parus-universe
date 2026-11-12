@@ -1,0 +1,398 @@
+{
+  "version": 1,
+  "retrieved": "2026-11-08",
+  "coordinateFrame": "ICRS J2000",
+  "coordinateUnits": "deg",
+  "redshiftUnits": "dimensionless",
+  "distanceModel": {
+    "H0": 70,
+    "omegaM": 0.3,
+    "omegaLambda": 0.7,
+    "quantity": "present-epoch comoving distance in light years"
+  },
+  "policy": "Curated photographed active nuclei; SIMBAD adopted positions and redshifts, not a complete quasar census. Seyfert 1 / blazar catalogue subtypes retain their original source evidence; selected objects are called quasars by the image publishers. Errors marked ~ stay unknown. Lens images are one background source.",
+  "objects": [
+    {
+      "id": "qso-pks1127",
+      "name": "Квазар PKS 1127-145",
+      "aliases": [
+        "PKS 1127-145"
+      ],
+      "ra": 172.52938477172,
+      "dec": -14.824274450539999,
+      "z": 1.18781885,
+      "redshiftError": 0.0005,
+      "redshiftQuality": "C",
+      "redshiftBibcode": "2022ApJS..261....2K",
+      "coordinateBibcode": "2020yCat.1350....0G",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=PKS+1127-145",
+      "desc": "Джет квазара протянулся на сотни тысяч световых лет; Chandra наблюдает его рентгеновское излучение.",
+      "lensed": false,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 11 30 07.0523452128  -14 49 27.388021944 (Opt ) A [0.0691 0.0603 90] 2020yCat.1350....0G",
+        "redshift": "Redshift: 1.18781885 [0.0005] C 2022ApJS..261....2K",
+        "sha256": "5cd05972292bed77aa2cd24f16e21a5d24654f95675b44a1a291b7571c6421a9"
+      },
+      "photoIds": [
+        "astropix-chandra-113"
+      ]
+    },
+    {
+      "id": "qso-pks0637",
+      "name": "Квазар PKS 0637-752",
+      "aliases": [
+        "PKS 0637-752"
+      ],
+      "ra": 98.94378304228,
+      "dec": -75.27133789396,
+      "z": 0.65420709,
+      "redshiftError": 0.0005,
+      "redshiftQuality": "C",
+      "redshiftBibcode": "2022ApJS..261....2K",
+      "coordinateBibcode": "2020yCat.1350....0G",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=PKS+0637-752",
+      "desc": "Один из первых объектов Chandra: яркое ядро и протяжённый рентгеновский джет.",
+      "lensed": false,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 06 35 46.5079301472  -75 16 16.816418256 (Opt ) A [0.0238 0.0246 90] 2020yCat.1350....0G",
+        "redshift": "Redshift: 0.65420709 [0.0005] C 2022ApJS..261....2K",
+        "sha256": "177914a8cffe7e945bc68845879cf51c8d32a7f0ce4df6834c6f01236d1d5eeb"
+      },
+      "photoIds": [
+        "astropix-chandra-289"
+      ]
+    },
+    {
+      "id": "qso-gb1428",
+      "name": "Квазар GB 1428+4217",
+      "aliases": [
+        "GB 1428+4217",
+        "B3 1428+422"
+      ],
+      "ra": 217.59892347795835,
+      "dec": 42.07680307113889,
+      "z": 4.65633,
+      "redshiftError": 0.00044,
+      "redshiftQuality": "C",
+      "redshiftBibcode": "2015ApJS..219...12A",
+      "coordinateBibcode": "2020A&A...644A.159C",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=B3+1428%2B422",
+      "desc": "Далёкий радиояркий квазар с джетом, наблюдавшимся Chandra, Hubble и VLA.",
+      "lensed": false,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 14 30 23.74163471  +42 04 36.4910561 (Rad ) A [0.0928551 0.1224 0] 2020A&A...644A.159C",
+        "redshift": "Redshift: 4.65633 [0.00044] C 2015ApJS..219...12A",
+        "sha256": "89f9ebcaa205984e8b99c1afe60b74841a66faeeaf2b88473469acb4375a1829"
+      },
+      "photoIds": [
+        "astropix-chandra-527"
+      ]
+    },
+    {
+      "id": "qso-3c186",
+      "name": "Квазар 3C 186",
+      "aliases": [
+        "3C 186"
+      ],
+      "ra": 116.07280027454999,
+      "dec": 37.8881251937,
+      "z": 1.06551,
+      "redshiftError": 0.00015,
+      "redshiftQuality": "C",
+      "redshiftBibcode": "2015ApJS..219...12A",
+      "coordinateBibcode": "2020yCat.1350....0G",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=3C+186",
+      "desc": "Квазар в окружении горячего газа далёкого скопления галактик.",
+      "lensed": false,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 07 44 17.4720658920  +37 53 17.250697320 (Opt ) A [0.0810 0.0647 90] 2020yCat.1350....0G",
+        "redshift": "Redshift: 1.06551 [0.00015] C 2015ApJS..219...12A",
+        "sha256": "76993c710aaba0f1cede3bdbab50a1256248714292e57f7694da9b8485a1a4e9"
+      },
+      "photoIds": [
+        "astropix-chandra-466"
+      ]
+    },
+    {
+      "id": "qso-he0450",
+      "name": "Квазар HE 0450-2958",
+      "aliases": [
+        "HE 0450-2958"
+      ],
+      "ra": 73.12544230171333,
+      "dec": -29.89314090544611,
+      "z": 0.2843,
+      "redshiftError": 0.0003,
+      "redshiftQuality": "C",
+      "redshiftBibcode": "2022yCat.1356....0G",
+      "coordinateBibcode": "2020yCat.1350....0G",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=HE+0450-2958",
+      "desc": "Яркий квазар рядом с взаимодействующей галактикой. Вычитание ядра помогает исследовать его окружение.",
+      "lensed": false,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 04 52 30.1061524112  -29 53 35.307259606 (Opt ) A [0.0185 0.0220 90] 2020yCat.1350....0G",
+        "redshift": "Redshift: 0.2843 [0.0003] C 2022yCat.1356....0G",
+        "sha256": "5477ce4d9c8acc5c9fa3bf23d2ddb3c9bbe2a1a8e5275009ee891d5a1b60234b"
+      },
+      "photoIds": [
+        "astropix-esahubble-heic0511b"
+      ]
+    },
+    {
+      "id": "qso-pg0052",
+      "name": "Квазар PG 0052+251",
+      "aliases": [
+        "PG 0052+251"
+      ],
+      "ra": 13.71715985945,
+      "dec": 25.42749534487,
+      "z": 0.15505694,
+      "redshiftError": 0.0005,
+      "redshiftQuality": "C",
+      "redshiftBibcode": "2022ApJS..261....2K",
+      "coordinateBibcode": "2020yCat.1350....0G",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=PG+0052%2B251",
+      "desc": "Квазар в спиральной галактике-хозяине, наблюдавшейся Hubble.",
+      "lensed": false,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 00 54 52.1183662680  +25 25 38.983241532 (Opt ) A [0.0371 0.0333 90] 2020yCat.1350....0G",
+        "redshift": "Redshift: 0.15505694 [0.0005] C 2022ApJS..261....2K",
+        "sha256": "a37c0e0c8fdb73b4635ae8d8870d8418987775a52dfdc229fc32cda325b6e8b6"
+      },
+      "photoIds": [
+        "astropix-esahubble-opo9635a1"
+      ]
+    },
+    {
+      "id": "qso-phl909",
+      "name": "Квазар PHL 909",
+      "aliases": [
+        "PHL 909"
+      ],
+      "ra": 14.291377906289998,
+      "dec": 14.76948390389,
+      "z": 0.17175,
+      "redshiftError": 2e-05,
+      "redshiftQuality": "C",
+      "redshiftBibcode": "2012ApJS..203...21A",
+      "coordinateBibcode": "2020yCat.1350....0G",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=PHL+909",
+      "desc": "Яркое активное ядро внутри эллиптической галактики, наблюдавшейся Hubble.",
+      "lensed": false,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 00 57 09.9306975096  +14 46 10.142054004 (Opt ) A [0.0582 0.0426 90] 2020yCat.1350....0G",
+        "redshift": "Redshift: 0.17175 [0.00002] C 2012ApJS..203...21A",
+        "sha256": "5da4feb32ba8737b0f1e7a8363c9ba6c66af6d3ac8d195ae6d0e42474ad730aa"
+      },
+      "photoIds": [
+        "astropix-esahubble-opo9635a4"
+      ]
+    },
+    {
+      "id": "qso-pg1012",
+      "name": "Квазар PG 1012+008",
+      "aliases": [
+        "PG 1012+008"
+      ],
+      "ra": 153.72876484817,
+      "dec": 0.56037948918,
+      "z": 0.1841,
+      "redshiftError": 0.0006,
+      "redshiftQuality": "C",
+      "redshiftBibcode": "2022yCat.1356....0G",
+      "coordinateBibcode": "2020yCat.1350....0G",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=PG+1012%2B008",
+      "desc": "Квазар в системе взаимодействующих галактик, наблюдавшейся Hubble.",
+      "lensed": false,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 10 14 54.9035635608  +00 33 37.366161048 (Opt ) A [0.0434 0.0388 90] 2020yCat.1350....0G",
+        "redshift": "Redshift: 0.1841 [0.0006] C 2022yCat.1356....0G",
+        "sha256": "24cd2d9622f2f9ec37d61f9dece3676f3c5a7216c07ac273499bfd62421bc875"
+      },
+      "photoIds": [
+        "astropix-esahubble-opo9635a5"
+      ]
+    },
+    {
+      "id": "qso-mc21635",
+      "name": "Квазар MC2 1635+119",
+      "aliases": [
+        "MC2 1635+119"
+      ],
+      "ra": 249.44374061715,
+      "dec": 11.83033417617,
+      "z": 0.1473,
+      "redshiftError": 2e-05,
+      "redshiftQuality": "C",
+      "redshiftBibcode": "2020ApJS..249....3A",
+      "coordinateBibcode": "2020yCat.1350....0G",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=MC2+1635%2B119",
+      "desc": "Hubble выявляет оболочки и следы прежнего слияния в галактике-хозяине квазара.",
+      "lensed": false,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 16 37 46.4977481160  +11 49 49.203034212 (Opt ) A [0.0804 0.0606 90] 2020yCat.1350....0G",
+        "redshift": "Redshift: 0.14730 [0.00002] C 2020ApJS..249....3A",
+        "sha256": "f4e047df7f59e37a9c6248aaf382a862ab0de8337a17c3f59f952d139558207f"
+      },
+      "photoIds": [
+        "astropix-esahubble-opo0739b",
+        "astropix-esahubble-opo0739d"
+      ]
+    },
+    {
+      "id": "qso-pg1115",
+      "name": "Квазар PG 1115+080",
+      "aliases": [
+        "PG 1115+080"
+      ],
+      "ra": 169.57062916666666,
+      "dec": 7.766175,
+      "z": 1.73299,
+      "redshiftError": 0.00011,
+      "redshiftQuality": "C",
+      "redshiftBibcode": "2012ApJS..203...21A",
+      "coordinateBibcode": "2020ApJS..249....3A",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=PG+1115%2B080",
+      "desc": "Гравитационная линза создаёт несколько изображений одного фонового квазара.",
+      "lensed": true,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 11 18 16.951  +07 45 58.23 (Opt ) C [~ ~ ] 2020ApJS..249....3A",
+        "redshift": "Redshift: 1.73299 [0.00011] C 2012ApJS..203...21A",
+        "sha256": "f485d3d8a8f5badc6ed3e64e754c717a5ad8b5f5a0518d2be821873898605baf"
+      },
+      "photoIds": [
+        "astropix-esahubble-opo9837b"
+      ]
+    },
+    {
+      "id": "qso-he0435",
+      "name": "Квазар HE 0435-1223",
+      "aliases": [
+        "HE 0435-1223"
+      ],
+      "ra": 69.562,
+      "dec": -12.28738888888889,
+      "z": 1.69606,
+      "redshiftError": 0.0002,
+      "redshiftQuality": "C",
+      "redshiftBibcode": "2015ApJS..219...29M",
+      "coordinateBibcode": "2015ApJS..219...29M",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=HE+0435-1223",
+      "desc": "Четыре изображения одного квазара окружают галактику-линзу на переднем плане.",
+      "lensed": true,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 04 38 14.88  -12 17 14.6 (Opt ) C [~ ~ ] 2015ApJS..219...29M",
+        "redshift": "Redshift: 1.69606 [0.0002] C 2015ApJS..219...29M",
+        "sha256": "90be0702729d8f27f19113851b474358d91d22c2d4f6caffbfbafe3c3c9d1e70"
+      },
+      "photoIds": [
+        "astropix-esahubble-heic1702a",
+        "astropix-esahubble-heic1702e"
+      ]
+    },
+    {
+      "id": "qso-he1104",
+      "name": "Квазар HE 1104-1805",
+      "aliases": [
+        "HE 1104-1805"
+      ],
+      "ra": 166.63910216664,
+      "dec": -18.356619180360003,
+      "z": 2.32068,
+      "redshiftError": 0.0002,
+      "redshiftQuality": "C",
+      "redshiftBibcode": "2015ApJS..219...29M",
+      "coordinateBibcode": "2020yCat.1350....0G",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=HE+1104-1805",
+      "desc": "Гравитационная линза раздваивает изображение далёкого квазара.",
+      "lensed": true,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 11 06 33.3845199936  -18 21 23.829049296 (Opt ) A [0.0488 0.0520 90] 2020yCat.1350....0G",
+        "redshift": "Redshift: 2.32068 [0.0002] C 2015ApJS..219...29M",
+        "sha256": "509fc40b5aa0399e5e38585e3b4697e3c64e490d546f4bfc3ab3c6ae3f07dd54"
+      },
+      "photoIds": [
+        "astropix-esahubble-heic1116a"
+      ]
+    },
+    {
+      "id": "qso-j0100",
+      "name": "Квазар J0100+2802",
+      "aliases": [
+        "SDSS J010013.02+280225.8",
+        "J0100+2802",
+        "Quasar SDSS J0100+2802"
+      ],
+      "ra": 15.054269445760001,
+      "dec": 28.040497698990002,
+      "z": 6.3269,
+      "redshiftError": 0.0002,
+      "redshiftQuality": "D",
+      "redshiftBibcode": "2020ApJ...904..130V",
+      "coordinateBibcode": "2020yCat.1350....0G",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=SDSS+J010013.02%2B280225.8",
+      "desc": "Квазар J0100+2802 освещает межгалактический газ в конце эпохи реионизации. Поле EIGER снято Webb.",
+      "lensed": false,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 01 00 13.0246669824  +28 02 25.791716364 (Opt ) C [2.4481 2.0228 90] 2020yCat.1350....0G",
+        "redshift": "Redshift: 6.3269 [0.0002] D 2020ApJ...904..130V",
+        "sha256": "1c475ddc7a37cde361c00765a103e0ae1ee0ba29428b5830b049caf1c7b55052"
+      },
+      "photoIds": [
+        "astropix-stsci-2023-122a",
+        "astropix-stsci-2023-122b"
+      ]
+    },
+    {
+      "id": "qso-j0742",
+      "name": "Квазар J0742+2704",
+      "aliases": [
+        "2MASS J07424841+2704123",
+        "J0742+2704"
+      ],
+      "ra": 115.70167617932,
+      "dec": 27.0700668527,
+      "z": 0.62637,
+      "redshiftError": 0.00119,
+      "redshiftQuality": "D",
+      "redshiftBibcode": "2009ApJS..182..543A",
+      "coordinateBibcode": "2020yCat.1350....0G",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=2MASS+J07424841%2B2704123",
+      "desc": "Квазар J0742+2704 в спиральной галактике: Hubble различает её рукава вокруг яркого ядра.",
+      "lensed": false,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 07 42 48.4022830368  +27 04 12.240669720 (Opt ) A [0.1859 0.1589 90] 2020yCat.1350....0G",
+        "redshift": "Redshift: 0.62637 [0.00119] D 2009ApJS..182..543A",
+        "sha256": "1b4b42eab96a1210d8355d7f42369dd2f4f0c1cf4ef5d9e1c169b409210482f9"
+      },
+      "photoIds": [
+        "astropix-esahubble-opo2504"
+      ]
+    },
+    {
+      "id": "qso-apm08279",
+      "name": "Квазар APM 08279+5255",
+      "aliases": [
+        "APM 08279+5255"
+      ],
+      "ra": 127.92379508242001,
+      "dec": 52.7548936096,
+      "z": 3.911,
+      "redshiftError": null,
+      "redshiftQuality": "C",
+      "redshiftBibcode": "2017AJ....154..114O",
+      "coordinateBibcode": "2020yCat.1350....0G",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=APM+08279%2B5255",
+      "desc": "Линзированный квазар с быстрым истечением газа, обнаруженным по рентгеновскому спектру.",
+      "lensed": true,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 08 31 41.7108197808  +52 45 17.616994560 (Opt ) C [0.6943 0.6146 90] 2020yCat.1350....0G",
+        "redshift": "Redshift: 3.911 [~] C 2017AJ....154..114O",
+        "sha256": "bb18c27d0c79dd27c2d7c898ae8213c912ade61f219f0e1489e7c908ce2a528b"
+      },
+      "photoIds": [
+        "astropix-chandra-65"
+      ]
+    }
+  ]
+}

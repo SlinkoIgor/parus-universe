@@ -124,10 +124,13 @@ def namespaces(photo, name):
 
 def build():
     frozen = json.loads((SRC / 'media-astropix.json').read_text())
-    aliases, catalogue_revision = catalogue_aliases(ROOT, key, frozen['records'])
+    webb = json.loads((SRC / 'media-webb.json').read_text())
+    records = frozen['records'] + webb['records']
+    assert len({p['id'] for p in records}) == len(records)
+    aliases, catalogue_revision = catalogue_aliases(ROOT, key, records)
     targets, publishers, primary_short = defaultdict(set), defaultdict(dict), defaultdict(set)
     surveys, reviews = set(), []
-    for p in frozen['records']:
+    for p in records:
         primary, evidence = primary_identifiers(p, aliases, key)
         if evidence:
             reviews.append(dict(id=p['id'], source=p['source'], originalIdentifiers=p['identifiers'], **evidence))
@@ -138,14 +141,15 @@ def build():
                 usable.append('star:' + key(evidence['identifier']))
         if not usable:
             continue
-        assert p['url'].startswith('https://www.astropix.org/archive/') and p['credit'] and p['rights']
+        origin = 'https://cdn.esawebb.org/archives/images/screen/' if p['publisher'] == 'esawebb' else 'https://www.astropix.org/archive/'
+        assert p['url'].startswith(origin) and p['credit'] and p['rights']
         for target in usable:
             targets[target].add(p['id'])
             code = target.split(':', 1)[1]
             if re.fullmatch('[a-z]{3}', code) and short_name_evidence(p, code, title_only=True):
                 primary_short[target].add(p['id'])
         publishers[p['publisher']][p['id']] = {k: v for k, v in p.items()
-                                              if k not in ['identifiers', 'subjects', 'identification', 'primaryStellarIdentifications', 'sourceCaption', 'archiveTitle', 'publisher', 'imageId']}
+                                              if k not in ['identifiers', 'subjects', 'identification', 'primaryStellarIdentifications', 'sourceCaption', 'sourceCategories', 'sourceFilters', 'availability', 'archiveTitle', 'publisher', 'imageId']}
         # AVM names can be alphabetically sorted; their first item is not a
         # caption (M110 was first on a photograph of Andromeda and satellites).
         publishers[p['publisher']][p['id']]['title'] = p['archiveTitle']
@@ -163,7 +167,7 @@ def build():
     index = dict(version=1, files=files, targets={k: sorted(v, key=lambda photo: (photo in surveys, photo not in primary_short[k], photo)) for k, v in sorted(targets.items())},
                  nameRules=NAME_RULES, surveys=sorted(surveys),
                  targetPolicy='source-primary-targets-v1', catalogueRevision=catalogue_revision,
-                 inputCount=frozen['inputCount'], photoCount=sum(len(p) for p in publishers.values()))
+                 inputCount=frozen['inputCount'] + webb['inputCount'], photoCount=sum(len(p) for p in publishers.values()))
     payload = json.dumps(index, ensure_ascii=False, separators=(',', ':'))
     index['revision'] = hashlib.sha256(payload.encode()).hexdigest()[:12]
     script = '"use strict";\nconst SKY_PHOTO_INDEX=' + json.dumps(index, ensure_ascii=False, separators=(',', ':')) + ';\n'

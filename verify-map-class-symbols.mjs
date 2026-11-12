@@ -9,7 +9,7 @@ context.nebulaRows=rows;context.readNebulaTile=file=>tiles.get(file);
 const ngc=JSON.parse(execFileSync('python3',['-c',"import csv,json; print(json.dumps({r['Name']:[r['MajAx'],r['MinAx']] for r in csv.DictReader(open('data-tools/raw/NGC.csv'),delimiter=';')}))"],{encoding:'utf8'}));
 const snr=new Map(fs.readFileSync('data-tools/raw/m33-snr.dat','utf8').trimEnd().split('\n').filter(l=>l.slice(79,82).trim()==='yes').map(l=>['m33-snr-'+l.slice(0,8).trim().toLowerCase(),Number(l.slice(33,36))]));
 const core=run('OBJECTS.filter(o=>o.kind==="nebula"&&!o.atlasOnly)'),decoded=run('nebulaRows.map(r=>ExtendedCatalog.decode(r))');
-assert.equal(core.length,45);assert.equal(decoded.length,250);
+assert.equal(core.length,44);assert.equal(decoded.length,250);
 for(const o of core){const source=ngc[o.ngc];assert.ok(source,o.id+' optical source');assert.equal(o.angularMajorArcmin,Number(source[0]));const expected=2*o.d*Math.tan(Number(source[0])*Math.PI/21600);assert.ok(Math.abs(o.region.major/expected-1)<1e-12,o.id+' angular size');assert.match(o.region.note,/Погрешность/);assert.match(o.region.url,/OpenNGC/);}
 let measured=0,unknown=0;
 for(const o of decoded){
@@ -22,7 +22,7 @@ for(const n of boot.nodes.filter(n=>n.file&&n.category==='nebula'))for(const r o
  context.nebulaToCheck=r;const o=run('ExtendedCatalog.decode(nebulaToCheck)'),rx=(o.region?.major||0)/2,ry=(o.region?.minor||0)/2;
  assert.ok(n.box[0]<=r[12]-rx&&n.box[2]>=r[12]+rx&&n.box[1]<=r[13]-ry&&n.box[3]>=r[13]+ry,r[0]+' extent outside spatial index');
 }
-console.log('PASS every nebula size against original OpenNGC/Long2018: 45 named optical areas, 178 published SNR diameters, 72 honestly unknown HII extents; full spatial bounds');
+console.log('PASS every nebula size against original OpenNGC/Long2018: 44 named optical areas (one combined M16), 178 published SNR diameters, 72 honestly unknown HII extents; full spatial bounds');
 run(`{
 state=initial();state.expansion=false;Cosmology.sync(state);width=1440;height=1000;filter='nebula';MapLayers.active=true;
 function settleNebula(){for(const files of MapLayers.filesForView(cam,width,height).values())for(const file of files)MapLayers.cache.set(file,readNebulaTile(file).map(r=>ExtendedCatalog.decode(r)));MapLayers.lastUpdate=-Infinity;MapLayers.update(performance.now());}
