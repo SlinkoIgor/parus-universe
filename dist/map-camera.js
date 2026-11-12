@@ -265,15 +265,12 @@ function gridUnit() {
 function updateZoomControl() {
   const span = cam.span;
   $('zoomSlider').value = String(zoomInterpolate(span, 'span', 'value'));
-  $('zoomSlider').setAttribute('aria-valuetext', 'Ширина карты: ' + distanceText(span));
+  UIPatch.attr($('zoomSlider'), 'aria-valuetext', 'Ширина карты: ' + distanceText(span));
 
   const measure = gridMetrics();
   UIContent.text($('zoomDivision'), scaleDistanceText(measure.unit));
-  $('mapScaleLine').style.width = measure.majorPixels + 'px';
-  $('mapScale').setAttribute(
-    'aria-label',
-    'Один крупный шаг сетки: ' + scaleDistanceText(measure.unit),
-  );
+  UIPatch.style($('mapScaleLine'), 'width', measure.majorPixels + 'px');
+  UIPatch.attr($('mapScale'), 'aria-label', 'Один крупный шаг сетки: ' + scaleDistanceText(measure.unit));
   document.querySelectorAll('[data-zoom]').forEach((b) => {
     const active =
       Math.abs(
@@ -284,21 +281,18 @@ function updateZoomControl() {
               : Number(b.dataset.zoom)),
         ),
       ) < 0.04;
-    b.classList.toggle('active', active);
-    b.setAttribute('aria-pressed', String(active));
+    UIPatch.toggle(b, 'active', active);
+    UIPatch.attr(b, 'aria-pressed', String(active));
   });
 }
 function updateTimeControl() {
   const value = paused ? 0 : speed;
   $('timeSlider').value = String(TIME_RATES.indexOf(value));
-  $('timeSlider').setAttribute(
-    'aria-valuetext',
-    value === 0 ? 'Пауза' : String(value).replace('.', ',') + '×',
-  );
+  UIPatch.attr($('timeSlider'), 'aria-valuetext', value === 0 ? 'Пауза' : String(value).replace('.', ',') + '×');
   document.querySelectorAll('[data-time]').forEach((button) => {
     const active = Number(button.dataset.time) === value;
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-pressed', String(active));
+    UIPatch.toggle(button, 'active', active);
+    UIPatch.attr(button, 'aria-pressed', String(active));
   });
 }
 function setTimeRate(value) {

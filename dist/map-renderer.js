@@ -192,8 +192,8 @@ function lightReachability() {
 function renderReachability() {
   const c = state.flight?.mission?.setup || FlightSetup.read(),
     out = $('reachReadout');
-  out.hidden = !(width < 700 && cam.span >= 1e9 && state.expansion !== false);
-  if (!out.hidden) {
+  UIPatch.set(out, 'hidden', !(width < 700 && cam.span >= 1e9 && state.expansion !== false));
+  if (!UIPatch.get(out, 'hidden')) {
     const ship = ReachDisplay.ship(),
       light = lightReachability();
     UIContent.text(out, 'Полёт · ' +
@@ -201,12 +201,11 @@ function renderReachability() {
       '\nСвет · ' +
       distanceText(light.radius));
   }
-  out.title =
-    state.expansion !== false
+  UIPatch.set(out, 'title', state.expansion !== false
       ? 'Текущие настройки и запас топлива на финише ' +
         Math.round(c.arrivalFuelPercent || 0) +
         '%. Разгон и полная остановка у протяжённой цели; для орбиты расчёт индивидуален. Проекция трёхмерной сферы: положение цели внутри круга не гарантирует достижимость; учитывается и глубина.'
-      : '';
+      : '');
 }
 
 function circleLabel(key, name, detail, p, r, priority = 25) {

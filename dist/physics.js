@@ -191,6 +191,7 @@ const Magnetic=Object.freeze({
   const gamma=1/Math.sqrt(1-beta*beta),v=beta*Rocket.c,dm=k*v,force=beta>0&&k>0?-k*gamma*gamma*v*v:0;
   return{massRate:massKg<capacityKg*(1-1e-12)?dm:0,processedMassRate:dm,particles:dm/(1+this.dustToGas)/this.protonMass,properParticles:gamma*dm/(1+this.dustToGas)/this.protonMass,force,properAcceleration:force/massKg,coordinateAcceleration:force/(massKg*gamma**3),heatPower:gamma*(gamma-1)*dm*Rocket.c**2};
  },
+ drag(massKg,beta,k){const gamma=1/Math.sqrt(1-beta*beta),v=beta*Rocket.c;return (beta>0&&k>0?-k*gamma*gamma*v*v:0)/massKg;},
  integrals(m0,m,K,k=this.k()){
   if(m<=m0||K<=0)return{earth:0,proper:0,distance:0,heat:0};const z=(m-m0)/m0,h=K/m0,base=m0/(k*Rocket.c*Rocket.year),a=z*(2+z)/(4*h),b=h*Math.log1p(z)/2;
   return{earth:base*(a+b),proper:base*(a-b),distance:(m-m0)/(k*LY),heat:K*Rocket.c**2*(2*Math.atanh(h)-2*Math.atanh(K/m))};
@@ -214,9 +215,9 @@ const Magnetic=Object.freeze({
  },
  cappedLeg(plan,beta){
   const eta0=Math.atanh(plan.beta),eta=Math.atanh(beta),cap=plan.maxG*9.80665,finalMass=plan.K?Math.min(plan.finalMass,plan.K/this.half(beta)):plan.massKg;
-  if(this.rates(finalMass,beta,plan.k,plan.capacityKg).properAcceleration<=-cap){const base=Rocket.c/(cap*Rocket.year);return{proper:base*(eta0-eta),earth:base*(Math.sinh(eta0)-Math.sinh(eta)),distance:base*(Math.cosh(eta0)-Math.cosh(eta))};}
+  if(this.drag(finalMass,beta,plan.k)<=-cap){const base=Rocket.c/(cap*Rocket.year);return{proper:base*(eta0-eta),earth:base*(Math.sinh(eta0)-Math.sinh(eta)),distance:base*(Math.cosh(eta0)-Math.cosh(eta))};}
   const rawLeg=b=>{const mass=plan.K?Math.min(plan.finalMass,plan.K/this.half(b)):plan.massKg,leg=this.integrals(plan.massKg,mass,plan.K,plan.k);if(mass>=plan.finalMass&&b<plan.capBeta){const tail=this.fixedIntegrals(mass,plan.capBeta,b,plan.k);for(const key of ['earth','proper','distance','heat'])leg[key]+=tail[key];}return leg;};
-  const acceleration=e=>{const b=Math.tanh(e),mass=Math.min(plan.finalMass,plan.K/this.half(b));return -this.rates(mass,b,plan.k,plan.capacityKg).properAcceleration;};
+  const acceleration=e=>{const b=Math.tanh(e),mass=Math.min(plan.finalMass,plan.K/this.half(b));return -this.drag(mass,b,plan.k);};
   const result=rawLeg(beta);if(acceleration(eta0)<=cap)return result;
   let low=eta,high=eta0;for(let i=0;i<56;i++){const mid=(low+high)/2;if(acceleration(mid)<cap)low=mid;else high=mid;}
   const crossing=(low+high)/2,cut=rawLeg(Math.tanh(crossing)),base=Rocket.c/(cap*Rocket.year);
@@ -285,6 +286,19 @@ const HybridBrake={
   const capped=key=>{if(cut>=p.etaFill)return 0;if(key==='proper')return k*(p.etaFill-cut);if(key==='earth')return k*(Math.sinh(p.etaFill)-Math.sinh(cut));return k*2*Math.sinh((p.etaFill+cut)/2)*Math.sinh((p.etaFill-cut)/2);};
   return{proper:this.integral(raw,e,cut)/Rocket.year+capped('proper'),earth:this.integral(x=>raw(x)*Math.cosh(x),e,cut)/Rocket.year+capped('earth'),distance:this.integral(x=>raw(x)*Math.sinh(x),e,cut)/Rocket.year+capped('distance'),captured,burned:captured,heat:Rocket.c**2*this.integral(x=>C(x)*(Math.cosh(x)-1),e,p.etaFill)};
  },
+ feedPart(p,e,key){
+  if(e>=p.etaFill||p.etaFill<=p.etaTerminal&&p.etaFill===p.eta0)return 0;
+  const m=p.capacityKg,eff=ShipPhysics.efficiency,cut=Math.max(e,Math.min(p.etaFill,p.etaFeedCap)),raw=x=>{const s=Math.sinh(x);return m/(p.q*s*(s+eff));},k=Rocket.c/(p.a*Rocket.year);
+  if(key==='proper')return this.integral(raw,e,cut)/Rocket.year+(cut>=p.etaFill?0:k*(p.etaFill-cut));
+  return this.integral(x=>raw(x)*Math.cosh(x),e,cut)/Rocket.year+(cut>=p.etaFill?0:k*(Math.sinh(p.etaFill)-Math.sinh(cut)));
+ },
+ partAt(p,e,key){
+  if(p.noCapture)return ReleasingBrake.partAt(p,e,key);
+  if(e>=p.etaFill)return e>=p.eta0?0:Magnetic.cappedLeg(p.legacy,Math.tanh(e))[key];
+  if(e>=p.etaTerminal)return p.fill[key]+this.feedPart(p,e,key);
+  const k=Rocket.c/(p.a*Rocket.year);
+  return p.fill[key]+p.feed[key]+(key==='proper'?k*(p.etaTerminal-e):k*(Math.sinh(p.etaTerminal)-Math.sinh(e)));
+ },
  atEta(p,e){
   if(p.noCapture)return ReleasingBrake.atEta(p,e);
   let out,mass;
@@ -302,7 +316,7 @@ const HybridBrake={
   const proper=Math.max(0,Math.min(p.proper,years));let e;
   if(proper===0)e=p.eta0;else if(proper===p.proper)e=0;
   else if(proper>=p.fill.proper+p.feed.proper)e=p.etaTerminal-(proper-p.fill.proper-p.feed.proper)*p.a*Rocket.year/Rocket.c;
-  else{let lo=proper<p.fill.proper?p.etaFill:p.etaTerminal,hi=proper<p.fill.proper?p.eta0:p.etaFill;for(let i=0;i<40;i++){const mid=(lo+hi)/2;if(this.atEta(p,mid).proper>proper)lo=mid;else hi=mid;}e=(lo+hi)/2;}
+  else{let lo=proper<p.fill.proper?p.etaFill:p.etaTerminal,hi=proper<p.fill.proper?p.eta0:p.etaFill;for(let i=0;i<40;i++){const mid=(lo+hi)/2;if(this.partAt(p,mid,'proper')>proper)lo=mid;else hi=mid;}e=(lo+hi)/2;}
   const out=this.atEta(p,e),s=Math.sinh(e),gamma=Math.cosh(e),fullGas=p.q*Rocket.c*s*s;let opening=1,burnRate=0,acceleration=0;
   if(e>=p.etaFill){opening=fullGas>0?Math.min(1,out.mass*p.a/fullGas):1;acceleration=fullGas*opening/out.mass;}
   else if(e>=p.etaTerminal){opening=Math.min(1,out.mass*p.a/(p.q*Rocket.c*s*(s+ShipPhysics.efficiency)));burnRate=p.q*s*opening;acceleration=p.q*Rocket.c*s*(s+ShipPhysics.efficiency)*opening/out.mass;}
@@ -343,6 +357,12 @@ const ReleasingBrake={
   const base=Rocket.c/(p.a*Rocket.year),mass=this.terminalMass(p,e),gasHeat=2*p.massKg*Rocket.c**2*(Math.log(Math.cosh(p.eta0/2))-Math.log(Math.cosh(p.etaTerminal/2)));
   return{proper:p.gas.proper+base*(p.etaTerminal-e),earth:p.gas.earth+base*(Math.sinh(p.etaTerminal)-Math.sinh(e)),distance:p.gas.distance+base*2*Math.sinh((p.etaTerminal+e)/2)*Math.sinh((p.etaTerminal-e)/2),mass,beta:Math.tanh(e),captured:0,burned:p.massKg-mass,heat:gasHeat+.5*p.B*Rocket.c**2*((Math.cosh(p.etaTerminal)-1)**2-(Math.cosh(e)-1)**2)};
  },
+ partAt(p,e,key){
+  e=Math.max(0,Math.min(p.eta0,e));
+  if(e>=p.etaTerminal)return this.gasLeg(p,e)[key];
+  const base=Rocket.c/(p.a*Rocket.year);
+  return p.gas[key]+base*(key==='proper'?p.etaTerminal-e:Math.sinh(p.etaTerminal)-Math.sinh(e));
+ },
  sampleProper(p,years){
   const proper=Math.max(0,Math.min(p.proper,years));let eta;
   if(proper===0)eta=p.eta0;else if(proper===p.proper)eta=0;
@@ -367,6 +387,7 @@ const ProperTime={
 // Cumulative comoving powered-flight distance. Integrating from a fixed epoch
 // makes long stellar acceleration and void braking independent of frame size.
 const FlightPath={
+ segments:new WeakMap(),
  distance(plan,model,proper,epoch,enabled=true,sample=null){
   const end=sample||(model===Stellar?Stellar.sampleProper(plan,proper):HybridBrake.sampleProper(plan,proper));
   if(!enabled)return end.distance/Cosmology.scale(epoch);
@@ -379,7 +400,7 @@ const FlightPath={
     if(e<=plan.etaSwitch){dt=Rocket.c/(plan.maxG*9.80665);earth=dt*(Math.sinh(e)-Math.sinh(plan.eta0))/Rocket.year;}
     else{dt=plan.massKg*Rocket.c**2/(2*plan.beamPower)*Math.exp(2*e);earth=plan.base.earth+Stellar.beamLeg(plan.beamPower,plan.massKg,plan.etaSwitch,e).earth;}
    }else{
-    earth=HybridBrake.atEta(plan,e).earth;const s=Math.sinh(e);
+    earth=HybridBrake.partAt(plan,e,'earth');const s=Math.sinh(e);
     if(plan.noCapture){dt=e>=plan.etaTerminal?Math.max(Rocket.c/plan.a,plan.massKg/(plan.q*s*s)):Rocket.c/plan.a;return Math.sinh(e)*dt/(Rocket.year*Cosmology.scale(epoch+earth));}
     if(e>=plan.etaFill){const mass=Math.min(plan.capacityKg,plan.K/Math.tanh(e/2));dt=Math.max(Rocket.c/plan.a,mass/(plan.q*s*s));}
     else if(e>=plan.etaTerminal)dt=Math.max(Rocket.c/plan.a,plan.capacityKg/(plan.q*s*(s+ShipPhysics.efficiency)));
@@ -387,7 +408,18 @@ const FlightPath={
    }
    return Math.sinh(e)*dt/(Rocket.year*Cosmology.scale(epoch+earth));
   };
-  let distance=0;for(let i=1;i<cuts.length;i++)distance+=HybridBrake.integral(integrand,cuts[i-1],cuts[i]);return distance;
+  if(model===Stellar){let distance=0;for(let i=1;i<cuts.length;i++)distance+=HybridBrake.integral(integrand,cuts[i-1],cuts[i]);return distance;}
+  let memo=this.segments.get(plan);
+  if(!memo){memo=new Map();this.segments.set(plan,memo);}
+  let distance=0;
+  for(let i=1;i<cuts.length;i++){
+   if(i===1){distance+=HybridBrake.integral(integrand,cuts[0],cuts[1]);continue;}
+   const key=cuts[i-1]+':'+cuts[i]+':'+epoch+':'+ShipPhysics.efficiency;
+   let part=memo.get(key);
+   if(part===undefined){if(memo.size>=16)memo.clear();part=HybridBrake.integral(integrand,cuts[i-1],cuts[i]);memo.set(key,part);}
+   distance+=part;
+  }
+  return distance;
  }
 };
 

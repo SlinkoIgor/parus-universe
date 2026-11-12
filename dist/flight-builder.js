@@ -890,22 +890,19 @@ const FlightBuilder = {
   renderCard(target, arrived) {
     const f = state.flight,
       c = FlightSetup.read();
-    $('configureFlight').hidden = arrived || !target.navigable;
+    UIPatch.set($('configureFlight'), 'hidden', arrived || !target.navigable);
     if (!OrbitalArrival.enabled && !f && !canBoost('beam'))
       Object.assign(c, { sail: false, collector: false, burst: false });
     UIContent.text($('setupAccelerationSummary'), FlightSetup.acceleration(c));
     UIContent.text($('setupBrakingSummary'), FlightSetup.braking(c));
-    $('configureFlight').setAttribute(
-      'aria-label',
-      f ? 'Посмотреть план полёта' : 'Настроить разгон и торможение',
-    );
-    $('flightDetails').hidden = true;
+    UIPatch.attr($('configureFlight'), 'aria-label', f ? 'Посмотреть план полёта' : 'Настроить разгон и торможение');
+    UIPatch.set($('flightDetails'), 'hidden', true);
     UIContent.text($('configureFlightLabel'), f ? 'План ↗' : 'Изменить ↗');
     if (!f && !arrived && target.navigable) {
       UIContent.text($('launchBtn').querySelector('span'), 'Лететь');
       if (MissionPlanner.enabledIdle()) {
         const p = MissionPlanner.preview();
-        $('launchBtn').disabled = !p.valid;
+        UIPatch.set($('launchBtn'), 'disabled', !p.valid);
         UIContent.text($('flightHint'), p.valid ? this.reserveNote(p) : p.reason);
         if (!p.valid) {
           UIContent.text($('arrivalProper'), '—');
@@ -934,7 +931,7 @@ const FlightBuilder = {
         : collector.receiving
           ? 'Коллектор направляет свет вспышки.'
           : 'Приём света завершён; выброс ещё не достиг коллектора.');
-    $('flightHint').hidden = !$('flightHint').textContent || (!!f && !collector);
+    UIPatch.set($('flightHint'), 'hidden', !UIPatch.text($('flightHint')) || (!!f && !collector));
     if (f?.mission) {
       UIContent.text($('phaseTag'), paused
         ? 'ПАУЗА'
@@ -947,7 +944,7 @@ const FlightBuilder = {
               : state.phase === 'flyby'
                 ? 'ПРОЛЁТ'
                 : 'СВОБОДНЫЙ ПОЛЁТ');
-      $('engineSection').hidden = true;
+      UIPatch.set($('engineSection'), 'hidden', true);
       if (!paused && collector?.phase === 'preboost') UIContent.text($('phaseTag'), 'ПРЕДРАЗГОН');
       if (!paused && collector?.phase === 'waiting') UIContent.text($('phaseTag'), 'ОЖИДАНИЕ СВЕТА');
     }

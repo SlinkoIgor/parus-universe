@@ -91,15 +91,15 @@ const UniverseMap={
   const epoch=target.cosmicEpoch;
   UIContent.text($('targetDistance').parentElement.querySelector('.distance-caption'), epoch?'РАССТОЯНИЕ В ИСХОДНУЮ ЭПОХУ':'РАССТОЯНИЕ ДО ЦЕЛИ');
   UIContent.text($('arrivalEstimate').querySelector('.arrival-main span'), epoch?'в наблюдаемую эпоху':'На борту');
-  $('arrivalEarth').parentElement.hidden=!!epoch;
+  UIPatch.set($('arrivalEarth').parentElement, 'hidden', !!epoch);
   UIContent.text($('flightDetails').querySelector('summary span'), epoch?'Об области':'Расчёт и схема');
-  let details=$('epochDetails');if(!details){details=document.createElement('div');details.id='epochDetails';details.className='object-note';$('flightDetails').append(details);}details.hidden=!epoch;
+  let details=$('epochDetails');if(!details){details=document.createElement('div');details.id='epochDetails';details.className='object-note';$('flightDetails').append(details);}UIPatch.set(details, 'hidden', !epoch);
   if(!epoch)return;
-  $('horizonNotice').hidden=false;UIContent.text($('horizonNotice'), target.desc);
-  $('arrivalEstimate').hidden=false;UIContent.text($('arrivalLabel'), target.id==='epoch-beyond'?'ПРЯМЫЕ НАБЛЮДЕНИЯ':'ВОЗРАСТ ВСЕЛЕННОЙ');UIContent.text($('arrivalProper'), target.age);
+  UIPatch.set($('horizonNotice'), 'hidden', false);UIContent.text($('horizonNotice'), target.desc);
+  UIPatch.set($('arrivalEstimate'), 'hidden', false);UIContent.text($('arrivalLabel'), target.id==='epoch-beyond'?'ПРЯМЫЕ НАБЛЮДЕНИЯ':'ВОЗРАСТ ВСЕЛЕННОЙ');UIContent.text($('arrivalProper'), target.age);
   if(target.id==='epoch-beyond')UIContent.text($('arrivalEstimate').querySelector('.arrival-main span'), 'содержимого области');
   UIContent.text($('targetDistance'), target.r1?distanceText(target.r0)+' — '+distanceText(target.r1):target.r0?'Более '+distanceText(target.r0):'До прозрачности');
-  $('flightDetails').hidden=false;UIContent.text($('flightHint'), target.note);
+  UIPatch.set($('flightDetails'), 'hidden', false);UIContent.text($('flightHint'), target.note);
   if(details.dataset.epoch===target.id)return;details.dataset.epoch=target.id;
   details.textContent='Кольца показывают эпохи на прошлом световом конусе в исходную эпоху карты, а не современный состав оболочек. Точечная фактура условна; отдельные наблюдаемые объекты имеют собственные каталожные символы. Модель колец: H₀=67,4, Ωm=0,315, Ωr=0,000092. Полная дальность сохраняется в радиальном виде; в обычном виде и срезе глубина свёрнута.';
   if(['epoch-cmb','epoch-qgp','epoch-particles','epoch-plasma'].includes(target.id))for(const q of this.areas.slice(4)){const b=document.createElement('button');b.className='text-action';b.textContent=q.name+' ↗';b.onclick=()=>select(q.id);details.append(b);}

@@ -71,6 +71,51 @@ for(const filter of ['blackhole','quasar','horizon'])assert.equal((await query('
 for(const filter of ['galaxy-cluster','structure','void'])assert.ok((await query('',filter)).total>500,filter+' has imported observed records');
 console.log('PASS real worker search across HYG/OpenNGC/ATNF and bounded result pages');
 
+const searchKey=s=>s.normalize('NFKD').toLocaleLowerCase('ru').replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]/gu,'').replace(/(ngc|ic)0+(?=\d)/g,'$1');
+const kindMatches=(kind,filter)=>filter==='all'||filter==='star'&&['star','home'].includes(kind)||filter==='stellar-cluster'&&kind==='cluster'||filter==='structure'&&['structure','wall','ring','arc'].includes(kind)||filter===kind&&['pulsar','blackhole','quasar','nebula','galaxy','void','horizon','galaxy-cluster','stellar-cluster'].includes(kind);
+const rowScan=(term,filter,limit)=>{
+ const key=searchKey(term),rows=search.filter(r=>kindMatches(r[8]||r[2],filter)&&r[6].includes(key)).sort((a,b)=>(key?Number(b[6].includes('|'+key+'|'))-Number(a[6].includes('|'+key+'|')):0)||(a[3]??Infinity)-(b[3]??Infinity)||a[0].localeCompare(b[0]));
+ return{seq:1,total:rows.length,items:rows.slice(0,limit).map(r=>({id:r[0],name:r[1],kind:r[2],d:r[3],positionQuality:r[4],tile:r[5],atlasOnly:!!r[7],catalogClass:r[8]||null,streamed:true,searchExact:!!key&&r[6].includes('|'+key+'|')}))};
+};
+let compared=0,exactHits=0;
+const probes=['','a','1','HIP 1','hyg 13','NGC 1','ngc 0001','IC 10','M 31','m31','J0002+6216','андромед','туманность','скопление','α','psr','lggs','void','zz','|',' ','é','00'];
+for(let i=0;i<24;i++){const row=search[(i*104729+17)%search.length],segments=row[6].split('|').filter(Boolean);probes.push(row[1],row[0].slice(0,5),segments[i%segments.length]);}
+for(const [n,term] of probes.entries())for(const filter of n<23?['all','star','galaxy','stellar-cluster','structure']:['all']){
+ const actual=await query(term,filter,n%4?100:400),expected=rowScan(term,filter,n%4?100:400);
+ assert.equal(JSON.stringify(actual),JSON.stringify(expected),'compact index matches a row scan for '+JSON.stringify([term,filter]));
+ compared++;if(actual.items.some(o=>o.searchExact))exactHits++;
+}
+assert.equal(JSON.stringify(await query('','all',search.length+1)),JSON.stringify(rowScan('','all',search.length+1)),'the complete ordered list is unchanged');
+assert.ok(compared>150&&exactHits>40,[compared,exactHits].join());
+const compact=await vm.runInContext('indexPromise',workerContext);
+assert.ok(!Array.isArray(compact)&&compact.size===search.length,'parsed rows are replaced by packed columns');
+assert.ok(compact.keys.reduce((n,side)=>n+side.text.length,0)<search.reduce((n,r)=>n+r[6].length,0)*.75,'repeated aliases are stored once per object');
+console.log('PASS compact search index returns the same totals, order and records as a full row scan');
+
+await run(`(async()=>{
+  const timers=[],workers=[],realTimeout=setTimeout,realClear=clearTimeout,live=()=>timers.filter(t=>t.live);
+  setTimeout=(fn,ms)=>{timers.push({fn,ms,live:true});return timers.length;};clearTimeout=id=>{if(timers[id-1])timers[id-1].live=false;};
+  globalThis.Worker=class{constructor(url){this.url=url;this.terminated=false;this.held=[];workers.push(this);}postMessage(data){if(this.hold)this.held.push(data);else Promise.resolve().then(()=>this.onmessage({data:{seq:data.seq,total:0,items:[]}}));}terminate(){this.terminated=true;}};
+  const fire=()=>{const t=live()[0];t.live=false;t.fn();};
+  try{
+    ExtendedCatalog.worker=null;$('catalog').hidden=false;
+    await ExtendedCatalog.search('a','all',100);await ExtendedCatalog.search('b','all',100);
+    assert.equal(workers.length,1,'consecutive searches share one loaded index');
+    assert.deepEqual(live().map(t=>t.ms),[ExtendedCatalog.searchIdleMs],'each search restarts a single idle timer');
+    closeCatalog();assert.equal($('catalog').hidden,true);
+    assert.deepEqual(live().map(t=>t.ms),[ExtendedCatalog.searchClosedMs],'closing the search panel shortens the wait');
+    workers[0].hold=true;const late=ExtendedCatalog.search('c','all',100);
+    assert.equal(live().length,0,'a new search cancels the scheduled release');
+    ExtendedCatalog.releaseSearchAfter(ExtendedCatalog.searchClosedMs);fire();
+    assert.equal(workers[0].terminated,false,'an index with an unanswered search is kept');assert.equal(live().length,1);
+    workers[0].onmessage({data:{seq:workers[0].held[0].seq,total:0,items:[]}});await late;
+    fire();assert.equal(workers[0].terminated,true,'the idle index is released');assert.equal(ExtendedCatalog.worker,null);
+    assert.equal(live().length,0);
+    await ExtendedCatalog.search('d','all',100);assert.equal(workers.length,2,'the next search loads the index again');
+  }finally{delete globalThis.Worker;setTimeout=realTimeout;clearTimeout=realClear;ExtendedCatalog.worker=null;$('catalog').hidden=false;}
+})()`);
+console.log('PASS idle search index is released and reloaded on demand');
+
 run(`state=initial();for(const host of ['andromeda','lmc','smc']){const g=object(host),stars=OBJECTS.filter(o=>o.parentGalaxy===host&&o.galaxyMember&&!o.atlasOnly);assert.ok(stars.length>0);assert.ok(stars.every(o=>!o.synthetic&&o.navigable));for(const found of stars){assert.ok(MapDetails.maxSpan(found)>g.galaxy.diameterLy);assert.ok(MapDetails.visible(found,g.galaxy.diameterLy*2));assert.ok(MapDetails.visible(found,24));}}
 for(const id of ['bootes','laniakea','ring','local-void']){const body=object(id),star=ExtendedCatalog.arrivalStar(body);assert.ok(star?.synthetic&&star.navigable);assert.equal(JSON.stringify(star.p3),JSON.stringify(body.p3));assert.equal(object(star.id),undefined);}
 for(const id of ['vela','3c273']){const star=ExtendedCatalog.arrivalStar(object(id));assert.ok(star?.synthetic);assert.equal(star.parentObject,id);assert.equal(object(star.id),undefined);}

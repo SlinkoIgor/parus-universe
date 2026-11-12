@@ -89,26 +89,26 @@ const FlightQueue = {
   render() {
     if(!this.browsing())return;
     const target=object(state.selected),context=this.context(),p=this.forecast(context),nodes=Route.future(),index=nodes.findLastIndex(n=>n.id===target.id);
-    $('flightCard').classList.remove('in-flight');
+    UIPatch.toggle($('flightCard'), 'in-flight', false);
     UIContent.text($('distanceCaption'),'ОТ ПРЕДЫДУЩЕЙ ТОЧКИ');
     UIContent.text($('targetName'),target.name);UIContent.text($('targetType'),objectTypeText(target));
-    $('targetVisited').hidden=!state.visited.includes(target.id);
+    UIPatch.set($('targetVisited'), 'hidden', !state.visited.includes(target.id));
     UIContent.text($('phaseTag'),index>=0?'УЧАСТОК '+((state.flight.legIndex||0)+index+2)+' / '+state.flight.route.length:'ДОБАВИТЬ УЧАСТОК');
     const d=target.navigable?this.run(context,()=>Cosmology.physicalDistance(context.ship,target)):NaN;
     UIContent.html($('targetDistance'),Number.isFinite(d)?compact(d)+' <small>св. лет</small>':'<small>Расстояние неизвестно</small>');
     UIContent.text($('arrivalLabel'),'ДЛИТЕЛЬНОСТЬ УЧАСТКА');
-    $('arrivalEstimate').hidden=!target.navigable;
+    UIPatch.set($('arrivalEstimate'), 'hidden', !target.navigable);
     UIContent.text($('arrivalProper'),p.valid?durationText(p.proper):'—');UIContent.text($('arrivalEarth'),p.valid?durationText(p.earth):'—');
-    $('flightControls').hidden=true;$('launchBtn').hidden=false;
-    $('launchBtn').disabled=index>=0||!target.navigable||nodes.length>=Route.limit;
+    UIPatch.set($('flightControls'), 'hidden', true);UIPatch.set($('launchBtn'), 'hidden', false);
+    UIPatch.set($('launchBtn'), 'disabled', index>=0||!target.navigable||nodes.length>=Route.limit);
     UIContent.text($('launchBtn').querySelector('span'),index>=0?'Участок добавлен':'Добавить участок');
-    $('configureFlight').hidden=!target.navigable||!!context.planningIssue;
+    UIPatch.set($('configureFlight'), 'hidden', !target.navigable||!!context.planningIssue);
     UIContent.text($('configureFlightLabel'),'Подробный план ↗');
     const c=FlightSetup.resolve(context.flightSetup,context.planningSource);
     UIContent.text($('setupAccelerationSummary'),FlightSetup.acceleration(c));UIContent.text($('setupBrakingSummary'),FlightSetup.braking(c));
-    for(const id of ['engineSection','flightDetails'])$(id).hidden=true;
-    $('horizonNotice').hidden=!p.unreachable;UIContent.text($('horizonNotice'),p.unreachable?'При включённом расширении прибытие недостижимо.':'');
-    UIContent.text($('flightHint'),p.valid?FlightBuilder.reserveNote(p):p.reason);$('flightHint').hidden=!$('flightHint').textContent;
+    for(const id of ['engineSection','flightDetails'])UIPatch.set($(id), 'hidden', true);
+    UIPatch.set($('horizonNotice'), 'hidden', !p.unreachable);UIContent.text($('horizonNotice'),p.unreachable?'При включённом расширении прибытие недостижимо.':'');
+    UIContent.text($('flightHint'),p.valid?FlightBuilder.reserveNote(p):p.reason);UIPatch.set($('flightHint'), 'hidden', !UIPatch.text($('flightHint')));
     globalThis.UniverseMap?.renderCard(target);
     if(!target.cosmicEpoch)UIContent.text($('distanceCaption'),'ОТ ПРЕДЫДУЩЕЙ ТОЧКИ');
   },
@@ -134,42 +134,43 @@ const QuickFlight = {
   render() {
     const target = object(state.selected), browsing = FlightQueue.browsing();
     const visible = !((!!state.flight && !browsing) || !target?.navigable || (!state.flight && target.id === state.current));
-    $('quickFlight').hidden = !visible;
-    $('flightCard').classList.toggle('is-planning', visible);
-    $('quickResult').hidden = !visible;
-    $('quickSpeedRow').hidden = true;
-    $('configureFlight').classList.toggle('is-compact', visible);
+    UIPatch.set($('quickFlight'), 'hidden', !visible);
+    UIPatch.toggle($('flightCard'), 'is-planning', visible);
+    UIPatch.set($('quickResult'), 'hidden', !visible);
+    UIPatch.set($('quickSpeedRow'), 'hidden', true);
+    UIPatch.toggle($('configureFlight'), 'is-compact', visible);
     if (!visible) { this.reserveNoticeKey = null; return; }
     const {context, source, setup: c} = this.current(), used = new Set(context.destroyed), star = FlightSetup.available(source, used);
     const stellar = !!source && ['star', 'home'].includes(source.kind), burstIssue = FlightSetup.burstIssue(source, used);
-    UIContent.text($('quickSource'), source?.name || 'Текущая позиция');
-    $('quickSource').title = 'Старт: ' + $('quickSource').textContent;
+    const sourceName = String(source?.name || 'Текущая позиция');
+    UIContent.text($('quickSource'), sourceName);
+    UIPatch.set($('quickSource'), 'title', 'Старт: ' + sourceName);
     document.querySelectorAll('[data-flight-option]').forEach(b => {
       const key = b.dataset.flightOption, enabled = key === 'engine' ? c.engine && !c.dump : c[key];
-      b.hidden = false;
-      b.disabled = key === 'engine' ? enabled && !c.sail : key === 'burst' ? !stellar : !star;
-      b.setAttribute('aria-pressed', String(enabled));
-      b.title = key === 'engine'
-        ? b.disabled ? 'Для разгона нужна тяга или парус' : 'Фотонная тяга с расходом топлива'
+      UIPatch.set(b, 'hidden', false);
+      UIPatch.set(b, 'disabled', key === 'engine' ? enabled && !c.sail : key === 'burst' ? !stellar : !star);
+      UIPatch.attr(b, 'aria-pressed', String(enabled));
+      UIPatch.set(b, 'title', key === 'engine'
+        ? UIPatch.get(b, 'disabled') ? 'Для разгона нужна тяга или парус' : 'Фотонная тяга с расходом топлива'
         : key === 'burst' && burstIssue ? burstIssue
         : !star ? 'Для светового разгона нужна звезда в точке старта'
         : key === 'sail' ? 'Парус использует свет звезды'
         : key === 'collector' ? 'Направляет свет звезды на парус; включает парус'
-        : 'Разгон светом вспышки; включает парус. Звезда будет уничтожена';
+        : 'Разгон светом вспышки; включает парус. Звезда будет уничтожена');
     });
     const p = browsing ? FlightQueue.forecast(context) : MissionPlanner.preview();
     this.notifyReserve(p);
     this.issueReason = p.valid ? '' : p.reason;
-    $('quickIssue').hidden = !this.issueReason;
-    $('quickSpeedRow').hidden = !!this.issueReason;
+    UIPatch.set($('quickIssue'), 'hidden', !this.issueReason);
+    UIPatch.set($('quickSpeedRow'), 'hidden', !!this.issueReason);
     UIContent.text($('quickSpeed'), p.valid ? percentC(p.peakBeta) : '—');
     UIContent.text($('quickIssueLabel'), this.issueReason ? this.issueLabel(p) : '');
-    $('quickIssue').title = this.issueReason || '';
-    $('quickIssue').setAttribute('aria-label', this.issueReason || '');
+    UIPatch.set($('quickIssue'), 'title', this.issueReason || '');
+    UIPatch.attr($('quickIssue'), 'aria-label', this.issueReason || '');
     // Reserve adjustments use the arrival notification area; keep speed visible.
     // Unavailable plans still explain their cause from the fixed result row.
-    $('flightHint').hidden = true;
-    $('horizonNotice').hidden = true;
+    UIPatch.set($('flightHint'), 'hidden', true);
+    UIPatch.set($('horizonNotice'), 'hidden', true);
     UIContent.text($('configureFlightLabel'), 'Подробный план ↗');
   },
   toggle(key) {

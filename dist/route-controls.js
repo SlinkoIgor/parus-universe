@@ -14,10 +14,10 @@ Object.assign(Route, {
     const f=state.flight,target=object(state.selected),browsing=FlightQueue.browsing(),
       visible=(!f||browsing)&&(target?.kind==='blackhole'||Gravity.canFlyby(target))&&target.id!==state.current,
       node=this.future().findLast(n=>n.id===target?.id);
-    $('blackHoleArrival').hidden=!visible;
-    document.querySelectorAll('[data-approach]').forEach(b=>{b.setAttribute('aria-pressed',String((node?.mode||'stop')===b.dataset.approach));b.disabled=b.dataset.approach==='flyby'&&!Gravity.canFlyby(target);b.title=b.disabled?'Недостаточно данных о массе для расчёта манёвра':'';});
+    UIPatch.set($('blackHoleArrival'), 'hidden', !visible);
+    document.querySelectorAll('[data-approach]').forEach(b=>{UIPatch.attr(b, 'aria-pressed', String((node?.mode||'stop')===b.dataset.approach));UIPatch.set(b, 'disabled', b.dataset.approach==='flyby'&&!Gravity.canFlyby(target));UIPatch.set(b, 'title', UIPatch.get(b, 'disabled')?'Недостаточно данных о массе для расчёта манёвра':'');});
   },
-  renderActions(){$('cancelRouteDraft').hidden=!!state.flight||!state.itinerary.length;},
+  renderActions(){UIPatch.set($('cancelRouteDraft'), 'hidden', !!state.flight||!state.itinerary.length);},
   canSelectNext(id=state.selected){
     const future=this.future(),last=future.at(-1),target=object(id);
     return !!(last?.mode==='flyby'&&target?.navigable&&target.p3&&target.id!==last.id&&future.length<this.limit);
@@ -60,33 +60,33 @@ Object.assign(Route, {
   },
   renderDraft() {
     const f=state.flight,target=object(state.selected),browsing=FlightQueue.browsing();
-    $('repairRoute').hidden=!f?.routeIssue||browsing;
+    UIPatch.set($('repairRoute'), 'hidden', !f?.routeIssue||browsing);
     this.renderApproach();this.renderActions();
     const nodes=this.nodes(),draft=!f&&nodes.length>0;
     if(draft||browsing)this.renderDistance();
     const p=(browsing?FlightQueue.forecast():f?.mission)||(!f&&target?.navigable?MissionPlanner.preview():null),star=p?.arrivalStar;
-    $('routeDraftIssue').hidden=true;
+    UIPatch.set($('routeDraftIssue'), 'hidden', true);
     if(f?.routeIssue){
       const next=object(nodes[(f.legIndex||0)+1]?.id);
-      $('routeDraftIssue').hidden=false;UIContent.text($('routeDraftIssue'),'Следующая точка'+(next?' «'+next.name+'»':'')+' недоступна: '+f.routeIssue.reason);
+      UIPatch.set($('routeDraftIssue'), 'hidden', false);UIContent.text($('routeDraftIssue'),'Следующая точка'+(next?' «'+next.name+'»':'')+' недоступна: '+f.routeIssue.reason);
       if(!browsing){UIContent.text($('phaseTag'),'МАРШРУТ ПРИОСТАНОВЛЕН');UIContent.text($('progressRemaining'),'Измените маршрут, чтобы продолжить полёт.');}
       return;
     }
     if(!draft){
       if(f&&nodes.at(-1)?.mode==='flyby'){
-        $('routeDraftIssue').hidden=false;UIContent.text($('routeDraftIssue'),'Для пролёта добавьте следующую точку маршрута.');
-        if(browsing){$('launchBtn').disabled=!this.canSelectNext();UIContent.text($('launchBtn').querySelector('span'),'Добавить точку');}
+        UIPatch.set($('routeDraftIssue'), 'hidden', false);UIContent.text($('routeDraftIssue'),'Для пролёта добавьте следующую точку маршрута.');
+        if(browsing){UIPatch.set($('launchBtn'), 'disabled', !this.canSelectNext());UIContent.text($('launchBtn').querySelector('span'),'Добавить точку');}
       }
       if(!f&&p?.requestedTargetId&&star){UIContent.text($('distanceCaption'),'ДО ЗВЕЗДЫ ТОРМОЖЕНИЯ');UIContent.html($('targetDistance'),compact(Cosmology.physicalDistance(state.ship,star))+' <small>св. лет</small>');}
       return;
     }
     const analysis=this.draftAnalysis(),pending=nodes.at(-1).mode==='flyby',
       issue=pending?'Выберите объект на карте или через поиск и нажмите «Добавить точку».':analysis.records.find(r=>r.issue)?.issue||'';
-    $('routeDraftIssue').hidden=!issue;UIContent.text($('routeDraftIssue'),issue);
-    $('launchBtn').hidden=false;$('launchBtn').disabled=pending?!this.canSelectNext():!analysis.valid;
+    UIPatch.set($('routeDraftIssue'), 'hidden', !issue);UIContent.text($('routeDraftIssue'),issue);
+    UIPatch.set($('launchBtn'), 'hidden', false);UIPatch.set($('launchBtn'), 'disabled', pending?!this.canSelectNext():!analysis.valid);
     UIContent.text($('launchBtn').querySelector('span'),pending?'Добавить точку':'Начать маршрут');
     UIContent.text($('arrivalLabel'),'ДЛИТЕЛЬНОСТЬ МАРШРУТА');
-    $('arrivalEstimate').hidden=false;$('flightHint').hidden=true;
+    UIPatch.set($('arrivalEstimate'), 'hidden', false);UIPatch.set($('flightHint'), 'hidden', true);
     if(target.id===state.current)UIContent.text($('phaseTag'),paused?'ПАУЗА':'МАРШРУТ');
     UIContent.text($('arrivalProper'),analysis.valid?durationText(analysis.proper):'—');UIContent.text($('arrivalEarth'),analysis.valid?durationText(analysis.earth):'—');
   },

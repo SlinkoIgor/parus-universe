@@ -10,6 +10,10 @@ const UIContent = {
   html(node, value) { this.write(node, 'innerHTML', value); },
   write(node, property, value) {
     value = String(value ?? '');
+    if (UIPatch.queue) UIPatch.put(node, '#', { property, value });
+    else this.commit(node, property, value);
+  },
+  commit(node, property, value) {
     const current = node[property], cached = this.htmlValues.get(node);
     if (current === value || (property === 'innerHTML' && cached?.value === value && cached.dom === current)) {
       this.pending.delete(node);
@@ -34,6 +38,60 @@ const UIContent = {
       if (node.isConnected === false) this.pending.delete(node);
       else this.write(node, property, value);
     }
+  },
+};
+const UIPatch = {
+  queue: null,
+  styles: new WeakMap(),
+  flags: new Set(['hidden', 'disabled', 'checked']),
+  begin() {
+    if (this.queue) return false;
+    this.queue = new Map();
+    return true;
+  },
+  end() {
+    const queue = this.queue;
+    this.queue = null;
+    if (!queue) return;
+    for (const [node, changes] of queue)
+      for (const [key, value] of changes) this.apply(node, key, value);
+  },
+  put(node, key, value) {
+    if (!this.queue) {
+      this.apply(node, key, value);
+      return;
+    }
+    let changes = this.queue.get(node);
+    if (!changes) this.queue.set(node, (changes = new Map()));
+    changes.set(key, value);
+  },
+  set(node, name, value) {
+    this.put(node, name, this.flags.has(name) ? !!value : name === 'title' ? String(value ?? '') : value);
+  },
+  attr(node, name, value) { this.put(node, '@' + name, String(value)); },
+  style(node, name, value) { this.put(node, '~' + name, String(value)); },
+  toggle(node, name, on) { this.put(node, '.' + name, !!on); },
+  get(node, name) {
+    const changes = this.queue?.get(node);
+    return changes?.has(name) ? changes.get(name) : node[name];
+  },
+  text(node) {
+    const content = this.queue?.get(node)?.get('#');
+    return content?.property === 'textContent' ? content.value : node.textContent;
+  },
+  apply(node, key, value) {
+    const kind = key[0], name = key.slice(1);
+    if (kind === '#') UIContent.commit(node, value.property, value.value);
+    else if (kind === '@') {
+      if (node.getAttribute?.(name) !== value) node.setAttribute(name, value);
+    } else if (kind === '~') {
+      let written = this.styles.get(node);
+      if (!written) this.styles.set(node, (written = {}));
+      if (written[name] === value) return;
+      node.style[name] = value;
+      written[name] = value;
+    } else if (kind === '.') node.classList.toggle(name, value);
+    else if (node[key] !== value) node[key] = value;
   },
 };
 // Intl setup is much more expensive than formatting a value. There are only
@@ -117,12 +175,11 @@ function clockRate() {
 }
 function renderVelocity() {
   UIContent.html($('velocity'), speedNumber(state.beta) + '<small>% c</small>');
-  $('velocity').title =
-    fmt((state.beta * Rocket.c) / 1000, state.beta < 0.01 ? 3 : 1) +
-    ' км/с относительно неподвижного наблюдателя';
-  $('velocityFill').style.width = speedScale(state.beta) * 100 + '%';
-  $('velocityBar').setAttribute('aria-valuenow', String(state.beta * 100));
-  $('velocityBar').setAttribute('aria-valuetext', percentC(state.beta));
+  UIPatch.set($('velocity'), 'title', fmt((state.beta * Rocket.c) / 1000, state.beta < 0.01 ? 3 : 1) +
+    ' км/с относительно неподвижного наблюдателя');
+  UIPatch.style($('velocityFill'), 'width', speedScale(state.beta) * 100 + '%');
+  UIPatch.attr($('velocityBar'), 'aria-valuenow', String(state.beta * 100));
+  UIPatch.attr($('velocityBar'), 'aria-valuetext', percentC(state.beta));
 }
 const DILATION_MAX = 1e6;
 function dilationScale(ratio) {
@@ -134,17 +191,13 @@ function renderClockRatio() {
   UIContent.text($('timeDilation'), value);
   UIContent.text($('dilationUnit'), ratio === 1 ? 'год наблюдателя' : 'лет наблюдателя');
   const position = dilationScale(ratio) * 100;
-  $('dilationFill').style.width = position + '%';
-  $('dilationMarker').style.left = position + '%';
-  $('dilationBar').setAttribute('aria-valuenow', String(Math.min(DILATION_MAX, ratio)));
-  $('dilationBar').setAttribute(
-    'aria-valuetext',
-    fmt(ratio, ratio < 100 ? 2 : 0) + ' лет неподвижного наблюдателя за 1 год на корабле',
-  );
-  $('timeDilationRow').title =
-    'Мгновенное соотношение при сохранении текущей скорости' +
+  UIPatch.style($('dilationFill'), 'width', position + '%');
+  UIPatch.style($('dilationMarker'), 'left', position + '%');
+  UIPatch.attr($('dilationBar'), 'aria-valuenow', String(Math.min(DILATION_MAX, ratio)));
+  UIPatch.attr($('dilationBar'), 'aria-valuetext', fmt(ratio, ratio < 100 ? 2 : 0) + ' лет неподвижного наблюдателя за 1 год на корабле');
+  UIPatch.set($('timeDilationRow'), 'title', 'Мгновенное соотношение при сохранении текущей скорости' +
     (state.phase === 'flyby' ? ' и гравитационного потенциала' : '') +
-    '. Наблюдатель неподвижен в принятой системе отсчёта; направление полёта не меняет соотношение. Это не задержка радиосигнала.';
+    '. Наблюдатель неподвижен в принятой системе отсчёта; направление полёта не меняет соотношение. Это не задержка радиосигнала.');
 }
 const STORE = 'parus-expedition-v1';
 const SHIP_NAME = 'Ковчег';

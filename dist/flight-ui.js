@@ -86,24 +86,24 @@ function renderAcceleration() {
     fraction = visible / (visible < 0 ? c.maxBrakingG : c.maxAccelerationG),
     label = (g > 0 ? '+' : '') + fmt(g, 2) + ' g';
   UIContent.html($('acceleration'), (g > 0 ? '+' : '') + fmt(g, 2) + '<small>g</small>');
-  $('accelerationFill').style.left = (fraction < 0 ? 50 + fraction * 50 : 50) + '%';
-  $('accelerationFill').style.width = Math.abs(fraction) * 50 + '%';
+  UIPatch.style($('accelerationFill'), 'left', (fraction < 0 ? 50 + fraction * 50 : 50) + '%');
+  UIPatch.style($('accelerationFill'), 'width', Math.abs(fraction) * 50 + '%');
   const limitText = (n) =>
     n >= 1e4 || n < 0.01 ? quantity(n) : fmt(n, Number.isInteger(n) ? 0 : 2);
   UIContent.text($('accelerationMin'), '−' + limitText(c.maxBrakingG) + ' g');
   UIContent.text($('accelerationMax'), '+' + limitText(c.maxAccelerationG) + ' g');
-  $('accelerationBar').setAttribute('aria-valuemin', String(-c.maxBrakingG));
-  $('accelerationBar').setAttribute('aria-valuemax', String(c.maxAccelerationG));
-  $('accelerationBar').setAttribute('aria-valuenow', String(visible));
-  $('accelerationBar').setAttribute('aria-valuetext', label);
-  $('accelerationBar').title = 'Текущее собственное ускорение: ' + label;
+  UIPatch.attr($('accelerationBar'), 'aria-valuemin', String(-c.maxBrakingG));
+  UIPatch.attr($('accelerationBar'), 'aria-valuemax', String(c.maxAccelerationG));
+  UIPatch.attr($('accelerationBar'), 'aria-valuenow', String(visible));
+  UIPatch.attr($('accelerationBar'), 'aria-valuetext', label);
+  UIPatch.set($('accelerationBar'), 'title', 'Текущее собственное ускорение: ' + label);
 }
 function profileDistance(d) {
   return d < 0.01 ? fmt(d * 63241.077, d * 63241.077 < 10 ? 2 : 0) + ' а.е.' : distanceText(d);
 }
 function renderFlightProfile(eta) {
   const p = FlightProfile.get(eta);
-  $('flightProfile').hidden = !p;
+  UIPatch.set($('flightProfile'), 'hidden', !p);
   if (!p) return;
   for (const [key, label] of [
     ['acceleration', 'Разгон'],
@@ -126,9 +126,19 @@ function renderFlightProfile(eta) {
 function renderUI() {
   if(state.flight?.routeIssue)paused=true;
   if(Route.feedbackPending){Route.renderFeedback();return;}
+  const batch = UIPatch.begin();
+  let eta;
+  try {
+    eta = renderPanels();
+  } finally {
+    if (batch) UIPatch.end();
+  }
+  FlightTips.render(eta);
+}
+function renderPanels() {
   FlightSetup.sync();
   Cosmology.sync(state);
-  $('expansionToggle').checked = state.expansion !== false;
+  UIPatch.set($('expansionToggle'), 'checked', state.expansion !== false);
   UIContent.text($('expansionFactor'), (state.expansion !== false ? 'ВКЛ' : 'ВЫКЛ') +
     ' · a = ' +
     fmt(Cosmology.scale(), Cosmology.scale() < 10 ? 6 : 2));
@@ -145,26 +155,26 @@ function renderUI() {
   UIContent.text($('distanceCaption'), 'РАССТОЯНИЕ ДО ЦЕЛИ');
   UIContent.text($('targetName'), target.name);
   UIContent.text($('targetType'), objectTypeText(target));
-  $('targetVisited').hidden = !state.visited.includes(target.id);
-  $('flightCard').classList.toggle('in-flight', active);
+  UIPatch.set($('targetVisited'), 'hidden', !state.visited.includes(target.id));
+  UIPatch.toggle($('flightCard'), 'in-flight', active);
   const locationFrom = active
     ? object(f.fromId)?.name || f.from?.name || 'Межзвёздное пространство'
     : current ? 'Стоянка · ' + current.name : 'Межзвёздное пространство';
   UIContent.text($('shipLocationFrom'), locationFrom);
   UIContent.text($('shipLocationTo'), active ? target.name : '');
-  $('shipLocationArrow').hidden = !active;
-  $('shipLocationTo').hidden = !active;
-  $('shipLocationIcon').setAttribute('href', active ? '#ship-icon' : '#station-icon');
+  UIPatch.set($('shipLocationArrow'), 'hidden', !active);
+  UIPatch.set($('shipLocationTo'), 'hidden', !active);
+  UIPatch.attr($('shipLocationIcon'), 'href', active ? '#ship-icon' : '#station-icon');
   UIContent.text($('shipLocationType'), objectTypeText(active ? null : current) +
     (state.orbit && current && !active
       ? ' · орбита ' + fmt(state.orbit.radius / Stellar.r0, 2) + ' а.е.'
       : ''));
-  $('shipLocationType').hidden = active || !current;
-  $('shipLocation').title = active
+  UIPatch.set($('shipLocationType'), 'hidden', active || !current);
+  UIPatch.set($('shipLocation'), 'title', active
     ? locationFrom + ' → ' + target.name
     : current
       ? current.name + ' · ' + objectTypeText(current)
-      : locationFrom;
+      : locationFrom);
   const d = target.navigable
     ? (f?.summary?.distance ?? f?.distance ?? Cosmology.physicalDistance(state.ship, target))
     : NaN;
@@ -174,8 +184,8 @@ function renderUI() {
   const photon = (state.phase === 'thrust' || state.phase === 'dock') && f?.engine,
     wind = state.phase === 'launch' && f?.wind,
     mag = state.phase === 'brake' && f?.magnetic;
-  $('engineSection').hidden = !(photon || wind || mag || state.phase === 'flyby');
-  $('burnTrack').hidden = !photon;
+  UIPatch.set($('engineSection'), 'hidden', !(photon || wind || mag || state.phase === 'flyby'));
+  UIPatch.set($('burnTrack'), 'hidden', !photon);
   if (photon) {
     const e = f.engine;
     UIContent.text($('engineLabel'), e.direction < 0 ? 'ОБРАТНАЯ ФОТОННАЯ ТЯГА' : 'АННИГИЛЯЦИЯ ВЕЩЕСТВА');
@@ -186,7 +196,7 @@ function renderUI() {
       '</b><br>Энергия <b>' +
       quantity(e.energy / 1e15) +
       ' ПДж</b>');
-    $('burnBar').style.width = (e.budget ? (100 * e.burned) / e.budget : 0) + '%';
+    UIPatch.style($('burnBar'), 'width', (e.budget ? (100 * e.burned) / e.budget : 0) + '%');
   }
   if (wind) {
     const sample = f.wind.lastSample || Stellar.sampleProper(f.wind, f.wind.elapsedProper || 0),
@@ -269,10 +279,9 @@ function renderUI() {
         ? 'Топливо расходуется · торможение автоматически.'
         : 'Запас рабочего вещества исчерпан.';
   }
-  $('launchBtn').hidden = active;
+  UIPatch.set($('launchBtn'), 'hidden', active);
   UIContent.text($('launchBtn').querySelector('span'), action);
-  $('launchBtn').disabled =
-    !target.navigable || (!arrived && !boost && !Rocket.usableFuel(state.matter));
+  UIPatch.set($('launchBtn'), 'disabled', !target.navigable || (!arrived && !boost && !Rocket.usableFuel(state.matter)));
   UIContent.text($('flightHint'), hint + (target.positionQuality === 'approximate' ? ' Позиция приблизительная.' : ''));
   const phases = {
     thrust: 'ФОТОННАЯ ТЯГА',
@@ -289,13 +298,13 @@ function renderUI() {
       : arrived
         ? 'ВЫ ЗДЕСЬ'
         : 'ЦЕЛЬ');
-  $('flightControls').hidden = !active;
+  UIPatch.set($('flightControls'), 'hidden', !active);
   const eta = FlightEstimate.get();
-  $('horizonNotice').hidden = !eta?.unreachable;
+  UIPatch.set($('horizonNotice'), 'hidden', !eta?.unreachable);
   UIContent.text($('horizonNotice'), eta?.unreachable
     ? 'При включённом расширении прибытие недостижимо.'
     : '');
-  $('arrivalEstimate').hidden = arrived || !target.navigable;
+  UIPatch.set($('arrivalEstimate'), 'hidden', arrived || !target.navigable);
   UIContent.text($('arrivalLabel'), Route.isFlyby()
     ? 'ДЛИТЕЛЬНОСТЬ ДО ПРОЛЁТА'
     : 'ДЛИТЕЛЬНОСТЬ ПОЛЁТА');
@@ -303,7 +312,7 @@ function renderUI() {
   UIContent.text($('arrivalProper'), summary ? durationText(summary.proper) : '—');
   UIContent.text($('arrivalEarth'), summary ? durationText(summary.earth) : '—');
   renderFlightProfile(eta);
-  $('flightDetails').hidden = arrived || !target.navigable;
+  UIPatch.set($('flightDetails'), 'hidden', arrived || !target.navigable);
   renderVelocity();
   renderAcceleration();
   renderClockRatio();
@@ -315,12 +324,10 @@ function renderUI() {
   UIContent.html($('dryMass'), fmt(SHIP.dryMassKg, SHIP.dryMassKg === 1 ? 0 : 3) + '<small>кг</small>');
   const dryWidth = (Rocket.dryMass / (Rocket.dryMass + Rocket.fuelCapacity)) * 100,
     fuelWidth = (state.matter / (Rocket.dryMass + Rocket.fuelCapacity)) * 100;
-  $('massDry').style.width = dryWidth + '%';
-  $('massFuel').style.width = fuelWidth + '%';
+  UIPatch.style($('massDry'), 'width', dryWidth + '%');
+  UIPatch.style($('massFuel'), 'width', fuelWidth + '%');
   UIContent.text($('massTotal'), massText(Rocket.dryMass + state.matter));
-  $('massBar').setAttribute(
-    'aria-label',
-    'Сухая масса ' +
+  UIPatch.attr($('massBar'), 'aria-label', 'Сухая масса ' +
       fmt(SHIP.dryMassKg, 3) +
       ' кг; топливо ' +
       fmt(state.matter * 1000, 3) +
@@ -328,15 +335,13 @@ function renderUI() {
       fmt(Rocket.fuelCapacity * 1000, 3) +
       ' кг; свободно ' +
       fmt((Rocket.fuelCapacity - state.matter) * 1000, 3) +
-      ' кг',
-  );
-  $('massBar').title =
-    'Сухая масса ' +
+      ' кг');
+  UIPatch.set($('massBar'), 'title', 'Сухая масса ' +
     fmt(SHIP.dryMassKg, 3) +
     ' кг | Топливо ' +
     massText(state.matter) +
     ' | Свободно ' +
-    massText(Rocket.fuelCapacity - state.matter);
+    massText(Rocket.fuelCapacity - state.matter));
   UIContent.text($('timeRate'), paused
     ? 'Пауза'
     : '1 с = ' +
@@ -349,12 +354,11 @@ function renderUI() {
   UIContent.text($('earthClock'), fmt(Math.floor(state.earth), 0));
   UIContent.text($('shipClock'), fmt(Math.floor(state.proper), 0));
   const pct = f ? Math.min(100, (f.covered / f.distance) * 100) : 0;
-  $('progressBar').style.width = pct + '%';
+  UIPatch.style($('progressBar'), 'width', pct + '%');
   UIContent.text($('progressValue'), fmt(pct, 1) + '%');
   UIContent.text($('progressRemaining'), f && eta ? 'Осталось на борту · ' + durationText(eta.proper) : '');
-  $('cancelFlight').disabled = !f?.rollback;
-  $('cancelFlight').title =
-    f && !f.rollback ? 'В этом старом сохранении нет снимка состояния до старта' : '';
+  UIPatch.set($('cancelFlight'), 'disabled', !f?.rollback);
+  UIPatch.set($('cancelFlight'), 'title', f && !f.rollback ? 'В этом старом сохранении нет снимка состояния до старта' : '');
   UIContent.text($('progressLabel'), f
     ? 'УЧАСТОК ' + ((f.legIndex || 0) + 1) + ' / ' + (f.route?.length || 1)
     : 'ПРОЙДЕНО');
@@ -365,5 +369,5 @@ function renderUI() {
   QuickFlight.render();
   Route.renderDraft();
   GalacticTraffic.renderControl();
-  FlightTips.render(eta);
+  return eta;
 }

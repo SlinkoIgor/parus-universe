@@ -44,6 +44,7 @@ for (const name of ['focus', 'resize']) window.addEventListener(name, () => Runt
 function frame(now) {
   // Keep the next frame even if streaming, drawing or a UI forecast throws.
   requestAnimationFrame(frame);
+  MapPointer.flush();
   const realDt = RuntimeLoop.advance(now);
   if (RuntimeLoop.shouldDraw(now)) {
     const drawDt = Math.max(0, (now - RuntimeLoop.lastDraw) / 1000);
@@ -118,6 +119,55 @@ function frame(now) {
   }
 }
 
+const MapPointer = {
+  hoverX: 0,
+  hoverY: 0,
+  pending: false,
+  heading: false,
+  bounds: null,
+  rect() {
+    return (this.bounds ||= canvas.getBoundingClientRect());
+  },
+  move(x, y) {
+    this.hoverX = x;
+    this.hoverY = y;
+    this.pending = true;
+  },
+  leave() {
+    this.pending = false;
+    hover = null;
+    this.title('');
+  },
+  cursor(value) {
+    if (canvas.style.cursor !== value) canvas.style.cursor = value;
+  },
+  title(value) {
+    if (canvas.title !== value) canvas.title = value;
+  },
+  flush() {
+    this.bounds = null;
+    if (this.heading) {
+      this.heading = false;
+      updateMapHeading();
+    }
+    if (!this.pending) return;
+    this.pending = false;
+    const r = this.rect(),
+      x = this.hoverX - r.left,
+      y = this.hoverY - r.top,
+      visits = MapVisits.hit(x, y);
+    this.title(MapVisits.title(visits));
+    hover =
+      (visits && visits.objects.length === 1 ? visits.objects[0] : null) ||
+      GalacticTraffic.hit(x,y) ||
+      (globalThis.MapAnnotations?.active && MapAnnotations.hit(x, y)) ||
+      hitObjects.find(({ p, r = 23 }) => Math.hypot(x - p.x, y - p.y) < r)?.o ||
+      RegionMap.hit(x, y) ||
+      MapLabels.areaHit(x, y) ||
+      globalThis.UniverseMap?.hit(x, y);
+    this.cursor(visits?.objects.length > 1 ? 'zoom-in' : hover ? 'pointer' : 'crosshair');
+  },
+};
 function zoomAtPointer(e) {
   e.preventDefault();
   cameraGoal = null;
@@ -125,7 +175,7 @@ function zoomAtPointer(e) {
     span = clamp(cam.span * factor, 0.00006, MAX_CAMERA_SPAN);
   if (followShip) cam = shipCamera(span);
   else {
-    const r = canvas.getBoundingClientRect(),
+    const r = MapPointer.rect(),
       x = e.clientX - r.left,
       y = e.clientY - r.top,
       before = world(x, y);
@@ -134,8 +184,7 @@ function zoomAtPointer(e) {
     cam.x += before.x - after.x;
     cam.y += before.y - after.y;
   }
-  updateMapHeading();
-  updateZoomControl();
+  MapPointer.heading = true;
 }
 canvas.addEventListener('wheel', zoomAtPointer, { passive: false });
 let clickedMapTarget = null, doubleClickTarget = null;
@@ -171,9 +220,6 @@ canvas.addEventListener('pointerdown', (e) => {
   cameraGoal = null;
 });
 canvas.addEventListener('pointermove', (e) => {
-  const r = canvas.getBoundingClientRect(),
-    x = e.clientX - r.left,
-    y = e.clientY - r.top;
   if (pointer.down && e.pointerId === pointer.id) {
     const dx = e.clientX - pointer.x,
       dy = e.clientY - pointer.y;
@@ -187,24 +233,12 @@ canvas.addEventListener('pointermove', (e) => {
     if (pointer.moved) {
       cam.x -= (dx * cam.span) / width;
       cam.y -= (dy * cam.span) / width;
-      canvas.style.cursor = 'grabbing';
-      updateMapHeading();
+      MapPointer.cursor('grabbing');
+      MapPointer.heading = true;
     }
     pointer.x = e.clientX;
     pointer.y = e.clientY;
-  } else {
-    const visits = MapVisits.hit(x, y);
-    canvas.title = MapVisits.title(visits);
-    hover =
-      (visits && visits.objects.length === 1 ? visits.objects[0] : null) ||
-      GalacticTraffic.hit(x,y) ||
-      (globalThis.MapAnnotations?.active && MapAnnotations.hit(x, y)) ||
-      hitObjects.find(({ p, r = 23 }) => Math.hypot(x - p.x, y - p.y) < r)?.o ||
-      RegionMap.hit(x, y) ||
-      MapLabels.areaHit(x, y) ||
-      globalThis.UniverseMap?.hit(x, y);
-    canvas.style.cursor = visits?.objects.length > 1 ? 'zoom-in' : hover ? 'pointer' : 'crosshair';
-  }
+  } else MapPointer.move(e.clientX, e.clientY);
 });
 canvas.addEventListener('pointerup', (e) => {
   if (!pointer.down || e.pointerId !== pointer.id) return;
@@ -224,14 +258,14 @@ canvas.addEventListener('pointerup', (e) => {
     else FlightQueue.dismiss();
   }
   pointer.down = false;
-  canvas.style.cursor = 'crosshair';
+  MapPointer.cursor('crosshair');
 });
 canvas.addEventListener('pointercancel', () => {
   pointer.down = false;
   clickedMapTarget = doubleClickTarget = null;
-  canvas.style.cursor = 'crosshair';
+  MapPointer.cursor('crosshair');
 });
-canvas.addEventListener('pointerleave', () => { hover = null; canvas.title = ''; });
+canvas.addEventListener('pointerleave', () => MapPointer.leave());
 canvas.addEventListener('dblclick', (e) => {
   if (e.button !== 0 || e.shiftKey || pointer.moved || !doubleClickTarget) return;
   const { id } = pickMapTarget(e), target = object(id);

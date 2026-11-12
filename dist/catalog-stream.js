@@ -1286,6 +1286,21 @@ const ExtendedCatalog = {
       toast('На карте ' + bounds.members.length + ' из ' + system.members.length + ' компонентов: остальные положения неизвестны или не загрузились.',4200,'warning');
     return bounds;
   },
+  searchIdleMs: 300000,
+  searchClosedMs: 60000,
+  releaseSearchAfter(delay) {
+    clearTimeout(this.searchRelease);
+    if (!this.worker) return;
+    this.searchRelease = setTimeout(() => {
+      if (!this.worker) return;
+      if (this.pendingSearch.size) {
+        this.releaseSearchAfter(delay);
+        return;
+      }
+      this.worker.terminate();
+      this.worker = null;
+    }, delay);
+  },
   async search(term, filter, limit) {
     if (globalThis.PARUS_CATALOG_FILES || typeof Worker !== 'function') {
       this.fallbackIndex ||= this.readJSON('catalog-data/search.json');
@@ -1318,7 +1333,7 @@ const ExtendedCatalog = {
       };
     }
     if (!this.worker) {
-      this.worker = new Worker('catalog-search-worker.js?v=80');
+      this.worker = new Worker('catalog-search-worker.js?v=81');
       this.pendingSearch = new Map();
       this.worker.onmessage = ({ data }) => {
         const p = this.pendingSearch.get(data.seq);
@@ -1335,6 +1350,7 @@ const ExtendedCatalog = {
         this.worker = null;
       };
     }
+    clearTimeout(this.searchRelease);
     const seq = ++this.seq;
     return new Promise((resolve, reject) => {
       this.pendingSearch.set(seq, { resolve, reject });
@@ -1346,7 +1362,8 @@ const ExtendedCatalog = {
         dataRoot: EXTENDED_BOOT.dataRoot || 'catalog-data',
         version: EXTENDED_BOOT.revision,
       });
-    });
+    }).finally(() =>
+      this.releaseSearchAfter($('catalog').hidden ? this.searchClosedMs : this.searchIdleMs));
   },
   matches(kind, filter, o) {
     if (kind === 'cluster' && o) {

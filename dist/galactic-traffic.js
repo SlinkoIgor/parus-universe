@@ -93,7 +93,7 @@ const GalacticTraffic = {
     showDialog('<div class="modal-eyebrow">МУЛЬТИПЛЕЕР / КОРАБЛЬ-БОТ</div><h2>'+q.name+'</h2><p>'+ (q.outside?'Курс за пределы Млечного Пути.':'Перелёт в Млечном Пути.')+'</p><dl class="source-specs"><div><dt>Скорость относительно Галактики</dt><dd>'+percentC(q.beta)+'</dd></div><div><dt>Бортовой возраст рейса</dt><dd>'+durationText(q.proper)+'</dd></div><div><dt>Лоренц-фактор относительно нас</dt><dd>'+fmt(q.relativeGamma,4)+'</dd></div><div><dt>За один год в нашей мгновенной системе</dt><dd>'+fmt(rate,4)+' года на боте</dd></div></dl><p>γₒₜₙ = γ₁ γ₂ (1 − v₁·v₂/c²). Одинаковые векторы скорости дают γₒₜₙ = 1; встречный курс увеличивает относительную скорость. Это локальное сравнение часов инерциальных систем, а не темп принимаемого светового сигнала.</p><p class="object-note">Игровой трафик: аналитический разгон и торможение с постоянным собственным ускорением, между ними инерционный полёт. Карта показывает одновременные положения в системе Галактики; задержка света, галактическая гравитация и расход топлива ботов не моделируются. Повторяемый сценарий не меняет физику вашего корабля.</p>');
   },
   renderControl() {
-    $('multiplayerToggle').checked=state.multiplayer;
+    UIPatch.set($('multiplayerToggle'), 'checked', state.multiplayer);
     UIContent.text($('trafficCount'), !state.multiplayer?'выкл.':!this.visible()?'скрыты в этом масштабе':this.hits.length+' на экране');
   },
 };

@@ -5,11 +5,12 @@ const Notices={
   render(text,icon='info',kind='notice'){
     const node=$('toast');if(!this.labels[icon])icon='info';
     if(kind==='notice')this.context={flight:state.flight,phase:state.phase,elapsed:globalThis.FlightTips?.elapsed(state.flight)??0};
-    node.dataset.kind=kind;node.dataset.icon=icon;
-    node.setAttribute('role',icon==='warning'?'alert':'status');
-    node.setAttribute('aria-label',this.labels[icon]);
-    $('toastIcon').setAttribute('href','#'+icon+'-icon');
-    UIContent.text($('toastText'),text);node.hidden=false;
+    if(node.dataset.kind!==kind)node.dataset.kind=kind;
+    if(node.dataset.icon!==icon)node.dataset.icon=icon;
+    UIPatch.apply(node,'@role',icon==='warning'?'alert':'status');
+    UIPatch.apply(node,'@aria-label',this.labels[icon]);
+    UIPatch.apply($('toastIcon'),'@href','#'+icon+'-icon');
+    UIContent.text($('toastText'),text);if(node.hidden)node.hidden=false;
   },
 };
 function toast(text,duration=4200,icon='info'){
@@ -214,6 +215,7 @@ function closeCatalog() {
   const restoreFocus = document.activeElement?.closest('#catalog');
   $('catalog').hidden = true;
   $('catalogBtn').setAttribute('aria-expanded', 'false');
+  ExtendedCatalog.releaseSearchAfter(ExtendedCatalog.searchClosedMs);
   if (restoreFocus) $('catalogBtn').focus();
   Route.picking = false;
 }

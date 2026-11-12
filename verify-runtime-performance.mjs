@@ -128,3 +128,94 @@ run(`{
   MapDetails.visible=visible;
   console.log('PASS legacy overlap, fixed visibility, foreground exclusion, deduplication, fade, filter and unchanged source data');
 }`);
+
+run(`{
+  const plans=[];
+  for(const [target,setup] of [['sirius',{}],['sgr',{}],['centaurus',{}],['sirius',{collectGas:false}],['centaurus',{collectGas:false}],['sirius',{engineEfficiencyPercent:50}]]){
+    MissionPlanner.cache.clear();state=initial();state.flightSetup=FlightSetup.normalize({engine:true,sail:true,collector:true,arrivalFuelPercent:50,...setup});state.selected=target;Cosmology.sync(state);
+    const p=MissionPlanner.preview();assert.equal(p.valid,true,target);assert.equal(p.brake.kind,'hybrid',target);plans.push([target,p]);
+  }
+  let checked=0,fullCalls=0;
+  for(const [target,p] of plans)ShipPhysics.run(p.setup,()=>{
+    const b=p.brake.plan,etas=[0,b.eta0,b.etaFill,b.etaTerminal,b.etaFeedCap].filter(Number.isFinite);
+    for(let i=1;i<64;i++)etas.push(b.eta0*i/64);
+    for(const e of etas){
+      const full=HybridBrake.atEta(b,e);
+      assert.ok(Object.is(HybridBrake.partAt(b,e,'proper'),full.proper),target+' proper time at rapidity '+e);
+      assert.ok(Object.is(HybridBrake.partAt(b,e,'earth'),full.earth),target+' Earth time at rapidity '+e);
+      checked++;
+    }
+    const atEta=HybridBrake.atEta,releasing=ReleasingBrake.atEta;
+    for(let i=0;i<=24;i++){
+      const proper=b.proper*i/24,epoch=p.brake.epoch;
+      FlightPath.segments.delete(b);const fresh=FlightPath.distance(b,Magnetic,proper,epoch,p.expansion);
+      const warm=FlightPath.distance(b,Magnetic,proper,epoch,p.expansion);
+      assert.ok(Object.is(fresh,warm),target+' reused path segments keep the distance at '+proper);
+      FlightPath.segments.delete(b);const sample=HybridBrake.sampleProper(b,proper);
+      assert.ok(Object.is(FlightPath.distance(b,Magnetic,proper,epoch,p.expansion,sample),fresh),target+' shared sample keeps the distance at '+proper);
+    }
+    HybridBrake.atEta=function(...args){fullCalls++;return atEta.apply(this,args);};
+    ReleasingBrake.atEta=function(...args){fullCalls++;return releasing.apply(this,args);};
+    try{
+      fullCalls=0;const sample=HybridBrake.sampleProper(b,b.proper*.37);
+      assert.ok(fullCalls<=1,target+' time inversion evaluates the complete state once, not per bisection step: '+fullCalls);
+      fullCalls=0;FlightPath.distance(b,Magnetic,b.proper*.37,p.brake.epoch,p.expansion,sample);
+      assert.equal(fullCalls,0,target+' path quadrature needs Earth time only');
+    }finally{HybridBrake.atEta=atEta;ReleasingBrake.atEta=releasing;}
+  });
+  assert.ok(checked>300);
+  console.log('PASS hybrid braking steps reuse fixed path segments and single-clock evaluators without changing a bit');
+}`);
+
+run(`{
+  MissionPlanner.cache.clear();state=initial();state.selected='sirius';Cosmology.sync(state);paused=true;renderUI();
+  const watch=(node,name)=>{let value=node[name],writes=0;Object.defineProperty(node,name,{configurable:true,get(){return value;},set(v){writes++;value=v;}});return{node,name,count:()=>writes,reset(){writes=0;}};};
+  const watched=[['flightDetails','hidden'],['flightHint','hidden'],['flightHint','textContent'],['configureFlightLabel','textContent'],['quickSpeedRow','hidden'],['launchBtn','disabled'],['launchBtn','hidden'],['massBar','title'],['targetName','textContent'],['phaseTag','textContent'],['horizonNotice','hidden'],['engineSection','hidden']].map(([id,name])=>watch($(id),name));
+  watched.push(watch($('launchBtn').querySelector('span'),'textContent'));
+  const styles=['velocityFill','massFuel','progressBar'].map(id=>{const node=$(id),style=node.style;let writes=0;node.style=new Proxy(style,{set(target,key,value){writes++;target[key]=value;return true;}});return{id,count:()=>writes};});
+  renderUI();renderUI();
+  for(const w of watched)assert.equal(w.count(),0,w.name+' stays untouched while the interface state is unchanged');
+  for(const s of styles)assert.equal(s.count(),0,s.id+' style stays untouched while the interface state is unchanged');
+  state.selected='barnard';renderUI();
+  for(const w of watched)assert.ok(w.count()<=1,w.name+' receives only its final value in one pass: '+w.count());
+  assert.equal($('targetName').textContent,object('barnard').name);
+  assert.equal(UIPatch.queue,null,'the write batch is closed after the pass');
+  const node=document.createElement('div');node.hidden=false;
+  assert.equal(UIPatch.begin(),true);assert.equal(UIPatch.begin(),false,'nested passes share one batch');
+  UIPatch.set(node,'hidden',true);UIContent.text(node,'первый');UIContent.text(node,'второй');UIPatch.set(node,'hidden',0);
+  assert.equal(node.hidden,false);assert.equal(node.textContent,undefined,'batched writes wait for the end of the pass');
+  assert.equal(UIPatch.get(node,'hidden'),false);assert.equal(UIPatch.text(node),'второй','later code in the pass reads the pending value');
+  UIPatch.end();assert.equal(node.textContent,'второй');assert.equal(node.hidden,false);
+  UIPatch.set(node,'hidden',1);assert.equal(node.hidden,true,'writes outside a pass apply immediately');
+  const original=renderPanels;renderPanels=()=>{throw Error('render failure');};
+  try{assert.throws(()=>renderUI(),/render failure/);assert.equal(UIPatch.queue,null,'a failed pass cannot leave later writes queued');}finally{renderPanels=original;}
+  console.log('PASS unchanged interface passes write nothing; changed passes write each node once');
+}`);
+
+run(`{
+  state=initial();Cosmology.sync(state);width=900;height=620;cam={x:0,y:0,span:24};cameraGoal=null;followShip=false;pointer={down:false};
+  const sol=object('sol'),visitHit=MapVisits.hit,heading=updateMapHeading,bounds=canvas.getBoundingClientRect;
+  let hits=0,headings=0,layouts=0;
+  MapVisits.hit=function(...args){hits++;return visitHit.apply(this,args);};
+  updateMapHeading=function(...args){headings++;return heading.apply(this,args);};
+  canvas.getBoundingClientRect=function(){layouts++;return bounds.call(this);};
+  try{
+    MapPointer.flush();hits=headings=layouts=0;hover=null;
+    hitObjects=[{o:sol,p:{x:124,y:200}}];
+    for(let i=0;i<25;i++)MapPointer.move(100+i,200);
+    assert.equal(hits,0,'pointer events only record the newest position');assert.equal(hover,null);
+    MapPointer.flush();
+    assert.equal(hits,1,'one hit test serves all pointer events of a frame');assert.equal(layouts,1);
+    assert.equal(hover,sol);assert.equal(canvas.style.cursor,'pointer');
+    MapPointer.flush();assert.equal(hits,1,'a frame without pointer movement repeats nothing');
+    MapPointer.move(700,500);MapPointer.flush();assert.equal(hover||null,null);assert.equal(canvas.style.cursor,'crosshair');
+    MapPointer.move(124,200);MapPointer.leave();MapPointer.flush();
+    assert.equal(hover,null,'a pointer that left the map cannot restore its stale hover');assert.equal(hits,2);
+    hits=headings=layouts=0;const before=cam.span;
+    for(let i=0;i<12;i++)zoomAtPointer({preventDefault(){},deltaY:-40,clientX:300,clientY:200});
+    assert.ok(Math.abs(cam.span/before-Math.exp(-40*.006*12))<1e-12,'every wheel event still changes the scale');
+    assert.equal(headings,0,'wheel events leave the heading for the frame');assert.equal(layouts,1,'wheel events of one frame share the canvas bounds');
+    MapPointer.flush();assert.equal(headings,1);MapPointer.flush();assert.equal(headings,1);
+  }finally{MapVisits.hit=visitHit;updateMapHeading=heading;canvas.getBoundingClientRect=bounds;hitObjects=[];hover=null;}
+  console.log('PASS pointer movement and wheel headings are processed once per frame');
+}`);
