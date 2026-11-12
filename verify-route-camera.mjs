@@ -4,14 +4,14 @@ const {run}=await import('data:text/javascript,'+encodeURIComponent(harness)+'#r
 run(`{
 resize();
 const reset=()=>{OrbitalArrival.enabled=true;state=initial();state.expansion=false;paused=true;Simulation.debt=Simulation.wallDebt=0;FlightQueue.reset();Cosmology.sync(state);followShip=false;cameraGoal=null;};
-const view=()=>JSON.stringify([cam,cameraGoal,followShip,MapSlice.mode,MapSlice.centerZ]);
+const view=()=>JSON.stringify([cam,cameraGoal,followShip,MapSlice.mode]);
 const explore=(mode,following=false)=>{
- MapSlice.mode=mode;MapSlice.centerZ=12345;
+ MapSlice.mode=mode;
  cam={x:8e10,y:-6e10,span:3e10};cameraGoal={x:7e10,y:-5e10,span:1.15e11};
  followShip=following;
  return view();
 };
-for(const mode of ['full','slice','radial']){
+for(const mode of ['full','radial']){
  reset();launch();paused=true;
  select('sirius');Route.add('sirius');select('vega');Route.add('vega');
  assert.equal(Route.future().length,2);
@@ -33,7 +33,7 @@ assert.equal(state.flight?.target,'sirius');assert.equal(view(),stoppedView,'atl
 reset();state.current='proxima';state.ship=Space.point(object('proxima').p3);
 state.flightSetup=FlightSetup.normalize({engine:true,sail:false,collector:false,arrivalFuelPercent:0});
 state.itinerary=[{id:'sgr',mode:'flyby'},{id:'m87',mode:'stop'}];MissionPlanner.startRoute();assert.ok(state.flight?.mission.passage);
-const flybyView=explore('slice',true);Simulation.tick(state.flight.mission.proper*1.00001);
+const flybyView=explore('radial',true);Simulation.tick(state.flight.mission.proper*1.00001);
 assert.equal(state.flight?.target,'m87');assert.equal(view(),flybyView,'flyby continuation preserves explicit follow/centre mode and view');
 // Older saved routes retain the same camera policy at a real stopped arrival.
 reset();OrbitalArrival.enabled=false;state.flightSetup=null;state.departureMode='beam';

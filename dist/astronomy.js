@@ -2,7 +2,7 @@
  * Galaxy optical extents are SIMBAD major/minor axes converted at the atlas distance.
  * They are NOT virial diameters. Diagram orientation is deliberately schematic. */
 const Astro={
- solarLuminosity:3.828e26, solarMass:1.98847e30,
+ solarLuminosity:3.828e26,
  simbad:name=>'https://simbad.cds.unistra.fr/simbad/sim-id?Ident='+encodeURIComponent(name),
  kmSource:'https://doi.org/10.1088/0004-637X/757/2/112',
  mSource:'https://doi.org/10.3847/1538-3881/acd1ec',

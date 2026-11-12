@@ -12,11 +12,10 @@ for(const o of numeric)assert.equal(MapDetails.mapLabelName(o),null,'designation
 // Test actual catalogue designations at the inclusive 10-object boundary.
 // Duplicate hits, offscreen cache padding and invisible enclosing areas must
 // not alter the count. Resolved contours in the viewport do count.
-for(const mode of ['full','slice','radial'])for(const w of [390,1440]){
+for(const mode of ['full','radial'])for(const w of [390,1440]){
  MapSlice.mode=mode;width=w;height=w===390?844:1000;cam={x:1e15,y:1e15,span:1};
  const p={x:Math.min(220,width/2),y:300};
  const target=numeric[0],others=Array.from({length:10},(_,i)=>({o:{id:'label-neighbour-'+i,kind:'star',name:'HIP '+i},p:{x:30+i*20,y:600},r:5}));
- MapSlice.centerZ=target.p3[2];
  const drawCount=n=>{MapLabels.begin();RegionMap.hits=[];hitObjects=[{o:target,p,r:5},...others.slice(0,n-1)];MapAnnotations.draw();return MapAnnotations.hits.find(h=>h.object.id===target.id);};
  assert.ok(drawCount(1));assert.ok(drawCount(9));const ten=drawCount(10);assert.ok(ten);
  assert.equal(drawCount(11),undefined,'11 visible objects suppress unpromoted numeric captions');
@@ -29,7 +28,6 @@ for(const mode of ['full','slice','radial'])for(const w of [390,1440]){
  // The same anchor must hide, rather than move, when a label, point, contour,
  // or ship conflicts. Clearing the conflict restores its anchor.
  for(const o of numeric){
-  MapSlice.centerZ=o.p3[2];
   MapLabels.begin();RegionMap.hits=[];hitObjects=[{o,p,r:5}];MapAnnotations.draw();
   const box=MapAnnotations.hits.find(h=>h.object.id===o.id)?.box;assert.ok(box,o.id);
   const render=()=>{MapAnnotations.draw();return MapAnnotations.hits.find(h=>h.object.id===o.id);};
@@ -73,10 +71,10 @@ for(const mode of ['full','radial'])for(const w of [390,1440]){
 // and Procyon B at three orbital epochs in every mode and viewport, using
 // real rendering/visibility rather than assigning a name to one special ID.
 let cases=0;
-for(const years of [0,20,50])for(const mode of ['full','slice','radial'])for(const w of [390,1440]){
+for(const years of [0,20,50])for(const mode of ['full','radial'])for(const w of [390,1440]){
  state.universeElapsed=years;MapSlice.mode=mode;width=w;height=w===390?844:1000;
  for(const id of ['hyg-71453','hyg-118441','hyg-118493']){
-  const o=object(id),point=MapLayout.project(o);MapSlice.centerZ=OrbitalMotion.snapshot3D(o)[2];
+  const o=object(id),point=MapLayout.project(o);
   // Resolve the companion locally, with all unrelated objects outside the view.
   cam={x:point.x,y:point.y,span:6e-5};state.selected='sol';
   MapLabels.begin();RegionMap.hits=[];drawObjects();ExtendedCatalog.draw();MapAnnotations.draw();
@@ -86,9 +84,8 @@ for(const years of [0,20,50])for(const mode of ['full','slice','radial'])for(con
   const fixed=JSON.stringify(label.box);MapAnnotations.draw();assert.equal(JSON.stringify(MapAnnotations.hits.find(h=>h.object.id===id)?.box),fixed,'repeat frame is stable');cases++;
  }
 }
-for(const mode of ['full','slice','radial'])for(const w of [390,1440])for(const id of ['hyg-71453','3c273']){
+for(const mode of ['full','radial'])for(const w of [390,1440])for(const id of ['hyg-71453','3c273']){
  MapSlice.mode=mode;width=w;height=1000;const o=object(id),point=MapLayout.project(o),pixel=6e-5/width;
- MapSlice.centerZ=OrbitalMotion.snapshot3D(o)[2];
  cam={x:point.x+(.43*width+60)*pixel,y:point.y,span:6e-5};
  MapLabels.begin();RegionMap.hits=[];drawObjects();ExtendedCatalog.draw();
  assert.ok(!hitObjects.some(h=>h.o.id===id),'point has left the renderer padding');

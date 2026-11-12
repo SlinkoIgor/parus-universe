@@ -3,7 +3,7 @@
 // These display thresholds are not measured membership/halo boundaries.
 // Physical p3 is never changed by the map.
 const MapLayout={
- cache:new Map(),anchors:[],fixedKinds:new Set(['structure','wall','void','ring','arc','horizon']),
+ cache:new Map(),fixedKinds:new Set(['structure','wall','void','ring','arc','horizon']),
  version:4,
  disk:{radius:50000,innerHeight:1500,outerHeight:3000,gap:4000},
  base(p3){return{x:p3[0],y:-p3[1]};},
@@ -43,7 +43,6 @@ const MapLayout={
   return this.offset(o,base);
  },
  place(o,base=this.base(o.p3),resolve){const d=o.mapOffset?{x:o.mapOffset[0],y:o.mapOffset[1]}:this.displacement(o,base,resolve);return{x:base.x+d.x,y:base.y+d.y};},
- legacy(p3,id){const d=Math.hypot(...p3),a=Math.atan2(-p3[1],p3[0])+(LAYOUT_DATA.entries[id]?.offset||0);return{x:d*Math.cos(a),y:d*Math.sin(a)};},
  project(p){const base=globalThis.OrbitalMotion?.position(p)||this.baseProject(p);return typeof Cosmology==='undefined'?base:Cosmology.project(p,base);},
  baseProject(p){return globalThis.MapRadial?.active()?MapRadial.project(p):this.ordinaryProject(p);},
  ordinaryProject(p){
@@ -52,7 +51,7 @@ const MapLayout={
   return this.place(p);
  },
  init(){
-  this.cache.clear();this.anchors=[];
+  this.cache.clear();
   const index=new Map();for(const o of OBJECTS)if(!index.has(o.id))index.set(o.id,o);
   const resolve=id=>index.get(id)||this.resolve?.(id);
   for(const o of OBJECTS)if(o.p3)this.cache.set(o.id,this.place(o,undefined,resolve));

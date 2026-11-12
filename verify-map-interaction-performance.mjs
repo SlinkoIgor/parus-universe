@@ -39,8 +39,8 @@ run(`{
     assert.equal(MapGeometry.intersectsView(edge),true,'partially visible contours survive');
     assert.equal(MapGeometry.contains(remote,{x:0,y:0}),false);assert.equal(builds,0,'outside point is rejected by analytic bounds');
     assert.equal(MapGeometry.contains(tiny,{x:0,y:0}),true);assert.equal(builds,1);
-    for(const mode of ['full','radial','slice']){
-      MapSlice.mode=mode;MapSlice.centerZ=0;
+    for(const mode of ['full','radial']){
+      MapSlice.mode=mode;
       for(const id of ['andromeda','milkyway','virgo','omega','orion']){
         const o=object(id),b=MapGeometry.indexBounds(o),center=MapLayout.project(o);if(!b)continue;
         cam={...center,span:Math.max(b[2]-b[0],b[3]-b[1])*2};

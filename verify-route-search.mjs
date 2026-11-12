@@ -15,14 +15,13 @@ const contained=()=>{
  const v=routeViewport(true),objects=Route.nodes().flatMap(n=>[object(n.id),Route.endpoint(n)]);
  for(const o of [state.ship,...objects]){
   const p=screen(o);assert.ok(p.x>=v.left&&p.x<=v.right&&p.y>=v.top&&p.y<=v.bottom,JSON.stringify({id:o.id,p,v,next}));
-  if(MapSlice.mode==='slice')assert.ok(MapSlice.includes(o),'route point must be inside the physical slice');
  }
  cam=previous;
 };
 for(const size of [{w:1440,h:1000,cardLeft:1114,cardTop:400},{w:390,h:844,cardLeft:16,cardTop:450}]){
  width=size.w;height=size.h;hudHeight=size.w<700?125:94;
  $('flightCard').getBoundingClientRect=()=>({left:size.cardLeft,top:size.cardTop});
- for(const mode of ['full','slice','radial']){
+ for(const mode of ['full','radial']){
   reset();MapSlice.mode=mode;cam={x:1e11,y:-1e11,span:1e11};
   state.itinerary=[{id:'alpha',mode:'stop'},{id:'sgr',mode:'flyby'}];state.selected='sgr';
   show.call(Route);$('addRoutePoint').onclick();assert.equal(Route.picking,true);assert.equal($('catalog').hidden,false);

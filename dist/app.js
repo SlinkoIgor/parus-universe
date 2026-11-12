@@ -339,36 +339,6 @@ $('flightDetails').addEventListener('toggle', () => {
     ? reading.scrollTop + details.getBoundingClientRect().top - reading.getBoundingClientRect().top
     : 0;
 });
-document.querySelectorAll('[data-departure]').forEach(
-  (b) =>
-    (b.onclick = () => {
-      if (state.flight || (b.dataset.departure !== 'engine' && !canBoost(b.dataset.departure)))
-        return;
-      state.departureMode = b.dataset.departure;
-      if (OrbitalArrival.enabled) {
-        const mode = b.dataset.departure;
-        state.flightSetup = FlightSetup.normalize({
-          ...FlightSetup.preferred(),
-          engine: mode === 'engine',
-          sail: mode !== 'engine',
-          collector: mode !== 'engine',
-          burst: mode === 'burst',
-        });
-      }
-      renderUI();
-      persist();
-    }),
-);
-document.querySelectorAll('[data-sail]').forEach(
-  (b) =>
-    (b.onclick = () => {
-      if (state.flight || !canBoost()) return;
-      state.sail = +b.dataset.sail;
-      renderUI();
-      persist();
-    }),
-);
-
 $('timeSlider').addEventListener('input', (event) =>
   setTimeRate(TIME_RATES[Number(event.target.value)]),
 );
@@ -414,7 +384,6 @@ $('resetBtn').onclick = () => {
     speed = 1;
     Simulation.debt = 0;
     Simulation.wallDebt = 0;
-    delete Simulation.smoothedFactor;
     lastFrame = performance.now();
     effects = [];
     goCamera(0, 0, 24);
@@ -437,7 +406,6 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (e.key === 'Escape' && !$('mapFilters').hidden) {
-    if (MapFilters.pickerOpen()) return;
     e.preventDefault();
     MapFilters.close();
     return;

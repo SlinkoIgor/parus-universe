@@ -6,9 +6,9 @@ run(['map-visibility-data','map-visibility','map-label-data','map-annotations'].
 run(`state=initial();paused=true;Cosmology.sync(state);cameraGoal=null;releaseShipCamera();filter='all';MapLayers.active=false;width=1440;height=1000;`);
 const science=run('JSON.stringify(OBJECTS.map(o=>[o.id,o.p3,o.mapPosition,o.redshift,o.cosmology,o.source,o.navigable,o.region]))');
 assert.deepEqual(JSON.parse(run('JSON.stringify(OBJECTS.filter(o=>MapVisibility.overviewPoint(o)).map(o=>o.id).sort())')),['jades-z14','mom-z14']);
-for(const mode of ['full','slice','radial']){
+for(const mode of ['full','radial']){
  context.mode=mode;
- run(`MapSlice.mode=mode;MapSlice.centerZ=0;cam={x:0,y:0,span:1.15e11};
+ run(`MapSlice.mode=mode;cam={x:0,y:0,span:1.15e11};
   for(const o of OBJECTS.filter(o=>MapVisibility.overviewPoint(o))){
    assert.ok(o.cosmicLandmark&&o.source&&o.cosmology.distanceLy>Cosmology.horizon(0));
    assert.equal(MapVisibility.limit(o),MAP_VISIBILITY_BOOT.pixels[o.id][mode==='radial'?1:0],'preserve the fixed density threshold');

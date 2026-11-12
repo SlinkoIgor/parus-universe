@@ -6,14 +6,14 @@ resize();width=1440;height=1000;hudHeight=140;cameraGoal=null;releaseShipCamera(
 state=initial();state.expansion=false;Cosmology.sync(state);
 const visitsScience=JSON.stringify(OBJECTS.map(o=>[o.id,o.p3,o.mapPosition,o.region]));
 state.visited=['sol','alpha','sirius','andromeda','sgr'];
-for(const mode of ['full','radial','slice'])for(const span of [.00006,24,1000,130000,3e7,5e9,1.15e11]){
- MapSlice.mode=mode;MapSlice.centerZ=0;cam={x:0,y:0,span};
+for(const mode of ['full','radial'])for(const span of [.00006,24,1000,130000,3e7,5e9,1.15e11]){
+ MapSlice.mode=mode;cam={x:0,y:0,span};
  const before=JSON.stringify(state);MapVisits.draw();
  const shown=MapVisits.groups.flatMap(g=>g.objects.map(o=>o.id));
  assert.ok(shown.includes('sol'),'home visit remains at '+mode+' '+span);
  for(const id of state.visited){
   const o=object(id),p=screen(o),inside=p.x>=0&&p.x<=width&&p.y>=0&&p.y<=cameraViewportHeight();
-  if(inside&&MapSlice.includes(o))assert.ok(shown.includes(id),'visit survives LOD at '+mode+' '+span+': '+id);
+  if(inside)assert.ok(shown.includes(id),'visit survives LOD at '+mode+' '+span+': '+id);
  }
  assert.equal(new Set(shown).size,shown.length,'each visit appears once, including grouped points');
  for(const g of MapVisits.groups){
@@ -45,9 +45,6 @@ MapSlice.mode='full';cam={x:0,y:0,span:130000};
 const filterMatch=ExtendedCatalog.matchesMap;ExtendedCatalog.matchesMap=()=>false;
 try{drawObjects();assert.equal(hitObjects.length,0);MapVisits.draw();assert.ok(MapVisits.groups.flatMap(g=>g.objects).some(o=>o.id==='alpha'));}
 finally{ExtendedCatalog.matchesMap=filterMatch;}
-// A slice still represents the actual physical slab. History cannot invent
-// an in-slice position or fade with the ordinary catalogue's zoom thresholds.
-MapSlice.mode='slice';MapSlice.centerZ=1e8;MapVisits.draw();assert.equal(MapVisits.groups.length,0);
 MapSlice.mode='full';MapVisits.draw();assert.ok(MapVisits.groups.length);
 
 // Streamed/generated destinations remain accessible after their tiles have

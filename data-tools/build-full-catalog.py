@@ -33,7 +33,7 @@ def dump(p,v):
     p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(v,ensure_ascii=False,separators=(',',':'),allow_nan=False))
 
 # Export only the original physical and display layers, never the extension itself.
-js="""const fs=require('fs'),vm=require('vm'),c=vm.createContext({console});vm.runInContext(['catalog','astronomy','catalog-import','catalog-retired','coordinates','cosmic-catalog','layout-data','map-layout','orbital-motion'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\\n'),c);process.stdout.write(vm.runInContext('JSON.stringify({core:OBJECTS.map(o=>({...o,display:o.p3?MapLayout.base(o.p3):{x:o.x,y:o.y}})),joint:OrbitalMotion.referenceAstrometry()})',c));"""
+js="""const fs=require('fs'),vm=require('vm'),c=vm.createContext({console});vm.runInContext(['catalog','astronomy','catalog-import','catalog-retired','coordinates','cosmic-catalog','map-layout','orbital-motion'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\\n'),c);process.stdout.write(vm.runInContext('JSON.stringify({core:OBJECTS.map(o=>({...o,display:o.p3?MapLayout.base(o.p3):{x:o.x,y:o.y}})),joint:OrbitalMotion.referenceAstrometry()})',c));"""
 node='/opt/homebrew/bin/node' if Path('/opt/homebrew/bin/node').exists() else 'node'
 exported=json.loads(subprocess.check_output([node,'-e',js],cwd=ROOT))
 core=exported['core'];joint=exported['joint']

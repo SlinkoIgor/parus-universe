@@ -13,7 +13,6 @@ const ExtendedCatalog = {
   seq: 0,
   searchLimit: 100,
   lastUpdate: -Infinity,
-  active: 0,
   errors: new Map(),
   foreground: new Set(EXTENDED_BOOT.foreground),
   systemByMember: new Map(),
@@ -58,14 +57,12 @@ const ExtendedCatalog = {
     return (
       (globalThis.MapFilters?.anchor(o) || this.matches(o.kind, selected, o)) &&
       (!globalThis.MapFilters || MapFilters.matches(o)) &&
-      (categoryOnly || !o.id || !globalThis.MapSlice || MapSlice.includes(o)) &&
       (categoryOnly || this.isSystemMember(o) || globalThis.MapFilters?.promotes(o) || globalThis.MapFilters?.anchor(o) || !globalThis.MapLayers || MapLayers.admits(o))
     );
   },
-  opacity(o, detail = true, geometry = false) {
+  opacity(o, detail = true) {
     return (
       (detail ? MapDetails.opacity(o, cam.span) : 1) *
-      (geometry ? 1 : (globalThis.MapSlice?.opacity(o) ?? 1)) *
       (this.coreIndex?.has(o.id) ||
       this.pinned.has(o.id) ||
       globalThis.MapFilters?.promotes(o) ||
@@ -80,9 +77,7 @@ const ExtendedCatalog = {
     return (h >>> 0) % 181;
   },
   adoptCut(rows, now) {
-    const fresh = rows.filter(
-        (o) => !o.atlasOnly && (!globalThis.MapSlice || MapSlice.includes(o)),
-      ),
+    const fresh = rows.filter((o) => !o.atlasOnly),
       byid = new Map(fresh.map((o) => [o.id, o]));
     // The fixed hierarchy already contains every eligible point. Only legacy
     // indexes need viewport history to keep their changing representatives.
@@ -137,7 +132,6 @@ const ExtendedCatalog = {
     if (
       o.atlasOnly ||
       !this.matchesMap(o, true) ||
-      !MapSlice.includes(o) ||
       (!MapDetails.visible(o, cam.span) && !MapDetails.sparse(o, cam.span))
     )
       return false;
@@ -628,7 +622,7 @@ const ExtendedCatalog = {
     const load = view && typeof AbortController === 'function'
       ? { controller: new AbortController(), retained: false } : null;
     const promise = this.readJSON(
-      /^(map-slices|map-radial|map-visibility)\//.test(file) ? file : 'catalog-data/' + file,
+      /^(map-radial|map-visibility)\//.test(file) ? file : 'catalog-data/' + file,
       load ? { signal: load.controller.signal } : undefined,
     )
       .then((rows) => {
@@ -658,12 +652,7 @@ const ExtendedCatalog = {
   nodesForView(view, w, h) {
     if (globalThis.MapFilters?.narrow) return [];
     if (globalThis.MapVisibility?.active) return MapVisibility.filesForView(view, w, h);
-    const manifest =
-      globalThis.MapSlice?.mode === 'slice'
-        ? MapSlice.treeForView(view)
-        : globalThis.MapRadial?.active()
-          ? MapRadial.manifest
-          : this.manifest;
+    const manifest = globalThis.MapRadial?.active() ? MapRadial.manifest : this.manifest;
     if (!manifest) return [];
     view = Cosmology.referenceView(view);
     const pixel = view.span / Math.max(1, w),
@@ -756,7 +745,6 @@ const ExtendedCatalog = {
     this.sweepGalaxies();
     if (
       this.manifest &&
-      (globalThis.MapSlice?.mode !== 'slice' || MapSlice.manifest) &&
       (!globalThis.MapRadial?.active() || MapRadial.manifest)
     ) {
       this.wanted = this.nodesForView(cam, width, height);
@@ -773,10 +761,7 @@ const ExtendedCatalog = {
             })
             .catch(() => {});
       if (this.wanted.every((file) => this.cache.has(file))) {
-        const key =
-          (MapSlice.mode === 'slice'
-            ? MapSlice.centerZ + ':' + MapSlice.halfThicknessAt().toPrecision(5) + ':'
-            : '') + this.wanted.join('|');
+        const key = this.wanted.join('|');
         if (key !== this.cutKey) {
           this.cutKey = key;
           this.adoptCut(
@@ -875,7 +860,6 @@ const ExtendedCatalog = {
       UniverseMap.focus(o);
       return;
     }
-    globalThis.MapSlice?.focus(o);
     if (o.nuclearStar) {
       NuclearStars.focus(o.orbit);
       return;
@@ -1016,15 +1000,7 @@ const ExtendedCatalog = {
       if (correction && !stellarNavigation) this.adopt(o, this.decode(correction), saved);
       if ((o.mapGeometry !== MapLayout.version || !Number.isFinite(o.mapPosition?.x) || !Number.isFinite(o.mapPosition?.y)) && o.p3?.every(Number.isFinite)) {
         const previous = o.mapGeometry ?? saved?.catalogGeometry ?? 1,
-          host = o.galaxyMember && this.coreIndex.get(o.parentGalaxy);
-        let raw = MapLayout.base(o.p3);
-        if (previous < 2 && MapLayout.version < 4) {
-          if (host && o.mapPosition) {
-            const before = MapLayout.legacy(host.p3, host.id),
-              after = MapLayout.rawProject(host);
-            raw = { x: raw.x + after.x - before.x, y: raw.y + after.y - before.y };
-          } else raw = MapLayout.base(o.p3);
-        }
+          raw = MapLayout.base(o.p3);
         delete o.mapOffset;
         const d = MapLayout.displacement(
           o,

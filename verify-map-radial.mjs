@@ -73,7 +73,7 @@ run(`{
  const physical=()=>JSON.stringify({ship:state.ship,proper:state.proper,earth:state.earth,matter:state.matter,beta:state.beta,phase:state.phase,flight:state.flight&&Object.fromEntries(Object.entries(state.flight).filter(([k])=>k!=='view'))});
  state=initial();state.selected='coma';launch(true);paused=true;const expedition=physical();
  const flight=state.flight,ordinary=(()=>{MapSlice.setMode('full');return FlightView.at(flight,.5);})();
- for(const mode of ['radial','slice','full','radial','full']){
+ for(const mode of ['radial','full','radial','full']){
   MapSlice.setMode(mode);const a=FlightView.at(flight,0),b=FlightView.at(flight,1),middle=FlightView.at(flight,.5);
   assert.ok(Math.hypot(middle.x-(a.x+b.x)/2,middle.y-(a.y+b.y)/2)<1e-6);
   assert.equal(physical(),expedition,'physical expedition unchanged by geometry');

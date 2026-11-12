@@ -23,13 +23,13 @@ const summary=run(`(()=>{
   if(m.kind==='footprint')assert.ok(Number.isFinite(o.positionAngleDeg),'never substitute PA=0 for an unknown angle');
   if(m.kind==='sphere')assert.match(m.note,/не восстановлен/,'a size model must disclose unknown shape');
   const b=MapGeometry.indexBounds(o);
-  for(const mode of ['full','radial']){const g=MapGeometry.projected(o,{mode,slice:false,tolerance:1000,steps:96});assert.ok(g.bounds[0]>=b[0]-1e-4&&g.bounds[1]>=b[1]-1e-4&&g.bounds[2]<=b[2]+1e-4&&g.bounds[3]<=b[3]+1e-4,'conservative local bounds contain source geometry in every projection: '+o.id+' '+mode);}
-  assert.deepEqual(MapGeometry.projected(o,{mode:'radial',slice:false,tolerance:1000,steps:96}).paths,MapGeometry.projected(o,{mode:'full',slice:false,tolerance:1000,steps:96}).paths,'radial translation preserves every local shape: '+o.id);
+  for(const mode of ['full','radial']){const g=MapGeometry.projected(o,{mode,tolerance:1000,steps:96});assert.ok(g.bounds[0]>=b[0]-1e-4&&g.bounds[1]>=b[1]-1e-4&&g.bounds[2]<=b[2]+1e-4&&g.bounds[3]<=b[3]+1e-4,'conservative local bounds contain source geometry in every projection: '+o.id+' '+mode);}
+  assert.deepEqual(MapGeometry.projected(o,{mode:'radial',tolerance:1000,steps:96}).paths,MapGeometry.projected(o,{mode:'full',tolerance:1000,steps:96}).paths,'radial translation preserves every local shape: '+o.id);
   if(m.kind==='spine'){
    const r=o.region;assert.equal(r.offsets3.length,r.points.length);spines.push(o);sourceVertices+=r.offsets3.length;
    // Compare source XY vertices and edges directly: anchor placement must
    // neither bend straight source segments nor add nonlinear subdivisions.
-   const radial=MapGeometry.projected(o,{mode:'radial',slice:false,tolerance:1000});
+   const radial=MapGeometry.projected(o,{mode:'radial',tolerance:1000});
    assert.equal(radial.paths.length,r.offsets3.length-1);
    for(let i=0;i<radial.paths.length;i++)assert.equal(JSON.stringify(radial.paths[i].points),JSON.stringify(r.offsets3.slice(i,i+2).map(v=>({x:v[0],y:-v[1]}))),o.id+' preserves each source edge in its local frame');
   }
@@ -40,8 +40,8 @@ const summary=run(`(()=>{
  // Independent ellipse invariants of the adopted M31 disk after rotating its
  // normal into Galactic axes: no use of the renderer's angle or axis fields.
  const galaxy=byId.get('andromeda'),R=galaxy.galaxy.diameterLy/2,angle=28.28427135000061*Math.PI/180,ratio=.5007099650625793;
- for(const mode of ['full','slice','radial']){
-  const g=MapGeometry.projected(galaxy,{mode,slice:false});assert.equal(g.model.kind,'disk');
+ for(const mode of ['full','radial']){
+  const g=MapGeometry.projected(galaxy,{mode});assert.equal(g.model.kind,'disk');
   for(const p of g.points){const a=(p.x*Math.cos(angle)+p.y*Math.sin(angle))/R,b=(-p.x*Math.sin(angle)+p.y*Math.cos(angle))/(R*ratio);assert.ok(Math.abs(a*a+b*b-1)<2e-5,'M31 contour follows its physical disk normal');}
  }
  // At an extreme zoom, refine the actual curved source boundary, not the
@@ -81,44 +81,37 @@ const summary=run(`(()=>{
  const unknown={id:'geometry-old-unknown-size',kind:'galaxy',streamed:true,p3:[1e7,0,0],d:1e7,diameterLy:30000,sizeEstimated:true,galaxy:{id:'geometry-old-unknown-size',diameterLy:30000,axisRatio:.4}};
  ExtendedCatalog.pin(unknown);assert.equal(unknown.galaxy,undefined);assert.equal(MapGeometry.model(unknown),null,'a historical guessed diameter stays a point');ExtendedCatalog.pinned.delete(unknown.id);
  const curatedSize=galaxy.galaxy.diameterLy;ExtendedCatalog.prepareGalaxy(galaxy);assert.equal(galaxy.galaxy.diameterLy,curatedSize,'curated disk scale survives preparation');
- // A sphere sliced at 0.6 R has an 0.8 R orthographic cross-section.
- const sphere={id:'geometry-sphere',kind:'cluster',p3:[100,200,300],region:{shape:'ellipse',major:100,minor:100}},cut=MapGeometry.projected(sphere,{mode:'slice',centerZ:330,halfThickness:0,steps:256});
- for(const p of cut.points)assert.ok(Math.abs(Math.hypot(p.x,p.y)-40)<1e-8);
- assert.equal(MapGeometry.projected(sphere,{mode:'slice',centerZ:400,halfThickness:1}).points.length,0,'no outline outside the physical slab');
+ const sphere={id:'geometry-sphere',kind:'cluster',p3:[100,200,300],region:{shape:'ellipse',major:100,minor:100}},outline=MapGeometry.projected(sphere,{steps:256});
+ assert.ok(outline.points.length>=256);for(const p of outline.points)assert.ok(Math.abs(Math.hypot(p.x,p.y)-50)<1e-8);
  // The same spherical model stays a local circle at the radial pole,
  // near the pole and in the map plane. Anchor translation cannot create holes.
  for(const p3 of [[0,0,80],[5,3,80],[120,40,70],[0,0,0]]){
-  const pole={id:'geometry-polar-sphere-'+p3,kind:'void',p3,region:{major:60,minor:60}},circle=MapGeometry.projected(pole,{mode:'radial',slice:false,steps:512});
+  const pole={id:'geometry-polar-sphere-'+p3,kind:'void',p3,region:{major:60,minor:60}},circle=MapGeometry.projected(pole,{mode:'radial',steps:512});
   assert.equal(circle.paths.length,1);assert.ok(!circle.paths[0].hole);
   for(const p of circle.points)assert.ok(Math.abs(Math.hypot(p.x,p.y)-30)<1e-10,'isotropic size model retains its circle at any anchor');
   MapSlice.mode='radial';cam={...MapRadial.placement(pole).position,span:120};assert.ok(MapGeometry.contains(pole,MapRadial.placement(pole).position),'sphere includes its translated centre');
  }
  MapSlice.mode='full';
- // Independently sample a physical ball and a slab through it. Their projected
- // points must fit the analytic envelope, including near-pole geometry.
- for(const position of [[120,40,70],[5,3,80],[0,0,0]])for(const slicing of [false,true]){
-  const o={id:'geometry-ball-'+position+'-'+slicing,kind:'void',p3:position,region:{major:60,minor:60}},g=MapGeometry.projected(o,{mode:'radial',slice:slicing,centerZ:position[2]+10,halfThickness:5,steps:2048}),c=MapRadial.placement(o).position;
-  for(let i=0;i<80;i++)for(let j=0;j<40;j++){const a=i/80*2*Math.PI,z=-30+j/39*60,r=Math.sqrt(Math.max(0,900-z*z)),v=[position[0]+r*Math.cos(a),position[1]+r*Math.sin(a),position[2]+z];if(slicing&&Math.abs(v[2]-position[2]-10)>5)continue;const p={x:v[0]-position[0],y:position[1]-v[1]};assert.ok(p.x>=g.bounds[0]-.02&&p.x<=g.bounds[2]+.02&&p.y>=g.bounds[1]-.02&&p.y<=g.bounds[3]+.02,'local sphere bounds cover independently sampled physical points');}
+ // Independently sample a physical ball. Its projected points must fit the
+ // analytic envelope, including near-pole geometry.
+ for(const position of [[120,40,70],[5,3,80],[0,0,0]]){
+  const o={id:'geometry-ball-'+position,kind:'void',p3:position,region:{major:60,minor:60}},g=MapGeometry.projected(o,{steps:2048});
+  for(let i=0;i<80;i++)for(let j=0;j<40;j++){const a=i/80*2*Math.PI,z=-30+j/39*60,r=Math.sqrt(Math.max(0,900-z*z)),v=[position[0]+r*Math.cos(a),position[1]+r*Math.sin(a),position[2]+z];const p={x:v[0]-position[0],y:position[1]-v[1]};assert.ok(p.x>=g.bounds[0]-.02&&p.x<=g.bounds[2]+.02&&p.y>=g.bounds[1]-.02&&p.y<=g.bounds[3]+.02,'local sphere bounds cover independently sampled physical points');}
  }
- // A known 3D spine crossing the slab twice must preserve both disjoint arcs;
- // clipping cannot introduce a connection through an excluded Z interval.
- const line={id:'geometry-slab-line',kind:'structure',p3:[1e9,0,0],region:{shape:'polyline',major:100,minor:100,points:[[0,0],[10,0],[20,0]],offsets3:[[0,0,-10],[10,0,10],[20,0,-10]]}};
- const clipped=MapGeometry.projected(line,{mode:'slice',centerZ:0,halfThickness:2});assert.equal(clipped.paths.length,2);
- assert.deepEqual(clipped.paths.map(p=>p.points.map(q=>q.x)),[[4,6],[14,16]]);
+ // A known 3D spine keeps every source segment with its exact endpoints.
+ const line={id:'geometry-spine-line',kind:'structure',p3:[1e9,0,0],region:{shape:'polyline',major:100,minor:100,points:[[0,0],[10,0],[20,0]],offsets3:[[0,0,-10],[10,0,10],[20,0,-10]]}};
+ const segments=MapGeometry.projected(line);assert.equal(segments.paths.length,2);
+ assert.deepEqual(segments.paths.map(p=>p.points.map(q=>q.x)),[[0,10],[10,20]]);
  // All 40 source orbits and all phases retain true 3D radii, source sky axes,
  // common physical foci and an unchanged navigation reference.
  let orbitSamples=0;
  const original=JSON.stringify(OBJECTS.map(o=>[o.id,o.p3]));
  for(const q of NuclearStars.rows)for(const E of [0,.5,1.7]){
   const physical=NuclearStars.offset(q,E),local=NuclearStars.local(q,E);assert.ok(Math.abs(Math.hypot(...physical)-Math.hypot(...local))<1e-12);
-  for(const mode of ['full','slice','radial']){MapSlice.mode=mode;const c=mode==='radial'?MapRadial.placement(byId.get('sgr')).position:MapLayout.ordinaryProject(byId.get('sgr')),p=NuclearStars.map(q,E);assert.ok(Math.hypot(p.x-c.x-physical[0],p.y-c.y+physical[1])<1e-10,'nuclear orbit uses the documented local Galactic XY frame');orbitSamples++;}
+  for(const mode of ['full','radial']){MapSlice.mode=mode;const c=mode==='radial'?MapRadial.placement(byId.get('sgr')).position:MapLayout.ordinaryProject(byId.get('sgr')),p=NuclearStars.map(q,E);assert.ok(Math.hypot(p.x-c.x-physical[0],p.y-c.y+physical[1])<1e-10,'nuclear orbit uses the documented local Galactic XY frame');orbitSamples++;}
  }
  for(const q of OrbitalMotion.planets)for(const E of [0,.5,2]){const v=OrbitalMotion.vector(q,E),expected=q.a*(1-q.e*Math.cos(E))*OrbitalMotion.AU;assert.ok(Math.abs(Math.hypot(...v)-expected)<1e-12,'JPL ecliptic to Galactic rotation preserves planet distance');orbitSamples++;}
  assert.equal(JSON.stringify(OBJECTS.map(o=>[o.id,o.p3])),original);
- // Clip a physically known inclined orbit through a slab wholly excluding it.
- MapSlice.mode='slice';MapSlice.centerZ=1e10;cam={x:0,y:0,span:.001};let segments=0;const lineTo=ctx.lineTo;ctx.lineTo=()=>segments++;
- NuclearStars.draw();OrbitalMotion.draw();ctx.lineTo=lineTo;assert.equal(segments,0,'slice removes excluded orbital curves, not only their markers');
- MapSlice.mode='full';MapSlice.centerZ=0;
  // Catalog associations without orbital elements are links, never ellipses.
  let fakeEllipses=0;const ellipse=ctx.ellipse;ctx.ellipse=()=>fakeEllipses++;ExtendedCatalog.drawSystems();ctx.ellipse=ellipse;assert.equal(fakeEllipses,0);
  return{catalogRevision:EXTENDED_BOOT.revision,geometryVersion:MapLayout.version,shapeGeometryVersion:MapGeometry.version,radialProfile:MapRadial.key,mappedRows:geometryRows.length,models:counts,families,measuredPositionAngles:sourcePA,filaments:spines.length,sourceSpineVertices:sourceVertices,galaxyMembersChecked:galaxyMembers,rigidMembersChecked:rigidMembers,orbitalSamples:orbitSamples,unlocatedWithoutMeasuredContours:unlocated,missingGeometry:missing};

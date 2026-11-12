@@ -16,15 +16,15 @@ for(let i=0;i<rows.length;i+=2000){context.batch=rows.slice(i,i+2000);decoded.pu
 const all=[...new Map([...core,...decoded].map(o=>[o.id,o])).values()].filter(o=>!o.atlasOnly&&!o.synthetic&&o.positionQuality!=='unknown'&&o.p3?.every(Number.isFinite));
 const byid=new Map(all.map(o=>[o.id,o]));context.auditAll=all;context.auditById=byid;
 run(`globalThis.auditOldResolve=MapLayout.resolve;MapLayout.resolve=id=>auditById.get(id);state=initial();paused=true;state.expansion=false;Cosmology.sync(state);`);
-const radialPointer=read('dist/map-radial/current.json'),slicePointer=read('dist/map-slices/current.json');
-context.auditRadialManifest=read('dist/'+radialPointer.dataRoot+'/manifest.json');context.auditRadialLayers=read('dist/'+radialPointer.dataRoot+'/layers.json');context.auditSliceManifest=read('dist/'+slicePointer.dataRoot+'/manifest.json');context.auditManifest=manifest;
-run(`MapRadial.manifest=auditRadialManifest;MapRadial.layers=auditRadialLayers;MapSlice.manifest=auditSliceManifest;ExtendedCatalog.manifest=auditManifest;`);
+const radialPointer=read('dist/map-radial/current.json');
+context.auditRadialManifest=read('dist/'+radialPointer.dataRoot+'/manifest.json');context.auditRadialLayers=read('dist/'+radialPointer.dataRoot+'/layers.json');context.auditManifest=manifest;
+run(`MapRadial.manifest=auditRadialManifest;MapRadial.layers=auditRadialLayers;ExtendedCatalog.manifest=auditManifest;`);
 const summary={catalogRevision:pointer.revision,profileKey:run('MapRadial.key'),counts:{all:all.length,stars:all.filter(o=>o.kind==='star').length,galaxies:all.filter(o=>o.kind==='galaxy').length},modes:{}};
 const d3=(a,b)=>Math.hypot(...a.map((n,i)=>n-b[i]));
 const compact=(o,p,c=[0,0,0],q={x:0,y:0})=>({id:o.id,name:o.name,kind:o.kind,dLy:o.d,trueRadiusLy:d3(o.p3,c),mapRadiusLy:Math.hypot(p.x-q.x,p.y-q.y),zLy:o.p3[2],source:o.catalog||o.source,galaxyMember:!!o.galaxyMember,parentGalaxy:o.parentGalaxy||null,positionQuality:o.positionQuality,radial:radialPlacement(o)});
-for(const mode of ['full','slice','radial']){
+for(const mode of ['full','radial']){
  run(`MapSlice.setMode('${mode}');`);
- const project=run('MapLayout.project.bind(MapLayout)'),includes=run('MapSlice.includes.bind(MapSlice)'),eligible=all.filter(includes),mw=byid.get('sgr'),sun=byid.get('sol'),m31=byid.get('andromeda'),qmw=project(mw),qsun=project(sun),q31=project(m31),geometry=run("GALAXIES.find(g=>g.id==='milkyway')");
+ const project=run('MapLayout.project.bind(MapLayout)'),eligible=all,mw=byid.get('sgr'),sun=byid.get('sol'),m31=byid.get('andromeda'),qmw=project(mw),qsun=project(sun),q31=project(m31),geometry=run("GALAXIES.find(g=>g.id==='milkyway')");
  const inside=(p,ellipse=true)=>{const x=p.x-qmw.x,y=p.y-qmw.y,a=geometry.rotation,u=x*Math.cos(a)+y*Math.sin(a),v=-x*Math.sin(a)+y*Math.cos(a);return ellipse?(u/(geometry.diameterLy/2))**2+(v/(geometry.diameterLy*geometry.axisRatio/2))**2<=1:Math.hypot(x,y)<=geometry.diameterLy/2;};
  const starPoints=eligible.filter(o=>o.kind==='star'||o.kind==='pulsar').map(o=>({o,p:project(o)}));
  const starReport={};
@@ -62,10 +62,10 @@ const frameReport=await(async()=>{
 const prefix=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';
 const {context,run}=await import('data:text/javascript,'+encodeURIComponent(prefix)+'#distance-frames');
 const read=p=>JSON.parse(fs.readFileSync(p));
-const fullPointer=read('dist/catalog-data/current.json'),radialPointer=read('dist/map-radial/current.json'),slicePointer=read('dist/map-slices/current.json');
+const fullPointer=read('dist/catalog-data/current.json'),radialPointer=read('dist/map-radial/current.json');
 context.auditRead=async path=>{if(path.startsWith('catalog-data/'))path=fullPointer.dataRoot+'/'+path.slice(13);return JSON.parse(await fs.promises.readFile('dist/'+path,'utf8'));};
-context.auditFull=read('dist/'+fullPointer.dataRoot+'/manifest.json');context.auditRadial=read('dist/'+radialPointer.dataRoot+'/manifest.json');context.auditLayers=read('dist/'+radialPointer.dataRoot+'/layers.json');context.auditSlice=read('dist/'+slicePointer.dataRoot+'/manifest.json');
-run(`ExtendedCatalog.readJSON=path=>auditRead(path);ExtendedCatalog.manifest=auditFull;MapRadial.manifest=auditRadial;MapRadial.layers=auditLayers;MapSlice.manifest=auditSlice;MapLayers.active=true;state=initial();state.expansion=false;Cosmology.sync(state);paused=true;width=1440;height=1000;dpr=1;cameraGoal=null;`);
+context.auditFull=read('dist/'+fullPointer.dataRoot+'/manifest.json');context.auditRadial=read('dist/'+radialPointer.dataRoot+'/manifest.json');context.auditLayers=read('dist/'+radialPointer.dataRoot+'/layers.json');
+run(`ExtendedCatalog.readJSON=path=>auditRead(path);ExtendedCatalog.manifest=auditFull;MapRadial.manifest=auditRadial;MapRadial.layers=auditLayers;MapLayers.active=true;state=initial();state.expansion=false;Cosmology.sync(state);paused=true;width=1440;height=1000;dpr=1;cameraGoal=null;`);
 const audit=catalogReport;const results=[];
 async function frame(mode,view,label){
  context.auditView=view;run(`MapSlice.setMode('${mode}');cam={...auditView};cameraGoal=null;filter='all';`);
@@ -90,7 +90,7 @@ async function frame(mode,view,label){
  results.push({label,mode,view,result});console.log(label,mode,JSON.stringify({points:result.pointCut,structural:result.structuralCut,drawn:result.drawn,starsInsideMW:result.starsInsideMW,highZ:result.highZStars.length,foreign:result.foreignGalaxyStars.length,insideM31:result.galaxiesInsideM31,farM31:result.farGalaxies.length}));
 }
 const mw=run("MapLayout.ordinaryProject(object('sgr'))");
-for(const mode of ['full','slice','radial']){
+for(const mode of ['full','radial']){
  await frame(mode,{...mw,span:130000},'MW overview');
  await frame(mode,{x:0,y:0,span:7e6},'Local Group overview');
  await frame(mode,{x:0,y:0,span:24},'Solar neighbourhood');

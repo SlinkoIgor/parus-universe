@@ -77,6 +77,5 @@ const Cosmology={
   // Future travel has a finite comoving reach in a Lambda-dominated universe.
   for(let n=0;n<48;n++){q=this.coast(beta,hi,time);if(q.distance>=d)break;hi*=2;if(hi>2e12)return{proper:Infinity,earth:Infinity,unreachable:true};}
   for(let n=0;n<40;n++){const mid=(lo+hi)/2;if(this.coast(beta,mid,time).distance<d)lo=mid;else hi=mid;}return this.coast(beta,(lo+hi)/2,time);
- },
- toggle(s){s.expansion=s.expansion===false;this.sync(s);}
+ }
 };

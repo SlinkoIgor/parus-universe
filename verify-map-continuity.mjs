@@ -57,7 +57,7 @@ run(`{
   MapSlice.setMode('radial');for(const id of Object.keys(tracks)){const radial=OrbitalMotion.alphaTrack(id),plain=tracks[id],dx=radial.points[0].x-plain.points[0].x,dy=radial.points[0].y-plain.points[0].y;assert.equal(radial.points.length,plain.points.length);for(let i=0;i<plain.points.length;i++)assert.ok(Math.hypot(radial.points[i].x-plain.points[i].x-dx,radial.points[i].y-plain.points[i].y-dy)<1e-10,'ellipse shape preserved for '+id);}
  }
  state.universeElapsed=0;state.selected='alpha';const trace=OrbitalMotion.traceCurve;
- for(const mode of ['full','slice','radial']){cam={...MapLayout.project(object('alpha')),span:.002};MapSlice.setMode(mode);let n=0;OrbitalMotion.traceCurve=(pointAt,{knots})=>{if(['alpha','hyg-71453'].some(id=>{const p=MapLayout.project(object(id));return knots.some(E=>{const q=pointAt(E);return Math.hypot(p.x-q.x,p.y-q.y)<1e-11;})}))n++;};OrbitalMotion.draw();assert.equal(n,2,'both A/B tracks immediately drawn in '+mode);}
+ for(const mode of ['full','radial']){cam={...MapLayout.project(object('alpha')),span:.002};MapSlice.setMode(mode);let n=0;OrbitalMotion.traceCurve=(pointAt,{knots})=>{if(['alpha','hyg-71453'].some(id=>{const p=MapLayout.project(object(id));return knots.some(E=>{const q=pointAt(E);return Math.hypot(p.x-q.x,p.y-q.y)<1e-11;})}))n++;};OrbitalMotion.draw();assert.equal(n,2,'both A/B tracks immediately drawn in '+mode);}
  OrbitalMotion.traceCurve=trace;MapSlice.setMode('full');
 }`);
 console.log('PASS retained viewport detail, readiness during pan, smooth filament fade, expanded-universe wheel zoom and solar return, ship/cursor anchoring and XY ellipses with immediate AB tracks in all modes');

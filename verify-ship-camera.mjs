@@ -44,9 +44,6 @@ try{
  MapFilters.activeGroup='collections';MapFilters.selection.collections=['brightest-stars'];followShip=false;focusShip();
  assert.equal(count(),7,'small filters fit their available members without adding hidden classes');
  MapFilters.selection.collections=[];
- fixtures[9].p3[2]=8;MapSlice.mode='slice';followShip=false;focusShip();
- assert.equal(count(),10,'slice depth participates in the fitted scale');
- assert.ok(MapSlice.includes(fixtures[9]));
  // A dense cluster of unresolved identities cannot replace the tenth neighbour.
  OBJECTS.splice(9,1);followShip=false;MapSlice.mode='full';cam.span=1e11;focusShip();assert.equal(count(),9);
  assert.ok(cam.span<100,'fewer available neighbours do not retain the Universe overview');
@@ -66,7 +63,7 @@ Cosmology.elapse(state,15e9);frame(lastFrame+101);
 const expandedHeading=$('mapSubtitle').textContent;
 assert.ok(expandedHeading.includes(distanceText(UniverseMap.radius*Cosmology.scale())),'radius heading updates with the simulation without camera input');
 state.expansion=false;Cosmology.elapse(state,15e9);frame(lastFrame+101);assert.equal($('mapSubtitle').textContent,expandedHeading);
-for(const viewport of [[1440,855],[390,562]])for(const mode of ['full','slice','radial']){
+for(const viewport of [[1440,855],[390,562]])for(const mode of ['full','radial']){
  [width,height]=viewport;MapSlice.mode=mode;MapLayers.active=false;
  state=initial();state.expansion=false;Cosmology.sync(state);FlightQueue.reset();
  followShip=false;cameraGoal=null;launch(true);paused=true;Simulation.tick(.2);

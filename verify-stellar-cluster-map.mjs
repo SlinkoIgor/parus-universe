@@ -26,7 +26,7 @@ assert.ok(halfNumber>4000&&optical>10&&halfLight>0);
 // All spatial leaves contain the complete displayed footprint, not only its
 // center. This independently checks the Python index against runtime sizes.
 for(const node of boot.nodes.filter(n=>n.category==='stellar-cluster'&&n.file))for(const row of files.get(node.file)){
- context.rowToCheck=row;const bounds=run('MapGeometry.projected(ExtendedCatalog.decode(rowToCheck),{mode:"full",slice:false}).bounds');
+ context.rowToCheck=row;const bounds=run('MapGeometry.projected(ExtendedCatalog.decode(rowToCheck),{mode:"full"}).bounds');
  assert.ok(node.box[0]<=row[12]+bounds[0]+1e-8&&node.box[2]>=row[12]+bounds[2]-1e-8&&node.box[1]<=row[13]+bounds[1]+1e-8&&node.box[3]>=row[13]+bounds[3]-1e-8,row[0]+' projected footprint outside its leaf');
 }
 console.log('PASS all 4094 structural cluster footprints from individual source sizes:',{halfNumber,optical,halfLight},'; 3D/IDs retained; every spatial leaf bounds actual extents');

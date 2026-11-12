@@ -12,7 +12,7 @@ for(const o of nuclei){
  const host=MapDetails.blackHoleHost(o);assert.ok(host,o.id+' has its sourced galaxy context');
  assert.equal(MapDetails.maxSpan({...o,d:o.d*1000}),MapDetails.maxSpan(o),'Earth distance must not enlarge an interior detail');
 }
-for(const mode of ['full','slice','radial'])for(const viewportWidth of [390,1440,2560])for(const epoch of [0,100e9]){
+for(const mode of ['full','radial'])for(const viewportWidth of [390,1440,2560])for(const epoch of [0,100e9]){
  MapSlice.mode=mode;width=viewportWidth;height=1000;state.cosmicTime=epoch;Cosmology.sync(state);
  assert.ok(MapVisibility.active);
  for(const o of nuclei){
@@ -43,9 +43,9 @@ try{
 // Check the actual symbol, caption and still-visible galaxy contour, including
 // selected/pinned nuclei. Close views retain both the black hole and its name.
 state=initial();state.expansion=false;Cosmology.sync(state);width=1440;height=1000;
-for(const mode of ['full','slice','radial'])for(const id of ['sgr','bh-andromeda','bh-m87']){
+for(const mode of ['full','radial'])for(const id of ['sgr','bh-andromeda','bh-m87']){
  MapSlice.mode=mode;const o=object(id),host=MapDetails.blackHoleHost(o),limit=MapVisibility.limit(o)*width;
- ExtendedCatalog.pin(o);state.selected=id;MapSlice.focus(o);cam={...MapLayout.project(o),span:limit*1.05};
+ ExtendedCatalog.pin(o);state.selected=id;cam={...MapLayout.project(o),span:limit*1.05};
  MapLabels.begin();drawGalaxyBackground();drawObjects();MapLabels.draw();
  assert.ok(!hitObjects.some(h=>h.o.id===id),'hidden black-hole symbol: '+mode+'/'+id);
  assert.ok(!MapLabels.placed.some(q=>q.key==='object-'+id),'hidden black-hole name: '+mode+'/'+id);

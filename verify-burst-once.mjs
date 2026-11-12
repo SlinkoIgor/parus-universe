@@ -61,7 +61,7 @@ for (const id of ['alpha','proxima']) {
  $('flightBuilder').close();
  // Older non-composed launch commands must reject the same source too.
  OrbitalArrival.enabled=false; const preferred=state.flightSetup; state.flightSetup=null; state.departureMode='burst';
- state.controlG=3; state.auto=false;
+ state.controlG=3;
  blocked(() => launch()); assert.equal($('toast').textContent,message);
  OrbitalArrival.enabled=true; state.flightSetup=preferred; FlightSetup.sync();
  // A spent source remains a valid stop and permits an ordinary engine departure.

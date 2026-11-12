@@ -887,10 +887,9 @@ const FlightBuilder = {
     return 'На финише останется ' + percent(actual) + ' бака вместо ' + percent(requested) +
       ': больший запас недостижим с текущим планом и топливом.';
   },
-  renderCard(target, arrived, eta) {
+  renderCard(target, arrived) {
     const f = state.flight,
       c = FlightSetup.read();
-    $('departureSection').hidden = true;
     $('configureFlight').hidden = arrived || !target.navigable;
     if (!OrbitalArrival.enabled && !f && !canBoost('beam'))
       Object.assign(c, { sail: false, collector: false, burst: false });
@@ -902,7 +901,6 @@ const FlightBuilder = {
     );
     $('flightDetails').hidden = true;
     UIContent.text($('configureFlightLabel'), f ? 'План ↗' : 'Изменить ↗');
-    $('arrivalFuelRow').hidden = true;
     if (!f && !arrived && target.navigable) {
       UIContent.text($('launchBtn').querySelector('span'), 'Лететь');
       if (MissionPlanner.enabledIdle()) {
@@ -949,8 +947,6 @@ const FlightBuilder = {
               : state.phase === 'flyby'
                 ? 'ПРОЛЁТ'
                 : 'СВОБОДНЫЙ ПОЛЁТ');
-      $('departureDiagram').hidden = true;
-      $('sailSection').hidden = true;
       $('engineSection').hidden = true;
       if (!paused && collector?.phase === 'preboost') UIContent.text($('phaseTag'), 'ПРЕДРАЗГОН');
       if (!paused && collector?.phase === 'waiting') UIContent.text($('phaseTag'), 'ОЖИДАНИЕ СВЕТА');

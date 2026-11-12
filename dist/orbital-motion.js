@@ -99,7 +99,7 @@ const OrbitalMotion={
   const o=ExtendedCatalog.get(id),centre=this.stellarPositions(year).get(id);if(!o||!centre||o.historicalStellarNavigation)return null;
   const q=track.q,current=this.phase(q,year),now=this.vector(q,current);
   const physicalAt=E=>{const v=this.vector(q,E);return centre.map((n,j)=>n+factor*(v[j]-now[j]));};
-  return{current,radius:q.a*this.AU*Math.abs(factor),physicalAt,heightAt:E=>physicalAt(E)[2],pointAt:E=>Cosmology.project(o,this.projectSnapshot(o,physicalAt(E)))};
+  return{current,radius:q.a*this.AU*Math.abs(factor),physicalAt,pointAt:E=>Cosmology.project(o,this.projectSnapshot(o,physicalAt(E)))};
  },
  isOrbiting(o){return !o?.historicalStellarNavigation&&(['alpha','hyg-71453','proxima'].includes(o?.id)||!!o?.nuclearStar||this.stellarOrbits?.some(t=>t.branches.some(b=>b.ids.includes(o?.id)&&b.factor!==0)));},
  snapshot3D(o){
@@ -131,7 +131,7 @@ const OrbitalMotion={
   const current=this.phase(q,year),centre=this.alphaPositions3D(year)?.[id];if(!o||!centre)return null;
   const vector=E=>wide?this.wideAtPhase(E):this.vector(q,E),now=vector(current),scale=wide?1-.1221/(2.0428+.1221):id==='alpha'?-.9373/2.0428:1.1055/2.0428;
   const physicalAt=E=>{const v=vector(E);return centre.map((n,i)=>n+scale*(v[i]-now[i]));};
-  return{current,radius:q.a*(wide?1:this.AU)*Math.abs(scale),physicalAt,heightAt:E=>physicalAt(E)[2],pointAt:E=>Cosmology.project(o,this.projectSnapshot(o,physicalAt(E)))};
+  return{current,radius:q.a*(wide?1:this.AU)*Math.abs(scale),physicalAt,pointAt:E=>Cosmology.project(o,this.projectSnapshot(o,physicalAt(E)))};
  },
  alphaTrack(id,year=this.epoch+this.elapsed(),steps=360){
   const curve=this.alphaCurve(id,year);if(!curve)return{points:[],currentIndex:-1};
@@ -154,7 +154,7 @@ const OrbitalMotion={
   }
   return[{x:a.x+lo*dx,y:a.y+lo*dy},{x:a.x+hi*dx,y:a.y+hi*dy}];
  },
- traceCurve(pointAt,{curvature,start=0,end=2*Math.PI,knots=[],heightAt,color='#999999',alpha=.55,lineWidth=.7,dash=[3,5]}={}){
+ traceCurve(pointAt,{curvature,start=0,end=2*Math.PI,knots=[],color='#999999',alpha=.55,lineWidth=.7,dash=[3,5]}={}){
   // curvature bounds |d²(screen position)/dE²|. The chord error is at most
   // curvature * dE² / 8, including portions whose endpoints are off screen.
   // Reject only those bounded arcs, then refine visible ones to 0.2 px.
@@ -171,13 +171,9 @@ const OrbitalMotion={
   ctx.save();ctx.strokeStyle=paint(color);ctx.globalAlpha=alpha;ctx.lineWidth=lineWidth;ctx.setLineDash(dash);ctx.beginPath();
   const visit=(lo,a,hi,b)=>{
    const error=curvature*(hi-lo)**2/8;
-   const slicing=heightAt&&MapSlice.mode==='slice',z1=slicing?heightAt(lo):0,z2=slicing?heightAt(hi):0,half=slicing?MapSlice.halfThicknessAt():Infinity,zmin=MapSlice.centerZ-half,zmax=MapSlice.centerZ+half,zerror=error*cam.span/width;
-   if(slicing&&(Math.max(z1,z2)+zerror<zmin||Math.min(z1,z2)-zerror>zmax)){pen=null;return;}
    if(Math.max(a.x,b.x)+error < -2||Math.min(a.x,b.x)-error > width+2||Math.max(a.y,b.y)+error < -2||Math.min(a.y,b.y)-error > height+2){pen=null;return;}
    if(error>.2){const mid=(lo+hi)/2,p=screen(pointAt(mid));visit(lo,a,mid,p);visit(mid,p,hi,b);return;}
-   let aa=a,bb=b;
-   if(slicing){const dz=z2-z1;let l=0,h=1;if(dz===0){if(z1<zmin||z1>zmax){pen=null;return;}}else{l=Math.max(0,Math.min((zmin-z1)/dz,(zmax-z1)/dz));h=Math.min(1,Math.max((zmin-z1)/dz,(zmax-z1)/dz));if(l>h){pen=null;return;}}aa={x:a.x+(b.x-a.x)*l,y:a.y+(b.y-a.y)*l};bb={x:a.x+(b.x-a.x)*h,y:a.y+(b.y-a.y)*h};}
-   const clipped=this.clipSegment(aa,bb);if(!clipped){pen=null;return;}
+   const clipped=this.clipSegment(a,b);if(!clipped){pen=null;return;}
    const [p,q]=clipped;if(!pen||Math.hypot(p.x-pen.x,p.y-pen.y)>.001)ctx.moveTo(p.x,p.y);
    ctx.lineTo(q.x,q.y);pen=q;segments++;
   };
@@ -189,15 +185,14 @@ const OrbitalMotion={
   if(cam.span<.01&&ExtendedCatalog.matchesMap(sun)&&!state.destroyed.includes('sol')){
    for(const q of this.planets){
     const r=q.a*this.AU*width/cam.span;if(r<2)continue;
-    const phase=this.phase(q);this.traceCurve(E=>this.planetPoint(q,E),{curvature:r,knots:[phase],heightAt:E=>sun.p3[2]+this.vector(q,E)[2]});
+    const phase=this.phase(q);this.traceCurve(E=>this.planetPoint(q,E),{curvature:r,knots:[phase]});
     const v=this.vector(q,phase),p=screen(this.planetPoint(q,phase));
-    if(!MapSlice.includes({p3:sun.p3.map((n,i)=>n+v[i])}))continue;
     if(p.x>=-3&&p.x<=width+3&&p.y>=-3&&p.y<=height+3)circle(p.x,p.y,2.5,'#454545',1);
     MapLabels.point({key:'planet-'+q.name,name:q.name,detail:fmt(Math.hypot(...v)/this.AU,2)+' а.е. от Солнца',p,priority:65,opacity:1});
    }
   }
   if(this.alphaAnchor){
-   for(const id of ['proxima','alpha','hyg-71453']){const o=ExtendedCatalog.get(id);if(!o||!ExtendedCatalog.matchesMap(o,true))continue;const curve=this.alphaCurve(id),r=curve?.radius*width/cam.span;if(!(r>=2))continue;this.traceCurve(curve.pointAt,{curvature:r,knots:[curve.current],heightAt:curve.heightAt});}
+   for(const id of ['proxima','alpha','hyg-71453']){const o=ExtendedCatalog.get(id);if(!o||!ExtendedCatalog.matchesMap(o,true))continue;const curve=this.alphaCurve(id),r=curve?.radius*width/cam.span;if(!(r>=2))continue;this.traceCurve(curve.pointAt,{curvature:r,knots:[curve.current]});}
   }
   for(const track of this.stellarOrbits){
    for(const branch of track.branches){
@@ -205,7 +200,7 @@ const OrbitalMotion={
     if(!(track.q.a*this.AU*Math.abs(branch.factor)*width/cam.span>=2))continue;
     const curve=this.stellarCurve(track,id,branch.factor),r=curve?.radius*width/cam.span;
     if(!(r>=2))continue;
-    this.traceCurve(curve.pointAt,{curvature:r,knots:[curve.current],heightAt:curve.heightAt,alpha:track.q.grade>=4?.35:.55});
+    this.traceCurve(curve.pointAt,{curvature:r,knots:[curve.current],alpha:track.q.grade>=4?.35:.55});
    }
   }
  }

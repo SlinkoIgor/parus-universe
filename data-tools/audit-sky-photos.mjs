@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 const context=vm.createContext({console,Math,URL});
 for(const name of ['catalog','astronomy','catalog-import','catalog-retired','coordinates',
-  'cosmic-catalog','layout-data','map-layout','map-radial-data','map-radial','map-slice',
+  'cosmic-catalog','map-layout','map-radial-data','map-radial','map-slice',
   'cosmology','map-details','catalog-extended','catalog-stream','nuclear-stars-data',
   'nuclear-stars','orbital-motion','sky-photos-index','sky-photos']) {
   vm.runInContext(fs.readFileSync('dist/'+name+'.js','utf8'),context);

@@ -2,7 +2,6 @@
 // One unit of dt is one Julian year of SHIP proper time in every phase.
 const Simulation={
  debt:0,
- slowMotionEnabled:false, // Keep replay machinery, but run at the player-selected rate.
  // Match advance(): each physical braking stage is converted at its midpoint
  // epoch. A 100 m sail can brake for millennia in intergalactic gas.
  stoppingDistance(stop,time=state.cosmicTime||0){
@@ -11,16 +10,6 @@ const Simulation={
   return stop.magnetic.distance/Cosmology.factor(f,time+dt*stop.magnetic.earth/2)+stop.engine.burnDistance/Cosmology.factor(f,time+dt*(stop.magnetic.earth+stop.engine.burnEarth/2));
  },
  tolerance(f){return Math.max(1e-13,Math.abs(f.distance)*64*Number.EPSILON);},
- // Automatic replay is a slowdown factor only. Only the player's speed button
- // can raise the requested proper-time rate, including during a stellar boost.
- slowMotionFactor(){
-  if(!this.slowMotionEnabled)return 1;
-  const f=state.flight;if(!f)return 1;
-  // Coasting is never slowed in anticipation of a future braking phase.
-  if(!['thrust','launch','brake','dock'].includes(state.phase))return 1;
-  return Number.isFinite(f.replayRate)&&f.replayRate>0?Math.min(1,f.replayRate):1;
- },
- replayRate(){return speed*(this.slowMotionEnabled?(this.smoothedFactor??this.slowMotionFactor()):1);},
  wallDebt:0,
  wallQueue:[],
  clearClock(){this.wallQueue=[];this.wallDebt=this.debt=0;},
@@ -46,21 +35,16 @@ const Simulation={
    const pending=queue[0];
    // Stationary clocks and circular parking orbits have an analytic update.
    // Replaying an idle night in 1/60-second slices only builds a huge backlog.
-   if(!state.flight&&!this.slowMotionEnabled){
+   if(!state.flight){
     const years=pending.seconds*pending.rate;
     if(!OrbitalArrival.idle(years)){state.proper+=years;state.earth+=years;Cosmology.elapse(state,years);}
-    this.smoothedFactor=1;queue.shift();continue;
+    queue.shift();continue;
    }
    // Keep the original physical slices; yield between them so a sleeping tab
    // cannot monopolise the main thread while catching up with a long flight.
    if(i>0&&Number.isFinite(budgetMs)&&performance.now()-started>=budgetMs)break;
-   const slice=Math.min(pending.seconds,1/60),target=this.slowMotionFactor();
-   // Ease the logarithm: a factor of 1000 should not jump in one frame.
-   const previous=this.slowMotionEnabled?(this.smoothedFactor??target):1;
-   this.smoothedFactor=Math.exp(Math.log(previous)+(Math.log(target)-Math.log(previous))*(-Math.expm1(-slice/.4)));
-   if(Math.abs(Math.log(this.smoothedFactor/target))<1e-6)this.smoothedFactor=target;
-   const rate=pending.rate*(this.slowMotionEnabled?this.smoothedFactor:1);let years=slice*rate;
-   let zeroSteps=0;
+   const slice=Math.min(pending.seconds,1/60),rate=pending.rate;
+   let years=slice*rate,zeroSteps=0;
    for(let transitions=0;years>1e-15&&transitions<64;transitions++){
     if(!state.flight){if(OrbitalArrival.idle(years)){years=0;break;}state.proper+=years;state.earth+=years;Cosmology.elapse(state,years);years=0;break;}
     const f=state.flight,elapsed=globalThis.FlightTips?.elapsed(f);
@@ -80,7 +64,7 @@ const Simulation={
   let remaining=years+this.debt,zeroSteps=0;this.debt=0;
   for(let transitions=0;remaining>0&&transitions<256;transitions++){
    if(!state.flight){if(OrbitalArrival.idle(remaining)){remaining=0;break;}state.proper+=remaining;state.earth+=remaining;Cosmology.elapse(state,remaining);remaining=0;break;}
-   const f=state.flight,elapsed=globalThis.FlightTips?.elapsed(f),rate=this.replayRate();
+   const f=state.flight,elapsed=globalThis.FlightTips?.elapsed(f),rate=speed;
    const used=this.step(remaining);if(!(used>=0&&Number.isFinite(used)))throw new Error('Invalid proper-time step');
    if(used===0){if(++zeroSteps>=16)throw new Error('Flight made no progress: '+state.phase);}else zeroSteps=0;
    globalThis.FlightTips?.advance(f,elapsed,used/rate);

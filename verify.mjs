@@ -34,7 +34,6 @@ const checks = [
   'verify-stellar-cluster-map.mjs',
   'verify-milkyway-layout.mjs',
   'verify-map-class-symbols.mjs',
-  'verify-map-slice.mjs',
   'verify-map-radial.mjs',
   'verify-system-coordinates.mjs',
   'verify-stellar-catalog.mjs',

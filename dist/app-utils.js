@@ -64,8 +64,6 @@ const compact = (n) =>
         : n >= 1e3
           ? fmt(n / 1e3, 1) + ' тыс.'
           : fmt(n, n < 100 ? 2 : 0);
-const sailAreaText = (m2) => fmt(m2, 0) + ' м²';
-const collectorDiameterText = (sail) => 'Ø ' + fmt(sail.collectorDiameterM, 0) + ' м';
 const distanceText = (n) =>
   Number.isFinite(n) ? compact(n) + ' св. лет' : 'расстояние неизвестно';
 const scaleDistanceText = (n) =>
@@ -210,7 +208,7 @@ function applyTheme(value) {
   const put = (key, color) => { root.style?.setProperty(key, color); themeProperties.add(key); };
   if (theme !== 'dark' && theme !== 'light') {
     root.style?.setProperty('color-scheme', 'dark'); themeProperties.add('color-scheme');
-    const tones = ['f6f6f6','c1c1c1','e3e3e3','9b9b9b','7e7e7e','eaeaea','252525','a7a7a7','e0e0e0','949494','d2d2d2','a8a8a8','bcbcbc','e6e6e6','c5c5c5','dedede','878787','858585','8b8b8b','e9e9e9','333','222','aaa','ddd','bbb','444','ccc','999','666','555','888','777'];
+    const tones = ['f6f6f6','e3e3e3','9b9b9b','7e7e7e','252525','a7a7a7','949494','d2d2d2','bcbcbc','dedede','878787','858585','333','aaa','ddd','bbb','999','555','777'];
     for (const h of tones) put('--tone-'+h, themeInk('#'+h));
     put('--tone-f6f6f6f5', p.bg+'f5'); put('--tone-00000008', p.ink+'08');
     put('--tone-0002', '#000a'); put('--tone-2225', '#000b'); put('--tone-0001', p.ink+'11');

@@ -14,12 +14,6 @@ run(`{
    assert.equal(MapGeometry.view(o),full,'pan/zoom and anchor projection reuse exact local segments');
   }
  }
- for(const [center,half] of [[0,100],[80,40],[-200,200],[500,60],[0,20],[0,100]]){
-  const clipped=MapGeometry.projected(o,{mode:'slice',centerZ:center,halfThickness:half});
-  const expected=MapGeometry.clip3(offsets,center-half-o.p3[2],center+half-o.p3[2],false).map(vertices=>({closed:false,points:vertices.map(v=>({x:v[0],y:-v[1]}))}));
-  assert.deepEqual(clipped.paths,expected,'slice retains every exact 3D slab intersection');
-  assert.ok(MapGeometry.cache.get(o).entries.size<=4,'slab cache stays bounded');
- }
  MapSlice.mode='full';
  const geometry=MapGeometry.view(o);let buffer,pool,paths;
  for(let i=0;i<100;i++){
@@ -49,7 +43,7 @@ run(`{
  try{assert.notEqual(MapGeometry.model(o),model);assert.equal(MapGeometry.view(o).paths[0].points[0].x,o.region.offsets3[0][0],'next draw observes changed source');}
  finally{MapDetails.endFrame();}
  o.region.offsets3=[];assert.equal(MapGeometry.model(o),null,'missing 3D geometry never becomes an invented contour');
- console.log('PASS exact filament segments, pan/zoom/radial reuse, 3D slab intersections, bounded caches, reusable screen clipping, in-place source corrections, frame cleanup and unchanged scientific data');
+ console.log('PASS exact filament segments, pan/zoom/radial reuse, bounded caches, reusable screen clipping, in-place source corrections, frame cleanup and unchanged scientific data');
 }`);
 
 run(`{
@@ -58,13 +52,17 @@ run(`{
  OBJECTS[Symbol.iterator]=function(){scans++;return iterator.call(this);};
  const a={id:'frame-group-a',kind:'quasar',p3:[9e17,8e17,7e17]},b={...a,id:'frame-group-b'};
  try{
-  Cosmology.cache.clear();MapDetails.beginFrame();assert.equal(scans,1);
+  Cosmology.cache.clear();MapDetails.objectIndex=null;MapDetails.beginFrame();assert.equal(scans,1);
   assert.equal(Cosmology.group(a).id,a.id);assert.equal(Cosmology.group(b).id,b.id);
   assert.equal(scans,1,'cold grouping uses the actual draw snapshot, without rebuilding an index per target');
   MapDetails.endFrame();Cosmology.cache.clear();Cosmology.group(a);
-  assert.equal(scans,2,'outside a draw the catalogue lookup is fresh');
+  assert.equal(scans,1,'an unchanged catalogue reuses its validated index outside a draw');
+  const added={id:'frame-group-added',kind:'star',p3:[1,2,3]};OBJECTS.push(added);
+  try{Cosmology.cache.clear();Cosmology.group(a);assert.equal(scans,2,'a changed catalogue rebuilds the index once');assert.equal(object(added.id),added);}
+  finally{OBJECTS.pop();}
+  assert.equal(object(added.id),undefined,'a removed row never survives in the index');
  }finally{OBJECTS[Symbol.iterator]=iterator;MapDetails.endFrame();Cosmology.cache.clear();}
- console.log('PASS cold cosmological grouping shares the actual lexical frame index, with fresh lookup outside rendering');
+ console.log('PASS cold cosmological grouping shares one validated catalogue index, rebuilt only when the catalogue changes');
 }`);
 
 run(`{

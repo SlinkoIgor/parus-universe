@@ -144,17 +144,6 @@ function shipSurroundingsSpan() {
       if (o.region.shape === 'polyline') continue;
       span = Math.max(span, Math.max(o.region.major, o.region.minor) * Cosmology.regionScale(o) * width / 6 * 1.03);
     }
-    if (MapSlice.mode === 'slice') {
-      const p3 = MapSlice.position3D(o);
-      if (!p3?.every(Number.isFinite)) continue;
-      const depth = Math.abs(p3[2] - MapSlice.centerZ);
-      // Reference-space slice thickness can change at cosmological scale boundaries.
-      for (let i = 0; i < 3; i++) {
-        const half = MapSlice.halfThicknessAt(p3, shipCamera(span)) * 0.9;
-        if (depth <= half) break;
-        span *= depth / half;
-      }
-    }
     if (!Number.isFinite(span) || span > MAX_CAMERA_SPAN) continue;
     // A point travels along a straight screen ray while zooming. Add the scale
     // where it leaves each panel so covered neighbours can be considered again.
@@ -202,7 +191,6 @@ function shipSurroundingsSpan() {
 function focusShip() {
   if (followShip) { releaseShipCamera(); cameraGoal=null; return; }
   followShip=true;
-  globalThis.MapSlice?.focus(state.ship);
   const c = shipCamera(shipSurroundingsSpan());
   goCamera(c.x, c.y, c.span, true, true);
   updateShipButton();
@@ -355,20 +343,6 @@ function fitRoute(target, {wholeRoute = false} = {}) {
     (((maxX - minX) * width) / (v.right - v.left)) * 1.25,
     (((maxY - minY) * width) / (v.bottom - v.top)) * 1.25,
   );
-  if (wholeRoute && MapSlice.mode === 'slice') {
-    const depths = [state.ship, ...objects, ...(f ? [f.from] : [])].map(o => MapSlice.position3D(o)?.[2]).filter(Number.isFinite),
-      minZ = Math.min(...depths), maxZ = Math.max(...depths);
-    MapSlice.centerZ = (minZ + maxZ) / 2;
-    // Keep every waypoint inside the physical slice as well as the viewport.
-    for (let i = 0; i < 3; i++) {
-      const view = { x: (minX + maxX) / 2, y: (minY + maxY) / 2, span },
-        half = MapSlice.halfThicknessAt(null, view), required = (maxZ - minZ) / 2 * 1.1;
-      if (required <= half) break;
-      span *= required / half;
-    }
-    ExtendedCatalog.cutKey = null;
-    ExtendedCatalog.lastUpdate = -Infinity;
-  }
   goCamera(
     (minX + maxX) / 2 - (((v.left + v.right) / 2 - width * 0.43) * span) / width,
     (minY + maxY) / 2 -

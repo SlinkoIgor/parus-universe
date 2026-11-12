@@ -90,7 +90,7 @@ assert.ok(!SkyGuide.chart({...object('sirius'),apparentV:6}).includes('sky-faint
 assert.ok(SkyGuide.chart({...object('sirius'),apparentV:6.01}).includes('sky-faint-notice'),'just above V=6 needs an explanation');
 for(const id of ['alpha','sirius','m87'])assert.ok(!SkyGuide.chart(object(id)).includes('sky-faint-notice'),'no false stellar comparison for '+id);
 const immutable=JSON.stringify([state.flight,state.ship,state.matter,state.earth,state.proper,state.universeElapsed,OBJECTS.map(o=>[o.id,o.p3])]);
-for(const mode of ['full','radial','slice']){
+for(const mode of ['full','radial']){
  MapSlice.setMode(mode);
  for(const id of ['sirius','hyg-118441','proxima','hyg-113008','vega','betelgeuse','hyg-82565','andromeda','orion','omega']){
   const o=object(id),wide=SkyGuide.chart(o),close=SkyGuide.chart(o,true);

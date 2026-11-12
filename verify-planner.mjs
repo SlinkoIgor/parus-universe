@@ -65,9 +65,7 @@ assert.equal(FlightBuilder.routeDistanceText(0),'0 св. лет');assert.ok(Flig
 console.log('PASS distance-proportional diagram, explicit metric labels and light-years including zero/tiny values');
 const noCoast={...synthetic,peakBeta:.9,coast:{proper:0,distance:0}};FlightBuilder.drawRoute(noCoast,true,noCoast,null);const noCoastChart=$('builderRouteDiagram').innerHTML;
 assert.ok(!noCoastChart.includes('Свободный полёт'));assert.ok(!noCoastChart.includes('data-stage="1"'));assert.ok(noCoastChart.includes('data-stage="0"')&&noCoastChart.includes('data-stage="2"'));assert.ok(noCoastChart.includes('Макс. '+percentC(.9)));
-assert.equal(Simulation.slowMotionEnabled,false);
-for(const phase of ['launch','thrust','brake','dock','cruise'])for(const rate of [1,10,1000]){state.phase=phase;state.flight={replayRate:.000001};Simulation.smoothedFactor=.000001;speed=rate;assert.equal(Simulation.slowMotionFactor(),1);assert.equal(Simulation.replayRate(),rate);}
-plannerReset();speed=1;state.flightSetup=FlightSetup.normalize({engine:true});launch();Simulation.smoothedFactor=.000001;const properStart=state.proper;Simulation.advance(.25);nearPlanner(state.proper-properStart,.25,1e-10);
+plannerReset();speed=1;state.flightSetup=FlightSetup.normalize({engine:true});launch();const properStart=state.proper;Simulation.advance(.25);nearPlanner(state.proper-properStart,.25,1e-10);
 plannerReset();const flashSetup=FlightSetup.normalize({sail:true,collector:true,burst:true});const fullFlash=MissionPlanner.acceleration(flashSetup,object(state.current),1,1e12,0,false,false),lastPhoton=fullFlash.rows.at(-1);const flashReception=MissionPlanner.lightReception({setup:flashSetup,acceleration:fullFlash,accelerationEnd:lastPhoton});nearPlanner(flashReception.source,fullFlash.collectorSurvival.usableSourceYears,1e-9);assert.ok(flashReception.durationProper>fullFlash.collectorSurvival.usableSourceYears);
 for(const row of fullFlash.rows)assert.ok(row.source<=fullFlash.preboost.emissionOffsetYears+Stellar.pulseYears+1e-11);
 console.log('PASS maximum-speed label, absent coast omitted, slowdown disabled at all rates/phases, normal clock progress and finite retarded flash');

@@ -7,10 +7,10 @@ state=initial();state.expansion=false;paused=true;filter='all';Cosmology.sync(st
 const structures=OBJECTS.filter(o=>MapAnnotations.structural(o));assert.equal(structures.length,17);
 const science=JSON.stringify(OBJECTS.map(o=>[o.id,o.p3,o.region,o.massSolar]));
 const draw=()=>{MapLabels.begin();UniverseMap.draw();RegionMap.draw();drawObjects();MapLabels.draw();};
-for(const viewport of [390,900,1440])for(const mode of ['full','slice','radial'])for(const palette of ['dark','light','amber']){
+for(const viewport of [390,900,1440])for(const mode of ['full','radial'])for(const palette of ['dark','light','amber']){
  width=viewport;height=viewport===390?562:855;MapSlice.mode=mode;applyTheme(palette);
  for(const o of structures){
-  MapSlice.centerZ=o.p3[2];state.selected='alpha';hover=null;
+  state.selected='alpha';hover=null;
   cam={...MapLayout.project(o),span:Math.max(o.region.major,o.region.minor)*3};cameraGoal=null;draw();
   const first=MapAnnotations.structureLabels.find(q=>q.object.id===o.id);
   if(!ExtendedCatalog.matchesMap(o)){

@@ -1,7 +1,7 @@
 import fs from 'node:fs';import assert from 'node:assert/strict';
 const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {run};';const {run}=await import('data:text/javascript,'+encodeURIComponent(harness));
 run(`
-function resetDrive(){OrbitalArrival.enabled=false;state=initial();state.expansion=false;paused=false;speed=1;Simulation.debt=0;Simulation.wallDebt=0;delete Simulation.smoothedFactor;Cosmology.sync(state);FlightEstimate.idleKey=null;FlightEstimate.active=new WeakMap();FlightProfile.idleKey=null;}
+function resetDrive(){OrbitalArrival.enabled=false;state=initial();state.expansion=false;paused=false;speed=1;Simulation.debt=0;Simulation.wallDebt=0;Cosmology.sync(state);FlightEstimate.idleKey=null;FlightEstimate.active=new WeakMap();FlightProfile.idleKey=null;}
 function nearDrive(a,b,tol=1e-7){assert.ok(Math.abs(a-b)<=tol*Math.max(Math.abs(a),Math.abs(b),1e-20)+1e-12,a+' vs '+b);}
 function completeDrive(){let n=0;while(state.flight&&n++<24)Simulation.step(1e12);assert.ok(!state.flight,'flight terminates');assert.ok(state.matter>=-1e-12&&state.matter<=.001+1e-12);assert.equal(state.beta,0);}
 resetDrive();assert.equal(Rocket.dryMass,.001);assert.equal(Rocket.fuelCapacity,.001);assert.equal(state.matter,.001);nearDrive(SHIP.sailMassKg,.7853981633974483);assert.equal(Stellar.collectorDiameterM,.1*Stellar.r0);renderUI();assert.equal($('dryMass').innerHTML,'1<small>кг</small>');assert.equal($('massDry').style.width,'50%');assert.equal($('massFuel').style.width,'50%');
@@ -55,7 +55,7 @@ console.log('PASS v11 reload during every propulsion mode and braking; v9 migrat
 // Frame partitions must not change capture, consumption, time, or arrival.
 function partitionTrip(step){resetDrive();state.current='proxima';state.ship=Space.point(object('proxima').p3);state.departureMode='burst';state.selected='alpha';launch();let n=0;while(state.flight&&n++<5000)Simulation.step(step);assert.equal(state.current,'alpha');return[state.proper,state.earth,state.matter,state.captured,state.spentEnergy,state.totalDistance];}
 const giantStep=partitionTrip(1e12),smallSteps=partitionTrip(.1);for(let i=0;i<giantStep.length;i++)nearDrive(giantStep[i],smallSteps[i],2e-6);
-resetDrive();state.departureMode='engine';state.selected='m87';launch();Simulation.step(state.flight.engine.burnProper);assert.equal(state.phase,'cruise');assert.equal(Simulation.slowMotionFactor(),1);paused=true;const pausedClock=state.proper;Simulation.advance(1);assert.equal(state.proper,pausedClock);
+resetDrive();state.departureMode='engine';state.selected='m87';launch();Simulation.step(state.flight.engine.burnProper);assert.equal(state.phase,'cruise');paused=true;const pausedClock=state.proper;Simulation.advance(1);assert.equal(state.proper,pausedClock);
 nearDrive(Gravity.deflection(.99,10)*180/Math.PI,12.84017946,1e-7);assert.equal(Gravity.deflection(.99,1.5),Infinity);
 resetDrive();state.current='proxima';state.ship=Space.point(object('proxima').p3);state.current='proxima';state.ship=Space.point(object('proxima').p3);state.departureMode='burst';state.itinerary=[{id:'sgr',mode:'flyby'},{id:'m87',mode:'stop'}];assert.ok(Route.analyze().valid);Route.start();let turns=0;while(state.phase!=='flyby'&&state.flight&&turns++<12)Simulation.step(1e9);assert.equal(state.phase,'flyby');completeDrive();assert.equal(object(state.current).kind,'star');assert.equal(object(state.current).parentObject,'m87');assert.ok(state.visited.includes('m87'));assert.ok(state.visited.includes('sgr'));
 console.log('PASS frame-independent trajectories and accounting, pause/coast replay, and black-hole route continuation');
@@ -65,7 +65,7 @@ const appSource=[...html.matchAll(/<script src="([^"]+)" data-app><\/script>/g)]
 // Dialogs also define elements when their template is opened.
 const ids=new Set([...(html+'\n'+appSource).matchAll(/id="([^" ]+)"/g)].map(m=>m[1]));
 for(const [,id]of appSource.matchAll(/\$\('([^']+)'\)/g))assert.ok(ids.has(id)||['startExploring','confirmReset','viewGalaxy','viewRegion','viewSystem','viewLocalStar','viewUnknown','viewNuclearCluster'].includes(id),'missing '+id);
-assert.deepEqual([...html.matchAll(/data-departure="([^"]+)"/g)].map(m=>m[1]),['engine','beam','burst']);assert.ok(!html.includes('data-sail='));
+assert.ok(!html.includes('data-departure=')&&!html.includes('data-sail='));
 console.log('PASS three-mode UI and every application element ID');
 
 run(`

@@ -20,7 +20,7 @@ drawRouteDistance();assert.equal(labels.length,4);for(let i=0;i<legs.length;i++)
 assert.equal(labels.some(l=>l[0]==='ship'&&l[1]==='ross'),false,'no shortcut distance from the ship to the selected last point');
 drawSegmentDistance=caption;
 const originalText=text,captions=[];text=(label)=>captions.push(label);width=1440;height=1000;hudHeight=94;
-for(const mode of ['full','slice','radial']){
+for(const mode of ['full','radial']){
  MapSlice.mode=mode;cam={x:0,y:0,span:50};captions.length=0;drawRouteDistance();
  assert.equal(captions.join('|'),legs.map(l=>distanceText(l.distance)).join('|'),'3D leg captions in '+mode);
 }

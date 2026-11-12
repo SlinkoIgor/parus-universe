@@ -31,7 +31,7 @@ def scan(root):
     assert all(not r[11].get('atlasOnly') and all(math.isfinite(v) for v in (r[3],r[4],r[5],r[12],r[13])) for r in rows)
     byid={r[0]:r for r in rows};groups=collections.defaultdict(list)
     node=shutil.which('node') or '/opt/homebrew/bin/node'
-    js="""const fs=require('fs'),vm=require('vm'),c=vm.createContext({console});vm.runInContext(['catalog','astronomy','catalog-import','catalog-retired','coordinates','cosmic-catalog','layout-data','map-layout','map-details','catalog-extended','catalog-stream'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\\n'),c);process.stdout.write(vm.runInContext('JSON.stringify({objects:OBJECTS.filter(o=>!o.atlasOnly&&o.p3).map(o=>({id:o.id,kind:o.kind,d:o.d,p3:o.p3,map:MapLayout.project(o)})),systems:EXTENDED_BOOT.systems})',c));"""
+    js="""const fs=require('fs'),vm=require('vm'),c=vm.createContext({console});vm.runInContext(['catalog','astronomy','catalog-import','catalog-retired','coordinates','cosmic-catalog','map-layout','map-details','catalog-extended','catalog-stream'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\\n'),c);process.stdout.write(vm.runInContext('JSON.stringify({objects:OBJECTS.filter(o=>!o.atlasOnly&&o.p3).map(o=>({id:o.id,kind:o.kind,d:o.d,p3:o.p3,map:MapLayout.project(o)})),systems:EXTENDED_BOOT.systems})',c));"""
     core=json.loads(subprocess.check_output([node,'-e',js],cwd=root));core_byid={o['id']:o for o in core['objects']}
     assert all(abs(math.hypot(*o['p3'])/o['d']-1)<1e-10 for o in core['objects'] if o.get('d'))
     systems=[];confirmed_geometry=[]

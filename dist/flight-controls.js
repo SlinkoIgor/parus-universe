@@ -1,8 +1,5 @@
 'use strict';
 // Flight commands and compatibility with saved legacy trajectories.
-function coastSetup() {
-  /* Cruise speed now converts proper years directly in Simulation. */
-}
 function launch(forceEngine = false, {focusRoute = true} = {}) {
   if (!forceEngine) FlightSetup.sync();
   if (!forceEngine && MissionPlanner.enabledIdle()) {
@@ -17,7 +14,6 @@ function launch(forceEngine = false, {focusRoute = true} = {}) {
     if (issue) { toast(issue,4200,'warning'); return; }
   }
   state.controlG = 10;
-  state.auto = true;
   const boost = !forceEngine && wantsBoost();
   if (!boost && !Rocket.usableFuel(state.matter)) {
     toast('Нет рабочего вещества для тяги.',4200,'warning');
@@ -61,7 +57,6 @@ function launch(forceEngine = false, {focusRoute = true} = {}) {
     medium: GasMedium.forLeg(from, target, state.sail),
     missed: false,
     autoStopping: false,
-    replayRate: (wind ? wind.proper : engine.burnProper) / 5,
   };
   state.beta = 0;
   state.acceleration = boost
@@ -69,7 +64,6 @@ function launch(forceEngine = false, {focusRoute = true} = {}) {
     : Rocket.acceleration(Rocket.dryMass + state.matter, engine.maxG);
   state.phase = boost ? 'launch' : 'thrust';
   FlightTips.noteLaunch();
-  Simulation.smoothedFactor = Math.min(1, state.flight.replayRate);
   paused = false;
   if (boost) {
     const current = object(state.current);
@@ -113,7 +107,6 @@ function cutEngine() {
   if (state.phase === 'launch') f.windFolded = true;
   state.phase = 'cruise';
   state.acceleration = 0;
-  coastSetup();
   renderUI();
   persist();
 }
@@ -126,7 +119,6 @@ function beginDock() {
     return;
   }
   f.engine = Rocket.retroPlan(state.matter, state.beta, Magnetic.maxG);
-  f.replayRate = f.engine.burnProper / 2;
   if (!f.engine.canStop) {
     toast('Недостаточно вещества для точной остановки. Продолжаем захват.',4200,'warning');
     state.phase = 'brake';
@@ -151,12 +143,10 @@ function beginBrake(auto = false) {
     state.phase = 'cruise';
     state.acceleration = 0;
     f.magnetic = null;
-    f.replayRate = 1;
     return;
   }
   FlightMarks.actual('brake');
   f.magnetic = stop.magnetic;
-  f.replayRate = f.magnetic.proper / 3;
   f.magnetic.elapsedProper = 0;
   state.phase = 'brake';
   state.acceleration = Magnetic.sample(f.magnetic, 0).properAcceleration;

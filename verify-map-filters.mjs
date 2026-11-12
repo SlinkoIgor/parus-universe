@@ -64,7 +64,7 @@ assert.equal(JSON.stringify([state,OBJECTS.map(o=>[o.id,o.p3,o.d,o.apparentV])])
 MapFilters.change('all','all','all');searchFilter='all';assert.equal(draw(),initialHits,'reset restores original map');
 console.log('PASS sourced catalogue selection, exclusive modes, reset, invalid preferences and separate persistence without changing flight data');
 const sourceCamera={...cam};
-for(const mode of ['full','radial','slice'])for(const span of [24,130000,3e7,5e9,1.15e11]) {
+for(const mode of ['full','radial'])for(const span of [24,130000,3e7,5e9,1.15e11]) {
  MapSlice.mode=mode;cam={x:0,y:0,span};MapFilters.change('all',[],[]);
  const points=draw(),areas=RegionMap.hits.map(h=>h.o.id).sort().join('|');
  MapFilters.setGroup('catalogs',MapFilters.options('catalogs'));
@@ -73,7 +73,7 @@ for(const mode of ['full','radial','slice'])for(const span of [24,130000,3e7,5e9
 }
 cam=sourceCamera;MapFilters.change('all','all','all');
 console.log('PASS full source union and unrestricted map agree at five scales in all projections');
-for(const mode of ['full','radial','slice']){
+for(const mode of ['full','radial']){
  MapSlice.mode=mode;MapFilters.change('all','all','all');
  for(const c of Object.keys(MapFilters.collections)){
   MapFilters.change('all',c,'all');draw();
@@ -249,7 +249,7 @@ assert.ok(MapFilters.narrow&&MapFilters.total>80&&MapFilters.total<=110);
 assert.ok(MapFilters.objects.has('opengc-ngc7089'),'M2 loads even outside the camera coverage');
 assert.equal(MapFilters.objects.size,MAP_FILTER_DATA.buckets.filter(b=>MapFilters.bucketMatches(b)).reduce((n,b)=>n+b[3],0),'all referenced records load');
 for(const o of MapFilters.objects.values())assert.equal(o,ExtendedCatalog.coreIndex.get(o.id)||o,'canonical host identity is preserved');
-for(const mode of ['full','radial','slice']) {
+for(const mode of ['full','radial']) {
  MapSlice.mode=mode;
  for(const span of [24,130000,7e6,1e8,1.15e11]) {
   cam={x:0,y:0,span};MapDetails.beginFrame();
@@ -296,7 +296,7 @@ MapFilters.sync();assert.equal($('mapFilterStatus').textContent,'Объекто�
 // index but opacity was zero. Exercise real glyphs, captions and hit targets
 // beyond the ordinary scale limit, without selecting the photographed target.
 const photoPreviousSelection=state.selected;state.selected='alpha';
-for(const mode of ['full','radial','slice']){
+for(const mode of ['full','radial']){
  MapSlice.mode=mode;const target=object('sgr'),p=MapLayout.project(target);
  cam={x:p.x,y:p.y,span:1e6};MapDetails.beginFrame();MapLabels.begin();RegionMap.draw();drawObjects();MapLabels.draw();
  assert.ok(cam.span>MapDetails.maxSpan(target));

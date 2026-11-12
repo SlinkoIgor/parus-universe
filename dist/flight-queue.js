@@ -106,12 +106,11 @@ const FlightQueue = {
     UIContent.text($('configureFlightLabel'),'Подробный план ↗');
     const c=FlightSetup.resolve(context.flightSetup,context.planningSource);
     UIContent.text($('setupAccelerationSummary'),FlightSetup.acceleration(c));UIContent.text($('setupBrakingSummary'),FlightSetup.braking(c));
-    for(const id of ['departureSection','departureDiagram','sailSection','engineSection','flightDetails'])$(id).hidden=true;
+    for(const id of ['engineSection','flightDetails'])$(id).hidden=true;
     $('horizonNotice').hidden=!p.unreachable;UIContent.text($('horizonNotice'),p.unreachable?'При включённом расширении прибытие недостижимо.':'');
     UIContent.text($('flightHint'),p.valid?FlightBuilder.reserveNote(p):p.reason);$('flightHint').hidden=!$('flightHint').textContent;
     globalThis.UniverseMap?.renderCard(target);
     if(!target.cosmicEpoch)UIContent.text($('distanceCaption'),'ОТ ПРЕДЫДУЩЕЙ ТОЧКИ');
-    $('mapSliceTargetNotice').hidden=!(globalThis.MapSlice?.mode==='slice'&&!MapSlice.includes(target));
   },
 };
 

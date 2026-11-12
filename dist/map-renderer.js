@@ -109,15 +109,13 @@ const GalaxyStructure = {
     }
     return curves;
   },
-  projected(o,{mode=MapSlice.mode,centerZ=MapSlice.centerZ,halfThickness=MapSlice.halfThicknessAt(),tolerance=cam.span/width*.2,viewport=null}={}) {
+  projected(o,{tolerance=cam.span/width*.2,viewport=null}={}) {
     const m=MapGeometry.model(o),g=o.galaxy;
     if(!m||!g||!['disk','footprint','sphere'].includes(m.kind))return[];
     // Unknown-depth size envelopes get a chart symbol at the catalogue plane.
     // Known disk/optical axes use the very same XYZ basis as their outline.
     const a=m.a||[1,0,0],b=m.b||[0,1,0],R=m.radius,S=m.minorRadius||R;
-    const lo=mode==='slice'?centerZ-halfThickness-o.p3[2]:-Infinity,hi=mode==='slice'?centerZ+halfThickness-o.p3[2]:Infinity;
-    if(m.kind==='sphere'&&(lo>0||hi<0))return[];
-    const level=Math.floor(Math.log2(Math.max(1e-20,tolerance))),key=JSON.stringify([g.shape,g.id,R,S,a,b,lo,hi,level,viewport]);
+    const level=Math.floor(Math.log2(Math.max(1e-20,tolerance))),key=JSON.stringify([g.shape,g.id,R,S,a,b,level,viewport]);
     let cache=this.cache.get(o);if(!cache)this.cache.set(o,cache=new Map());
     if(cache.has(key))return cache.get(key);
     const paths=[];
@@ -125,15 +123,7 @@ const GalaxyStructure = {
       const at=t=>{const [x,y]=curve.at(t);return a.map((v,i)=>v*x*R+b[i]*y*S);};
       const bounds=(l,h)=>{const v=at((l+h)/2),r=Math.max(R,S)*curve.speed*(h-l)/2;return[v[0]-r,-v[1]-r,v[0]+r,-v[1]+r];};
       const times=MapGeometry.tessellate(t=>{const v=at(t);return{x:v[0],y:-v[1]};},0,1,32,2**level,viewport,bounds),vertices=times.map(at);
-      if(mode!=='slice')paths.push({closed:!!curve.closed,points:vertices.map(v=>({x:v[0],y:-v[1]}))});
-      else{
-        let path=null;
-        for(const pair of MapGeometry.clip3(vertices,lo,hi,false)){
-          const points=pair.map(v=>({x:v[0],y:-v[1]})),tail=path?.points.at(-1);
-          if(tail&&Math.hypot(tail.x-points[0].x,tail.y-points[0].y)<R*1e-10)path.points.push(points[1]);
-          else{path={closed:false,points};paths.push(path);}
-        }
-      }
+      paths.push({closed:!!curve.closed,points:vertices.map(v=>({x:v[0],y:-v[1]}))});
     }
     cache.set(key,paths);while(cache.size>2)cache.delete(cache.keys().next().value);
     return paths;

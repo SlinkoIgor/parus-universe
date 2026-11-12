@@ -28,7 +28,7 @@ for(const q of quasarSource.objects){
  assert.ok(SkyGuide.media(o).length>0);assert.ok(SkyGuide.hasObservatoryPhoto(o));assert.equal(SkyGuide.canChart(o),false);
  assert.equal(MapVisibility.overviewPoint(o),false,'ordinary quasar hierarchy outside explicit selections');
  for(const p of SkyGuide.media(o).filter(p=>p.id.startsWith('cosmic-')))assert.ok(p.objects.includes(o.id),'own nucleus, not a neighbouring or foreground galaxy');
- for(const mode of ['full','radial','slice']){MapSlice.mode=mode;const p=MapLayout.project(o);assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y));}
+ for(const mode of ['full','radial']){MapSlice.mode=mode;const p=MapLayout.project(o);assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y));}
  state=initial();state.selected=q.id;const saved=FlightHistory.snapshot(),restored=restore(saved);assert.equal(restored.selected,q.id);assert.equal(restored.matter,state.matter);assert.equal(object(q.id).redshiftError,q.redshiftError);
 }
 assert.equal(object('qso-apm08279').redshiftError,null,'unknown error stays unknown');

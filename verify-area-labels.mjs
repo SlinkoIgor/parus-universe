@@ -7,7 +7,7 @@ state=initial();state.expansion=false;paused=true;filter='all';Cosmology.sync(st
 const science=JSON.stringify(OBJECTS.map(o=>[o.id,o.p3,o.region,o.navigable])),physical=JSON.stringify([state.ship,state.earth,state.proper,state.matter,state.flight]);
 const originalText=text;let ink=[];text=(name,x,y,size,color,align,font)=>{ink.push({name,x,y,size,color,alpha:ctx.globalAlpha});};
 const originalLeader=MapLabels.leader;let leaderCalls=0;MapLabels.leader=function(...args){leaderCalls++;return originalLeader.apply(this,args);};
-for(const viewport of [390,900,1440])for(const mode of ['full','slice','radial'])for(const palette of ['dark','light','blueprint']){
+for(const viewport of [390,900,1440])for(const mode of ['full','radial'])for(const palette of ['dark','light','blueprint']){
  width=viewport;height=viewport===390?562:855;MapSlice.mode=mode;applyTheme(palette);cam=UniverseMap.overview();cameraGoal=null;hover=null;
  MapLabels.begin();ink=[];UniverseMap.draw();const geometry=UniverseMap.geometry(),boxes=JSON.stringify(UniverseMap.labels.map(l=>l.box)),base=ink.slice();
  assert.equal(UniverseMap.labels.length,4);
@@ -23,8 +23,8 @@ for(const viewport of [390,900,1440])for(const mode of ['full','slice','radial']
 }
 // The galaxy's interior can be hovered, and the admitted name stays fixed.
 width=1440;height=1000;applyTheme('dark');const galaxy=object('andromeda');
-for(const mode of ['full','slice','radial']){
- MapSlice.mode=mode;MapSlice.centerZ=galaxy.p3[2];cam={...MapLayout.project(galaxy),span:5e5};hover=null;
+for(const mode of ['full','radial']){
+ MapSlice.mode=mode;cam={...MapLayout.project(galaxy),span:5e5};hover=null;
  const draw=()=>{leaderCalls=0;MapLabels.begin();drawGalaxyBackground();RegionMap.draw();MapAnnotations.draw();assert.equal(leaderCalls,0,'ordinary areas must not have label pointers');};
  ink=[];draw();const hit=MapAnnotations.hits.find(h=>h.object.id===galaxy.id);assert.ok(hit,'galaxy caption is admitted in '+mode);
  const before=JSON.stringify(MapLabels.placed),normal=ink.find(q=>q.name===MapDetails.mapLabelName(galaxy));assert.ok(normal);

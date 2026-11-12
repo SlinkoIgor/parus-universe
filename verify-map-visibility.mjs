@@ -38,8 +38,6 @@ for(const mode of ['full','radial']){
  assert.equal(ids.length,15,'all 15 M31 nebulae keep their host-scale range in '+mode);
  const shown=new Set(chart.points.map(p=>p.id));for(const id of ids)assert.ok(shown.has(id));
 }
-run('MapSlice.centerZ=0');const slab=render('slice',1000),slabPan=render('slice',1000,20,10),slabIds=new Set(slabPan.points.map(p=>p.id));
-for(const p of slab.points)if(p.x>100&&p.x<1340&&p.y>100&&p.y<900)assert.ok(slabIds.has(p.id),'physical slice pan cannot remove '+p.id);
 // Thresholds belong to the record, including pinned/saved targets. Pan, label
 // collisions, selection, traversal direction and a cold tile cache cannot change them.
 run(`{

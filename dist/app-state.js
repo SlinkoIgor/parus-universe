@@ -24,7 +24,6 @@ const initial = () => ({
   current: 'sol',
   selected: 'alpha',
   sail: 0,
-  lightModel: 5,
   departureMode: OrbitalArrival.enabled ? 'beam' : 'engine',
   expansion: true,
   cosmicTime: 0,
@@ -47,7 +46,6 @@ const initial = () => ({
   destroyed: [],
   phase: 'idle',
   flight: null,
-  auto: true,
   journal: [
     {
       t: 0,
@@ -87,10 +85,8 @@ function restore(saved) {
     version: 13,
     flightDefaultsVersion: 2,
     reserveDefaultsVersion: 1,
-    lightModel: 5,
     sail: 0,
     controlG: 10,
-    auto: true,
   };
   if (!['engine', 'beam', 'burst'].includes(upgraded.departureMode))
     upgraded.departureMode = 'engine';
@@ -137,7 +133,6 @@ function restore(saved) {
         upgraded.acceleration = 0;
         f.departureMode = 'beam';
         f.windFolded = true;
-        f.replayRate = 1;
       } else if (upgraded.phase === 'launch' && saved.version < 10) {
         const old = f.wind,
           q = old?.rows ? Stellar.sampleProper(old, old.elapsedProper || 0) : null,
@@ -166,13 +161,11 @@ function restore(saved) {
         );
         Object.assign(f.wind, { sourceOffset: spent, baseCovered: f.covered, elapsedProper: 0 });
         f.maxBeta = f.wind.beta;
-        f.replayRate = f.wind.proper / 5;
         f.departureMode = mode;
       } else if (upgraded.phase === 'thrust' && saved.version < 10) {
         f.engine = Rocket.plan(upgraded.matter, remaining, upgraded.beta);
         f.engine.baseCovered = f.covered;
         f.maxBeta = f.engine.beta;
-        f.replayRate = f.engine.burnProper / 5;
       } else if (['brake', 'dock'].includes(upgraded.phase)) {
         f.engine = null;
         f.magnetic = HybridBrake.plan(
@@ -180,7 +173,6 @@ function restore(saved) {
           upgraded.beta,
           Magnetic.rho(f.medium.n) * f.medium.area,
         );
-        f.replayRate = f.magnetic.proper / 3;
         upgraded.phase = 'brake';
         if (
           remaining * Cosmology.factor(f, upgraded.cosmicTime || 0) >
@@ -190,7 +182,6 @@ function restore(saved) {
           upgraded.acceleration = 0;
           f.magnetic = null;
           f.autoStopping = false;
-          f.replayRate = 1;
         }
       }
       if (f.profile) {
@@ -214,7 +205,6 @@ function restore(saved) {
         upgraded.beta,
         Magnetic.rho(gasFlight.medium.n) * gasFlight.medium.area,
       );
-      gasFlight.replayRate = gasFlight.magnetic.proper / 3;
       const remaining = gasFlight.distance - gasFlight.covered;
       if (
         remaining * Cosmology.factor(gasFlight, upgraded.cosmicTime || 0) >
@@ -224,7 +214,6 @@ function restore(saved) {
         upgraded.acceleration = 0;
         gasFlight.magnetic = null;
         gasFlight.autoStopping = false;
-        gasFlight.replayRate = 1;
       }
     }
     if (gasFlight.profile) {
@@ -304,6 +293,7 @@ function restore(saved) {
 const FlightHistory = {
   pending: null,
   fadeDuration: 3000,
+  limit: 64,
   routeStart(f = state.flight) {
     const count = state.flightHistory?.length || 0;
     return f ? Math.max(0, count - (f.legIndex || 0) - Number(!!f.historyRecorded && f.covered > 0)) : count;
@@ -335,6 +325,8 @@ const FlightHistory = {
         fraction,
         ...(f.detachedSource ? { detachedSource: true } : {}),
       });
+      const extra = state.flightHistory.length - this.limit;
+      if (extra > 0) state.flightHistory.splice(0, extra);
     }
     f.historyRecorded = true;
   },
@@ -366,7 +358,6 @@ const FlightHistory = {
     paused = !!saved.paused;
     speed = saved.timeScale || 1;
     Simulation.debt = Simulation.wallDebt = 0;
-    delete Simulation.smoothedFactor;
     effects = [];
     Route.picking = false;
     Cosmology.sync(state);

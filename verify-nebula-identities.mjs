@@ -56,8 +56,8 @@ run(`{
  for(const id of ['hubble-heic1501a','nasa-messier-16'])assert.ok(merged.some(p=>p.id===id),'curated photo of either former record: '+id);
  assert.ok(SkyGuide.hasObservatoryPhoto(canonical));
  assert.equal(MAP_FILTER_DATA.photoIds.includes(oldId),false);assert.ok(MAP_FILTER_DATA.photoIds.includes(canonical.id));
- for(const mode of ['full','radial','slice']){
-  state=initial();state.expansion=false;Cosmology.sync(state);width=1440;height=1000;MapSlice.setMode(mode);MapSlice.focus(canonical);const p=MapLayout.project(canonical);cam={x:p.x,y:p.y,span:800};
+ for(const mode of ['full','radial']){
+  state=initial();state.expansion=false;Cosmology.sync(state);width=1440;height=1000;MapSlice.setMode(mode);const p=MapLayout.project(canonical);cam={x:p.x,y:p.y,span:800};
   MapLabels.begin();RegionMap.draw();drawObjects();ExtendedCatalog.draw();MapLabels.draw();
   const targets=[...new Set([...hitObjects,...RegionMap.hits].filter(h=>[oldId,canonical.id].includes(h.o.id)).map(h=>h.o.id))];
   assert.deepEqual(targets,[canonical.id],'one clickable M16 on the '+mode+' map');

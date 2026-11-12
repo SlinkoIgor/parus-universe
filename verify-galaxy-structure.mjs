@@ -12,14 +12,7 @@ for(const id of examples){
  const bounds=MapGeometry.indexBounds(o);
  for(const path of full)for(const p of path.points){assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y));assert.ok(p.x>=bounds[0]-1e-6&&p.x<=bounds[2]+1e-6&&p.y>=bounds[1]-1e-6&&p.y<=bounds[3]+1e-6,'decoration fits the current physical envelope: '+id);}
  assert.deepEqual(GalaxyStructure.projected(o,{mode:'radial',tolerance:1}),full,'radial mode translates the whole object without deforming its arms');
- const cut=GalaxyStructure.projected(o,{mode:'slice',centerZ:o.p3[2]+1e8,halfThickness:1,tolerance:1});assert.equal(cut.length,0,'no phantom arms outside the physical slice');
 }
-// M31 has a known tilted disk. Independently recover the local XYZ plane from
-// every clipped stroke: neither edges nor the hidden far half may bridge it.
-const o=object('andromeda'),m=MapGeometry.model(o),half=1000,centerZ=o.p3[2]+5000;
-const clipped=GalaxyStructure.projected(o,{mode:'slice',centerZ,halfThickness:half,tolerance:1});assert.ok(clipped.length);
-const determinant=m.a[0]*m.b[1]-m.a[1]*m.b[0];
-for(const path of clipped){assert.equal(path.closed,false);for(const p of path.points){const u=(p.x*m.b[1]+p.y*m.b[0])/determinant,v=(-p.y*m.a[0]-p.x*m.a[1])/determinant,z=o.p3[2]+u*m.a[2]+v*m.b[2];assert.ok(z>=centerZ-half-1e-6&&z<=centerZ+half+1e-6,'stroke obeys the actual slab');}}
 // Following a tiny section of an arm must not tessellate the entire galaxy
 // to subpixel precision. Verify error against the analytic curve at this zoom.
 for(const id of ['milkyway','andromeda']){
@@ -35,8 +28,8 @@ for(const id of ['milkyway','andromeda']){
 // Exercise the actual canvas entry point and filtering, at desktop/mobile
 // scales and in both themes. Decoration never joins the selectable outlines.
 const original=GalaxyStructure.draw;let calls=[];GalaxyStructure.draw=function(body,...args){calls.push(body.id);return original.call(this,body,...args);};
-for(const viewport of [390,1440])for(const palette of ['dark','light'])for(const mode of ['full','slice','radial'])for(const id of examples){
- width=viewport;height=viewport===390?844:1000;applyTheme(palette);MapSlice.mode=mode;const o=object(id);MapSlice.centerZ=o.p3[2];cam={...MapLayout.project(o),span:o.galaxy.diameterLy*2};MapLabels.begin();calls=[];drawGalaxyBackground();assert.ok(calls.includes(id),'real canvas draws restored structure: '+[id,viewport,palette,mode]);assert.equal(MapLabels.contours.filter(q=>q.id===id).length,1,'only the original envelope is selectable');
+for(const viewport of [390,1440])for(const palette of ['dark','light'])for(const mode of ['full','radial'])for(const id of examples){
+ width=viewport;height=viewport===390?844:1000;applyTheme(palette);MapSlice.mode=mode;const o=object(id);cam={...MapLayout.project(o),span:o.galaxy.diameterLy*2};MapLabels.begin();calls=[];drawGalaxyBackground();assert.ok(calls.includes(id),'real canvas draws restored structure: '+[id,viewport,palette,mode]);assert.equal(MapLabels.contours.filter(q=>q.id===id).length,1,'only the original envelope is selectable');
 }
 const matches=ExtendedCatalog.matchesMap;ExtendedCatalog.matchesMap=()=>false;MapLabels.begin();calls=[];drawGalaxyBackground();assert.equal(calls.length,0,'hidden galaxies cannot leave arms behind');ExtendedCatalog.matchesMap=matches;
 GalaxyStructure.draw=original;

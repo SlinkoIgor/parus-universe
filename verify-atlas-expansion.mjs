@@ -36,7 +36,7 @@ assert.ok(MapDetails.typeName({...object('sgr'),confirmed:false}).includes('Ка
 assert.equal(MapDetails.typeName({kind:'blackhole',massSolar:1e9}),'Чёрная дыра','unknown population is not inferred from a mass alone');
 assert.equal(MapDetails.typeName(object('m87')),'Галактика','the host is not its nucleus');
 const denseOffsets=Array.from({length:130001},(_,i)=>[i,0,0]),denseSpine={id:'dense-spine-regression',kind:'filament',p3:[0,0,0],region:{shape:'polyline',major:130000,minor:1,offsets3:denseOffsets,points:denseOffsets.map(p=>p.slice(0,2))}};
-assert.deepEqual(MapGeometry.projected(denseSpine,{mode:'full',slice:false}).bounds.map(n=>n||0),[0,0,130000,0],'dense path bounds do not exhaust the JavaScript argument stack');
+assert.deepEqual(MapGeometry.projected(denseSpine,{mode:'full'}).bounds.map(n=>n||0),[0,0,130000,0],'dense path bounds do not exhaust the JavaScript argument stack');
 assert.equal(new Set(OBJECTS.map(o=>o.id)).size,OBJECTS.length);
 assert.equal(ExtendedCatalog.total,EXTENDED_BOOT.total-Object.keys(CatalogIdentities.redirects).length+Object.keys(EXTENDED_BOOT.coreIdentityRedirects||{}).length+(EXTENDED_BOOT.stellarCatalog?.newObjectCount||0)+OBJECTS.filter(o=>o.quasarCatalog).length+BlackHoleCatalog.objects.length+NuclearStars.rows.length+UniverseMap.areas.length);
 for(const o of bh){
@@ -84,7 +84,7 @@ $('catalog').hidden=false;$('search').value='сверхмассивная';rende
 assert.equal($('catalogList').children.length,72,'population search includes every sourced SMBH, including the legacy core');
 $('catalog').hidden=true;$('search').value='';state.selected='alpha';
 assert.equal(MapDetails.mapLabelName({kind:'blackhole',name:'NGC 1234'}),null,'scope does not change ordinary catalogue name policy');
-for(const mode of ['full','slice','radial'])for(const epoch of [0,15e9,100e9]){
+for(const mode of ['full','radial'])for(const epoch of [0,15e9,100e9]){
  MapSlice.mode=mode;state.cosmicTime=epoch;Cosmology.sync(state);
  for(const o of bh.filter(o=>o.parentGalaxy&&!o.atlasOnly)){
   const host=BlackHoleCatalog.hosts.get(o.parentGalaxy),a=MapLayout.project(o),b=MapLayout.project(host),pa=Cosmology.position(o),pb=Cosmology.position(host);

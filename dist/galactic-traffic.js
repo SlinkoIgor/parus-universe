@@ -75,7 +75,6 @@ const GalacticTraffic = {
     if (!this.visible()) return;
     const ships=this.active(), own=this.playerVelocity();
     for (const q of ships) {
-      if (globalThis.MapSlice?.mode==='slice' && !MapSlice.includes(q.point)) continue;
       const p=screen(q.point);
       if (p.x < -12 || p.x > width+12 || p.y < -12 || p.y > height+12) continue;
       const next=screen(Space.point(V3.add(q.point.p3,V3.mul(q.plan.direction,Math.max(1,cam.span*.0001))))),angle=Math.atan2(next.y-p.y,next.x-p.x);

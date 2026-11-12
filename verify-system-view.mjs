@@ -40,7 +40,6 @@ assert.equal(JSON.stringify(OBJECTS.map(o=>[o.id,o.p3])),fixed,'view cannot chan
 state.universeElapsed=0;MapSlice.setMode('full');
 const gl=ExtendedCatalog.systemByMember.get('hyg-82565'),glMembers=gl.members.map(id=>object(id)),whole=relatedSystemBounds(glMembers).box,inner=stellarOrbitBounds(glMembers[0]).box;
 for(const o of glMembers.slice(-2)){const p=MapLayout.project(o);assert.ok(p.x<inner[0]||p.x>inner[2]||p.y<inner[1]||p.y>inner[3],'remote Gl 644 branch lies outside the known close orbit');inside(p,whole,'Gl 644 includes remote '+o.id);}
-MapSlice.setMode('slice');state.selected='proxima';showObject('proxima');await $('viewSystem').onclick();assert.equal(MapSlice.mode,'full','a depth slab cannot cut the requested complete system');
 MapFilters.change('star','naked-eye','all',false);showObject('alpha');await $('viewSystem').onclick();assert.equal(MapFilters.key,'all|all|all','incompatible map selections cannot hide C');
 MapFilters.change('star','nearby','all',false);showObject('alpha');await $('viewSystem').onclick();assert.equal(MapFilters.key,'all|nearby|all','compatible map selections are retained');MapFilters.change('all','all','all',false);
 assert.equal(relatedSystemBounds([{id:'unknown',atlasOnly:true,p3:null}]),null);

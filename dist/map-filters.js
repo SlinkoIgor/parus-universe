@@ -2,7 +2,6 @@
 // Presentation preferences only. Search, catalogue records and flight saves are independent.
 const MapFilters = {
   collection: 'all',
-  catalog: 'all',
   classes: ['all', 'star', 'pulsar', 'blackhole', 'quasar', 'nebula', 'galaxy',
     'stellar-cluster', 'galaxy-cluster', 'structure', 'void', 'horizon'],
   collections: {
@@ -236,7 +235,6 @@ const MapFilters = {
       if (group !== this.activeGroup) this.selection[group] = this.defaults(group);
     filter = this.activeGroup === 'classes' && this.values('classes').length === 1 ? this.values('classes')[0] : 'all';
     this.collection = this.unrestricted('collections') ? 'all' : this.values('collections').join(',');
-    this.catalog = this.unrestricted('catalogs') ? 'all' : this.values('catalogs').join(',');
     this.invalidate(); this.refreshSelection(); this.sync();
     if (save) {
       try { localStorage.setItem('parus-map-filters-v5', JSON.stringify({activeGroup:this.activeGroup,...this.selection})); } catch {}
@@ -279,7 +277,6 @@ const MapFilters = {
       this.narrow||this.photoMembers ? (this.total ? 'Объектов: '+this.total : 'Нет объектов по выбранным условиям.') : '';
     $('mapFilterStatus').hidden = !$('mapFilterStatus').textContent;
   },
-  pickerOpen() { return false; },
   close() {
     const restoreFocus = document.activeElement?.closest('#mapFilters');
     $('mapFilters').hidden = true; $('mapFilterBtn').setAttribute('aria-expanded','false');

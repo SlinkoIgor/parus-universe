@@ -98,7 +98,7 @@ const RegionMap={
  pointOpacity(o){if(globalThis.MapVisibility?.active&&MapSymbols.handles(o))return 1;return StellarClusters.is(o)?StellarClusters.view(o).point:o.kind==='nebula'?Nebulae.view(o).point:1;},
  center(o){return MapLayout.project(o);},
  referenceCenter(o){return MapLayout.baseProject(o);},
- focus(o){globalThis.MapSlice?.focus(o);const r=o.region,p=this.center(o);goCamera(p.x,p.y,Math.max(r.major,r.minor)*Cosmology.regionScale(o)*Math.max(1.7,width/Math.max(height*.6,1)));toast(r.note);},
+ focus(o){const r=o.region,p=this.center(o);goCamera(p.x,p.y,Math.max(r.major,r.minor)*Cosmology.regionScale(o)*Math.max(1.7,width/Math.max(height*.6,1)));toast(r.note);},
  outline(r){if(r.shape==='polyline')return r.points.map(([x,y])=>({x,y}));const p=[];for(let i=0;i<=96;i++){const t=i/96,a=t*Math.PI*2;let x,y;
   if(r.shape==='ribbon'){const u=t<=.5?t*2:2-t*2;x=(u-.5)*r.major;y=Math.sin(u*Math.PI*3)*r.minor*.18+(t<=.5?-1:1)*r.minor*.28;}
   else if(r.shape==='arc'){x=(t-.5)*r.major;y=(4*(t-.5)**2-.5)*r.minor;}
@@ -112,7 +112,7 @@ const RegionMap={
   this.nameAnchors??=new Map();if(!this.nameAnchors.has(key))this.nameAnchors.set(key,new Map());
   const cache=this.nameAnchors.get(key);if(cache.has(o.id))return cache.get(o.id);
   const center=this.referenceCenter(o),others=OBJECTS.filter(q=>q.id!==o.id&&!MapGeometry.unlocated(q)&&(MapDetails.origin(q)||q.region&&!q.cosmicCatalog&&['structure','wall','void','ring','arc'].includes(q.kind))).map(q=>this.referenceCenter(q));
-  const outline=MapGeometry.projected(o,{slice:false}).points;
+  const outline=MapGeometry.projected(o).points;
   let best=outline[0]||{x:0,y:0},clearance=-Infinity;
   for(const p of outline){
    const distance=Math.min(...others.map(q=>Math.hypot(center.x+p.x-q.x,center.y+p.y-q.y)));
@@ -187,7 +187,7 @@ const RegionMap={
   else if(runs.length){ctx.beginPath();for(const run of runs)trace(run);ctx.stroke();}
  },
  draw(){
-  const layers=globalThis.MapLayers,fade=[...ExtendedCatalog.transitions.values()].some(q=>q.o.region&&(!layers?.active||!layers.manages(q.o))&&q.alpha!==q.to),key=[cam.span,width,height,dpr,theme,state.selected,globalThis.MapFilters?.key,filter,globalThis.MapSlice?.mode,globalThis.MapSlice?.centerZ,ExtendedCatalog.pinned.size,OBJECTS.length,fade?performance.now():0].join(':'),cache=this.renderCache,scale=Cosmology.scale(),pad=96;
+  const layers=globalThis.MapLayers,fade=[...ExtendedCatalog.transitions.values()].some(q=>q.o.region&&(!layers?.active||!layers.manages(q.o))&&q.alpha!==q.to),key=[cam.span,width,height,dpr,theme,state.selected,globalThis.MapFilters?.key,filter,globalThis.MapSlice?.mode,ExtendedCatalog.pinned.size,OBJECTS.length,fade?performance.now():0].join(':'),cache=this.renderCache,scale=Cosmology.scale(),pad=96;
   const cosmicShift=cache?Math.abs(scale/cache.scale-1)*(2+Math.hypot(cam.x,cam.y)/cam.span)*Math.max(width,height):Infinity,dx=cache?(cache.x-cam.x)*width/cam.span:0,dy=cache?(cache.y-cam.y)*width/cam.span:0;
   if(cache&&cache.key===key&&cache.points===ExtendedCatalog.visible&&cache.layers===layers?.visible&&cosmicShift<.15&&Math.abs(dx)<=pad&&Math.abs(dy)<=pad){
    // Reuse a padded raster while panning. Move only disposable screen geometry;
@@ -212,7 +212,7 @@ const RegionMap={
    if(extent<(polyline ? 0 : globalThis.MapVisibility?.active && MapDetails.level(o)>=3 ? .05 : stellar||nebula ? 2 : 4)||box.x+box.w < -padding||box.x>width+padding||box.y+box.h < -padding||box.y>height+padding)continue;
    const {segments,runs}=spine||this.clipPaths(paths,padding+10);
    if(!segments.length)continue;
-   const selected=o.id===state.selected,opacity=ExtendedCatalog.opacity(o,true,true)*area;
+   const selected=o.id===state.selected,opacity=ExtendedCatalog.opacity(o)*area;
    ctx.globalAlpha=opacity;ctx.strokeStyle=paint(selected?'#454545':'#777777');ctx.lineWidth=selected?1.25:.7;ctx.setLineDash(polyline?[]:MapSymbols.dash(o)||[3,6]);this.strokePaths(ctx,runs);
    const hit={o,points,paths,segments,runs,opacity,label:null,closed:paths.every(path=>path.closed),...(spine?{panPoints:spine.panPoints}:{})};this.hits.push(hit);
    if((stellar||nebula?area>=.5&&extent>=3:extent>=18)&&MapDetails.mapLabelName(o)!==null){

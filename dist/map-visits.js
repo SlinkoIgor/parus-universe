@@ -8,7 +8,7 @@ const MapVisits = {
       viewHeight = zenMode ? height : cameraViewportHeight();
     for (const id of new Set(state.visited)) {
       const o = object(id);
-      if (!o?.p3?.every(Number.isFinite) || o.atlasOnly || MapGeometry.unlocated(o) || !MapSlice.includes(o)) continue;
+      if (!o?.p3?.every(Number.isFinite) || o.atlasOnly || MapGeometry.unlocated(o)) continue;
       const p = screen(o);
       if (!Number.isFinite(p.x) || !Number.isFinite(p.y) || p.x < 0 || p.x > width || p.y < 0 || p.y > viewHeight) continue;
       const x = Math.floor(p.x / spacing), y = Math.floor(p.y / spacing);

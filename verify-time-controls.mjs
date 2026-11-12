@@ -15,6 +15,5 @@ setTimeRate(123);assert.equal(speed,10);assert.equal(paused,false);
 setTimeRate(0);assert.equal(paused,true);assert.equal(speed,10);
 setTimeRate(.5);assert.equal($('timeSlider').value,'1');assert.equal($('timeRate').textContent,'1 с = 0,5 года на борту');assert.equal(state.timeScale,.5);
 setTimeRate(0);assert.equal(speed,.5);assert.equal(state.timeScale,.5);assert.equal(state.paused,true);
-assert.equal(Simulation.slowMotionEnabled,false);
 console.log('PASS time rail: 0 pauses, positive rates resume, clocks follow selected tempo, previous rate persists and invalid rates are ignored');
 `);

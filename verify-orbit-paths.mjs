@@ -14,15 +14,15 @@ function covered(p,segments,tolerance=.26){return segments.some(s=>pointSegment(
 function bounded(segments){assert.ok(segments.length,'visible orbit must have a stroke');for(const s of segments)for(const p of s)assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y)&&p.x>=-2.001&&p.x<=width+2.001&&p.y>=-2.001&&p.y<=height+2.001,'clip huge coordinates before canvas');}
 const fixed=JSON.stringify(OBJECTS.map(o=>[o.id,o.p3]));
 let nuclearCases=0,alphaCases=0;
-for(const years of [0,5,120])for(const mode of ['full','slice','radial']){
+for(const years of [0,5,120])for(const mode of ['full','radial']){
  state.universeElapsed=years;MapSlice.setMode(mode);state.selected='sol';
  for(const span of [.08,.002,.00006])for(const q of NuclearStars.rows){
-  const o=object(q.id),p=MapLayout.project(o);MapSlice.focus(o);cam={...p,span};
+  const o=object(q.id),p=MapLayout.project(o);cam={...p,span};
   const cohort=NuclearStars.rows;NuclearStars.rows=[q];let segments;try{segments=renderOrbitPaths(()=>NuclearStars.draw());}finally{NuclearStars.rows=cohort;}bounded(segments);
   assert.ok(covered(screen(o),segments),q.id+' visible marker needs an orbit at '+span+' / '+mode+' / '+years);nuclearCases++;
  }
  for(const id of ['alpha','hyg-71453','proxima'])for(const span of [id==='proxima'?.5:.001,.00006]){
-  const o=object(id),p=MapLayout.project(o);MapSlice.focus(o);cam={...p,span};
+  const o=object(id),p=MapLayout.project(o);cam={...p,span};
   const segments=renderOrbitPaths(()=>OrbitalMotion.draw());bounded(segments);
   assert.ok(covered(screen(o),segments),id+' marker needs its orbit at '+span+' / '+mode+' / '+years);alphaCases++;
  }

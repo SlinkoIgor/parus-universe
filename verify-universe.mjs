@@ -37,7 +37,7 @@ for(const id of ['CCPC-z20-002','CCPC-z65-005',DistantCatalog.objects.find(o=>o.
  const o=object(id),q=CosmicCatalog.cosmology(o.redshift);assert.ok(Math.abs(q.distanceLy/o.d-1)<1e-12);
  state=initial();state.selected=id;paused=true;const saved=FlightHistory.snapshot(),fresh=restore(saved);assert.equal(fresh.selected,id);assert.equal(fresh.matter,state.matter);assert.equal(fresh.earth,state.earth);assert.equal(fresh.flight,null);
 }
-for(const mode of ['full','slice','radial']){MapSlice.mode=mode;MapSlice.centerZ=0;for(const o of DistantCatalog.objects.filter(o=>!o.atlasOnly).slice(0,5)){assert.ok(MapVisibility.limit(o)>0&&Number.isFinite(MapVisibility.limit(o)));assert.ok(Number.isFinite(MapLayout.project(o).x));}}
+for(const mode of ['full','radial']){MapSlice.mode=mode;for(const o of DistantCatalog.objects.filter(o=>!o.atlasOnly).slice(0,5)){assert.ok(MapVisibility.limit(o)>0&&Number.isFinite(MapVisibility.limit(o)));assert.ok(Number.isFinite(MapLayout.project(o).x));}}
 
 assert.equal(DistantCatalog.objects.filter(o=>o.objectOfInterest).length,15);
 assert.equal(DistantCatalog.objects.filter(o=>o.objectOfInterest).flatMap(o=>o.catalogRows).length,17);
@@ -77,7 +77,7 @@ for(const [i,q] of UniverseMap.areas.slice(0,3).entries()){
 Object.assign(ctx,originalCanvas);hover=null;
 // The ruler spans the projected diameter with a radius on each half, and its reading measures the same expanding
 // reference sphere as the outline. Disabling expansion freezes its reached size.
-for(const size of [[1440,855],[900,620],[390,562]])for(const mode of ['full','slice','radial']){
+for(const size of [[1440,855],[900,620],[390,562]])for(const mode of ['full','radial']){
  [width,height]=size;MapSlice.mode=mode;state=initial();Cosmology.sync(state);
  const originalState=JSON.stringify(state);cam=UniverseMap.overview();cameraGoal=null;UniverseMap.draw();
  const first=UniverseMap.ruler;assert.ok(first,'ruler fits overview '+size+'/'+mode);

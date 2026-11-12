@@ -95,6 +95,11 @@ console.log('PASS real passage cancellation/reload preserves ship, clocks and fu
   delete state.flightHistory[0].mapFadeAt;state.flightHistory=state.flightHistory.slice(0,1);assert.deepEqual(visible(),[],'old idle saves have no permanent historical traces');
   select('alpha');launch();finishFlight(false);assert.deepEqual(visible(),[],'an immediate zero-distance stop cannot fade an older flight');
   console.log('PASS legacy idle history stays hidden and zero-progress stops cannot resurrect previous tracks');
+
+  const old=JSON.stringify(state.flightHistory[0]);reset();state.flightHistory=Array.from({length:FlightHistory.limit+7},()=>JSON.parse(old));
+  wall+=10000;select('barnard');launch();arrive();assert.equal(state.flight,null);assert.equal(state.flightHistory.length,FlightHistory.limit,'completed traces are bounded in a long expedition');
+  assert.equal(state.flightHistory.at(-1).target,'barnard');assert.deepEqual(visible(),[1],'trimming keeps the newest trace');
+  console.log('PASS long expeditions keep only the newest completed traces');
  }finally{Date.now=clock;line=stroke;ctx.save=save;ctx.restore=restoreContext;ctx.globalAlpha=1;}
 }
 `);

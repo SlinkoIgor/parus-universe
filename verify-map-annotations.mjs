@@ -36,9 +36,9 @@ context.menuRects=[];
 context.document.querySelectorAll=()=>context.menuRects.map(r=>({getBoundingClientRect:()=>r,classList:{contains:n=>n==='flight-card'&&r.card}}));
 run('var annotationLines=0;line=()=>annotationLines++;');
 const checks=[];
-for(const mode of ['full','slice','radial'])for(const span of [24,1000,130000,3e7,1e8,5e9,1.15e11]){
+for(const mode of ['full','radial'])for(const span of [24,1000,130000,3e7,1e8,5e9,1.15e11]){
  context.camera={x:0,y:0,span};context.mode=mode;
- run('MapSlice.mode=mode;MapSlice.centerZ=0;cam=camera;state.selected="alpha";annotationLines=0;MapLabels.begin();MapAnnotations.draw();');
+ run('MapSlice.mode=mode;cam=camera;state.selected="alpha";annotationLines=0;MapLabels.begin();MapAnnotations.draw();');
  context.expectedAnnotationLines=run('annotationLines');
  const before=run('JSON.stringify(MapAnnotations.admitted)');
  const boxes=run('JSON.stringify(MapLabels.placed)');
@@ -77,8 +77,8 @@ run(`
   try{FlightMarks.draw();}finally{circle=original;}
   return count;
  }
- for(const viewport of [390,1440])for(const mode of ['full','slice','radial']){
-  width=viewport;height=viewport===390?844:1000;MapSlice.mode=mode;MapSlice.centerZ=0;
+ for(const viewport of [390,1440])for(const mode of ['full','radial']){
+  width=viewport;height=viewport===390?844:1000;MapSlice.mode=mode;
   const a=FlightView.at(annotationFlight,0),b=FlightView.at(annotationFlight,1),length=Math.hypot(b.x-a.x,b.y-a.y),
    center=FlightView.at(annotationFlight,FlightView.fraction(annotationFlight,annotationFlight.markers[0].p3));
   const view=span=>{cam={x:center.x+width*.23*span/width,y:center.y+height*((width<700?.39:.5)-.35)*span/width,span};};

@@ -74,9 +74,9 @@ runHoleNames(`{
  state=initial();state.expansion=false;state.current=null;Cosmology.sync(state);filter='all';MapLayers.active=false;
  ExtendedCatalog.pinned.clear();ExtendedCatalog.visible=[];ExtendedCatalog.visibleMap.clear();MapLayers.visible=[];MapLayers.visibleMap.clear();
  const textCalls=[],fill=ctx.fillText;ctx.fillText=value=>textCalls.push(String(value));width=1440;height=1000;
- for(const mode of ['full','slice','radial'])for(const palette of ['dark','light'])for(const id of examples){
+ for(const mode of ['full','radial'])for(const palette of ['dark','light'])for(const id of examples){
   const o=holes.find(o=>o.id===id);OBJECTS.splice(0,OBJECTS.length,o);MapSlice.mode=mode;theme=palette;
-  MapSlice.focus(o);cam={...MapLayout.project(o),span:Math.min(1000,MapVisibility.limit(o)*width*.5)};cameraGoal=null;
+  cam={...MapLayout.project(o),span:Math.min(1000,MapVisibility.limit(o)*width*.5)};cameraGoal=null;
   for(const [modern,draw] of [[false,()=>MapLabels.legacyDraw()],[true,()=>MapAnnotations.draw()]]){
    const render=()=>{textCalls.length=0;MapLabels.begin();RegionMap.hits=[];drawObjects();draw();return MapLabels.placed.some(q=>q.key==='object-'+id);};
    state.selected=null;hover=null;const idle=render();

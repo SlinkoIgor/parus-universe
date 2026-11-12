@@ -1,7 +1,7 @@
 'use strict';
 // Catalogue search, object cards and informational dialogs.
 const Notices={
-  labels:{info:'Сообщение',tip:'Подсказка',warning:'Предупреждение',orbit:'Выход на орбиту',arrival:'Прибытие',route:'Маршрут',launch:'Начало полёта',reset:'Состояние экспедиции'},
+  labels:{info:'Сообщение',tip:'Подсказка',warning:'Предупреждение',orbit:'Выход на орбиту',arrival:'Прибытие',route:'Маршрут',reset:'Состояние экспедиции'},
   render(text,icon='info',kind='notice'){
     const node=$('toast');if(!this.labels[icon])icon='info';
     if(kind==='notice')this.context={flight:state.flight,phase:state.phase,elapsed:globalThis.FlightTips?.elapsed(state.flight)??0};
@@ -328,9 +328,6 @@ function focusRelatedSystem(members) {
   const bounds = relatedSystemBounds(members);
   if (!bounds) return;
   $('infoDialog').close();
-  // A complete system cannot be restricted to one physical depth slab.
-  if (MapSlice.mode === 'slice') MapSlice.setMode('full');
-  MapSlice.focus(bounds.anchor);
   if (bounds.members.some(o => !ExtendedCatalog.matches(o.kind, filter, o) || !MapFilters.matches(o)))
     MapFilters.change('all', 'all', 'all');
   MapFilters.invalidate();

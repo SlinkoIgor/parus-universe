@@ -20,7 +20,7 @@ for(const id of ['barnard','lalande','sirius','ross','epsilon','tau','procyon','
 for(const years of [0,1,40]){
  state.universeElapsed=years;
  const physical=OrbitalMotion.alphaPositions3D();
- for(const mode of ['full','slice','radial']){
+ for(const mode of ['full','radial']){
   MapSlice.setMode(mode);
   const p=ids.map(id=>MapLayout.project(object(id)));
   for(let i=0;i<ids.length;i++){
@@ -36,7 +36,7 @@ for(const years of [0,1,40]){
 // moving markers; cover C as well as AB, all modes and widely separated phases.
 for(const years of [0,40,200000]){
  state.universeElapsed=years;
- for(const mode of ['full','slice','radial']){
+ for(const mode of ['full','radial']){
   MapSlice.setMode(mode);
   for(const id of ids){const track=OrbitalMotion.alphaTrack(id),p=track.points[track.currentIndex],marker=MapLayout.project(object(id));assert.ok(Math.hypot(p.x-marker.x,p.y-marker.y)<1e-11,id+' marker on drawn orbit in '+mode);const first=track.points[0],last=track.points.at(-1);assert.ok(Math.hypot(first.x-last.x,first.y-last.y)<1e-11,'closed physical orbit');}
  }

@@ -116,7 +116,7 @@ const FlightTips = {
     // physical time; subsequent updates record active real seconds across rates.
     const proper = f.missionElapsed?.proper ??
       (Number.isFinite(f.rollback?.proper) ? Math.max(0, state.proper - f.rollback.proper) : 0);
-    return Math.max(0, proper / Simulation.replayRate());
+    return Math.max(0, proper / speed);
   },
   advance(f, elapsed, seconds) {
     if (f && Number.isFinite(elapsed) && Number.isFinite(seconds) && seconds >= 0)
@@ -220,7 +220,7 @@ const FlightTips = {
         tip:this.entries.find(t => t.id === f.flightTip?.id) || null};
     }
     const current = this.current;
-    const remaining = (estimate || FlightEstimate.get())?.proper / Simulation.replayRate();
+    const remaining = (estimate || FlightEstimate.get())?.proper / speed;
     const elapsed = this.elapsed(f);
     if (remaining > 0 && remaining <= this.arrivalSeconds &&
         !f.mission?.passage && !Route.isFlyby(f) && state.phase !== 'flyby') {

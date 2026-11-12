@@ -16,7 +16,7 @@ const Gravity={
   if(Space.distance(body,next)<1e-12)return 'Следующая точка маршрута совпадает с точкой пролёта.';
   return '';
  },
- G:6.67430e-11,solarMass:1.98847e30,solarRadius:695700000,
+ G:6.67430e-11,solarMass:1.98847e30,
  rs(massSolar){return 2*this.G*this.solarMass*massSolar/Rocket.c**2;},
  critical(beta){const y=Math.sqrt(1-8*(1-beta*beta)/9);return 3*(1+y)/(1+3*y);},
  integrate(fn,a,b,tol=2e-12){

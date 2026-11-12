@@ -52,7 +52,7 @@ def extract(directory):
     dump(SOURCES/'jades-observations.json', {'table':'Obs_info', 'positionColumns':['RA_TARG','DEC_TARG'], 'positionUnit':'deg J2000', 'redshiftUnit':'dimensionless', 'redshiftUncertainty':'Not supplied in Obs_info; quality flags are not sigma.', 'qualityFlags':{'A':'Highly robust: S/N>5 emission lines in R~1000 data','B':'Highly robust: S/N>5 emission lines in Prism/Clear','C':'Secure: visually identified spectral breaks and/or low S/N emission lines','D':'Tentative redshift; not used for map distance','E':'No redshift; raw sentinel retained only in observations'}, 'observations':rows})
 
 def build():
-    js = "const fs=require('fs'),vm=require('vm'),c=vm.createContext({console});vm.runInContext(['catalog','astronomy','catalog-import','catalog-retired','coordinates','cosmic-catalog','layout-data','map-layout','cosmology','map-details','catalog-extended','catalog-stream'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\\n'),c);process.stdout.write(vm.runInContext('JSON.stringify(OBJECTS)',c));"
+    js = "const fs=require('fs'),vm=require('vm'),c=vm.createContext({console});vm.runInContext(['catalog','astronomy','catalog-import','catalog-retired','coordinates','cosmic-catalog','map-layout','cosmology','map-details','catalog-extended','catalog-stream'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\\n'),c);process.stdout.write(vm.runInContext('JSON.stringify(OBJECTS)',c));"
     core = json.loads(subprocess.check_output([NODE,'-e',js], cwd=ROOT))
     existing = [{'id':o['id'],'kind':o['kind'],'raDeg':o.get('raDeg'),'decDeg':o.get('decDeg'),'d':o.get('d'),'redshift':o.get('redshift')} for o in core]
     base = json.loads(gzip.decompress((ROOT/'data-tools/cosmic-catalogs.json.gz').read_bytes()))
