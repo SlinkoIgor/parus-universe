@@ -28,7 +28,7 @@ const BeamOptics={
    const x=20*(1+z),quadrature=40/((1-z*z)*derivative**2);wavelengths.push(.014387768775039337/(T*x));weights.push(quadrature*x**3/Math.expm1(x));
   }
   const total=weights.reduce((a,b)=>a+b,0);for(let i=0;i<N;i++)weights[i]/=total;
-  const result={wavelengths,weights};this.thermalCache.set(T,result);return result;
+  const result={wavelengths,weights};if(this.thermalCache.size>=256)this.thermalCache.clear();this.thermalCache.set(T,result);return result;
  },
  spectrum(setup,light){return setup.burst?{kind:'supernova',profile:setup.burstSpectrum||'iip'}:{kind:'thermal',temperatureK:light.temperatureK};},
  bands(spectrum,sourceYears=0){

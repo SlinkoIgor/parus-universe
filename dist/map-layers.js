@@ -21,7 +21,11 @@ const MapLayers={
  get(id){return this.visibleMap.get(id);},
  start(){if(this.boot.catalogRevision!==EXTENDED_BOOT.revision){this.error='Версии слоёв карты и каталога различаются';return;}if(typeof fetch==='function'||globalThis.PARUS_CATALOG_FILES)this.active=true;},
  sample(category){return{kind:category==='filament'||category==='supercluster'?'structure':category==='stellar-cluster'||category==='galaxy-cluster'?'cluster':category,cosmicSubtype:category,catalogClass:category,cosmicCatalog:true,type:category==='galaxy-cluster'?'Скопление галактик':''};},
- enabled(category,view=cam,viewportWidth=width){if(globalThis.MapFilters?.narrow)return false;const o=this.sample(category);return (!globalThis.MapFilters||MapFilters.allowsCategory(category))&&ExtendedCatalog.matchesMap(o,true)&&MapDetails.visible(o,view.span,viewportWidth);},
+ enabled(category,view=cam,viewportWidth=width){
+  const memo=view===cam&&viewportWidth===width?MapDetails.frameMemo:null,key='layer:'+category,known=memo?.get(key);if(known!==undefined)return known;
+  const result=this.computeEnabled(category,view,viewportWidth);memo?.set(key,result);return result;
+ },
+ computeEnabled(category,view,viewportWidth){if(globalThis.MapFilters?.narrow)return false;const o=this.sample(category);return (!globalThis.MapFilters||MapFilters.allowsCategory(category))&&ExtendedCatalog.matchesMap(o,true)&&MapDetails.visible(o,view.span,viewportWidth);},
  filesForView(view,w,h){
   const v=Cosmology.referenceView(view),pixel=v.span/Math.max(1,w),cy=h*(w<700?.39:.5),box=[v.x-.43*w*pixel,v.y-cy*pixel,v.x+.57*w*pixel,v.y+(h-cy)*pixel],result=new Map();
   const intersects=b=>b[0]<=box[2]&&b[2]>=box[0]&&b[1]<=box[3]&&b[3]>=box[1];
@@ -54,6 +58,14 @@ const MapLayers={
   if(changed){this.visible=[...this.slices.values()].flatMap(q=>q.objects);this.visibleMap=new Map(this.visible.map(o=>[o.id,o]));}
   // Full visible layers are protected. Only old, offscreen tiles are evicted.
   if(this.cache.size>this.wanted.size+16)for(const file of this.cache.keys()){if(!this.wanted.has(file))this.cache.delete(file);if(this.cache.size<=this.wanted.size+16)break;}
+  if(this.admitted.size>this.admittedLimit)this.pruneAdmitted();
+ },
+ admittedLimit:32768,
+ pruneAdmitted(){
+  const keep=new Set();
+  for(const source of [OBJECTS,ExtendedCatalog.pinned.values(),ExtendedCatalog.visible,this.visible,globalThis.MapFilters?.objects.values()||[]])
+   for(const o of source)if(this.admitted.has(o.id))keep.add(o.id);
+  this.admitted=keep;this.admittedLimit=Math.max(32768,keep.size*2);
  },
  completeAbove(level){
   // Readiness and filters are shared by every landmark in the same view.

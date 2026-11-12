@@ -7,6 +7,7 @@ const ArrivalStars = {
       host.p3?.every(Number.isFinite) && !['home','star'].includes(host.kind);
   },
   key(host,destroyed) { return JSON.stringify([host.id,host.p3,destroyed]); },
+  remember(key,star) { if(this.results.size>=256)this.results.clear(); this.results.set(key,star); },
   radius(host) {
     const m=globalThis.MapGeometry?.model(host);
     // Optical contours supply a size envelope; individual depth is unknown.
@@ -58,7 +59,7 @@ const ArrivalStars = {
     if(this.results.has(key))return {ready:true,star:this.results.get(key)};
     if(this.index&&!this.pending.has(key)){
       const candidate=this.nearest(host,destroyed),star=Array.isArray(candidate)?this.resolved.get(candidate[0])||ExtendedCatalog.get(candidate[0]):candidate;
-      if(!candidate||star){this.results.set(key,star||null);return {ready:true,star:star||null};}
+      if(!candidate||star){this.remember(key,star||null);return {ready:true,star:star||null};}
     }
     this.prepare(host,[...destroyed]);
     return {ready:false,star:null};
@@ -80,7 +81,7 @@ const ArrivalStars = {
         if(!star)throw Error('В каталоге отсутствует выбранная звезда.');
         this.resolved.set(star.id,star);
       }
-      this.results.set(key,star);this.revision++;MissionPlanner.cache.clear();FlightQueue.cache=null;
+      this.remember(key,star);this.revision++;MissionPlanner.cache.clear();FlightQueue.cache=null;
       if(typeof state!=='undefined'&&state){renderUI();if($('flightBuilder').open)FlightBuilder.render();}
       return star;
     }).catch(e=>{this.error='Не удалось подобрать звезду: '+e.message;this.failedAt=performance.now();this.revision++;MissionPlanner.cache.clear();if(typeof state!=='undefined'&&state)renderUI();return null;}).finally(()=>this.pending.delete(key));

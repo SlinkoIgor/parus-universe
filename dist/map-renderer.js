@@ -177,6 +177,23 @@ function shipReachability() {
     active,
   };
 }
+const ReachDisplay = {
+  memo: null,
+  interval: 1000,
+  ship() {
+    const f = state.flight;
+    if (!f?.mission || (f.missionStage || 0) !== 2 || state.expansion === false) {
+      this.memo = null;
+      return shipReachability();
+    }
+    const now = performance.now(), memo = this.memo;
+    if (memo && memo.flight === f && memo.mission === f.mission && now - memo.at < this.interval)
+      return memo.value;
+    const value = shipReachability();
+    this.memo = { flight: f, mission: f.mission, at: now, value };
+    return value;
+  },
+};
 function lightReachability() {
   if (state.expansion === false) return null;
   const comoving = Cosmology.horizon();
@@ -187,7 +204,7 @@ function renderReachability() {
     out = $('reachReadout');
   out.hidden = !(width < 700 && cam.span >= 1e9 && state.expansion !== false);
   if (!out.hidden) {
-    const ship = shipReachability(),
+    const ship = ReachDisplay.ship(),
       light = lightReachability();
     UIContent.text(out, 'Полёт · ' +
       (ship.radius > 0 ? distanceText(ship.radius) : '0 св. лет') +
@@ -229,7 +246,7 @@ function drawReachability() {
       );
     }
   }
-  const q = shipReachability();
+  const q = ReachDisplay.ship();
   if (!q || !(q.radius > 0)) return;
   const r = (q.radius * width) / cam.span;
   if (r > 20000) return;
@@ -266,6 +283,26 @@ function drawHorizonBoundary() {
 function drawSymbol(o, p, selected = false) {
   const destroyed = state.destroyed.includes(o.id) && o.kind === 'star';
   const ink = selected || o.notableLandmark ? '#171717' : '#424242';
+  if (!selected) {
+    if (globalThis.MapVisibility?.active && MapDetails.level(o) >= 3) {
+      circle(p.x, p.y, globalThis.MapFilters?.promotes(o) ? 3.5 : 1.2, ink, 0.7);
+      return;
+    }
+    if (
+      !destroyed &&
+      !o.nuclearStar &&
+      o.kind !== 'home' &&
+      o.kind !== 'star' &&
+      o.kind !== 'galaxy' &&
+      o.kind !== 'pulsar' &&
+      o.kind !== 'quasar' &&
+      o.kind !== 'blackhole' &&
+      MapSymbols.handles(o)
+    ) {
+      MapSymbols.draw(o, p, ink);
+      return;
+    }
+  }
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.strokeStyle = paint(ink);
@@ -385,20 +422,22 @@ function drawObjects() {
     const x = Math.floor(p.x / 48),
       y = Math.floor(p.y / 48);
     for (let dx = -1; dx <= 1; dx++)
-      for (let dy = -1; dy <= 1; dy++)
-        if (
-          (occupied.get(x + dx + ',' + (y + dy)) || []).some(
-            (q) => Math.hypot(p.x - q.x, p.y - q.y) < radius + q.radius,
-          )
-        )
-          return true;
+      for (let dy = -1; dy <= 1; dy++) {
+        const cell = occupied.get((x + dx) * 65536 + y + dy);
+        if (cell)
+          for (const q of cell)
+            if (Math.hypot(p.x - q.x, p.y - q.y) < radius + q.radius) return true;
+      }
     return false;
   };
   const reserve = (p, radius = 12) => {
-    const key = Math.floor(p.x / 48) + ',' + Math.floor(p.y / 48);
-    if (!occupied.has(key)) occupied.set(key, []);
-    occupied.get(key).push({...p,radius});
+    const key = Math.floor(p.x / 48) * 65536 + Math.floor(p.y / 48),
+      cell = occupied.get(key);
+    if (cell) cell.push({ x: p.x, y: p.y, radius });
+    else occupied.set(key, [{ x: p.x, y: p.y, radius }]);
   };
+  const inView = (p) => p.x > -40 && p.x < width + 40 && p.y > -40 && p.y < height + 40;
+  const wide = cam.span > 1e6;
   const priority = (o) =>
     o.id === 'sgr' && cam.span < 2
       ? 90
@@ -450,22 +489,28 @@ function drawObjects() {
     // Background points have their own pass. Do not prepare their foreground
     // geometry, except when the station/selection or legacy sparse mode needs it.
     if (bg && !sparse && o.id !== state.selected && o.id !== state.current) return null;
+    if (!wide && o.p3 && !inView(screenOf(o))) return null;
     if (!(sparse || MapDetails.visible(o, cam.span)) || (!sparse && !RegionMap.asPoint(o)))
       return null;
+    if (wide && o.p3 && !inView(screenOf(o))) return null;
     return { o, sparse, bg };
   };
-  const candidates = new Map(
-    [...OBJECTS, ...ExtendedCatalog.pinned.values(), ...(globalThis.MapFilters?.objects.values() || [])].map((o) => [o.id, { o }]),
-  );
+  const candidates = new Map(),
+    views = new Map();
+  for (const source of [OBJECTS, ExtendedCatalog.pinned.values(), globalThis.MapFilters?.objects.values() || []])
+    for (const o of source) candidates.set(o.id, o);
   for (const source of [ExtendedCatalog.visible, MapLayers.visible])
     for (const o of source) {
       const q = pointView(o);
-      if (q && (!q.bg || q.sparse)) candidates.set(o.id, q);
+      if (q && (!q.bg || q.sparse)) {
+        candidates.set(o.id, o);
+        views.set(o.id, q);
+      }
     }
   const visible = [];
-  for (let q of candidates.values()) {
-    if (q.o.cosmicEpoch) continue;
-    if (q.sparse === undefined) q = pointView(q.o);
+  for (const [id, candidate] of candidates) {
+    if (candidate.cosmicEpoch) continue;
+    const q = views.get(id) || pointView(candidate);
     if (!q) continue;
     const { o, sparse, bg } = q;
     if (
@@ -475,8 +520,8 @@ function drawObjects() {
       ExtendedCatalog.opacity(o, !sparse) <= 0.015
     )
       continue;
-    const p = screen(o);
-    if (!(p.x > -40 && p.x < width + 40 && p.y > -40 && p.y < height + 40)) continue;
+    const p = screenOf(o);
+    if (!inView(p)) continue;
     visible.push({
       ...q,
       p,

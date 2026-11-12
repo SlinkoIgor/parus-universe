@@ -119,8 +119,9 @@ const OrbitalMotion={
  position(o){
   if(o?.stellarSystem&&!o.historicalStellarNavigation){const p3=this.stellarPositions().get(o.id);return p3?this.projectSnapshot(o,p3):null;}
   if(o?.nuclearStar)return NuclearStars.map(o.orbit,NuclearStars.phase(o.orbit,NuclearStars.epoch+(o.orbit.e<1?this.elapsed():0)));
-  if(['alpha','hyg-71453','proxima'].includes(o?.id)){
-   const p3=this.alphaPositions3D()?.[o.id];if(!p3)return null;
+  const id=o?.id;
+  if(id==='alpha'||id==='hyg-71453'||id==='proxima'){
+   const p3=this.alphaPositions3D()?.[id];if(!p3)return null;
    return this.projectSnapshot(o,p3);
   }
   return null;
@@ -142,7 +143,7 @@ const OrbitalMotion={
   return{points,currentIndex:phases.indexOf(current)};
  },
  planetPoint(q,E){
-  const sun=OBJECTS.find(o=>o.id==='sol'),v=this.vector(q,E),o={id:'planet-'+q.name,kind:'planet',synthetic:true,parentObject:'sol'},p3=sun.p3.map((n,i)=>n+v[i]);
+  const sun=Cosmology.catalogObject('sol',false),v=this.vector(q,E),o={id:'planet-'+q.name,kind:'planet',synthetic:true,parentObject:'sol'},p3=sun.p3.map((n,i)=>n+v[i]);
   return this.projectSnapshot(o,p3);
  },
  clipSegment(a,b,pad=2){
@@ -161,6 +162,11 @@ const OrbitalMotion={
   if(!(curvature>=0&&Number.isFinite(curvature))||!(end>start))return 0;
   const phases=Array.from({length:33},(_,n)=>start+(end-start)*n/32);
   phases.push(...knots.filter(E=>E>start&&E<end));phases.sort((a,b)=>a-b);
+  let lo=phases[0],a=screen(pointAt(lo));
+  if(start===0&&end===2*Math.PI){
+   const reach=curvature*Math.PI*Math.PI/4+2;
+   if(a.x+reach<0||a.x-reach>width||a.y+reach<0||a.y-reach>height)return 0;
+  }
   let pen=null,segments=0;
   ctx.save();ctx.strokeStyle=paint(color);ctx.globalAlpha=alpha;ctx.lineWidth=lineWidth;ctx.setLineDash(dash);ctx.beginPath();
   const visit=(lo,a,hi,b)=>{
@@ -175,12 +181,11 @@ const OrbitalMotion={
    const [p,q]=clipped;if(!pen||Math.hypot(p.x-pen.x,p.y-pen.y)>.001)ctx.moveTo(p.x,p.y);
    ctx.lineTo(q.x,q.y);pen=q;segments++;
   };
-  let lo=phases[0],a=screen(pointAt(lo));
   for(let n=1;n<phases.length;n++){const hi=phases[n],b=screen(pointAt(hi));visit(lo,a,hi,b);lo=hi;a=b;}
   if(segments)ctx.stroke();ctx.restore();return segments;
  },
  draw(){
-  const sun=OBJECTS.find(o=>o.id==='sol');
+  const sun=Cosmology.catalogObject('sol',false);
   if(cam.span<.01&&ExtendedCatalog.matchesMap(sun)&&!state.destroyed.includes('sol')){
    for(const q of this.planets){
     const r=q.a*this.AU*width/cam.span;if(r<2)continue;
@@ -197,6 +202,7 @@ const OrbitalMotion={
   for(const track of this.stellarOrbits){
    for(const branch of track.branches){
     const id=branch.ids[0],o=ExtendedCatalog.get(id);if(!o||!ExtendedCatalog.matchesMap(o,true))continue;
+    if(!(track.q.a*this.AU*Math.abs(branch.factor)*width/cam.span>=2))continue;
     const curve=this.stellarCurve(track,id,branch.factor),r=curve?.radius*width/cam.span;
     if(!(r>=2))continue;
     this.traceCurve(curve.pointAt,{curvature:r,knots:[curve.current],heightAt:curve.heightAt,alpha:track.q.grade>=4?.35:.55});

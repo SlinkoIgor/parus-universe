@@ -37,6 +37,14 @@ const ExtendedCatalog = {
   cutKey: null,
   matchesMap(o, categoryOnly = false) {
     if (!o || o.supersededBy || globalThis.MapGeometry?.unlocated(o)) return false;
+    const cache = categoryOnly || typeof MapDetails === 'undefined' ? null : MapDetails.frameMatches,
+      known = cache?.get(o);
+    if (known !== undefined) return known;
+    const result = this.computeMatchesMap(o, categoryOnly);
+    cache?.set(o, result);
+    return result;
+  },
+  computeMatchesMap(o, categoryOnly) {
     const selected = typeof filter === 'string' ? filter : 'all';
     // Keep bulk survey envelopes out of the overview, including pinned/saved
     // targets. Atlas search and explicit class filters retain the full catalog.
@@ -198,13 +206,13 @@ const ExtendedCatalog = {
     if (this.isSystemMember(o)) return false;
     return (
       !o.stellarSystem &&
-      MapDetails.mass(o) === null &&
       !o.synthetic &&
       !o.messier &&
       (!o.galaxyMember || o.bulkGalaxyMember) &&
       (o.bulkGalaxyMember ||
         o.streamed ||
-        (o.kind === 'star' && o.d > 0 && o.d <= 50 && !this.foreground.has(o.id)))
+        (o.kind === 'star' && o.d > 0 && o.d <= 50 && !this.foreground.has(o.id))) &&
+      MapDetails.mass(o) === null
     );
   },
   readJSON(path, options, revision = EXTENDED_BOOT.revision) {
@@ -720,10 +728,32 @@ const ExtendedCatalog = {
     }
     return cut.map((q) => q.node.file);
   },
+  galaxyLimit: 2048,
+  sweepGalaxies() {
+    if (GALAXIES.length <= this.galaxyLimit) return;
+    const live = new Set(this.coreIndex?.keys());
+    const mark = (rows) => {
+      for (const o of rows) if (o) live.add(o.id);
+    };
+    mark(OBJECTS);
+    mark(this.pinned.values());
+    mark(this.visible);
+    for (const q of this.transitions.values()) live.add(q.o.id);
+    for (const rows of this.cache.values()) mark(rows);
+    if (this.identityCache) mark(this.identityCache.values());
+    if (globalThis.MapFilters) mark(MapFilters.objects.values());
+    if (globalThis.MapLayers) {
+      mark(MapLayers.visible);
+      for (const rows of MapLayers.cache.values()) mark(rows);
+    }
+    GalaxyRegistry.retain((g) => !g.catalogGeometry || live.has(g.id));
+    this.galaxyLimit = Math.max(2048, GALAXIES.length * 2);
+  },
   update(now) {
     this.advanceVisibility(now);
     if (now - this.lastUpdate < 180) return;
     this.lastUpdate = now;
+    this.sweepGalaxies();
     if (
       this.manifest &&
       (globalThis.MapSlice?.mode !== 'slice' || MapSlice.manifest) &&
@@ -795,8 +825,7 @@ const ExtendedCatalog = {
     // A missing angular size supplies no measured galaxy outline. Keep a point.
     if (derived && (!(diameter > 0) || !angular&&(o.sizeEstimated || o.sizeUnknown))) {
       delete o.galaxy;
-      const index=GALAXIES.findIndex(g=>g.id===o.id);
-      if(index>=0)GALAXIES.splice(index,1);
+      GalaxyRegistry.remove(o.id);
       return;
     }
     if (o.galaxy) {
@@ -808,7 +837,7 @@ const ExtendedCatalog = {
         diameterLy: derived ? diameter : o.galaxy.diameterLy || o.diameterLy,
         ...(derived ? {catalogGeometry:true} : {}),
       });
-      if (!GALAXIES.some((g) => g.id === o.id)) GALAXIES.push(o.galaxy);
+      GalaxyRegistry.add(o.galaxy);
       return;
     }
     const g = {
@@ -829,7 +858,7 @@ const ExtendedCatalog = {
       rotation: 0,
     };
     o.galaxy = g;
-    if (!GALAXIES.some((q) => q.id === g.id)) GALAXIES.push(g);
+    GalaxyRegistry.add(g);
   },
   async resolve(entry) {
     const existing = OBJECTS.find((o) => o.id === entry.id) || this.get(entry.id);
@@ -1153,6 +1182,7 @@ const ExtendedCatalog = {
       this.pinned.values(),
       OBJECTS,
     ];
+    const outside = (q) => q.x < 0 || q.y < 0 || q.x > width || q.y > height;
     for (const source of sources)
       for (const o of source) {
         // Reject foreground objects before their visibility/geometry calculations.
@@ -1160,8 +1190,13 @@ const ExtendedCatalog = {
           seen.has(o.id) ||
           o.id === state.selected ||
           o.id === state.current ||
+          !this.background(o)
+        )
+          continue;
+        const located = o.p3 ? screenOf(o) : null;
+        if (
+          (located && outside(located)) ||
           (o.region?.shape === 'polyline' && !RegionMap.asPoint(o)) ||
-          !this.background(o) ||
           MapDetails.sparse(o, cam.span) ||
           !MapDetails.visible(o, cam.span) ||
           !RegionMap.asPoint(o) ||
@@ -1171,8 +1206,8 @@ const ExtendedCatalog = {
         const alpha = this.opacity(o);
         if (alpha < 0.015) continue;
         seen.add(o.id);
-        const p = screen(o);
-        if (p.x < 0 || p.y < 0 || p.x > width || p.y > height) continue;
+        const p = located || screen(o);
+        if (outside(p)) continue;
         const name = MapDetails.mapLabelName(o);
         if (
           buckets &&
@@ -1215,10 +1250,14 @@ const ExtendedCatalog = {
       const o = this.get(id);
       return o?.atlasOnly || !this.matchesMap(o) ? null : o;
     };
+    this.stellarTargets ??= new Set(EXTENDED_BOOT.stellarCatalog?.auditTargets || []);
+    this.systemNotes ??= new WeakMap();
     for (const s of this.systems) {
-      this.stellarTargets ??= new Set(EXTENDED_BOOT.stellarCatalog?.auditTargets || []);
       if (s.stellarEnriched || s.members.some(id => this.stellarTargets.has(id))) continue;
-      if (s.id === 'system-alpha-centauri' || /ориентация и фаза.*условны/i.test(s.note||'')) continue;
+      let memo = this.systemNotes.get(s);
+      if (!memo || memo.note !== s.note)
+        this.systemNotes.set(s, (memo = { note: s.note, conventional: /ориентация и фаза.*условны/i.test(s.note||'') }));
+      if (s.id === 'system-alpha-centauri' || memo.conventional) continue;
       const members = s.members.map(get).filter(Boolean);
       if (members.length < 2 || (cam.span > 2000 && members.every((o) => o.kind === 'star')))
         continue;
@@ -1227,15 +1266,8 @@ const ExtendedCatalog = {
           a = get(ai),
           b = get(bi);
         if (!a || !b) continue;
-        let pa = screen(a),
-          pb = screen(b);
-        if (s.id === 'system-alpha-centauri' && i === 1) {
-          const other = get(s.members[1]);
-          if (other) {
-            const p = screen(other);
-            pa = { x: (pa.x + p.x) / 2, y: (pa.y + p.y) / 2 };
-          }
-        }
+        const pa = screenOf(a),
+          pb = screenOf(b);
         const d = Math.hypot(pa.x - pb.x, pa.y - pb.y);
         if (
           d > Math.max(width, height) * 1.5 ||

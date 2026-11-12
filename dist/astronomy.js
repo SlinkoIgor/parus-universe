@@ -70,3 +70,35 @@ const EXTRA_FACTS={
 };
 for(const o of OBJECTS){if(o.facts)continue;const f=STAR_FACTS[o.id]||EXTRA_FACTS[o.id];if(!f)throw new Error('Missing astronomical facts: '+o.id);o.facts={class:o.type,...f,refs:[[f.ref,'Характеристики и наблюдения']]};}
 GALAXIES.unshift({...OBJECTS.find(o=>o.id==='sgr'),id:'milkyway',name:'Млечный Путь',kind:'galaxy',coordinateHost:'sgr',aliases:['Milky Way'],diameterLy:100000,axisRatio:.55,shape:'spiral',rotation:-.5});
+const GalaxyRegistry={
+ count:-1,last:null,ids:new Map(),hosts:new Map(),
+ sync(){
+  const count=GALAXIES.length,last=GALAXIES[count-1];
+  if(count===this.count&&last===this.last)return;
+  this.ids.clear();this.hosts.clear();
+  for(const g of GALAXIES){
+   if(!this.ids.has(g.id))this.ids.set(g.id,g);
+   if(g.coordinateHost&&!this.hosts.has(g.coordinateHost))this.hosts.set(g.coordinateHost,g);
+  }
+  this.count=count;this.last=last;
+ },
+ has(id){this.sync();return this.ids.has(id);},
+ hostOf(id){this.sync();return this.hosts.get(id);},
+ add(g){
+  this.sync();if(this.ids.has(g.id))return;
+  GALAXIES.push(g);this.ids.set(g.id,g);
+  if(g.coordinateHost&&!this.hosts.has(g.coordinateHost))this.hosts.set(g.coordinateHost,g);
+  this.count=GALAXIES.length;this.last=g;
+ },
+ remove(id){
+  this.sync();if(!this.ids.has(id))return;
+  const index=GALAXIES.findIndex(g=>g.id===id);
+  if(index>=0)GALAXIES.splice(index,1);
+  this.count=-1;
+ },
+ retain(keep){
+  let kept=0;
+  for(const g of GALAXIES)if(keep(g))GALAXIES[kept++]=g;
+  GALAXIES.length=kept;this.count=-1;
+ }
+};

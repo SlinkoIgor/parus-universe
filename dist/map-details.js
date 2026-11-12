@@ -8,16 +8,41 @@ const MapDetails = {
   framePoints: null,
   frameSpines: null,
   frameModels: null,
+  frameMatches: null,
+  frameScreen: null,
+  frameMemo: null,
+  frameSpan: NaN,
+  frameWidth: NaN,
+  objectIndex: null,
+  objectSource: [],
+  objectsIndex() {
+    const source = this.objectSource, count = OBJECTS.length;
+    let same = this.objectIndex !== null && source.length === count;
+    for (let i = 0; same && i < count; i++) same = source[i] === OBJECTS[i];
+    if (!same) {
+      const index = new Map();
+      for (const o of OBJECTS) if (!index.has(o.id)) index.set(o.id, o);
+      this.objectIndex = index;
+      this.objectSource = OBJECTS.slice();
+    }
+    return this.objectIndex;
+  },
   beginFrame() {
-    this.frameObjects = new Map();
-    for (const o of OBJECTS) if (!this.frameObjects.has(o.id)) this.frameObjects.set(o.id, o);
+    this.frameObjects = this.objectsIndex();
     this.frameOpacity = new WeakMap();
     this.framePoints = new WeakMap();
     this.frameSpines = new WeakMap();
     this.frameModels = new WeakMap();
+    this.frameMatches = new WeakMap();
+    this.frameScreen = new WeakMap();
+    this.frameMemo = new Map();
+    this.frameSpan = cam.span;
+    this.frameWidth = width;
   },
   endFrame() {
-    this.frameObjects = this.frameOpacity = this.framePoints = this.frameSpines = this.frameModels = null;
+    this.frameObjects = this.frameOpacity = this.framePoints = this.frameSpines = this.frameModels =
+      this.frameMatches = this.frameScreen = this.frameMemo = null;
+    this.frameSpan = this.frameWidth = NaN;
   },
   massCache: new WeakMap(),
   nameCache: new WeakMap(),
@@ -116,19 +141,33 @@ const MapDetails = {
   },
   massInfo(o) {
     if (!o) return null;
+    const cached = this.massCache.get(o), facts = o.facts, gravity = o.gravity;
+    if (cached) {
+      const key = cached.key;
+      if (
+        key[0] === o.massSolar &&
+        key[1] === o.massUncertaintySolar &&
+        key[2] === o.massSource &&
+        key[3] === o.massIsSystem &&
+        key[4] === facts?.mass &&
+        key[5] === facts?.ref &&
+        key[6] === gravity?.massSolar &&
+        key[7] === gravity?.source &&
+        key[8] === o.source
+      )
+        return cached.value;
+    }
     const key = [
-        o.massSolar,
-        o.massUncertaintySolar,
-        o.massSource,
-        o.massIsSystem,
-        o.facts?.mass,
-        o.facts?.ref,
-        o.gravity?.massSolar,
-        o.gravity?.source,
-        o.source,
-      ],
-      cached = this.massCache.get(o);
-    if (cached && key.every((v, i) => v === cached.key[i])) return cached.value;
+      o.massSolar,
+      o.massUncertaintySolar,
+      o.massSource,
+      o.massIsSystem,
+      facts?.mass,
+      facts?.ref,
+      gravity?.massSolar,
+      gravity?.source,
+      o.source,
+    ];
     const value = this.computeMassInfo(o);
     this.massCache.set(o, { key, value });
     return value;
@@ -271,28 +310,27 @@ const MapDetails = {
     this.nameCache.set(o, { key, value });
     return value;
   },
+  levels: new Map([
+    ['home', 0],
+    ['star', 0],
+    ['pulsar', 0],
+    ['blackhole', 0],
+    ['nebula', 1],
+    ['stellar-cluster', 1],
+    ['galaxy', 2],
+    ['quasar', 2],
+    ['galaxy-cluster', 3],
+    ['filament', 4],
+    ['supercluster', 4],
+    ['structure', 4],
+    ['wall', 4],
+    ['ring', 4],
+    ['arc', 4],
+    ['void', 4],
+    ['horizon', 4],
+  ]),
   level(o) {
-    return (
-      {
-        home: 0,
-        star: 0,
-        pulsar: 0,
-        blackhole: 0,
-        nebula: 1,
-        'stellar-cluster': 1,
-        galaxy: 2,
-        quasar: 2,
-        'galaxy-cluster': 3,
-        filament: 4,
-        supercluster: 4,
-        structure: 4,
-        wall: 4,
-        ring: 4,
-        arc: 4,
-        void: 4,
-        horizon: 4,
-      }[this.group(o)] ?? 0
-    );
+    return this.levels.get(this.group(o)) ?? 0;
   },
   // Sourced cosmological centres with no measured extent compete as points,
   // including on the overview. This is a display class, independent of survey
@@ -301,7 +339,7 @@ const MapDetails = {
     return !!(
       !o.atlasOnly &&
       (o.cosmicLandmark || o.sizeUnknown) &&
-      (['galaxy', 'quasar'].includes(o.kind) ||
+      (o.kind === 'galaxy' || o.kind === 'quasar' ||
         (o.kind === 'cluster' && this.group(o) === 'galaxy-cluster')) &&
       o.cosmology?.distanceLy > 0 &&
       o.p3?.every(Number.isFinite)
@@ -311,7 +349,7 @@ const MapDetails = {
     if (o.kind !== 'blackhole') return null;
     const id = o.parentGalaxy ||
       ((o.blackHolePopulation || o.population) === 'supermassive'
-        ? GALAXIES.find(g => g.coordinateHost === o.id)?.id
+        ? GalaxyRegistry.hostOf(o.id)?.id
         : null);
     const host = id && (globalThis.BlackHoleCatalog?.hosts.get(id) ||
       (typeof ExtendedCatalog === 'undefined' ? null : ExtendedCatalog.get(id)));
@@ -369,13 +407,14 @@ const MapDetails = {
     if (globalThis.MapFilters?.promotes(o)) return 1;
     if (ExtendedCatalog.isSystemMember(o)) return 1;
     if (this.origin(o)) return 1;
-    const cached = this.frameOpacity?.get(o);
-    if (cached && cached.span === span && cached.width === viewportWidth) return cached.value;
+    const cache = span === this.frameSpan && viewportWidth === this.frameWidth ? this.frameOpacity : null,
+      cached = cache?.get(o);
+    if (cached !== undefined) return cached;
     const limit = globalThis.MapVisibility?.active ? MapVisibility.limit(o) : Infinity,
       value = limit !== Infinity
         ? MapVisibility.opacity(o, span, viewportWidth, limit)
         : this.classOpacity(o, span, viewportWidth);
-    this.frameOpacity?.set(o, {span, width: viewportWidth, value});
+    cache?.set(o, value);
     return value;
   },
   classOpacity(o, span, viewportWidth = width) {
@@ -597,9 +636,10 @@ const MapLabels = {
   // captions so a long expedition cannot grow this cache indefinitely.
   metrics: new Map(),
   measure(value, font) {
+    const key = font + '\u0000' + value,
+      known = this.metrics.get(key);
+    if (known !== undefined) return known;
     ctx.font = font;
-    const key = ctx.font + '\u0000' + value;
-    if (this.metrics.has(key)) return this.metrics.get(key);
     const valueWidth = ctx.measureText(value).width;
     if (this.metrics.size >= 2048) this.metrics.clear();
     this.metrics.set(key, valueWidth);

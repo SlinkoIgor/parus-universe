@@ -42,11 +42,12 @@ globalThis.StellarClusters=StellarClusters;
 // Every rendering path uses the same compact class glyph. Its pixel footprint
 // is a cartographic marker, independent of the sourced area drawn below.
 const MapSymbols={
- handles(o){return ['stellar-cluster','galaxy-cluster','nebula'].includes(MapDetails.group(o));},
+ handles(o){const group=MapDetails.group(o);return group==='stellar-cluster'||group==='galaxy-cluster'||group==='nebula';},
  draw(o,p,ink='#424242'){
-  const group=MapDetails.group(o);if(globalThis.MapVisibility?.active&&MapDetails.level(o)>=3){circle(p.x,p.y,1.2,ink,.7);return;}ctx.save();ctx.translate(p.x,p.y);ctx.strokeStyle=ctx.fillStyle=paint(ink);ctx.lineWidth=1;ctx.setLineDash([]);ctx.beginPath();
-  if(group==='stellar-cluster'){ctx.arc(0,0,1.6,0,Math.PI*2);ctx.fill();}
-  else if(group==='galaxy-cluster'){ctx.moveTo(0,-3.6);ctx.lineTo(3.6,0);ctx.lineTo(0,3.6);ctx.lineTo(-3.6,0);ctx.closePath();ctx.stroke();}
+  const group=MapDetails.group(o);if(globalThis.MapVisibility?.active&&MapDetails.level(o)>=3){circle(p.x,p.y,1.2,ink,.7);return;}
+  if(group==='stellar-cluster'){ctx.fillStyle=paint(ink);ctx.beginPath();ctx.arc(p.x,p.y,1.6,0,Math.PI*2);ctx.fill();return;}
+  ctx.save();ctx.translate(p.x,p.y);ctx.strokeStyle=ctx.fillStyle=paint(ink);ctx.lineWidth=1;ctx.setLineDash([]);ctx.beginPath();
+  if(group==='galaxy-cluster'){ctx.moveTo(0,-3.6);ctx.lineTo(3.6,0);ctx.lineTo(0,3.6);ctx.lineTo(-3.6,0);ctx.closePath();ctx.stroke();}
   else if(group==='nebula'){
    ctx.moveTo(-4.8,.6);ctx.bezierCurveTo(-5.3,-2,-2.8,-4,.2,-3.2);
    ctx.moveTo(2.7,-2.7);ctx.bezierCurveTo(5,-1.9,5.3,.8,3.4,2.2);

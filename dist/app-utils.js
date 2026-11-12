@@ -76,11 +76,10 @@ const scaleDistanceText = (n) =>
     : n < 1000
       ? fmt(n, n < 1 ? 2 : 0) + ' св. лет'
       : distanceText(n);
-const object = (id) => ExtendedCatalog.pinned.get(id)?.historicalStellarNavigation
+const objectIn = (index, id) => ExtendedCatalog.pinned.get(id)?.historicalStellarNavigation
   ? ExtendedCatalog.get(id)
-  : MapDetails.frameObjects
-    ? MapDetails.frameObjects.get(id) || ExtendedCatalog.get(id)
-    : OBJECTS.find((o) => o.id === id) || ExtendedCatalog.get(id);
+  : index.get(id) || ExtendedCatalog.get(id);
+const object = (id) => objectIn(MapDetails.frameObjects || MapDetails.objectsIndex(), id);
 
 function objectTypeText(o) {
   return !o

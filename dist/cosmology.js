@@ -4,10 +4,10 @@
 const Cosmology={
  H0:67.4/3.0856775814913673e19*31557600,omegaM:.315,omegaL:.685,time:0,enabled:true,cache:new Map(),cacheLimit:32768,
  localGroup:Object.freeze({id:'local-group',p3:Object.freeze([0,0,0]),map:Object.freeze({x:0,y:0})}),
- catalogObject(id,extended=true){return (typeof MapDetails!=='undefined'&&MapDetails.frameObjects
-  ?MapDetails.frameObjects.get(id):OBJECTS.find(q=>q.id===id))||(extended?ExtendedCatalog.get(id):undefined);},
+ catalogObject(id,extended=true){return (typeof MapDetails!=='undefined'
+  ?(MapDetails.frameObjects||MapDetails.objectsIndex()).get(id):OBJECTS.find(q=>q.id===id))||(extended?ExtendedCatalog.get(id):undefined);},
  logA(t=this.time){const x=1.5*this.H0*Math.sqrt(this.omegaL)*Math.max(0,t),b=1/Math.sqrt(this.omegaL);return 2/3*(x<20?Math.log(Math.cosh(x)+b*Math.sinh(x)):x+Math.log((1+b)/2));},
- scale(t=this.time){return Math.exp(Math.min(80,this.logA(t)));},
+ scale(t=this.time){if(t!==this.scaleTime){this.scaleTime=t;this.scaleValue=Math.exp(Math.min(80,this.logA(t)));}return this.scaleValue;},
  sync(s){this.time=Math.max(0,s.cosmicTime||0);this.enabled=s.expansion!==false;},
  elapse(s,years){s.universeElapsed=(s.universeElapsed||0)+years;if(s.expansion!==false)s.cosmicTime=(s.cosmicTime||0)+years;this.sync(s);},
  group(o,depth=0){
@@ -30,7 +30,7 @@ const Cosmology={
    // Preserve the first catalogue identity and galaxy order. Repeating a full
    // OBJECTS scan for every previously seen galaxy made a cold projection
    // quadratic. Reuse the draw snapshot, or build a fresh index for this call.
-   let objects=typeof MapDetails==='undefined'?null:MapDetails.frameObjects;
+   let objects=typeof MapDetails==='undefined'?null:MapDetails.frameObjects||MapDetails.objectsIndex();
    if(!objects){objects=new Map();for(const q of OBJECTS)if(!objects.has(q.id))objects.set(q.id,q);}
    for(const g of GALAXIES){const c=objects.get(g.id)||ExtendedCatalog.get(g.id);if(c?.p3&&Space.distance(c,o)<g.diameterLy*.6){anchor=c;break;}}
   }
@@ -40,7 +40,7 @@ const Cosmology={
   // only the oldest memo, with enough bounded space for the complete hot view.
   if(o.id){if(this.cache.size>=this.cacheLimit)this.cache.delete(this.cache.keys().next().value);this.cache.set(o.id,result);}return result;
  },
- project(o,base){if(this.time===0)return base;if(!o?.p3&&o?.id)o=OBJECTS.find(q=>q.id===o.id)||o;if(!o?.p3)return base;const a=this.scale(),g=this.group(o);if(g?.id==='local-group')return base;const c=g?.map||base;return{x:base.x+c.x*(a-1),y:base.y+c.y*(a-1)};},
+ project(o,base){if(this.time===0)return base;if(!o?.p3&&o?.id)o=this.catalogObject(o.id,false)||o;if(!o?.p3)return base;const a=this.scale(),g=this.group(o);if(g?.id==='local-group')return base;const c=g?.map||base;return{x:base.x+c.x*(a-1),y:base.y+c.y*(a-1)};},
  isCosmic(from,to){if(!from?.p3||!to?.p3||Space.distance(from,to)<1e6)return false;const a=this.group(from),b=this.group(to);return !!(a&&b&&a.id!==b.id);},
  factor(f,t=this.time){return f?.cosmic?this.scale(t):1;},
  referenceView(view){const a=this.scale();if(a===1||Math.hypot(view.x,view.y)<4e6&&view.span<8e6)return view;

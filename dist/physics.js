@@ -24,7 +24,7 @@ const ShipPhysics={
  number(k,v){const[d,lo,hi]=this.fields[k];return v!==null&&v!==undefined&&Number.isFinite(+v)&&(!this.positiveFields.has(k)||+v>0)?Math.max(lo,Math.min(hi,+v)):d;},
  normalize(c={}){return Object.fromEntries(Object.keys(this.fields).map(k=>[k,this.number(k,c[k])]));},
  current(){if(this.context)return this.context;try{return state?.flight?.mission?.setup||state?.flightSetup||{};}catch{return{};}},
- value(k){return this.number(k,this.current()[k]);},
+ value(k){const c=this.context;return c?c[k]:this.number(k,this.current()[k]);},
  run(c,fn){const previous=this.context;this.context=this.normalize(c);try{return fn();}finally{this.context=previous;}},
  get efficiency(){return this.value('engineEfficiencyPercent')/100;},
  get reflection(){return 1+this.value('reflectivityPercent')/100;}
@@ -398,8 +398,8 @@ const ProperTime={
 // Cumulative comoving powered-flight distance. Integrating from a fixed epoch
 // makes long stellar acceleration and void braking independent of frame size.
 const FlightPath={
- distance(plan,model,proper,epoch,enabled=true){
-  const end=model===Stellar?Stellar.sampleProper(plan,proper):HybridBrake.sampleProper(plan,proper);
+ distance(plan,model,proper,epoch,enabled=true,sample=null){
+  const end=sample||(model===Stellar?Stellar.sampleProper(plan,proper):HybridBrake.sampleProper(plan,proper));
   if(!enabled)return end.distance/Cosmology.scale(epoch);
   const upper=model===Stellar?end.eta:plan.eta0,lower=model===Stellar?plan.eta0:end.eta;
   if(!(upper>lower))return 0;
@@ -1001,7 +1001,7 @@ const MissionPlanner={
    return{...q,comoving:q.distance,distance:q.path,mass:p.accelerationEnd.mass,captured:0,burned:0,heat:0,a:0};
   }
   const b=p.brake;if(b.kind==='orbit')return OrbitalArrival.sample(b.plan,proper);
-  const q=b.kind==='hybrid'?HybridBrake.sampleProper(b.plan,proper):this.engineAt(b.plan,proper),comoving=b.kind==='hybrid'?(p.cosmic?FlightPath.distance(b.plan,Magnetic,proper,b.epoch,p.expansion):q.distance):this.enginePath(b.plan,proper,b.epoch,p.cosmic,p.expansion);
+  const q=b.kind==='hybrid'?HybridBrake.sampleProper(b.plan,proper):this.engineAt(b.plan,proper),comoving=b.kind==='hybrid'?(p.cosmic?FlightPath.distance(b.plan,Magnetic,proper,b.epoch,p.expansion,q):q.distance):this.enginePath(b.plan,proper,b.epoch,p.cosmic,p.expansion);
   return{...q,comoving,a:q.properAcceleration??q.a??0};
  },
  activateStage(f,index){const stages=this.stages(f.mission);f.missionStage=index;f.stageElapsed=0;f.missionSample=null;state.phase=stages[index].phase;f.replayRate=index===1?1:stages[index].proper/(index===0?5:3);},

@@ -187,14 +187,18 @@ const MapAnnotations = {
     // Keep an overhanging caption after its point leaves the glyph renderer's
     // padding. Reuse loaded records; point density and streaming stay intact.
     const offscreen = new Set([...local.keys(), ...filtered.keys()]);
+    const beyond = p => p.x + 12 >= width || p.y - 22 >= height || p.y - 2 <= 0 || p.x < -4096;
     for (const source of [OBJECTS, ExtendedCatalog.pinned.values(), ExtendedCatalog.visible,
       MapLayers.visible, globalThis.MapFilters?.objects.values() || []]) for (const o of source) {
       if (offscreen.has(o.id) || o.synthetic) continue;
       offscreen.add(o.id);
       const promoted = globalThis.MapFilters?.promotes(o);
       if (!(promoted || sparse || this.componentName(o))) continue;
+      const located = o.p3 ? screenOf(o) : null;
+      if (located && (!promoted && beyond(located) ||
+        located.x>=0 && located.x<=width && located.y>=0 && located.y<=height)) continue;
       if (!MapDetails.visible(o,cam.span) || !ExtendedCatalog.matchesMap(o)) continue;
-      const p=screen(o);
+      const p=located || screen(o);
       if (p.x>=0 && p.x<=width && p.y>=0 && p.y<=height) continue;
       const proper=MapDetails.mapLabelName(o);
       if (!(promoted || (proper ? this.componentName(o) : sparse))) continue;
@@ -207,15 +211,16 @@ const MapAnnotations = {
     for (const [id, entry] of this.entries) {
       const o = ExtendedCatalog.get(id);
       if (globalThis.MapFilters?.promotes(o)) continue;
-      if (!o || !MapDetails.visible(o, cam.span) || !ExtendedCatalog.matchesMap(o)) continue;
-      if (o.notableLandmark) continue;
-      if (this.componentName(o)) continue;
+      if (!o || o.notableLandmark || this.componentName(o)) continue;
+      const area = this.structural(o);
+      if (!area && o.p3 && beyond(screenOf(o))) continue;
+      if (!MapDetails.visible(o, cam.span) || !ExtendedCatalog.matchesMap(o)) continue;
       const name = MapDetails.mapLabelName(o);
       if (!name) continue;
-      const structure=this.structural(o)?this.structureAnchor(o):null;
+      const structure=area?this.structureAnchor(o):null;
       const alpha = Math.max(this.opacity(o),structure?clamp((structure.extent-18)/6,0,1):0) * ExtendedCatalog.opacity(o);
       if (alpha <= 0.03) continue;
-      const p=structure?.point||screen(o);
+      const p=structure?.point||screenOf(o);
       items.push({
         key: 'object-' + id,
         name: MapDetails.origin(o) ? entry.name : name,

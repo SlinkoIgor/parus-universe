@@ -70,8 +70,22 @@ const MapFilters = {
     return (this.unrestricted('classes') || this.values('classes').includes(kind)) && ['collections','catalogs'].every(g =>
       this.unrestricted(g) || this.values(g).some(k => this[g][k][2]?.includes(category)));
   },
+  snapshot() {
+    const values = group => this.unrestricted(group) ? null : this.values(group);
+    return {isDefault:this.isDefault(), classes:values('classes'), collections:values('collections'), catalogs:values('catalogs')};
+  },
   matches(o) {
     if (this.anchor(o)) return true;
+    const memo = typeof MapDetails === 'undefined' ? null : MapDetails.frameMemo;
+    if (memo) {
+      let f = memo.get('filters');
+      if (!f) memo.set('filters', f = this.snapshot());
+      if (f.isDefault && this.defaultHidden(o)) return false;
+      if (f.classes && !f.classes.includes(this.classOf(o))) return false;
+      if (!o?.id) return true;
+      return (!f.collections || f.collections.some(k => this.matchesCollection(o, k))) &&
+        (!f.catalogs || f.catalogs.some(k => this.matchesCatalog(o, k)));
+    }
     if (this.isDefault() && this.defaultHidden(o)) return false;
     if (!this.unrestricted('classes') && !this.values('classes').includes(this.classOf(o))) return false;
     if (!o?.id) return true; // Category probes have no individual source metadata.
@@ -124,7 +138,7 @@ const MapFilters = {
     return ['id:'+o.id, 'M'+messier, ngc && ngc[1].toUpperCase()+Number(ngc[2])]
       .some(key => key && data[key]?.includes(collection));
   },
-  promotes(o) { return this.promoted.has(o?.id) && this.matches(o); },
+  promotes(o) { return this.promoted.size > 0 && this.promoted.has(o?.id) && this.matches(o); },
   collapsedStar(o, span) {
     return this.activeGroup === 'collections' && o?.kind === 'star' && span >= 100000 && this.values('collections').length === 1 &&
       this.values('collections')[0] === 'naked-eye';

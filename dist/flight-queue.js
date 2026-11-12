@@ -1,7 +1,7 @@
 'use strict';
 // Forecast future legs without changing the route or the executing trajectory.
 const FlightQueue = {
-  drafts: new Map(), cache: null, arrivals: null,
+  drafts: new Map(), cache: null, arrivals: null, forecasts: new WeakMap(),
   reset() { this.drafts.clear(); this.cache = null; this.arrivals = null; },
   escape(value) { return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); },
   browsing() { return !!state.flight && state.selected !== state.flight.target; },
@@ -70,6 +70,12 @@ const FlightQueue = {
   forecast(context=this.context()) {
     if(context.planningIssue)return MissionPlanner.invalid(context.planningIssue);
     const nodes=Route.future(),index=nodes.findLastIndex(n=>n.id===context.selected),node=nodes[index];
+    const key=JSON.stringify([node||null,nodes[index+1]?.id||null]),memo=this.forecasts.get(context);
+    if(memo?.key===key)return memo.value;
+    const value=this.computeForecast(context,nodes,index,node);
+    this.forecasts.set(context,{key,value});return value;
+  },
+  computeForecast(context,nodes,index,node) {
     if(node?.mode==='flyby'){
       const next=object(nodes[index+1]?.id);
       if(!next)return MissionPlanner.invalid('Для гравитационного манёвра выберите следующую точку.');

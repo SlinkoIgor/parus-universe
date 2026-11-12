@@ -383,14 +383,31 @@ const FlightHistory = {
   },
 };
 
+let persistedState = null,
+  persistWarned = false;
 function persist() {
+  let json;
   try {
     Simulation.captureClock(state);
     ExtendedCatalog.capture(state);
     state.paused = paused;
     state.timeScale = speed;
-    localStorage.setItem(STORE, JSON.stringify(state));
-  } catch {}
+    json = JSON.stringify(state);
+  } catch {
+    return;
+  }
+  if (json === persistedState) return;
+  try {
+    localStorage.setItem(STORE, json);
+    persistedState = json;
+    persistWarned = false;
+  } catch {
+    if (persistWarned) return;
+    persistWarned = true;
+    try {
+      toast('Не удалось сохранить экспедицию: хранилище браузера переполнено или недоступно.', 9000, 'warning');
+    } catch {}
+  }
 }
 function log(text) {
   state.journal.push({ t: state.earth, text });

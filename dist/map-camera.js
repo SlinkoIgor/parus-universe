@@ -46,6 +46,13 @@ function screen(p) {
     y: mapOriginY() + ((p.y - cam.y) * width) / cam.span,
   };
 }
+function screenOf(o) {
+  const cache = MapDetails.frameScreen;
+  if (!cache || o === state.ship) return screen(o);
+  let p = cache.get(o);
+  if (!p) cache.set(o, (p = screen(o)));
+  return p;
+}
 function world(x, y) {
   return {
     x: cam.x + ((x - width * 0.43) * cam.span) / width,
@@ -416,8 +423,9 @@ function mapContext(view) {
   // neither a live outline nor a full galaxy identity for Cosmology.group.
   // Check smaller live galaxies first and tessellate only a containing bound.
   let localGalaxy;
+  const index = MapDetails.frameObjects || MapDetails.objectsIndex();
   for (const g of GALAXIES.filter(g => span < g.diameterLy * 4).sort((a,b) => a.diameterLy-b.diameterLy)) {
-    const body=object(g.id);
+    const body=objectIn(index, g.id);
     if(body&&MapGeometry.contains(body,view)){localGalaxy=g;break;}
   }
   if (localGalaxy)
