@@ -354,7 +354,7 @@ for (const [id, page] of [['libraryBtn','library'],['settingsBtn','settings']]) 
   };
 }
 document.addEventListener('pointerdown', (e) => {
-  if (!e.target.closest('#mapFilters,#mapFilterBtn')) MapFilters.close();
+  if (!e.target.closest('#mapFilters,#mapFilterBtn,#catalogBtn,#questBtn,#themeBtn,#libraryBtn,#settingsBtn')) MapFilters.close();
   if (!e.target.closest('.menu-popover,.menu-button')) closeMenu();
   if (!e.target.closest('#themePicker,#themeBtn')) {
     $('themePicker').hidden = true;
