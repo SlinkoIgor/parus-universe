@@ -71,7 +71,7 @@ const Route={
   if(state.flight?.routeIssue)html+='<button class="modal-start" id="resumeRoute">Продолжить маршрут →</button>';
   html+='</div>';
   if(active)html+='<p>Участок '+(state.flight.legIndex+1)+' из '+nodes.length+'. '+(state.flight.routeIssue?'Полёт на паузе; позиция и скорость сохранены.':'Автопилот выполняет маршрут.')+'</p><button class="map-size-action" id="cancelRoute" '+(!this.future().length?'disabled':'')+'>Убрать будущие участки</button>';
-  html+='<p class="object-note">Остановка гасит скорость. Выбранные средства разгона и торможения применяются ко всему маршруту. Любая остановка происходит у звезды. Внутри протяжённой цели выбирается известная звезда, ближайшая к её опорной точке; у точечной цели — звезда ближе 5 св. лет. Если подходящей звезды нет, при прибытии открывается игровая. При пролёте скорость сохраняется. Для поворота у чёрной дыры учитывается граница захвата. Прогноз уточняется при подлёте по фактической скорости. Вращение, приливное разрушение, нагрев и магнитосфера не моделируются. Неподвижный объект не даёт бесплатного прироста скорости.</p><button class="text-action" id="routeTheory">Как считаются углы и проекция ↗</button>';
+  html+='<p class="object-note">Остановка гасит скорость. Выбранные средства разгона и торможения применяются ко всему маршруту. Любая остановка происходит у звезды. Внутри протяжённой цели выбирается известная звезда, ближайшая к её опорной точке; у точечной цели — звезда ближе 5 св. лет. Если подходящей звезды нет, при прибытии открывается игровая. При пролёте скорость сохраняется. Для поворота у чёрной дыры учитывается граница захвата. Прогноз уточняется при подлёте по фактической скорости. Вращение, приливное разрушение, нагрев и магнитосфера не моделируются. Неподвижный объект не даёт бесплатного прироста скорости.</p><button class="text-action" id="routeTheory">Как считается поворот у чёрной дыры ↗</button>';
   showDialog(html);
   $('dialogContent').onclick=e=>{
    const b=e.target.closest('button');if(!b)return;const d=b.dataset;
@@ -87,7 +87,7 @@ const Route={
   if(!active)$('startRoute').onclick=()=>this.start();
   else $('cancelRoute').onclick=()=>{syncClock();this.clearFuture();this.show();};
   if(state.flight?.routeIssue)$('resumeRoute').onclick=()=>{this.resume();if(state.flight?.routeIssue)this.show();};
-  $('routeTheory').onclick=()=>showNavigationTheory();
+  $('routeTheory').onclick=()=>Library.open('gravity');
  },
  nodes(){return state.flight?state.flight.route||[]:state.itinerary;},
  future(){const f=state.flight;return f?(f.route||[]).slice((f.legIndex||0)+1):state.itinerary;},
@@ -204,17 +204,4 @@ const Route={
   const rs=Gravity.rs(p.profile.massSolar);circle(cx,cy,Math.max(3,rs*scale),'#252525',1);circle(cx+Math.cos(s.phi)*s.r*scale,cy-Math.sin(s.phi)*s.r*scale,3,'#252525',2);ctx.restore();
   text('ЛОКАЛЬНАЯ ГЕОДЕЗИЧЕСКАЯ',cx,cy-96,7,'#777777','center');text('ОТДЕЛЬНЫЙ МАСШТАБ · 0 g',cx,cy+101,6,'#777777','center');
  },
- setup(){ $('sourcesBtn').onclick=()=>showCatalogSources();}
 };
-function showCatalogSources() {
-  showDialog('<div class="modal-eyebrow">КАТАЛОГ / ИСТОЧНИКИ</div><h2>Источники карты.</h2>'+
-    '<p>'+CatalogRegistry.total.toLocaleString('ru-RU')+' записей в активном атласе. Список совпадает с вкладкой «Каталоги» в фильтрах карты. Числа относятся к самостоятельным записям атласа. Один объект может входить в несколько источников, поэтому их числа не складываются.</p>'+
-    '<p>«На карте» — записи, пригодные для отображения, а не число точек в текущем кадре. Выборки источников ограничены их покрытием; пустой участок карты не означает отсутствие объектов.</p>'+
-    CatalogRegistry.libraryHTML()+
-    '<h3>Поиск и положение</h3><p>Поиск охватывает весь атлас; карта подгружает нужные участки. Приблизительные расстояния по красному смещению, параллаксу или моделям отмечены в карточках. Записи без пригодного положения остаются в поиске. Неизвестные параметры не заменяются типичными измерениями.</p>'+
-    '<p>Наблюдательные каталоги, отдельные публикации, космологическая модель и игровые звёзды подписаны отдельно. Источники измерений, единицы и ограничения сохраняются в карточках объектов.</p>'+
-    '<p>HYG/OpenNGC: CC BY-SA 4.0. Имена IAU — общественное достояние. Выборки SIMBAD: ODbL. ATNF: Manchester et al. (2005), AJ 129, 1993. У остальных источников действуют права авторов и условия публикаций.</p>'+
-    '<p><a href="'+CatalogRegistry.data.manifest+'" target="_blank" rel="noopener">Полнота активного снимка ↗</a> · <a href="catalog-sources.json" target="_blank" rel="noopener">Происхождение и лицензии ↗</a></p>'+
-    '<button class="map-size-action" id="projectionInfo">Как устроена 2D-карта ↗</button>');
-  $('projectionInfo').onclick=()=>showNavigationTheory();
-}
