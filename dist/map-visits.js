@@ -77,7 +77,6 @@ const MapVisits = {
       }
     }
     ctx.restore();
-    UIContent.text($('mapVisitsCount'), String(new Set(state.visited).size));
   },
   hit(x, y) {
     return this.groups.find(({ box: b }) => x >= b.x - 2 && x <= b.x + b.w + 2 && y >= b.y - 2 && y <= b.y + b.h + 2);
