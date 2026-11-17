@@ -54,16 +54,18 @@ function frame(now) {
       // endpoint can never settle once the ship has moved during the zoom.
       if (followShip) Object.assign(cameraGoal, shipCamera(cameraGoal.span));
       const a = 1 - Math.exp(-Math.min(realDt, 0.1) * 8);
-      cam.x += (cameraGoal.x - cam.x) * a;
-      cam.y += (cameraGoal.y - cam.y) * a;
-      cam.span = Math.exp(
-        Math.log(cam.span) + (Math.log(cameraGoal.span) - Math.log(cam.span)) * a,
-      );
+      if (!cameraGoal.focus || !stepFocusedCamera(a)) {
+        cam.x += (cameraGoal.x - cam.x) * a;
+        cam.y += (cameraGoal.y - cam.y) * a;
+        cam.span = Math.exp(
+          Math.log(cam.span) + (Math.log(cameraGoal.span) - Math.log(cam.span)) * a,
+        );
+      }
       if (
         Math.abs(Math.log(cam.span / cameraGoal.span)) < 0.0005 &&
         Math.hypot(cam.x - cameraGoal.x, cam.y - cameraGoal.y) < cam.span * 0.0001
       ) {
-        cam = { ...cameraGoal };
+        cam = { x: cameraGoal.x, y: cameraGoal.y, span: cameraGoal.span };
         cameraGoal = null;
       }
     }
@@ -294,7 +296,8 @@ document.querySelectorAll('[data-zoom]').forEach(
         UniverseMap.focus();
         return;
       }
-      goCamera(cam.x, cam.y, Number(b.dataset.zoom), false, true);
+      if (zoomTowardSelection(Number(b.dataset.zoom))) updateMapHeading();
+      else goCamera(cam.x, cam.y, Number(b.dataset.zoom), false, true);
     }),
 );
 $('expansionToggle').addEventListener('change', (e) => {
@@ -306,10 +309,12 @@ $('expansionToggle').addEventListener('change', (e) => {
   persist();
 });
 $('zoomSlider').addEventListener('input', (e) => {
-  cameraGoal = null;
   const span = zoomInterpolate(Number(e.target.value), 'value', 'span');
-  if (followShip) cam = shipCamera(span);
-  else cam.span = span;
+  if (!zoomTowardSelection(span, true)) {
+    cameraGoal = null;
+    if (followShip) cam = shipCamera(span);
+    else cam.span = span;
+  }
   updateMapHeading();
   updateZoomControl();
 });

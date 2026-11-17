@@ -107,13 +107,54 @@ function routeViewport(avoidPanels = false) {
       : viewportHeight - pad;
   return { left: pad, top: 112, right: Math.max(pad + 100, right), bottom: Math.max(180, bottom) };
 }
-function shipCamera(span = cam.span) {
-  const p = FlightView.ship();
+function centeredCamera(p, span) {
   return {
     x: p.x + ((width * 0.43 - width / 2) * span) / width,
     y: p.y + ((mapOriginY() - cameraViewportHeight() / 2) * span) / width,
     span,
   };
+}
+function shipCamera(span = cam.span) {
+  return centeredCamera(FlightView.ship(), span);
+}
+function focusPoint(id) {
+  const o = object(id);
+  if (!o) return null;
+  const p = o === state.ship ? FlightView.ship() : MapLayout.project(o);
+  return Number.isFinite(p?.x) && Number.isFinite(p?.y) ? p : null;
+}
+// Scale-rail zoom-in keeps the selected object on screen and brings it to the centre.
+// Ship following keeps its own anchor; zooming out leaves the view as before.
+function zoomTowardSelection(span, instant = false) {
+  span = clamp(span, 0.00006, MAX_CAMERA_SPAN);
+  const p = !followShip && span < (cameraGoal || cam).span && focusPoint(state.selected);
+  if (!p) return false;
+  if (instant) {
+    cam = centeredCamera(p, span);
+    cameraGoal = null;
+  } else cameraGoal = { ...centeredCamera(p, span), focus: state.selected };
+  return true;
+}
+// The focus moves along a straight screen line to the centre, so it cannot
+// leave the view however large the remaining scale change is.
+function stepFocusedCamera(a) {
+  const p = focusPoint(cameraGoal.focus);
+  if (!p) {
+    delete cameraGoal.focus;
+    return false;
+  }
+  Object.assign(cameraGoal, centeredCamera(p, cameraGoal.span));
+  const x = width * 0.43 + ((p.x - cam.x) * width) / cam.span,
+    y = mapOriginY() + ((p.y - cam.y) * width) / cam.span,
+    span = Math.exp(Math.log(cam.span) + (Math.log(cameraGoal.span) - Math.log(cam.span)) * a),
+    nextX = x + (width / 2 - x) * a,
+    nextY = y + (cameraViewportHeight() / 2 - y) * a;
+  cam = {
+    x: p.x - ((nextX - width * 0.43) * span) / width,
+    y: p.y - ((nextY - mapOriginY()) * span) / width,
+    span,
+  };
+  return true;
 }
 function shipSurroundingsSpan() {
   const viewportHeight = cameraViewportHeight();
