@@ -8,6 +8,8 @@ import csv, json, math, re, hashlib, unicodedata, collections, subprocess
 from disk_geometry import locate as locate_disk, basis as sky_basis, unit as sky_unit, dot as sky_dot
 from astrometry_policy import match_hyg
 from cosmic_merge import merge_catalogs
+from messier_distances import enrich as enrich_messier, unresolved_core_rows
+from cluster_membership import apply as apply_cluster_membership
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -154,7 +156,6 @@ add('messier-40','M40 · Виннеке 4','star',None,185.55,58+5/60,'unknown',
 members=[q for q in hyg if q['proper'] in ['Alcyone','Atlas','Electra','Maia','Merope','Taygeta','Celaeno','Pleione']]
 ra=sum(float(q['ra'])*15 for q in members)/len(members);dec=sum(float(q['dec']) for q in members)/len(members)
 add('messier-45','Плеяды · M45','cluster',445,ra,dec,'approximate','NASA Hubble: около 445 св. лет. Направление — приблизительный центр ярких членов скопления из HYG.',['M45','M 45','Мессье 45','Messier 45','Плеяды','Pleiades','Seven Sisters'],1.6,'NASA',{'messier':'45','referenceURL':'https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-45/'})
-coverage['Messier']={'rows':110,'represented':110}
 
 # Keep rows marked duplicate/nonexistent searchable and drawn, but never navigable
 # when identification itself is invalid, even if a historical distance is present.
@@ -512,6 +513,22 @@ dump(ROOT/'data-tools/system-position-audit.json',system_audit)
 coverage['LowZIndependent']['documentedSystemEstimates']=sum(v['status']=='unresolved' and not (policies.get(rawmap.get('ngc:'+name),{}).get('atlasOnly',False) if rawmap.get('ngc:'+name) in byid else record_byid[rawmap['ngc:'+name]][11].get('atlasOnly',False)) for name,v in lowz['objects'].items())
 coverage['LowZIndependent']['atlasOnly']-=coverage['LowZIndependent']['documentedSystemEstimates']
 cosmic_patches,cosmic_audit=merge_catalogs(ROOT,core,records,patches,coverage,projection)
+# Distance completeness is separate from designation completeness. Preserve
+# existing adopted positions; fill every unresolved Messier row with a sourced
+# distance or an explicitly named optical-group reference star.
+messier_core_rows=unresolved_core_rows(core)
+messier_audit=enrich_messier(records+messier_core_rows,ROOT,projection)
+for row in messier_core_rows:
+    patches[row[0]]={'d':row[3],'raDeg':row[4],'decDeg':row[5],'positionQuality':row[6],'distanceMethod':row[7],'display':row[12:14],**row[11]}
+    policies.setdefault(row[0],{}).update(**row[11],positionReason='')
+messier_numbers={int(o.get('messier') or 0) for o in core}|{int(r[11].get('messier') or 0) for r in records}
+assert set(range(1,111))<=messier_numbers, 'Missing Messier designations'
+coverage['Messier']={'rows':110,'represented':110,'distanceEnriched':len(messier_audit),'opticalGroupAnchors':sum(bool(q['coordinateAnchor']) for q in messier_audit)}
+dump(ROOT/'data-tools/messier-distance-audit.json',{'policy':'Preserve adopted distances; supplement missing distances only. Optical groups use a named observed reference star, never a common physical distance.','rows':messier_audit})
+cluster_member_audit=apply_cluster_membership(ROOT,records,core,patches,policies,{i for s in systems for i in s['members']},cosmic_audit['matches'],projection)
+coverage['ClusterMembership']={'rows':len(cluster_member_audit['rows']),'represented':sum(q['action']=='membership-distance' for q in cluster_member_audit['rows']),'actions':dict(collections.Counter(q['action'] for q in cluster_member_audit['rows']))}
+dump(ROOT/'data-tools/cluster-membership-audit.json',cluster_member_audit)
+
 # Apply the same display-only transformation as runtime AFTER every source,
 # host-local view and physical correction; build spatial trees from final points.
 with tempfile.TemporaryDirectory(prefix='parus-map-layout-') as layout_tmp:
@@ -521,7 +538,7 @@ with tempfile.TemporaryDirectory(prefix='parus-map-layout-') as layout_tmp:
     placed=json.loads(layout_output.read_text())
     patches,policies,records,member_rows=(placed[k] for k in ('patches','policies','records','members'))
 geometry_version=placed['geometryVersion']
-revision=hashlib.sha256(Path(__file__).read_bytes()+b''.join(hashlib.sha256(p.read_bytes()).digest() for p in [ROOT/'dist/map-layout.js',ROOT/'dist/orbital-motion.js',ROOT/'data-tools/project-map-layout.mjs',RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path,ROOT/'data-tools/hipparcos-errors.json',ROOT/'data-tools/low-z-galaxy-distances.json',ROOT/'data-tools/hipparcos-2007.json',ROOT/'data-tools/astrometry_policy.py',ROOT/'data-tools/globular-cluster-models.json',ROOT/'data-tools/nearby-galaxy-stars.json',ROOT/'data-tools/confirmed-systems.json',ROOT/'data-tools/coordinate-policy.json',ROOT/'data-tools/galaxy-disk-models.json',ROOT/'data-tools/galaxy-disk-objects.json',ROOT/'data-tools/magellanic-cepheids.json',ROOT/'data-tools/disk_geometry.py',ROOT/'data-tools/cosmic_merge.py',ROOT/'data-tools/import-cosmic-catalogs.py',ROOT/'data-tools/cosmic-catalogs.json.gz'])+json.dumps(core,ensure_ascii=False).encode()).hexdigest()[:12]
+revision=hashlib.sha256(Path(__file__).read_bytes()+b''.join(hashlib.sha256(p.read_bytes()).digest() for p in [ROOT/'dist/map-layout.js',ROOT/'dist/orbital-motion.js',ROOT/'data-tools/project-map-layout.mjs',RAW/'hyg_v41.csv',RAW/'NGC.csv',psr_path,ROOT/'data-tools/hipparcos-errors.json',ROOT/'data-tools/low-z-galaxy-distances.json',ROOT/'data-tools/hipparcos-2007.json',ROOT/'data-tools/astrometry_policy.py',ROOT/'data-tools/globular-cluster-models.json',ROOT/'data-tools/messier-distances.json',ROOT/'data-tools/messier_distances.py',ROOT/'data-tools/cluster-members.json',ROOT/'data-tools/cluster_membership.py',ROOT/'data-tools/nearby-galaxy-stars.json',ROOT/'data-tools/confirmed-systems.json',ROOT/'data-tools/coordinate-policy.json',ROOT/'data-tools/galaxy-disk-models.json',ROOT/'data-tools/galaxy-disk-objects.json',ROOT/'data-tools/magellanic-cepheids.json',ROOT/'data-tools/disk_geometry.py',ROOT/'data-tools/cosmic_merge.py',ROOT/'data-tools/import-cosmic-catalogs.py',ROOT/'data-tools/cosmic-catalogs.json.gz'])+json.dumps(core,ensure_ascii=False).encode()).hexdigest()[:12]
 DATA_ROOT='catalog-data/'+revision
 FINAL_OUT=ROOT/'dist'/DATA_ROOT
 FINAL_OUT.parent.mkdir(parents=True,exist_ok=True)
@@ -587,7 +604,7 @@ if FINAL_OUT.exists():
 else:os.replace(OUT,FINAL_OUT)
 OUT=FINAL_OUT
 dump(ROOT/'dist/catalog-data/current.json',{'revision':revision,'dataRoot':DATA_ROOT,'total':summary['total'],'manifest':DATA_ROOT+'/manifest.json'})
-boot={'dataRoot':DATA_ROOT,'cosmicPatches':cosmic_patches,'geometryVersion':geometry_version,'coordinateCorrections':[r for r in records if (not r[11].get('cosmicCatalog') or r[11].get('catalogPositionUpdated')) and (r[11].get('boundSystemPrimary') or r[11].get('redshiftIndependent') or r[11].get('distanceHost') or r[11].get('catalogDistanceLy') is not None or r[10]=='GlobularModels')],'revision':revision,'members':member_rows,'policies':policies,'hiddenIds':[r[0] for r in atlas_only+member_rows if r[11].get('atlasOnly')],'total':summary['total'],'patches':patches,'foreground':foreground,'systems':systems,'renames':renames,'sourceCoverage':coverage,'pulsarCorrections':[r for r in records if r[10]=='ATNF' and (r[11].get('distanceHost') or 'параллакс' in r[7]) and not r[11].get('atlasOnly')],'systemTiles':{i:locations[i] for s in systems for i in s['members'] if i in locations},'rawMap':{k:v for k,v in rawmap.items() if k.startswith('atnf:') and v in byid}}
+boot={'dataRoot':DATA_ROOT,'cosmicPatches':cosmic_patches,'geometryVersion':geometry_version,'coordinateCorrections':[r for r in records if (not r[11].get('cosmicCatalog') or r[11].get('catalogPositionUpdated')) and (r[11].get('distanceEnrichment') or r[11].get('clusterMembership') or r[11].get('boundSystemPrimary') or r[11].get('redshiftIndependent') or r[11].get('distanceHost') or r[11].get('catalogDistanceLy') is not None or r[10]=='GlobularModels')],'revision':revision,'members':member_rows,'policies':policies,'hiddenIds':[r[0] for r in atlas_only+member_rows if r[11].get('atlasOnly')],'total':summary['total'],'patches':patches,'foreground':foreground,'systems':systems,'renames':renames,'sourceCoverage':coverage,'pulsarCorrections':[r for r in records if r[10]=='ATNF' and (r[11].get('distanceHost') or 'параллакс' in r[7]) and not r[11].get('atlasOnly')],'systemTiles':{i:locations[i] for s in systems for i in s['members'] if i in locations},'rawMap':{k:v for k,v in rawmap.items() if k.startswith('atnf:') and v in byid}}
 boot['identityRedirects']={source:target for source,target,_ in cosmic_audit['matches'] if target in galaxy_hosts or re.fullmatch(r'ungc-messier\d+',source)}
 boot['coreIdentityRedirects']=core_identity_redirects
 # Keep lazy canonical identities available for old named selections even when
@@ -650,6 +667,9 @@ source_info['provenance']=[q for q in source_info['provenance'] if q.get('url') 
 source_info['provenance']=[q for q in source_info['provenance'] if q.get('name')!='Low-z independent galaxy distances']
 source_info['provenance'].append({'name':'Low-z independent galaxy distances','url':lowz['endpoint'],'changes':lowz['selection'],'snapshot':'data-tools/low-z-galaxy-distances.json','license':'ODbL'})
 source_info['provenance'] += [{'name':'Hipparcos new reduction, van Leeuwen 2007','url':'https://cdsarc.cds.unistra.fr/viz-bin/cat/I/311','changes':'HIP, parallax and formal error. Error attached only when the same solution reproduces the adopted HYG distance; explicit 1997/manual exceptions preserved.'},{'name':'Baumgardt Galactic globular-cluster compilation','url':gc_data['source'],'changes':'Only ATNF-associated hosts; measured sky coordinates, cluster distance/error and model tidal-radius bound. Individual depths remain unknown.'}]
+cluster_members_meta=json.loads((ROOT/'data-tools/cluster-members.json').read_text())
+source_info['provenance']=[q for q in source_info['provenance'] if not q.get('clusterMembership')]
+source_info['provenance'] += [{'name':'Hunt & Reffert 2024 open-cluster members, table 2','url':cluster_members_meta['membershipURL'],'changes':'Gaia DR3 IDs, membership probabilities and Gaia parallaxes of members with G<13; only Hipparcos stars are used to estimate depth of existing HYG rows. Snapshot data-tools/cluster-members.json, audit data-tools/cluster-membership-audit.json.','access':'CDS/VizieR; credit CDS and the original authors, original data rights apply.','clusterMembership':True},{'name':'Gaia DR3 hipparcos2_best_neighbour','url':cluster_members_meta['crossmatchURL'],'changes':'Official Gaia DR3 to Hipparcos-2 identifier cross-match; a HIP assigned to several members is excluded.','access':'ESA/Gaia/DPAC, CC BY-SA 3.0 IGO.','clusterMembership':True}]
 source_path.write_text(json.dumps(source_info,ensure_ascii=False,indent=2)+'\n')
 print(json.dumps({k:v for k,v in summary.items() if k not in ('nodes','roots')},ensure_ascii=False,indent=2))
 

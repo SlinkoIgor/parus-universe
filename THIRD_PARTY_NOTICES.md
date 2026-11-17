@@ -80,6 +80,8 @@ Access via CDS/VizieR IDIA mirror. Acknowledgment: This research has made use of
 - **Updated Nearby Galaxy Catalog**, Karachentsev, Makarov & Kaisina (2013), AJ145,101: <https://doi.org/10.1088/0004-6256/145/4/101>; 869 catalogue rows and 783 distance/method rows, quality gates retained.
 - **GLADE+**, Dálya et al. (2022), MNRAS514,1403: <https://doi.org/10.1093/mnras/stac1443>; CDS VII/291. Only Type G, B≤15.5, spectroscopic f_dL=3, zhelio>0.002 subset (45,727); no claim to reproduce the full ≈23-million-object source. Stellar masses remain metadata, not total point masses.
 - **Gaia DR3 cluster catalogue update**, Hunt & Reffert (2024), A&A686,A42: <https://doi.org/10.1051/0004-6361/202348662>; high-quality o/m/g/d subset (4,100 of7,167), rejected r excluded. Group masses are aggregate. <https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/686/A42>.
+- **Hunt & Reffert (2024) cluster members**, same catalogue, members table: Gaia DR3 IDs, membership probabilities and parallaxes of members with G<13 in `data-tools/cluster-members.json`; used only to estimate depths of existing Hipparcos/HYG rows. Access through CDS/VizieR (DOI 10.26093/cds/vizier); rights of the original authors apply.
+- **Gaia DR3 `gaiadr3.hipparcos2_best_neighbour`**: ESA/Gaia/DPAC, <https://www.cosmos.esa.int/gaia>, CC BY-SA 3.0 IGO. Only the Gaia DR3 source ID, HIP, angular distance, neighbour count and flag of matched cluster members are retained. Acknowledgment: this work has made use of data from the European Space Agency (ESA) mission Gaia, processed by the Gaia Data Processing and Analysis Consortium (DPAC).
 
 
 ## Орбитальный экранный слой (29 октября 2026)
@@ -366,3 +368,30 @@ source and [ESO's CC BY 4.0 usage conditions](https://www.eso.org/public/outreac
 The Russian caption describes the accelerated observations and does not present
 them as real-time motion or a direct image of the black hole. Frozen provenance
 and source-page hash are in `data-tools/sky-sources/media.json`.
+
+### Messier distance completion · 13 November 2026
+
+The frozen `data-tools/messier-distances.json` records seven attributed distance
+estimates from the [NASA Hubble Messier Catalog](https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/)
+with source excerpts, URLs and page hashes. Rounded outreach distances do not
+supply formal uncertainties. Ten missing globular-cluster distances/errors reuse
+the existing [Baumgardt & Vasiliev compilation](https://doi.org/10.1093/mnras/stab1474).
+M40/M73 component astrometry comes from CDS/SIMBAD (ODbL), Gaia EDR3
+(`2020yCat.1350....0G`), obtained via the official Harvard mirror on 2026-11-13;
+ADQL, field units, original parallaxes/errors, source bibcodes and response hashes
+are retained. Credit ESA/Gaia/DPAC and CDS, Strasbourg, France. Distances are
+inverted from positive, precise parallaxes; quoted formal errors exclude Gaia
+systematics. An optical-group reference star is an explicit map/navigation
+convention and does not turn the alignment into a physical cluster.
+
+### Complete Messier photo coverage · 13 November 2026
+
+The direct [NOIRLab M37 / NGC 2099 observation](https://noirlab.edu/public/images/noao-m37/)
+is a colour CCD composite from the KPNO 0.9-m telescope, December 1994.
+Credit **NOIRLab/NSF/AURA**; [NOIRLab usage conditions](https://noirlab.edu/public/copyright/),
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The original heading,
+caption, source-page hash and HTTP availability check are frozen in
+`data-tools/sky-sources/media.json`. Pixels load from the official NOIRLab server.
+The existing NOIRLab M40 / Winnecke 4 photograph retains its AstroPix provenance
+and credit; matching its optical-group identity no longer depends on the type
+of its navigation anchor. Individual stars do not inherit that group photo.

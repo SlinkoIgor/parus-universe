@@ -617,5 +617,46 @@
       "archiveTitle": "COSMOS Field MoM-z14 Galaxy (NIRCam pullout image)",
       "pageSha256": "09c3e3c0f2b7c7bc55528e311cb7c59421f898a8747c6a4afda6eed8ad4dff99"
     }
+  },
+  {
+    "id": "noirlab-m37",
+    "objects": [],
+    "identifiers": [
+      "M37",
+      "NGC 2099"
+    ],
+    "kind": "deep-sky",
+    "title": "M37 · NGC 2099",
+    "instrument": "KPNO · 0,9-метровый телескоп",
+    "band": "Оптический снимок · цветная композиция CCD",
+    "date": "Декабрь 1994 · публикация 30.06.2020",
+    "url": "https://storage.noirlab.edu/media/archives/images/screen/noao-m37.jpg",
+    "source": "https://noirlab.edu/public/images/noao-m37/",
+    "archiveLabel": "NSF NOIRLab",
+    "credit": "NOIRLab/NSF/AURA",
+    "rights": "Creative Commons Attribution 4.0 International License",
+    "creditUrl": "https://noirlab.edu/public/copyright/",
+    "mediaKind": "observation",
+    "description": "Рассеянное звёздное скопление M37 (NGC 2099). Цветная композиция CCD-экспозиций телескопа обсерватории Китт-Пик, декабрь 1994 года. Поле 14,2′ × 11,3′ показывает центральную часть скопления; цвета зависят от фильтров и обработки.",
+    "identification": {
+      "method": "Exact M37 / NGC 2099 in official NOIRLab image heading and observational caption",
+      "catalogueIdentifiers": [
+        "M37",
+        "NGC 2099"
+      ],
+      "retrieved": "2026-11-13",
+      "pageSha256": "799d885058a08c5f2057b4585865abb922ed4d8f76bebf31a913b954705c0dc6",
+      "archiveTitle": "M37, NGC 2099",
+      "sourceCaption": "M37 is an open star cluster in the constellation Auriga. It contains approximately 200 stars within its 27 light-year diameter and is located some 4600 light-years away. M37 is the brightest and richest of three clusters in the same general region of the sky, the others being M36 and M38. The present picture is a color composite of CCD images from the 0.9-meter telescope of the Kitt Peak National Observatory, near Tucson, Arizona, taken in December 1994. Image size 14.2x11.3 arc minutes.",
+      "rightsUrl": "https://noirlab.edu/public/copyright/",
+      "availability": {
+        "method": "HTTP HEAD",
+        "status": 200,
+        "contentType": "image/jpeg",
+        "bytes": 250791,
+        "checked": "2026-11-13"
+      }
+    },
+    "archive": "https://noirlab.edu/public/images/noao-m37/"
   }
 ]

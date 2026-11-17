@@ -4,6 +4,47 @@
 
 Current expansion generator: `build-full-catalog.py`. Existing curated core: `curate_catalog.py`; historical `normalize_catalog.py` must not replace the current core.
 
+Messier distance completion (13 November 2026): `python3 data-tools/build-messier-catalog.py`
+applies the frozen `messier-distances.json` and existing globular-cluster distance
+table to the installed `catalog-data/c240a9fdd8f7` scientific base. It preserves
+every unrelated catalogue row and existing adopted Messier distance, updates
+core/restore policies, and rebuilds immutable spatial/search tiles. The original
+base is available from the currently pinned catalogue artifact. This targeted
+builder avoids unrelated changes from rerunning later versions of the complete
+importer. Full future imports use the same `messier_distances.py` enrichment.
+The audit distinguishes physical distances from optical-group reference stars;
+`messier-base.json` retains the 16 original streamed rows and a checksum for all
+259799 untouched rows, so regression checks need only the active snapshot.
+After the targeted build, run `build-map-layers.py`, `build-map-radial.py`,
+`build-map-visibility.mjs`, `build-map-labels.mjs`, `build-black-hole-catalog.mjs`,
+`build-map-filter-index.mjs` (refreshes the identity registry), then
+`build-sky-imaging.py`, `build-sky-photos.py`, `build-map-filter-index.mjs`,
+`build-arrival-stars.mjs`, and refresh changed script
+cache keys. Run `node verify-messier.mjs`, `node verify-stream.mjs`, and the usual
+map/integration checks. Source selection and limitations: [catalog.md](../docs/catalog.md).
+Restoring Messier targets also requires a photo-coverage audit of all 110
+identities. `verify-messier.mjs` requires an identified observatory photograph
+with source/credit for each target, beyond the automatic DSS fallback. Direct
+supplements retain official caption evidence, rights and source-page hashes;
+star-typed optical groups use their own group identity, not component aliases.
+The SGA builder retains the original frozen catalogue revision as provenance and
+rechecks every own identifier and sky separation against the active catalogue
+before binding the photo index to it; no image availability checks are invented.
+
+Open-cluster members: `python3 data-tools/import-cluster-members.py` joins the
+frozen Hunt–Reffert 2024 member table (G<13) with the official Gaia DR3
+`hipparcos2_best_neighbour` cross-match into `cluster-members.json`; `--download`
+refreshes the raw snapshots in `raw/` (not in Git) with `.source.json` hashes.
+`python3 data-tools/build-cluster-membership-catalog.py` then applies
+`cluster_membership.py` on top of the Messier snapshot `3f5a9b416717`: only
+Hipparcos members with probability ≥0.5 change depth, original rows are kept
+in `cluster-membership-base.json.gz`, decisions in `cluster-membership-audit.json`.
+The script rebuilds tiles, boot data and every dependent layer listed above,
+including sky imaging and photos. Run it after the Messier
+builder; rerunning the Messier builder drops this layer. Checks:
+`node verify-cluster-membership.mjs`, `node verify-messier.mjs`. Rule and
+limitations: [catalog.md](../docs/catalog.md).
+
 Distant supplement: `python3 build-distant-catalog.py` reproduces `../dist/distant-catalog-data.js` and `distant-catalog-audit.json` without network access. CCPC-II fields/units and extracted JADES DR4 v1.2 `Obs_info` rows, URLs and SHA-256 values are retained in `distant-sources/`. FITS re-extraction requires astropy and `--extract-from DIR`; original file hashes are checked. Identity, conflict policy and source limitations: [universe-overview.md](../docs/universe-overview.md). This supplement preserves existing tile revisions and adopted positions.
 
 Shared source registry: from the repository root,

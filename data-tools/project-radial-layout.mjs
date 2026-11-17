@@ -28,6 +28,6 @@ for(const d of profile.distanceDomains||[]){
 }
 vm.runInContext(['regions','map-geometry-data','map-geometry'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
 const geometryBounds={};
-for(const o of objects){o.region??=o.regionData;c.StellarClusters.prepare(o);c.Nebulae.prepare(o);const b=c.MapGeometry.indexBounds(o,'radial');if(!b)continue;const p=placements[o.id]?.position;if(p)geometryBounds[o.id]=b.map((v,i)=>v+(i%2?p.y:p.x));}
+for(const o of objects){o.region??=o.regionData;c.StellarClusters.prepare(o);c.Nebulae.prepare(o);const b=c.MapGeometry.indexBounds(o);if(!b)continue;const p=placements[o.id]?.position;if(p)geometryBounds[o.id]=b.map((v,i)=>v+(i%2?p.y:p.x));}
 fs.writeFileSync(output,JSON.stringify({runtimeData:data,profileKey:layout.key,catalogRevision:manifest.revision,geometryVersion:c.MapLayout.version,counts,warnings,parents,domains,placements,geometryBounds}));
 console.log(JSON.stringify({profileKey:layout.key,counts,warnings}));

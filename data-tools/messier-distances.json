@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "policy": "Only missing Messier distances are filled. Published rounded NASA estimates have unknown formal uncertainty. Optical groups use the explicitly named brightest reference star, never a common distance or physical size.",
+  "nasa": [
+    {
+      "messier": 8,
+      "distanceLy": 5200,
+      "uncertaintyLy": null,
+      "source": "https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-8/",
+      "retrieved": "2026-11-13",
+      "sha256": "a411ebee194f6c1b9c4664fe0afec459c22ddb723496c3aa3c675e94220e9b44",
+      "sourceText": "Located 5,200 light-years from Earth, M8 is home to its own star cluster: NGC 6530 (not visible in the image above). The massive stars embedded within the nebula give off enormous amounts of ultraviolet radiation, ionizing the gas and causing it to shine."
+    },
+    {
+      "messier": 24,
+      "distanceLy": 10000,
+      "uncertaintyLy": null,
+      "source": "https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-24/",
+      "retrieved": "2026-11-13",
+      "sha256": "a01626590ea710c63ce745c17a6733eff3ddc9b1a9318aae5bb247460eaf9782",
+      "sourceText": "Messier 24 (M24) is unusual for being not a specific object but a strikingly clear space between dust clouds through which a glittering host of stars are visible: a glimpse into the Sagittarius spiral arm of our Milky Way galaxy. From where our solar system resides, clouds of cosmic dust obscure our view into the Milky Way, but the Small Sagittarius Star Cloud ― as M24 is also known ― provides a tunnel-like view into the starry depths of our galaxy. The 600-light-year-wide window opens onto stars some 10,000 to 16,000 light-years distant. A tiny portion of the star cloud is visible in this pair of Hubble views of the region, yet a multitude of different types and colors of stars are apparent. The entirety of M24 encompasses a number of nebulae and star clusters (not visible in these close-up images)."
+    },
+    {
+      "messier": 43,
+      "distanceLy": 1600,
+      "uncertaintyLy": null,
+      "source": "https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-43/",
+      "retrieved": "2026-11-13",
+      "sha256": "bdffe5f452098de794e43554fd749b6542471e7710b063214634994347da5875",
+      "sourceText": "Located 1,600 light-years from Earth, M43 has an apparent magnitude of 9. It can be spotted through a small telescope and is best observed in January."
+    },
+    {
+      "messier": 78,
+      "distanceLy": 1600,
+      "uncertaintyLy": null,
+      "source": "https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-78/",
+      "retrieved": "2026-11-13",
+      "sha256": "a682046a7049b29399a58889c529e4b7ed17a459e8ccac4b1f4a1f1c61fe4728",
+      "sourceText": "This colorful image features a small part of M78, a reflection nebula located in the constellation Orion. A reflection nebula is created when light from a star is scattered or reflected off a nearby dust cloud. M78 is located approximately 1,600 light-years away from Earth and has an apparent magnitude of 8."
+    },
+    {
+      "messier": 86,
+      "distanceLy": 52000000,
+      "uncertaintyLy": null,
+      "source": "https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-86/",
+      "retrieved": "2026-11-13",
+      "sha256": "3e1d4c75fffc16f28926f52f228a93685b2bb68e71a4800f91017b7c96f0f477",
+      "sourceText": "While the majority of the Virgo cluster is receding from the Milky Way, M86 is getting closer to our galaxy. This is because M86 is located on the far side of the Virgo cluster from us and is moving toward the center of the cluster. Of all the galaxies in Messier’s catalog, M86 is moving the fastest in our direction but is still approximately 52 million light-years away from Earth."
+    },
+    {
+      "messier": 90,
+      "distanceLy": 59000000,
+      "uncertaintyLy": null,
+      "source": "https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-90/",
+      "retrieved": "2026-11-13",
+      "sha256": "14844fbbf2def4216e8fe23d64be620d53c01c8b0e924450ea979cf90ab63764",
+      "sourceText": "Messier 90 (M90, also NGC 4569) is a bright, beautiful spiral galaxy located in the constellation Virgo. This galaxy is a member of the large Virgo Cluster of galaxies. It is approximately 59 million light-years away from Earth and has a magnitude of 9.5. M90's orbit took took the galaxy on a path near the cluster’s center about three hundred million years ago. The density of gas in the inner cluster weighed on M90 like a strong headwind, stripping enormous quantities of gas from the galaxy and creating the diffuse halo we see around it. This gas is no longer available to form new stars in M90, with the spiral galaxy eventually fading as a result."
+    },
+    {
+      "messier": 98,
+      "distanceLy": 44000000,
+      "uncertaintyLy": null,
+      "source": "https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-98/",
+      "retrieved": "2026-11-13",
+      "sha256": "6a600f5a285eb33d5c226e53598d22c12b76fcc535e82ab5b1978c73f14b4680",
+      "sourceText": "M98 contains about a trillion stars as well as an abundance of neutral hydrogen gas and interstellar dust. Because of the high amounts of gas and dust, there are numerous star-forming regions in the galaxy, especially in its nucleus and arms. The nucleus itself is “active,” meaning that the center of the galaxy is more luminous than the rest of the galaxy. M98 is located approximately 44 million light-years away and is traveling toward our Milky Way galaxy."
+    }
+  ],
+  "components": {
+    "source": "CDS/SIMBAD basic astrometry, Gaia EDR3 (2020yCat.1350....0G)",
+    "endpoint": "https://simbad.harvard.edu/simbad/sim-tap/sync",
+    "retrieved": "2026-11-13",
+    "license": "ODbL (SIMBAD); Gaia/ESA/DPAC attribution",
+    "queries": [
+      "SELECT i.id,b.main_id,b.ra,b.dec,b.plx_value,b.plx_err,b.plx_bibcode FROM ident AS i JOIN basic AS b ON i.oidref=b.oid WHERE i.id IN ('HD 238107','HD 238108','BD-13 5809','BD-13 5808','HD 358033')",
+      "SELECT b.main_id,b.ra,b.dec,b.plx_value,b.plx_err,b.plx_bibcode,f.V FROM basic AS b JOIN allfluxes AS f ON b.oid=f.oidref WHERE 1=CONTAINS(POINT('ICRS',b.ra,b.dec),CIRCLE('ICRS',314.7332,-12.6355,0.02)) AND f.V<13"
+    ],
+    "rawSHA256": [
+      "be795dc7ecc54440766313c46dde6350cc8f5abe6f3067c212f3bd92ce310e9b",
+      "4671533e8c3d6d0873688675df7f1ee022c16904a6d23b65ceacfe7a6790d36c"
+    ],
+    "rows": [
+      {
+        "messier": 40,
+        "name": "HD 238107",
+        "raDeg": 185.55219675180996,
+        "decDeg": 58.08293027085,
+        "parallaxMas": 3.2191,
+        "parallaxErrorMas": 0.0118,
+        "reference": "2020yCat.1350....0G"
+      },
+      {
+        "messier": 40,
+        "name": "HD 238108",
+        "raDeg": 185.57916333183996,
+        "decDeg": 58.086212681540005,
+        "parallaxMas": 6.9328,
+        "parallaxErrorMas": 0.0155,
+        "reference": "2020yCat.1350....0G"
+      },
+      {
+        "messier": 73,
+        "name": "BD-13  5809",
+        "raDeg": 314.73654902784995,
+        "decDeg": -12.641752731540002,
+        "parallaxMas": 1.424,
+        "parallaxErrorMas": 0.0151,
+        "reference": "2020yCat.1350....0G",
+        "apparentV": 10.297
+      },
+      {
+        "messier": 73,
+        "name": "HD 358033",
+        "raDeg": 314.74000281797,
+        "decDeg": -12.62936354327,
+        "parallaxMas": 2.6105,
+        "parallaxErrorMas": 0.0199,
+        "reference": "2020yCat.1350....0G",
+        "apparentV": 11.237
+      },
+      {
+        "messier": 73,
+        "name": "BD-13  5808",
+        "raDeg": 314.72832441194,
+        "decDeg": -12.6344211336,
+        "parallaxMas": 3.1658,
+        "parallaxErrorMas": 0.0274,
+        "reference": "2020yCat.1350....0G",
+        "apparentV": 11.86
+      },
+      {
+        "messier": 73,
+        "name": "Cl* NGC 6994    BWM       5",
+        "raDeg": 314.72219273158,
+        "decDeg": -12.631779109019998,
+        "parallaxMas": 1.5029,
+        "parallaxErrorMas": 0.0149,
+        "reference": "2020yCat.1350....0G",
+        "apparentV": 11.7
+      }
+    ]
+  }
+}

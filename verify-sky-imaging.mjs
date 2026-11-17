@@ -10,6 +10,7 @@ const context=vm.createContext({Map,Set,console,EXTENDED_BOOT:{revision:pointer.
 vm.runInContext(['sky-imaging-index','sky-imaging'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),context);
 const run=s=>vm.runInContext(s,context),index=run('SKY_IMAGING_INDEX'),imaging=context.SkyImaging;
 assert.equal(index.catalogueRevision,pointer.revision);
+assert.equal(index.sourceCatalogueRevision,frozen.catalogueRevision,'original image matching provenance is retained after catalogue updates');
 assert.equal(index.photoCount,frozen.records.length);
 assert.ok(index.photoCount>=12000,'twelve thousand distinct photographed catalogue objects');
 assert.equal(Object.keys(index.targets).length,index.photoCount);
@@ -73,6 +74,19 @@ assert m.ngc_key('NGC 0001A')=='NGC1A' and m.ngc_key('host NGC 1')==''
 assert 0<m.separation(359.999,20,.001,20)<10, 'RA wrap'
 `]);
 console.log('PASS import rejects wrong, ambiguous, inherited and discordant identities; duplicate physical galaxies are merged');
+execFileSync('python3',['-c',`
+import copy,importlib.util,json
+spec=importlib.util.spec_from_file_location('imaging','data-tools/build-sky-imaging.py')
+m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+frozen=json.load(open('data-tools/sky-sources/media-sga.json'))
+assert m.validate_targets(frozen)==json.load(open('dist/catalog-data/current.json'))['revision']
+for field,value in [('targetId','missing-galaxy'),('pgc',-1),('raDeg',0)]:
+ bad=copy.deepcopy(frozen);bad['records']=[bad['records'][0]];bad['records'][0][field]=value
+ try:m.validate_targets(bad)
+ except AssertionError:pass
+ else:raise AssertionError('unsafe catalogue rebind accepted '+field)
+`]);
+console.log('PASS catalogue rebinding rechecks every image identity and position and rejects stale source matches');
 
 const objects=Object.keys(index.targets).map(id=>({id,kind:'galaxy'}));
 for(const o of objects)assert.ok(imaging.has(o));

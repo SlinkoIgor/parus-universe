@@ -510,15 +510,18 @@ function showObject(id = state.selected) {
     );
     if (e.anchor)
       html += row(
-        e.method === 'bounded-compact-host' ? 'Опорное скопление' : 'Опорная галактика',
+        e.method === 'bounded-compact-host' || e.method === 'cluster-membership' ? 'Опорное скопление' : 'Опорная галактика',
         object(e.anchor)?.name || e.anchorName || e.anchor,
       );
   }
   if (o.membershipNote) html += row('Членство', o.membershipNote);
+  if (o.coordinateAnchor) html += row('Опорная звезда карты и полёта', o.coordinateAnchor);
+  if (o.opticalComponents) html += row('Компоненты оптической группы', o.opticalComponents.map(q =>
+    q.name + ': ≈ ' + distanceText(q.distanceLy) + ' ± ' + distanceText(q.distanceErrorLy)).join('<br>'));
   const system = ExtendedCatalog.systemByMember.get(o.id);
   if (system) html += row('Связанная система', system.name + '<small>' + system.note + '</small>');
   html +=
-    row('От Солнца', o.atlasOnly ? 'Надёжная дальность неизвестна' : distanceText(o.d)) + '</dl>';
+    row(o.coordinateAnchor ? 'До опорной звезды от Солнца' : 'От Солнца', o.atlasOnly ? 'Надёжная дальность неизвестна' : distanceText(o.d)) + '</dl>';
   html += stellarOrbitFacts(system);
   if(o.stellarNameSource)html += '<p class="object-sources"><a href="'+o.stellarNameSource+'" target="_blank" rel="noopener">Источник имени и обозначений ↗</a></p>';
   if (ExtendedCatalog.systemByMember.has(o.id))

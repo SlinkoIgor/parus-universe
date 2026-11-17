@@ -245,7 +245,7 @@ await run(`(async()=>{
 ExtendedCatalog.readJSON=async file=>readFilterJSON(file);
 const pins=JSON.stringify([...ExtendedCatalog.pinned.keys()]),physical=JSON.stringify([state,OBJECTS.map(o=>[o.id,o.p3,o.d,o.apparentV])]);
 MapFilters.change('all','messier','all');await MapFilters.pending;
-assert.ok(MapFilters.narrow&&MapFilters.total>80&&MapFilters.total<=110);
+assert.ok(MapFilters.narrow);assert.equal(MapFilters.total,110,'all Messier designations have a sourced map position or explicit reference star');
 assert.ok(MapFilters.objects.has('opengc-ngc7089'),'M2 loads even outside the camera coverage');
 assert.equal(MapFilters.objects.size,MAP_FILTER_DATA.buckets.filter(b=>MapFilters.bucketMatches(b)).reduce((n,b)=>n+b[3],0),'all referenced records load');
 for(const o of MapFilters.objects.values())assert.equal(o,ExtendedCatalog.coreIndex.get(o.id)||o,'canonical host identity is preserved');

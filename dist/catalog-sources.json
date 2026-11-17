@@ -81,6 +81,18 @@
       "changes": "HIP, parallax and standard error used to exclude >50% relative errors from individual map points."
     },
     {
+      "name": "Messier distance completion",
+      "url": "https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/",
+      "changes": "Seven rounded outreach distances, unknown formal uncertainty; frozen excerpts and page hashes in data-tools/messier-distances.json.",
+      "retrieved": "2026-11-13"
+    },
+    {
+      "name": "M40 and M73 component astrometry",
+      "url": "https://simbad.harvard.edu/simbad/sim-tap/sync",
+      "changes": "Gaia EDR3 parallaxes/errors for six optical-group components; explicit named reference-star anchors, no common cluster distance. Frozen ADQL/source fields in data-tools/messier-distances.json.",
+      "retrieved": "2026-11-13"
+    },
+    {
       "name": "mcxc",
       "url": "https://vizier.idia.ac.za/viz-bin/asu-tsv?-source=J%2FA%2BA%2F688%2FA187%2Fmcxcii&-out=%2A%2A&-out.max=unlimited",
       "retrieved": "2026-10-29",
@@ -260,6 +272,20 @@
       "name": "Baumgardt Galactic globular-cluster compilation",
       "url": "https://people.smp.uq.edu.au/HolgerBaumgardt/globular/parameter.html",
       "changes": "Only ATNF-associated hosts; measured sky coordinates, cluster distance/error and model tidal-radius bound. Individual depths remain unknown."
+    },
+    {
+      "name": "Hunt & Reffert 2024 open-cluster members, table 2",
+      "url": "https://cdsarc.cds.unistra.fr/viz-bin/cat/J/A+A/686/A42",
+      "changes": "Gaia DR3 IDs, membership probabilities and Gaia parallaxes of members with G<13; only Hipparcos stars are used to estimate depth of existing HYG rows. Snapshot data-tools/cluster-members.json, audit data-tools/cluster-membership-audit.json.",
+      "access": "CDS/VizieR; credit CDS and the original authors, original data rights apply.",
+      "clusterMembership": true
+    },
+    {
+      "name": "Gaia DR3 hipparcos2_best_neighbour",
+      "url": "https://gea.esac.esa.int/archive/documentation/GDR3/Gaia_archive/chap_datamodel/sec_dm_crossmatches/ssec_dm_hipparcos2_best_neighbour.html",
+      "changes": "Official Gaia DR3 to Hipparcos-2 identifier cross-match; a HIP assigned to several members is excluded.",
+      "access": "ESA/Gaia/DPAC, CC BY-SA 3.0 IGO.",
+      "clusterMembership": true
     }
   ],
   "selection": {
@@ -407,7 +433,9 @@
         "promotedFromAtlas": 330
       }
     },
-    "cosmicImportAudit": "data-tools/cosmic-catalog-audit.json"
+    "cosmicImportAudit": "data-tools/cosmic-catalog-audit.json",
+    "messierDistanceAudit": "data-tools/messier-distance-audit.json",
+    "clusterMembershipAudit": "data-tools/cluster-membership-audit.json"
   },
   "updated": "2026-10-29"
 }

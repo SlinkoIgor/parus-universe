@@ -14,7 +14,10 @@ const dir='dist/'+JSON.parse(fs.readFileSync('dist/catalog-data/current.json')).
 context.photoSearch=JSON.parse(fs.readFileSync(dir+'/search.json'));
 const candidates=run(`photoSearch.filter(r=>{
  const kind=['galaxy','nebula','cluster'].includes(r[2])?'deep-sky':r[2];
- return r[6].split('|').some(w=>SKY_PHOTO_INDEX.targets[kind+':'+SkyPhotos.key(w)]);
+ // A star-typed optical group can use its own deep-sky identity. This is only
+ // a candidate cut; decoded objects still pass the full namespace rules.
+ return r[6].split('|').some(w=>SKY_PHOTO_INDEX.targets[kind+':'+SkyPhotos.key(w)]||
+  kind==='star'&&SKY_PHOTO_INDEX.targets['deep-sky:'+SkyPhotos.key(w)]);
 }).map(r=>[r[0],r[5]])`),wanted=new Set(candidates.map(r=>r[0]));
 for(const file of new Set(candidates.map(r=>r[1]))) {
   context.photoRows=JSON.parse(fs.readFileSync(dir+'/'+file));

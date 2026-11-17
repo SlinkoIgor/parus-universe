@@ -9,20 +9,22 @@ context.nebulaRows=rows;context.readNebulaTile=file=>tiles.get(file);
 const ngc=JSON.parse(execFileSync('python3',['-c',"import csv,json; print(json.dumps({r['Name']:[r['MajAx'],r['MinAx']] for r in csv.DictReader(open('data-tools/raw/NGC.csv'),delimiter=';')}))"],{encoding:'utf8'}));
 const snr=new Map(fs.readFileSync('data-tools/raw/m33-snr.dat','utf8').trimEnd().split('\n').filter(l=>l.slice(79,82).trim()==='yes').map(l=>['m33-snr-'+l.slice(0,8).trim().toLowerCase(),Number(l.slice(33,36))]));
 const core=run('OBJECTS.filter(o=>o.kind==="nebula"&&!o.atlasOnly)'),decoded=run('nebulaRows.map(r=>ExtendedCatalog.decode(r))');
-assert.equal(core.length,44);assert.equal(decoded.length,250);
-for(const o of core){const source=ngc[o.ngc];assert.ok(source,o.id+' optical source');assert.equal(o.angularMajorArcmin,Number(source[0]));const expected=2*o.d*Math.tan(Number(source[0])*Math.PI/21600);assert.ok(Math.abs(o.region.major/expected-1)<1e-12,o.id+' angular size');assert.match(o.region.note,/Погрешность/);assert.match(o.region.url,/OpenNGC/);}
-let measured=0,unknown=0;
+assert.equal(core.length,46);assert.equal(decoded.length,251);
+function opticalSize(o){const source=ngc[o.ngc];assert.ok(source,o.id+' optical source');assert.equal(o.angularMajorArcmin,Number(source[0]));const expected=2*o.d*Math.tan(Number(source[0])*Math.PI/21600);assert.ok(Math.abs(o.region.major/expected-1)<1e-12,o.id+' angular size');assert.match(o.region.note,/Погрешность/);assert.match(o.region.url,/OpenNGC/);}
+for(const o of core)opticalSize(o);
+let measured=0,unknown=0,optical=0;
 for(const o of decoded){
  if(snr.has(o.id)){assert.ok(o.region,o.id+' must use its imported diameter');assert.ok(Math.abs(o.region.major/(snr.get(o.id)*3.2615637771674336)-1)<1e-12);assert.match(o.region.url,/855\/140/);measured++;}
+ else if(o.catalogType==='RfN'){assert.equal(o.id,'opengc-ngc2068');assert.equal(Number(o.messier),78);opticalSize(o);optical++;}
  else{assert.equal(o.catalogType,'HII');assert.equal(o.region,undefined,'no fabricated extent for LGGS spectroscopy without size');assert.equal(o.diameterLy,undefined);unknown++;}
 }
-assert.equal(measured,178);assert.equal(unknown,72);
+assert.equal(measured,178);assert.equal(unknown,72);assert.equal(optical,1);
 // Every new spatial leaf includes measured extents, not just source centres.
 for(const n of boot.nodes.filter(n=>n.file&&n.category==='nebula'))for(const r of tiles.get(n.file)){
  context.nebulaToCheck=r;const o=run('ExtendedCatalog.decode(nebulaToCheck)'),rx=(o.region?.major||0)/2,ry=(o.region?.minor||0)/2;
  assert.ok(n.box[0]<=r[12]-rx&&n.box[2]>=r[12]+rx&&n.box[1]<=r[13]-ry&&n.box[3]>=r[13]+ry,r[0]+' extent outside spatial index');
 }
-console.log('PASS every nebula size against original OpenNGC/Long2018: 44 named optical areas (one combined M16), 178 published SNR diameters, 72 honestly unknown HII extents; full spatial bounds');
+console.log('PASS every nebula size against original OpenNGC/Long2018: 47 optical areas (one combined M16), 178 published SNR diameters, 72 honestly unknown HII extents; full spatial bounds');
 run(`{
 state=initial();state.expansion=false;Cosmology.sync(state);width=1440;height=1000;filter='nebula';MapLayers.active=true;
 function settleNebula(){for(const files of MapLayers.filesForView(cam,width,height).values())for(const file of files)MapLayers.cache.set(file,readNebulaTile(file).map(r=>ExtendedCatalog.decode(r)));MapLayers.lastUpdate=-Infinity;MapLayers.update(performance.now());}

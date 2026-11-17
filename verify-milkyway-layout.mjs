@@ -41,7 +41,7 @@ const central={id:'central-galaxy',kind:'galaxy',p3:[c.x+5000,-c.y,0]};assert.de
 for(const z of [1499.999,1500,2999.999,3000,40000,80000]){const a={id:'smooth',kind:'cluster',p3:[c.x+10000,-c.y,z]},b={...a,p3:[c.x+10000,-c.y,z+.001]};assert.ok(Math.hypot(MapLayout.baseProject(a).x-MapLayout.baseProject(b).x,MapLayout.baseProject(a).y-MapLayout.baseProject(b).y)<.1);}
 const radii=[40000,80000,160000].map(z=>Math.hypot(MapLayout.baseProject({id:'height-'+z,kind:'cluster',p3:[c.x+10000,-c.y,z]}).x-c.x,0));assert.ok(radii[0]<radii[1]&&radii[1]<radii[2]);
 // GC pulsars keep exactly the same local offsets as their measured host view.
-const member=moved.find(o=>o.positionEstimate?.method==='bounded-compact-host'&&resolve(o.distanceHost)?.mapOffset);assert.ok(member);const host=resolve(member.distanceHost);assert.deepEqual(member.mapOffset,host.mapOffset);
+const member=moved.find(o=>o.positionEstimate?.method==='bounded-compact-host'&&resolve(o.distanceHost)?.mapOffset);assert.ok(member);const host=resolve(member.distanceHost);assert.deepEqual([...member.mapOffset],[...host.mapOffset]);
 const m=MapLayout.rawProject(member),h=MapLayout.rawProject(host),mp=MapLayout.baseProject(member),hp=MapLayout.baseProject(host);close(mp.x-hp.x,m.x-h.x);close(mp.y-hp.y,m.y-h.y);
 // Camera, theme and zoom never re-layout an object.
 const omega=object('omega'),p=MapLayout.project(omega),physical=JSON.stringify(omega.p3);

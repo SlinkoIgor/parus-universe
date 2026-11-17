@@ -40,7 +40,9 @@ const SkyPhotos = {
   },
   keys(o) {
     if (!o || o.synthetic) return [];
-    let names=[],kind=o.kind;
+    // Optical groups retain their own deep-sky identity even when their map
+    // anchor is typed as a star. Individual component stars keep stellar keys.
+    let names=[],kind=o.opticalGroup?'deep-sky':o.kind;
     if(kind==='star') {
       // Some component leaves retain the unresolved system's identifiers.
       // They cannot acquire a photograph of another component through them.

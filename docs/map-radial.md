@@ -70,7 +70,12 @@ map(declaredChild) = map(host) + (delta.X, -delta.Y)
 Существующий порядок `MapLayout.anchorId`: `synthetic.parentObject`,
 `positionEstimate.anchor`, `distanceHost`, `boundSystemPrimary`,
 `galaxyMember.parentGalaxy`. Для S-звёзд выше него применяется явный Sgr A*.
-Отсутствующие связи со звёздными скоплениями не придумываются. Нити, войды,
+Связи «звезда → рассеянное скопление» берутся только из опубликованного
+членства Hunt–Reffert (`positionEstimate.method: 'cluster-membership'`, см.
+`docs/catalog.md`). Такие скопления не входят в реестр опор
+`map-radial-anchors-v2.json`. Их звёзды ближе 1000 св. лет размещаются
+областью Солнца вместе со скоплением, поэтому реестр не менялся.
+Отсутствующие связи не придумываются. Нити, войды,
 сверхскопления и пересечения космической сети не становятся исключительными
 родителями; `Dfil` Tempel само по себе не подтверждает членство.
 

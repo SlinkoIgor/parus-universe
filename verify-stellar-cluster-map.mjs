@@ -9,11 +9,17 @@ const source=new Map(JSON.parse(zlib.gunzipSync(fs.readFileSync('data-tools/cosm
 context.readClusterFile=file=>files.get(file);
 context.clusterRows=[...files.values()].flat().filter(r=>r[2]==='cluster'&&r[11].catalogClass!=='galaxy-cluster');
 const decoded=run('clusterRows.map(r=>ExtendedCatalog.decode(r))');
-assert.equal(decoded.length,4094);
-let halfNumber=0,optical=0,halfLight=0;
+assert.equal(decoded.length,4105);
+let halfNumber=0,optical=0,halfLight=0,opticalGroups=0;
 for(let i=0;i<decoded.length;i++){
- const o=decoded[i],r=context.clusterRows[i];assert.ok(o.region,o.id+' has a sourced footprint');
+ const o=decoded[i],r=context.clusterRows[i];
  assert.equal(o.d,r[3]);assert.deepEqual(Array.from(o.p3),Array.from(r[11].p3||run(`Space.fromSky(${r[4]},${r[5]},${r[3]})`)));
+ if(o.opticalGroup){
+  assert.equal(o.id,'opengc-ngc6994');assert.equal(Number(o.messier),73);
+  assert.equal(o.region,undefined,'an optical alignment has no physical cluster radius');
+  assert.equal(o.opticalComponents.length,4);assert.ok(o.coordinateAnchor);opticalGroups++;continue;
+ }
+ assert.ok(o.region,o.id+' has a sourced footprint');
  assert.ok(o.region.major>0&&o.region.minor>0&&o.region.url);
  if(o.region.sizeKind==='half-number'){
   const m=o.catalogMeasurements?.find(m=>m.data?.halfNumberRadiusPc>0),s=source.get(m?.sourceId||o.id);assert.ok(s,o.id+' has a source row');
@@ -23,13 +29,14 @@ for(let i=0;i<decoded.length;i++){
  }else if(o.region.sizeKind==='half-light'){assert.equal(o.region.major,o.diameterLy);assert.match(o.region.note,/половину света/);halfLight++;}
 }
 assert.ok(halfNumber>4000&&optical>10&&halfLight>0);
+assert.equal(opticalGroups,1);
 // All spatial leaves contain the complete displayed footprint, not only its
 // center. This independently checks the Python index against runtime sizes.
 for(const node of boot.nodes.filter(n=>n.category==='stellar-cluster'&&n.file))for(const row of files.get(node.file)){
  context.rowToCheck=row;const bounds=run('MapGeometry.projected(ExtendedCatalog.decode(rowToCheck),{mode:"full"}).bounds');
  assert.ok(node.box[0]<=row[12]+bounds[0]+1e-8&&node.box[2]>=row[12]+bounds[2]-1e-8&&node.box[1]<=row[13]+bounds[1]+1e-8&&node.box[3]>=row[13]+bounds[3]-1e-8,row[0]+' projected footprint outside its leaf');
 }
-console.log('PASS all 4094 structural cluster footprints from individual source sizes:',{halfNumber,optical,halfLight},'; 3D/IDs retained; every spatial leaf bounds actual extents');
+console.log('PASS 4104 structural cluster footprints from individual source sizes and one explicit optical group:',{halfNumber,optical,halfLight,opticalGroups},'; 3D/IDs retained; every spatial leaf bounds actual extents');
 run(`{
 state=initial();state.expansion=false;Cosmology.sync(state);width=1440;height=1000;filter='stellar-cluster';MapLayers.active=true;
 function settleClusterView(){for(const files of MapLayers.filesForView(cam,width,height).values())for(const file of files)if(!MapLayers.cache.has(file))MapLayers.cache.set(file,readClusterFile(file).map(r=>ExtendedCatalog.decode(r)));MapLayers.lastUpdate=-Infinity;MapLayers.update(performance.now());}

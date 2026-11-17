@@ -199,19 +199,19 @@ const SkyGuide = {
     if (!this.curatedPhotoTargets) {
       this.curatedPhotoTargets=new Set(SKY_GUIDE_DATA.media.flatMap(p=>[
         ...p.objects.map(id=>'id:'+id),
-        ...(p.identifiers||[]).flatMap(id=>(p.kind==='deep-sky'?['nebula','cluster','galaxy']:[p.kind])
-          .map(kind=>kind+':'+this.catalogueKey(id)))
+        ...(p.identifiers||[]).map(id=>p.kind+':'+this.catalogueKey(id))
       ]));
     }
     return (o.catalogObjectIds||[o.id]).some(id=>this.curatedPhotoTargets.has('id:'+id)) ||
-      this.identityKeys(o).some(id=>this.curatedPhotoTargets.has(o.kind+':'+id));
+      this.identityKeys(o).some(id=>this.curatedPhotoTargets.has(o.kind+':'+id)||
+        (o.opticalGroup||['nebula','cluster','galaxy'].includes(o.kind))&&this.curatedPhotoTargets.has('deep-sky:'+id));
   },
   media(o) {
     if (!o || o.synthetic) return [];
     if(o.supersededBy){const current=ExtendedCatalog.get(o.supersededBy);if(current)return this.media(current);}
     const identifiers=this.identityKeys(o);
     const curated=SKY_GUIDE_DATA.media.filter(p=>p.objects.some(id=>(o.catalogObjectIds||[o.id]).includes(id)) ||
-      (p.kind===o.kind || p.kind==='deep-sky'&&['nebula','cluster','galaxy'].includes(o.kind)) && p.identifiers?.some(id=>identifiers.includes(this.catalogueKey(id))));
+      (p.kind===o.kind || p.kind==='deep-sky'&&(o.opticalGroup||['nebula','cluster','galaxy'].includes(o.kind))) && p.identifiers?.some(id=>identifiers.includes(this.catalogueKey(id))));
     // One release page can contain several distinct observations. Deduplicate
     // actual image URLs, never the source article shared by those images.
     const seen=new Set(curated.map(p=>p.url));

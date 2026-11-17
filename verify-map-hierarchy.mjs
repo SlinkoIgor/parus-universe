@@ -8,7 +8,7 @@ const boot=run('MAP_LAYER_BOOT');
 const layers=new Map();
 for(const n of boot.nodes)if(n.file)for(const row of JSON.parse(fs.readFileSync('dist/'+boot.dataRoot+'/'+n.file)))layers.set(row[0],row);
 const {galaxy:galaxyContours,...structuralCounts}=JSON.parse(JSON.stringify(boot.counts));assert.ok(galaxyContours>10000,'all sourced galaxy contours');
-assert.deepEqual(structuralCounts,{filament:15421,'galaxy-cluster':2161,nebula:250,'stellar-cluster':4094,supercluster:1313,void:635});
+assert.deepEqual(structuralCounts,{filament:15421,'galaxy-cluster':2161,nebula:251,'stellar-cluster':4105,supercluster:1313,void:635});
 // Compare every complete-layer row against its independent canonical leaf.
 const manifest=JSON.parse(fs.readFileSync(catalogPath('manifest.json')));let matched=0;
 for(const n of manifest.nodes)if(!n.children.length)for(const row of JSON.parse(fs.readFileSync(catalogPath(n.file))))if(layers.has(row[0])){assert.deepEqual(layers.get(row[0]),row);matched++;}
@@ -69,7 +69,7 @@ MapLayers.ready.set('stellar-cluster',true);MapLayers.ready.set('nebula',true);a
 MapLayers.ready.set('filament',true);MapLayers.ready.set('galaxy-cluster',true);assert.equal(MapLayers.admits(object('andromeda')),true);
 filter='galaxy';assert.equal(MapLayers.admits(object('andromeda')),true,'explicit class filter has no hidden competitors');
 filter='stellar-cluster';cam={x:0,y:0,span:130000};var files=MapLayers.filesForView(cam,width,height);assert.ok(files.get('stellar-cluster').length);for(const [category,rows] of files)if(category!=='stellar-cluster')assert.equal(rows.length,0);
-filter='all';settleLayers();assert.equal(MapLayers.visible.filter(o=>MapDetails.group(o)==='stellar-cluster').length,4094);
+filter='all';settleLayers();assert.equal(MapLayers.visible.filter(o=>MapDetails.group(o)==='stellar-cluster').length,4105);
 MapLabels.begin();RegionMap.draw();drawObjects();ExtendedCatalog.draw();var clusterHits=new Set([...hitObjects.map(h=>h.o.id),...RegionMap.hits.map(h=>h.o.id)]);
 for(const o of MapLayers.visible.filter(o=>MapDetails.group(o)==='stellar-cluster')){const p=screen(o);if(p.x>=0&&p.x<=width&&p.y>=0&&p.y<=height)assert.ok(clusterHits.has(o.id),'nearby symbols cannot drop complete clusters: '+o.id);}
 assert.equal(MapDetails.visible({kind:'star'},2000),false);assert.equal(MapDetails.visible({kind:'pulsar'},2000),false);assert.equal(MapDetails.visible({kind:'cluster'},130000),true);assert.equal(MapDetails.visible({kind:'cluster'},300000),false);
