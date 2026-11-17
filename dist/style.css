@@ -758,7 +758,8 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
 .telemetry.telemetry--flight #acceleration small{font-size:7px;margin-left:4px}
 @media(min-width:701px){
  :root{--hud:112px}
- .telemetry.telemetry--flight{padding-top:11px;padding-bottom:11px}
+ .telemetry.telemetry--flight{grid-template-columns:minmax(120px,.9fr) minmax(100px,.65fr) minmax(220px,1.75fr) minmax(180px,1.3fr) minmax(max-content,280px);gap:28px;padding-top:11px;padding-bottom:11px}
+ .telemetry.telemetry--flight .telemetry-cell+.telemetry-cell,.telemetry.telemetry--flight .clocks{padding-left:28px}
  .telemetry.telemetry--flight .eyebrow{font-size:8px;letter-spacing:.6px}
  .telemetry.telemetry--flight .clocks .clock-row .eyebrow{font-size:7.5px;letter-spacing:.3px}
  .telemetry.telemetry--flight .mass-legend,.telemetry.telemetry--flight .mass-legend span,.telemetry.telemetry--flight .acceleration-legend,.telemetry.telemetry--flight .velocity-ticks,.telemetry.telemetry--flight .dilation-ticks{font-size:7.5px}
@@ -766,6 +767,8 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
  .telemetry.telemetry--flight #acceleration small,.telemetry.telemetry--flight #velocity small{font-size:9px}
 }
 @media(min-width:701px) and (max-width:1050px){
+ .telemetry.telemetry--flight{grid-template-columns:minmax(80px,.8fr) minmax(80px,.65fr) minmax(145px,1.4fr) minmax(130px,1.2fr) minmax(max-content,250px);gap:14px}
+ .telemetry.telemetry--flight .telemetry-cell+.telemetry-cell,.telemetry.telemetry--flight .clocks{padding-left:14px}
  .telemetry.telemetry--flight .eyebrow{font-size:7px;letter-spacing:.3px}
  .telemetry.telemetry--flight .clocks .clock-row .eyebrow{font-size:6.5px;letter-spacing:.1px}
  .telemetry.telemetry--flight .mass-legend,.telemetry.telemetry--flight .mass-legend span,.telemetry.telemetry--flight .acceleration-legend,.telemetry.telemetry--flight .velocity-ticks,.telemetry.telemetry--flight .dilation-ticks{font-size:6.5px}
@@ -993,4 +996,4 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
 .toast-icon{flex:0 0 18px;width:18px;height:18px;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .toast>span{min-width:0;overflow-wrap:anywhere}
 
-.map-heading #mapSheet{pointer-events:auto;cursor:help}
+.map-heading .eyebrow #expeditionNumber{padding-left:0;color:inherit}

@@ -421,10 +421,12 @@ $('infoDialog').addEventListener('click', (e) => {
 });
 $('resetBtn').onclick = () => {
   showDialog(
-    '<div class="modal-eyebrow">НОВАЯ ЭКСПЕДИЦИЯ</div><h2>Снова от Солнца?</h2><p>Текущий прогресс в этом браузере будет сброшен.</p><button class="modal-start" id="confirmReset">Начать заново →</button>',
+    '<div class="modal-eyebrow">НОВАЯ ЭКСПЕДИЦИЯ</div><h2>Снова от Солнца?</h2><p>Текущий прогресс будет сброшен.</p><button class="modal-start" id="confirmReset">Начать экспедицию →</button>',
   );
   $('confirmReset').onclick = () => {
+    const expedition = (Number.isInteger(state.expedition) ? state.expedition : 1) + 1;
     state = initial();
+    state.expedition = expedition;
     FlightQueue.reset();
     paused = false;
     speed = 1;
