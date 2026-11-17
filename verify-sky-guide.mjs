@@ -7,6 +7,7 @@ context.URL=URL;
 run(fs.readFileSync('dist/universe-map.js','utf8'));
 context.skyChecks=JSON.parse(fs.readFileSync('data-tools/sky-sources/constellation-checks.json'));
 context.latitudeChecks=JSON.parse(fs.readFileSync('data-tools/sky-sources/latitude-checks.json'));
+context.markedMedia=JSON.parse(fs.readFileSync('data-tools/sky-sources/media.json','utf8')).filter(p=>p.marks);
 run(`
 resize();state=initial();state.expansion=false;paused=true;Cosmology.sync(state);
 assert.equal(MAP_FILTER_DATA.guideRevision,SKY_GUIDE_DATA.revision,'gallery changes require the matching complete photo-filter index');
@@ -165,6 +166,18 @@ assert.equal((gallery.match(/id="stellarGalleryNext"/g)||[]).length,1);
 assert.ok(gallery.indexOf('data-photo="chart-wide"')<gallery.indexOf('data-photo="chart-close"'));
 assert.ok(gallery.indexOf('data-photo="chart-wide"')<gallery.indexOf('data-photo="hubble-sirius"'));
 assert.ok(gallery.indexOf('data-photo="chart-close"')<gallery.indexOf('data-photo="hubble-sirius"'),'both charts precede photographs');
+const siriusSlide=gallery.slice(gallery.indexOf('data-photo="hubble-sirius"'),gallery.indexOf('</figure>',gallery.indexOf('data-photo="hubble-sirius"')));
+assert.ok(siriusSlide.includes('<div class="stellar-photo-marks" data-ratio="'+1280/1398+'" style="--ratio:'+1280/1398+'" hidden>'),'marks wait for the loaded frame and its proportions');
+assert.ok(siriusSlide.includes('<span class="stellar-photo-mark has-ring" style="left:'+100*.282+'%;top:'+100*.743+'%"><b>Сириус B</b>')&&siriusSlide.includes('<b>Сириус A</b>'),'the faint companion of Sirius is ringed and both stars are named on the carousel photograph');
+assert.equal((gallery.match(/stellar-photo-marks/g)||[]).length,1,'only the annotated photograph carries marks');
+const alphaGallery=SkyGuide.gallery(object('alpha'));
+assert.ok(alphaGallery.includes('<b>Альфа Центавра A</b>')&&alphaGallery.includes('<b>Альфа Центавра B</b>')&&!SkyGuide.gallery(object('proxima')).includes('stellar-photo-mark'),'Alpha A and B are named; Proxima has no such frame');
+const markedSources=new Map(markedMedia.map(p=>[p.id,p]));
+for(const p of SKY_GUIDE_DATA.media.filter(p=>p.marks)){
+ assert.ok(!p.format&&p.size?.length===2&&p.size.every(n=>n>0)&&p.marks.length&&p.marks.every(m=>m.label&&m.x>0&&m.x<1&&m.y>0&&m.y<1),'marks are fractions of a sized still frame: '+p.id);
+ assert.ok(markedSources.get(p.id)?.identification?.caption,'mark placement cites the publisher caption: '+p.id);
+}
+assert.deepEqual(SKY_GUIDE_DATA.media.filter(p=>p.marks).map(p=>p.id).sort(),['hubble-alpha','hubble-sirius']);
 for(const id of ['alpha','sirius','proxima','andromeda','orion','omega']){
  const slides=[...SkyGuide.gallery(object(id)).matchAll(/<figure[^>]+data-photo="([^"]+)"/g)].map(m=>m[1]);
  assert.equal(slides[0],'chart-wide','first slide is the overview: '+id);

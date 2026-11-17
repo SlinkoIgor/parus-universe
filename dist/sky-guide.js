@@ -282,9 +282,11 @@ const SkyGuide = {
       '<figcaption><strong>'+(close?'Ближе к объекту':'Положение на ночном небе')+'</strong><span>Поисковая схема · вид с Земли · J2000</span><p>'+
       (close?'Выбранный объект в центре поля. Сопоставьте ближайшие звёзды с архивным снимком.':'Широкий обзор неба: найдите знакомые созвездия и проследите линии до отмеченного объекта.')+
       '</p><small>Звёзды: XHIP · названия и линии: d3-celestial</small></figcaption></figure>',
+      marks=p=>p.marks&&p.size?'<div class="stellar-photo-marks" data-ratio="'+p.size[0]/p.size[1]+'" style="--ratio:'+p.size[0]/p.size[1]+'" hidden><div>'+
+        p.marks.map(m=>'<span class="stellar-photo-mark'+(m.ring?' has-ring':'')+'" style="left:'+100*m.x+'%;top:'+100*m.y+'%"><b>'+esc(m.label)+'</b></span>').join('')+'</div></div>':'',
       photo=p=>'<figure class="stellar-photo" data-photo="'+esc(p.id)+'"><div class="stellar-photo-field">'+
         (p.format==='video'?'<video controls playsinline loop preload="none" data-video-src="'+esc(p.url)+'" data-video-poster="'+esc(p.poster)+'" aria-label="'+esc(p.title)+'"></video>':
-          '<img '+(p.id==='dss'?'id="stellarSkyImage" data-dss-src="':'data-photo-src="')+esc(p.url)+'" alt="'+esc(p.title)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer">')+
+          '<img '+(p.id==='dss'?'id="stellarSkyImage" data-dss-src="':'data-photo-src="')+esc(p.url)+'" alt="'+esc(p.title)+'" loading="lazy" decoding="async" referrerpolicy="no-referrer">'+marks(p))+
         '<p class="stellar-photo-loading" role="status"'+(p.format==='video'?' hidden':'')+'>'+(p.format==='video'?'Загрузка видео…':'Загрузка снимка…')+'</p>'+
         '<p class="stellar-photo-error" hidden>'+(p.format==='video'?'Видео сейчас недоступно.':'Снимок сейчас недоступен.')+' Его можно открыть в архиве по ссылке ниже.</p></div>'+
         '<figcaption><strong>'+esc(p.title)+'</strong><span>'+(p.format==='video'?'Видео · ':'')+(types[p.mediaType]?esc(types[p.mediaType])+' · ':'')+esc(p.instrument)+' · '+esc(p.band)+' · <span class="stellar-photo-date">'+esc(p.date)+'</span></span><p'+(p.id==='dss'?' class="stellar-dss-description"':'')+'>'+esc(p.description)+'</p>'+
@@ -323,7 +325,8 @@ const SkyGuide = {
     prev.onclick=()=>move(-1);next.onclick=()=>move(1);track.addEventListener('scroll',update,{passive:true});
     document.getElementById('stellarMedia').addEventListener('keydown',e=>{if(e.target.closest?.('video'))return;if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();move(e.key==='ArrowRight'?1:-1);}});
     for(const photo of track.querySelectorAll('img')) {
-      const settled=failed=>{photo.hidden=failed;const p=photo.parentElement;p.querySelector('.stellar-photo-loading').hidden=true;p.querySelector('.stellar-photo-error').hidden=!failed;p.classList.toggle('unavailable',failed);};
+      const settled=failed=>{photo.hidden=failed;const p=photo.parentElement;p.querySelector('.stellar-photo-loading').hidden=true;p.querySelector('.stellar-photo-error').hidden=!failed;p.classList.toggle('unavailable',failed);
+        const marks=p.querySelector('.stellar-photo-marks');if(marks)marks.hidden=failed||Math.abs(photo.naturalWidth/photo.naturalHeight-Number(marks.dataset.ratio))>.01;};
       photo.onload=()=>settled(false);photo.onerror=()=>settled(true);if(photo.getAttribute?.('src')&&photo.complete)settled(!photo.naturalWidth);
     }
     this.photoVideos=[...track.querySelectorAll('video')];

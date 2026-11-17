@@ -11,6 +11,7 @@ const checks = [
   'verify-planner.mjs',
   'verify-time-controls.mjs',
   'verify-flight-tips.mjs',
+  'verify-quests.mjs',
   'verify-orbits.mjs',
   'verify-departure-access.mjs',
   'verify-boss-local.mjs',

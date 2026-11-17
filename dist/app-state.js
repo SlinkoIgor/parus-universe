@@ -19,10 +19,11 @@ const initial = () => ({
   flightSetup: null,
   flightHistory: [],
   flightTips: FlightTips.normalize({used: FlightTips.known()}),
+  quests: Quests.blank(),
   jettisoned: 0,
   controlG: 10,
   current: 'sol',
-  selected: 'alpha',
+  selected: 'proxima',
   sail: 0,
   departureMode: OrbitalArrival.enabled ? 'beam' : 'engine',
   expansion: true,
@@ -289,6 +290,7 @@ function restore(saved) {
   upgraded.multiplayer = saved.multiplayer === true;
   upgraded.trafficSeed = Number.isInteger(saved.trafficSeed) ? ((saved.trafficSeed % 100) + 100) % 100 : upgraded.trafficSeed;
   FlightTips.restoreProgress(upgraded);
+  Quests.restore(upgraded);
   return Route.sanitize(upgraded);
 }
 
@@ -353,9 +355,10 @@ const FlightHistory = {
   cancel() {
     const saved = state.flight?.rollback;
     if (!saved) return;
-    const tipProgress = state.flightTips;
+    const tipProgress = state.flightTips, questProgress = state.quests;
     state = restore(saved);
     state.flightTips = FlightTips.mergeProgress(state.flightTips, tipProgress);
+    state.quests = Quests.normalize(questProgress);
     FlightQueue.reset();
     paused = !!saved.paused;
     speed = saved.timeScale || 1;

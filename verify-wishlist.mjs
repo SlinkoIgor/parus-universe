@@ -7,7 +7,7 @@ run('ArrivalStars.index=arrivalIndex');
 await run('ArrivalStars.prepare(object("andromeda"))');
 run(`{
 OrbitalArrival.enabled=true;
-const reset=()=>{state=initial();state.expansion=false;state.trafficSeed=31;paused=true;Simulation.debt=Simulation.wallDebt=0;FlightQueue.reset();Cosmology.sync(state);};
+const reset=()=>{state=initial();state.selected='alpha';state.expansion=false;state.trafficSeed=31;paused=true;Simulation.debt=Simulation.wallDebt=0;FlightQueue.reset();Cosmology.sync(state);};
 reset();launch();paused=true;
 const active=state.flight,physical=()=>JSON.stringify({flight:{...state.flight,route:undefined,legIndex:undefined},ship:state.ship,beta:state.beta,matter:state.matter,phase:state.phase,earth:state.earth,proper:state.proper});
 const before=physical();

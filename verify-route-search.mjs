@@ -53,7 +53,7 @@ document.querySelectorAll=query;
 console.log('PASS 320/390/1440px framing keeps whole waypoint rings clear of the card, heading and map controls');
 assert.equal(focused,0,'adding through search never focuses only the chosen object');
 reset();await choose('barnard');assert.equal(focused,1);assert.equal(state.itinerary.length,0,'ordinary search remains an object selection');
-reset();await choose('barnard',true);assert.equal(state.itinerary.map(n=>n.id).join(),'alpha,barnard','Shift from search includes the initially selected Alpha');
+reset();await choose('barnard',true);assert.equal(state.itinerary.map(n=>n.id).join(),'proxima,barnard','Shift from search includes the initially selected Proxima');
 const point=id=>{const pick=pickMapTarget;pickMapTarget=()=>({id});pointer={down:true,moved:false,id:1};canvas.listeners.pointerup({pointerId:1,shiftKey:false});pickMapTarget=pick;Route.flushFeedback();};
 const label=()=>$('launchBtn').querySelector('span').textContent;
 reset();state.itinerary=[{id:'sgr',mode:'flyby'}];select('sgr');

@@ -123,7 +123,7 @@ const FlightTips = {
       f.noticeElapsed = elapsed + seconds;
   },
   hide() {
-    if (['tip','arrival'].includes($('toast').dataset.kind)) $('toast').hidden = true;
+    if (['tip','arrival','quest'].includes($('toast').dataset.kind)) $('toast').hidden = true;
   },
   clear() {
     this.hide();
@@ -222,6 +222,15 @@ const FlightTips = {
     const current = this.current;
     const remaining = (estimate || FlightEstimate.get())?.proper / speed;
     const elapsed = this.elapsed(f);
+    const story = remaining > 0 ? globalThis.Quests?.flightStory(f) : null;
+    if (story) {
+      if (!node.hidden && node.dataset.kind === 'notice' && (Notices.action || (Notices.context?.flight === f &&
+          (elapsed < this.startDelaySeconds || Notices.context.elapsed >= this.startDelaySeconds)))) return;
+      clearTimeout(toastTimer);
+      Quests.announce(story);
+      return;
+    }
+    if (node.dataset.kind === 'quest') node.hidden = true;
     if (remaining > 0 && remaining <= this.arrivalSeconds &&
         !f.mission?.passage && !Route.isFlyby(f) && state.phase !== 'flyby') {
       const orbit = !!f.mission?.arrival, target = object(f.target);

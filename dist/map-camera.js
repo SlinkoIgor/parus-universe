@@ -19,6 +19,7 @@ function setZenMode(enabled) {
   if (enabled) {
     closeCatalog();
     MapFilters.close();
+    Quests.close();
     closeMenu();
     $('themePicker').hidden = true;
     $('themeBtn').setAttribute('aria-expanded', 'false');

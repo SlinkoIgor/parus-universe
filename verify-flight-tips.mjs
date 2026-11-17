@@ -3,6 +3,7 @@ const harness = fs.readFileSync('verify-map.mjs', 'utf8').split('\nrun(`')[0] + 
 const {run} = await import('data:text/javascript,' + encodeURIComponent(harness) + '#flight-tips');
 run(`{
 const nativeRandom=Math.random,nativeEstimate=FlightEstimate.get,nativeEligible=FlightTips.eligible;
+Quests.flightStory=()=>null;
 // Isolate presentation/receipts from topic prerequisites in these legacy scenarios.
 // The real eligibility graph is exercised separately below.
 FlightTips.eligible=function(t,p=state.flightTips){return !(t.learnable&&p.used[t.id])&&p.shown[t.id]<this.maximumShows;};

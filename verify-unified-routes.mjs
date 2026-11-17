@@ -40,9 +40,9 @@ assert.equal(state.flight?.target,'barnard');assert.equal(state.flight.route.map
 reset();point('barnard');point('alpha',true);double('sol');
 assert.equal(state.flight?.target,'barnard');assert.equal(state.flight.route.map(n=>n.id).join(),'barnard,alpha,sol');
 console.log('PASS final double-click starts the whole draft from its first point, starts an existing tail without duplication, and can finish a return to the departure star');
-reset();point('barnard',true);assert.equal(state.itinerary.map(n=>n.id).join(),'alpha,barnard');double('ross');
-assert.equal(state.flight?.target,'alpha');assert.equal(state.flight.route.map(n=>n.id).join(),'alpha,barnard,ross');
-console.log('PASS initial selected Alpha becomes the first Shift waypoint and remains the first leg on double-click launch');
+reset();point('barnard',true);assert.equal(state.itinerary.map(n=>n.id).join(),'proxima,barnard');double('ross');
+assert.equal(state.flight?.target,'proxima');assert.equal(state.flight.route.map(n=>n.id).join(),'proxima,barnard,ross');
+console.log('PASS initial selected Proxima becomes the first Shift waypoint and remains the first leg on double-click launch');
 reset();const capped=OBJECTS.filter(o=>o.navigable&&o.kind==='star'&&o.id!==state.current).slice(0,Route.limit+1);
 state.itinerary=capped.slice(0,Route.limit).map(o=>({id:o.id,mode:'stop'}));double(capped.at(-1).id);
 assert.equal(state.flight,null);assert.equal(state.itinerary.length,Route.limit);assert.equal(state.itinerary.at(-1).id,capped[Route.limit-1].id);

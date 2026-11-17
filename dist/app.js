@@ -101,6 +101,7 @@ function frame(now) {
       // Paint the distance backing over objects and their names as well as the grid.
       drawRouteDistance();
       MapVisits.draw();
+      Quests.draw();
     } catch (error) {
       // Discard any canvas save/clip left behind by the interrupted layer.
       canvas.width = canvas.width;
@@ -397,7 +398,11 @@ function launchSelectedTarget(event) {
     openCatalog();
   } else launch();
 }
-$('launchBtn').onclick = launchSelectedTarget;
+$('launchBtn').onclick = event => {
+  const next = Quests.nextTarget();
+  if (next) Quests.fly(next.step.id, next.quest.id);
+  else launchSelectedTarget(event);
+};
 $('helpBtn').onclick = showHelp;
 $('routeBtn').onclick = () => Route.show();
 $('modelBtn').onclick = showModel;
@@ -428,6 +433,7 @@ $('resetBtn').onclick = () => {
     state = initial();
     state.expedition = expedition;
     FlightQueue.reset();
+    Quests.reset();
     paused = false;
     speed = 1;
     Simulation.debt = 0;
@@ -467,6 +473,11 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !$('menu').hidden) {
     e.preventDefault();
     closeMenu();
+    return;
+  }
+  if (e.key === 'Escape' && Quests.isOpen) {
+    e.preventDefault();
+    Quests.close();
     return;
   }
   if (e.key === 'Escape' && !document.querySelector('dialog[open]') && !e.target.closest('input,textarea,select,[contenteditable]') && Route.undo()) {
@@ -516,6 +527,7 @@ else if (state.current && state.current !== 'sol')
   );
 globalThis.MapSlice?.setup();
 MapFilters.setup();
+Quests.setup();
 FlightBuilder.setup();
 Route.setup();
 QuickFlight.setup();

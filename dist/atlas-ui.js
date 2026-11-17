@@ -1,9 +1,24 @@
 'use strict';
 // Catalogue search, object cards and informational dialogs.
 const Notices={
-  labels:{info:'Сообщение',tip:'Подсказка',warning:'Предупреждение',orbit:'Выход на орбиту',arrival:'Прибытие',route:'Маршрут',reset:'Состояние экспедиции'},
-  render(text,icon='info',kind='notice'){
+  labels:{info:'Сообщение',tip:'Подсказка',warning:'Предупреждение',orbit:'Выход на орбиту',arrival:'Прибытие',route:'Маршрут',reset:'Состояние экспедиции',quest:'Квест'},
+  action:null,
+  run(){
+    const action=this.action;
+    if(!action||$('toast').hidden)return;
+    this.action=null;
+    clearTimeout(toastTimer);
+    $('toast').hidden=true;
+    action.run();
+  },
+  render(text,icon='info',kind='notice',action=null){
     const node=$('toast');if(!this.labels[icon])icon='info';
+    if(this.action!==action){
+      this.action=action;
+      UIPatch.apply(node,'.has-action',!!action);
+      UIPatch.apply($('toastAction'),'hidden',!action);
+    }
+    UIContent.text($('toastAction'),action?.label||'');
     if(kind==='notice')this.context={flight:state.flight,phase:state.phase,elapsed:globalThis.FlightTips?.elapsed(state.flight)??0};
     if(node.dataset.kind!==kind)node.dataset.kind=kind;
     if(node.dataset.icon!==icon)node.dataset.icon=icon;
@@ -13,8 +28,8 @@ const Notices={
     UIContent.text($('toastText'),text);if(node.hidden)node.hidden=false;
   },
 };
-function toast(text,duration=4200,icon='info'){
-  Notices.render(text,icon);
+function toast(text,duration=4200,icon='info',action=null){
+  Notices.render(text,icon,'notice',action);
   clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>{$('toast').hidden=true;globalThis.FlightTips?.render();},duration);
 }
@@ -205,6 +220,7 @@ function planRoutePoint(id,{deferPreview=false}={}) {
 }
 function openCatalog() {
   MapFilters.close();
+  Quests.close();
   closeMenu();
   $('catalog').hidden = false;
   $('catalogBtn').setAttribute('aria-expanded', 'true');
@@ -404,6 +420,7 @@ function showObject(id = state.selected) {
     '<div class="modal-eyebrow">КАТАЛОГ / ОБ ОБЪЕКТЕ</div><h2>' +
     o.name +
     '</h2>' +
+    Quests.storyHTML(o) +
     stellarSkyPhoto(o) +
     '<div class="object-type">' +
     MapDetails.typeName(o) +
@@ -588,6 +605,7 @@ function showObject(id = state.selected) {
     '</p>';
   showDialog(html);
   SkyGuide.mount(o);
+  Quests.mountStory(o);
   if (o.id === 'sgr' || o.nuclearStar)
     $('viewNuclearCluster').onclick = () => {
       $('infoDialog').close();

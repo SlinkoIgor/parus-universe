@@ -4,7 +4,7 @@ const harness = fs.readFileSync('verify-map.mjs', 'utf8').split('\nrun(`')[0] + 
 const {run} = await import('data:text/javascript,' + encodeURIComponent(harness));
 run(`{
 OrbitalArrival.enabled = true;
-const reset = () => { state = initial(); state.expansion = false; paused = true; FlightQueue.reset(); Simulation.debt = Simulation.wallDebt = 0; Cosmology.sync(state); };
+const reset = () => { state = initial(); state.selected = 'alpha'; state.expansion = false; paused = true; FlightQueue.reset(); Simulation.debt = Simulation.wallDebt = 0; Cosmology.sync(state); };
 reset();
 const reserve = () => FlightSetup.preferred().arrivalFuelPercent;
 assert.equal(reserve(), 50);

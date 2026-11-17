@@ -13,7 +13,7 @@ Route.analyze=()=>{analyses++;return{valid:true,records:state.itinerary.map(n=>(
 persist=()=>{saves++;};
 const shift=id=>{pickMapTarget=()=>({id});pointer={down:true,moved:false,id:1};canvas.listeners.pointerup({pointerId:1,shiftKey:true});};
 shift('barnard');shift('ross');
-assert.equal(state.itinerary.map(n=>n.id).join(),'alpha,barnard,ross');
+assert.equal(state.itinerary.map(n=>n.id).join(),'proxima,barnard,ross');
 assert.equal($('targetName').textContent,object('ross').name);assert.equal($('phaseTag').textContent,'МАРШРУТ');
 assert.equal(previews,0,'input never calculates a single-target preview');assert.equal(analyses,0,'input never integrates the route');assert.equal(saves,0,'input does not serialize the expedition before painting');
 assert.equal(Route.feedbackPending,true);renderUI();assert.equal(previews,0,'normal UI tick respects immediate feedback');
@@ -49,7 +49,7 @@ point('ross',true);assert.equal(state.itinerary.map(n=>n.id).join(),'barnard,alp
 for(const first of ['sol','barnard',OBJECTS.find(o=>!o.navigable).id]){
  state=initial();point(first);point('barnard',true);assert.equal(state.itinerary.map(n=>n.id).join(),'barnard');
 }
-state=initial();point('barnard');state=initial();point('ross',true);assert.equal(state.itinerary.map(n=>n.id).join(),'alpha,ross','a reset uses the new visible selection, never an old expedition anchor');
+state=initial();point('barnard');state=initial();point('ross',true);assert.equal(state.itinerary.map(n=>n.id).join(),'proxima,ross','a reset uses the new visible selection, never an old expedition anchor');
 state=initial();point('sgr');point('m87',true);assert.equal(state.itinerary.map(n=>n.id).join(),'sgr,m87');assert.equal(state.itinerary[0].mode,'flyby');
 state=initial();point('barnard');point('sol',true);assert.equal(state.itinerary.map(n=>n.id).join(),'barnard,sol','the second point may be a return to the departure station');
 Route.cancelFeedback();

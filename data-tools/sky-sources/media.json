@@ -12,7 +12,28 @@
     "url": "https://cdn.esahubble.org/archives/images/screen/heic0516a.jpg",
     "source": "https://esahubble.org/images/heic0516a/",
     "credit": "NASA, ESA, H. Bond (STScI), M. Barstow (University of Leicester)",
-    "description": "Сириус B — маленькая точка слева снизу от Сириуса A. Главная звезда пересвечена, чтобы показать компаньона; лучи и кольца создаёт оптика телескопа."
+    "description": "Сириус B — маленькая точка слева снизу от Сириуса A. Главная звезда пересвечена, чтобы показать компаньона; лучи и кольца создаёт оптика телескопа.",
+    "size": [
+      1280,
+      1398
+    ],
+    "marks": [
+      {
+        "x": 0.511,
+        "y": 0.67,
+        "label": "Сириус A"
+      },
+      {
+        "x": 0.282,
+        "y": 0.743,
+        "label": "Сириус B",
+        "ring": true
+      }
+    ],
+    "identification": {
+      "method": "component positions stated in the official image caption; mark coordinates measured on the 1280 px screen image",
+      "caption": "Astronomers overexposed the image of Sirius A [at centre] so that the dim Sirius B [tiny dot at lower left] could be seen."
+    }
   },
   {
     "id": "hubble-alpha",
@@ -27,7 +48,27 @@
     "url": "https://cdn.esahubble.org/archives/images/screen/potw1635a.jpg",
     "source": "https://esahubble.org/images/potw1635a/",
     "credit": "ESA/Hubble & NASA",
-    "description": "Две главные звезды системы Альфы Центавра. Проксима находится далеко за пределами этого кадра. Лучи вокруг звёзд — дифракция в телескопе."
+    "description": "Две главные звезды системы Альфы Центавра. Проксима находится далеко за пределами этого кадра. Лучи вокруг звёзд — дифракция в телескопе.",
+    "size": [
+      1280,
+      836
+    ],
+    "marks": [
+      {
+        "x": 0.31,
+        "y": 0.7,
+        "label": "Альфа Центавра A"
+      },
+      {
+        "x": 0.642,
+        "y": 0.72,
+        "label": "Альфа Центавра B"
+      }
+    ],
+    "identification": {
+      "method": "component positions stated in the official image caption; mark coordinates measured on the 1280 px screen image",
+      "caption": "The NASA/ESA Hubble Space Telescope has given us this stunning view of the bright Alpha Centauri A (on the left) and Alpha Centauri B (on the right)"
+    }
   },
   {
     "id": "hubble-proxima",

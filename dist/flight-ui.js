@@ -134,6 +134,7 @@ function renderUI() {
     if (batch) UIPatch.end();
   }
   FlightTips.render(eta);
+  Quests.render();
 }
 function renderPanels() {
   FlightSetup.sync();
@@ -239,7 +240,7 @@ function renderPanels() {
       percentC(local.localBeta) +
       '</b>');
   }
-  let action, hint;
+  let action, hint, questNext = null;
   if (active) {
     action = '';
     hint = f.missed
@@ -256,10 +257,13 @@ function renderPanels() {
               ? 'Торможение парусом ослабло. Последнюю скорость гасит двигатель обратной тягой.'
               : 'Инерционный полёт. Тормозной путь рассчитывается по текущей скорости и массе.';
   } else if (arrived) {
-    action = 'Выбрать следующую цель';
-    hint = boost
-      ? 'Прибытие. Выберите цель — и подготовьте звёздный парус.'
-      : 'Прибытие. Следующую точку можно выбрать через поиск.';
+    questNext = Quests.nextTarget();
+    action = questNext ? 'Лететь к следующей цели' : '';
+    hint = questNext
+      ? 'Квест «' + questNext.quest.title + '». Следующая цель — ' + Quests.name(questNext.step) + '.'
+      : boost
+        ? 'Прибытие. Выберите цель — и подготовьте звёздный парус.'
+        : 'Прибытие. Следующую точку можно выбрать через поиск.';
   } else if (!target.navigable) {
     action = 'Объект каталога';
     hint = target.atlasOnly
@@ -278,10 +282,10 @@ function renderPanels() {
         ? 'Топливо расходуется · торможение автоматически.'
         : 'Запас рабочего вещества исчерпан.';
   }
-  UIPatch.set($('launchBtn'), 'hidden', active);
+  UIPatch.set($('launchBtn'), 'hidden', active || (arrived && !questNext));
   UIContent.text($('launchBtn').querySelector('span'), action);
   UIPatch.set($('launchBtn'), 'disabled', !target.navigable || (!arrived && !boost && !Rocket.usableFuel(state.matter)));
-  UIContent.text($('flightHint'), hint + (target.positionQuality === 'approximate' ? ' Позиция приблизительная.' : ''));
+  UIContent.text($('flightHint'), hint + (!questNext && target.positionQuality === 'approximate' ? ' Позиция приблизительная.' : ''));
   const phases = {
     thrust: 'ФОТОННАЯ ТЯГА',
     launch: 'РАЗГОН СВЕТОМ',
