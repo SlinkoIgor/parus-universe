@@ -86,7 +86,7 @@ for dec_lo, dec_hi in zip(dec_edges, dec_edges[1:]):
 for con, limits in ranges.items():
     assert -90 <= limits[0] < limits[1] <= 90, con
     constellations[con]['decRangeDeg'] = [round(v, 6) for v in limits]
-media = read('media.json') + read('media-hubble.json') + read('media-cosmic.json')
+media = read('media.json') + read('media-hubble.json') + read('media-cosmic.json') + read('media-quests.json')
 ids = set()
 for photo in media:
     assert photo['id'] not in ids

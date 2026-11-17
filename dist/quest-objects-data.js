@@ -1,0 +1,2 @@
+'use strict';
+const QUEST_OBJECTS={"catalogRevision":"c240a9fdd8f7","tiles":{"atnf-j0740+6620":"272.json","atnf-j1748-2446ad":"1016.json","hunt-reffert-4424":"489.json","hyg-76740":"893.json","opengc-ic1101":"765.json","opengc-ngc0205":"239.json","opengc-ngc4993":"1869.json","ungc-draco":"1012.json","ungc-leoi":"1479.json","ungc-sagdsph":"1019.json","ungc-segue1":"1479.json"},"unreachable":["opengc-ngc6715"],"marathon":[],"marathonLightYears":0};

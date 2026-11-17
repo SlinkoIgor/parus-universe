@@ -393,6 +393,34 @@
       "photoIds": [
         "astropix-chandra-65"
       ]
+    },
+    {
+      "id": "qso-mrk231",
+      "name": "Квазар Маркарян 231",
+      "aliases": [
+        "Markarian 231",
+        "Mrk 231"
+      ],
+      "ra": 194.05930882622,
+      "dec": 56.87367732607,
+      "z": 0.04218,
+      "redshiftError": null,
+      "redshiftQuality": "C",
+      "redshiftBibcode": "2016ApJS..226...11S",
+      "coordinateBibcode": "2020yCat.1350....0G",
+      "url": "https://simbad.cds.unistra.fr/simbad/sim-id?Ident=Mrk+231",
+      "desc": "Один из ближайших к нам квазаров: яркое ядро галактики, пережившей слияние. Hubble видит и сам квазар, и приливные хвосты звёзд вокруг него.",
+      "lensed": false,
+      "sourceEvidence": {
+        "coordinates": "Coordinates(ICRS,ep=J2000,eq=2000): 12 56 14.2341182928  +56 52 25.238373852 (Opt ) A [0.0099 0.0106 90] 2020yCat.1350....0G",
+        "redshift": "Redshift: 0.042180 [~] C 2016ApJS..226...11S",
+        "sha256": "223794481002886a8c3bb4bda3e307e80528e748498104ac51a71b4743cb378a",
+        "retrieved": "2026-11-17",
+        "query": "https://simbad.cfa.harvard.edu/simbad/sim-id?Ident=Mrk+231&output.format=ASCII"
+      },
+      "photoIds": [
+        "astropix-esahubble-opo1531b"
+      ]
     }
   ]
 }

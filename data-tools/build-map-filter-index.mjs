@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import crypto from 'node:crypto';
 import {buildCatalogRegistry} from './build-catalog-registry.mjs';
+import {buildQuestObjects} from './build-quest-objects.mjs';
 
 const {c,rows,core,pointer,manifest} = await buildCatalogRegistry();
 vm.runInContext(['sky-guide-data','sky-photos-index','sky-photos','sky-imaging-index','sky-imaging','sky-guide','map-collection-history','map-filters']
@@ -49,3 +50,4 @@ const html = fs.readFileSync('dist/index.html','utf8').replace(/(map-filter-data
   .replace(/(map-filters\.js\?v=)[^" ]+/,(_,p)=>p+filterRevision);
 fs.writeFileSync('dist/index.html',html);
 console.log(JSON.stringify({buckets:data.buckets.length,records:data.buckets.reduce((n,b)=>n+b[3],0),bytes:content.length,revision}));
+console.log(JSON.stringify({questObjects:buildQuestObjects({c,rows,core,pointer,manifest})}));

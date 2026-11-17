@@ -1,6 +1,52 @@
 import fs from 'node:fs';
-const harness = fs.readFileSync('verify-map.mjs', 'utf8').split('\nrun(`')[0] + '\nexport {run};';
-const {run} = await import('data:text/javascript,' + encodeURIComponent(harness) + '#quests');
+import assert from 'node:assert/strict';
+const harness = fs.readFileSync('verify-map.mjs', 'utf8').split('\nrun(`')[0] + '\nexport {context,run};';
+const {context,run} = await import('data:text/javascript,' + encodeURIComponent(harness) + '#quests');
+const requests = [];
+context.fetch = async path => {
+ requests.push(path.split('?')[0]);
+ return {ok:true,json:async()=>JSON.parse(fs.readFileSync('dist/'+path.split('?')[0],'utf8'))};
+};
+run(`{
+state=initial();state.expansion=false;Cosmology.sync(state);Quests.reset();
+assert.equal(QUEST_OBJECTS.catalogRevision,EXTENDED_BOOT.revision,'the quest object index is stale: node data-tools/build-quest-objects.mjs');
+assert.equal(Quests.objects.size,0,'no quest object is requested before a quest is opened or started');
+assert.equal(object('opengc-ic1101'),undefined,'streamed quest objects are not part of the start-up catalogue');
+assert.equal(Quests.fly('opengc-ic1101','records'),false);assert.ok($('toast').textContent.includes('загружается'),'a stage that is still loading says so');
+assert.deepEqual(state.quests.active,[],'a refused flight does not start the quest');
+}`);
+await run('Quests.ready');
+run(`{
+const giant=object('opengc-ic1101');
+assert.ok(giant?.navigable&&giant.d>1e9&&Quests.objects.size===1,'the requested stage alone is kept from its catalogue tile');
+Quests.start('records');renderUI();
+}`);
+await run('Quests.ready');
+assert.equal(new Set(requests).size,requests.length,'each catalogue tile is requested once');
+run(`{
+for(const step of Quests.quest('records').steps)assert.ok(object(step.id)?.navigable,'an active quest loads its streamed stages: '+step.id);
+assert.equal(object('opengc-ngc4993'),undefined,'other quests stay unloaded');
+assert.equal(Quests.fly('opengc-ic1101','records'),false);assert.equal(state.flight,null);
+assert.ok($('toast').textContent.includes('Подбираем звезду')&&Quests.retrying==='opengc-ic1101','a distant stage first waits for its arrival star');
+}`);
+await run("ArrivalStars.pending.get(ArrivalStars.key(object('opengc-ic1101'),state.destroyed))");
+run(`{
+assert.ok(state.flight&&Quests.flightIds().includes('opengc-ic1101')&&Quests.retrying===null,'the flight to a streamed stage starts by itself once the arrival star is known');
+const saved=FlightHistory.snapshot(),restored=restore(JSON.parse(JSON.stringify(saved)));
+assert.deepEqual(restored.quests.active,['records']);assert.ok([restored.flight.target,restored.flight.requestedTarget].includes('opengc-ic1101'),'the flight to a streamed stage survives a reload');
+state=initial();state.expansion=false;Cosmology.sync(state);Quests.reset();
+Quests.isOpen=true;Quests.view='ladder';Quests.renderPanel(true);
+}`);
+await run('Quests.ready');
+run(`{
+assert.ok(object('opengc-ngc4993')?.navigable&&$('questsBody').innerHTML.includes('data-quest-fly="opengc-ngc4993"'),'opening a quest loads its stages and redraws the list');
+Quests.isOpen=false;Quests.reset();
+Quests.load(QUESTS.flatMap(q=>q.steps.flatMap(step=>Quests.ids(step))));
+}`);
+await run('Quests.ready');
+context.fetch = undefined;
+context.questMedia = JSON.parse(fs.readFileSync('data-tools/sky-sources/media-quests.json','utf8'));
+console.log('PASS streamed quest stages load on demand from the indexed catalogue tiles, once, for started and opened quests only, and remain flight targets across a reload');
 run(`{
 const reset = () => {
  OrbitalArrival.enabled=true;FlightTips.learned=FlightTips.normalize().used;
@@ -17,8 +63,14 @@ const quest = Quests.quest('neighbours');
 
 assert.equal(new Set(QUESTS.map(q=>q.id)).size,QUESTS.length);
 assert.ok(quest,'the first excursion is present');assert.equal(quest.steps.length,10);
+const dormant=['messier','messier-marathon'].filter(id=>!Quests.quest(id));
+assert.deepEqual(dormant,QUEST_OBJECTS.unreachable.length?['messier','messier-marathon']:QUEST_OBJECTS.marathon.length===110?[]:['messier-marathon'],'only quests whose stages the installed catalogue cannot place are withheld');
+assert.deepEqual(QUESTS.map(q=>[q.id,q.steps.length]),[['neighbours',10],['blackholes',10],['messier',15],['messier-marathon',110],['starlife',10],['localgroup',10],['address',9],['ladder',8],['records',11]].filter(([id])=>!dormant.includes(id)));
+const stories=new Map();
 for(const q of QUESTS){
  assert.ok(q.title&&q.summary&&q.intro.length&&q.outro,q.id);
+ assert.ok(!/[<>]/.test([q.title,q.summary,...q.intro,q.outro].join('')),'texts are plain');
+ if(q.requires)assert.ok(q.requires!==q.id&&Quests.quest(q.requires)&&!Quests.quest(q.requires).requires,q.id+' opens after an existing open quest');
  const claimed=new Set();
  for(const step of q.steps){
   for(const id of Quests.ids(step)){
@@ -26,6 +78,12 @@ for(const q of QUESTS){
    assert.ok(o,q.id+': unknown catalogue object '+id);
    assert.ok(o.navigable&&!o.atlasOnly&&o.p3?.every(Number.isFinite),q.id+': '+id+' must be a reachable map object');
    assert.ok(!claimed.has(id),q.id+': '+id+' belongs to two stages');claimed.add(id);
+  }
+  assert.ok(step.name,q.id+'/'+step.id+' is named without a catalogue request');
+  if(q.checklist){assert.ok(!step.title&&!step.lead&&!step.more&&!Quests.told(step),q.id+'/'+step.id+' is a plain checklist entry');continue;}
+  for(const id of Quests.ids(step)){
+   if(stories.has(id))assert.equal(stories.get(id),step.title+'|'+step.lead,'one object tells one story in every quest: '+id);
+   stories.set(id,step.title+'|'+step.lead);
   }
   assert.ok(step.title&&step.lead&&step.more?.length,q.id+'/'+step.id+' has both text levels');
   assert.ok([...step.lead].length<=420,q.id+'/'+step.id+' short text stays short');
@@ -36,7 +94,27 @@ for(const q of QUESTS){
 const order=quest.steps.map(step=>object(step.id).d);
 assert.deepEqual(order,[...order].sort((a,b)=>a-b),'the neighbours are ordered by distance from the Sun');
 assert.ok(order.at(-1)<12,'all neighbours lie within twelve light years');
-console.log('PASS every stage of every quest resolves to a reachable catalogue object, has two text levels and sources, and the neighbours are ordered by distance');
+for(const id of ['blackholes','records']){
+ const far=Quests.quest(id).steps.map(step=>object(step.id).d);
+ assert.deepEqual(far,[...far].sort((a,b)=>a-b),id+' runs outwards from the Sun');
+}
+const marathon=Quests.quest('messier-marathon');
+assert.equal(!!marathon,QUEST_OBJECTS.marathon.length===110,'the marathon is offered only when the catalogue holds all 110 Messier objects');
+if(marathon){
+assert.deepEqual(marathon.steps.map(step=>Number(object(step.id).messier)).sort((a,b)=>a-b),marathon.steps.map((_,i)=>i+1),'the marathon lists every Messier number once');
+assert.equal(marathon.steps[0].id,Quests.quest('messier').steps.at(-1).id,'the marathon starts where the selection ends');
+assert.ok(Quests.quest('messier').steps.every(step=>marathon.steps.some(m=>m.id===step.id)),'every selected stage counts for the marathon');
+}
+for(const step of Quests.quest('blackholes').steps){
+ const o=object(step.id);
+ assert.ok(SkyGuide.hasObservatoryPhoto(o),'the black hole excursion shows a photograph at '+step.id);
+}
+for(const p of questMedia)for(const id of p.objects){
+ assert.ok(Quests.quest('blackholes').steps.some(step=>step.id===id),'curated quest photographs belong to quest stages: '+id);
+ assert.ok(SkyGuide.media(object(id)).some(m=>m.id===p.id&&m.url===p.url&&m.credit&&m.description),'the card of '+id+' shows '+p.id);
+}
+for(const id of Object.keys(QUEST_OBJECTS.tiles))assert.ok(QUESTS.some(q=>q.steps.some(step=>Quests.ids(step).includes(id))),'the tile index lists quest stages only: '+id);
+console.log('PASS every stage of every quest resolves to a reachable catalogue object, storied stages have two text levels and sources, shared objects tell one story, the marathon needs the complete M1–M110 list and black hole stages have photographs');
 
 reset();
 assert.deepEqual(state.quests,Quests.blank());
@@ -246,4 +324,71 @@ reset();state.selected='sirius';launch();toast('Проверка',4200,'warning'
 assert.equal($('toast').dataset.kind,'notice','a launch warning is not hidden by the story');
 Simulation.advance(4.1);renderUI();assert.equal($('toast').dataset.kind,'quest','the story follows the launch warning after the startup window');
 console.log('PASS quest stars are announced at launch with the quest name even without a subscription, replace ordinary tips, are not flagged or credited, and yield to launch warnings');
+}`);
+if (!run("!!Quests.quest('messier-marathon')")) {
+ run(`if(Quests.quest('messier')){
+state=initial();state.expansion=false;Cosmology.sync(state);Quests.reset();Quests.start('messier');
+for(const step of Quests.quest('messier').steps)state.visited.push(step.id);
+renderUI();Quests.pending=null;
+assert.equal(Quests.progress(Quests.quest('messier')).complete,true);
+assert.equal(state.journal.filter(e=>e.text.includes('Открыт квест')).length,0,'without the marathon the selection opens nothing');
+Quests.isOpen=true;Quests.view=null;Quests.renderPanel(true);Quests.isOpen=false;
+assert.ok(!$('questsBody').innerHTML.includes('ЗАКРЫТ'),'no closed card is listed');
+}`);
+ console.log('SKIP the marathon and checklist stages: the installed catalogue cannot place every Messier stage ' + run("JSON.stringify({unreachable:QUEST_OBJECTS.unreachable,marathon:QUEST_OBJECTS.marathon.length})"));
+} else run(`{
+const reset = () => {
+ OrbitalArrival.enabled=true;FlightTips.learned=FlightTips.normalize().used;
+ state=initial();state.expansion=false;paused=false;speed=1;FlightQueue.reset();
+ Simulation.debt=Simulation.wallDebt=0;FlightTips.clear();Quests.reset();Quests.isOpen=false;
+ Notices.action=null;$('toast').hidden=true;$('toastAction').hidden=true;$('infoDialog').open=false;
+ $('dialogContent').innerHTML='';Cosmology.sync(state);
+};
+const entries = text => state.journal.filter(e=>e.text.includes(text)).length;
+const arrive = () => Simulation.tick(state.flight.mission.proper*1.00001);
+const panel = view => {Quests.isOpen=true;Quests.view=view;Quests.renderPanel(true);Quests.isOpen=false;return $('questsBody').innerHTML;};
+const messier=Quests.quest('messier'),marathon=Quests.quest('messier-marathon'),m2='opengc-ngc7089';
+
+reset();
+assert.equal(Quests.locked(marathon),true);assert.equal(Quests.start('messier-marathon'),false);assert.deepEqual(state.quests.active,[],'a closed quest cannot be started');
+let html=panel(null);
+assert.ok(html.includes('ЗАКРЫТ')&&html.includes('Откроется после квеста «Мессье: избранное».'),'the list explains how the closed quest opens');
+html=panel('messier-marathon');
+assert.ok(!html.includes('data-quest-start')&&!html.includes('quest-steps')&&html.includes('data-quest-open="messier"'),'a closed quest shows its condition instead of its stages');
+select(m2);launch();renderUI();assert.ok(state.flight);
+assert.equal(Quests.entries(m2).length,0);assert.equal(Quests.flightStory(),null);
+assert.ok(!Quests.storyHTML(object(m2)),'a closed quest stays out of the object cards');
+assert.ok($('toast').hidden||$('toast').dataset.kind!=='quest','a closed quest is not announced in flight');
+
+reset();Quests.start('messier');
+for(const step of messier.steps.slice(0,-1))state.visited.push(step.id);
+renderUI();Quests.pending=null;assert.equal(Quests.locked(marathon),true,'an unfinished selection keeps the marathon closed');
+state.visited.push(messier.steps.at(-1).id);renderUI();Quests.pending=null;
+assert.equal(Quests.locked(marathon),false);assert.equal(entries('Открыт квест: Марафон Мессье'),1);
+for(let i=0;i<3;i++)renderUI();assert.equal(entries('Открыт квест: Марафон Мессье'),1,'the opening is recorded once');
+showObject('m87');html=$('dialogContent').innerHTML;$('infoDialog').open=false;Quests.dialogClosed();
+assert.ok(html.includes('Квест пройден.')&&html.includes('data-quest-panel="messier-marathon">Открыт квест: Марафон Мессье'),'the closing card leads to the opened quest');
+html=panel('messier');assert.ok(html.includes('data-quest-panel="messier-marathon"'));
+Quests.isOpen=true;Quests.panelClick({target:{closest:()=>({dataset:{questPanel:'messier-marathon'},disabled:false})}});Quests.isOpen=false;
+assert.equal(Quests.view,'messier-marathon');html=$('questsBody').innerHTML;
+assert.ok(html.includes('data-quest-start="messier-marathon"')&&html.split('<li class="quest-step').length-1===110,'the opened marathon lists all 110 stages');
+assert.equal(Quests.start('messier-marathon'),true);renderUI();
+assert.deepEqual(Quests.progress(marathon),{done:15,total:110,complete:false},'stages of the selection already count');
+assert.equal(Quests.pending,null);assert.ok(!panel('messier').includes('data-quest-panel="messier-marathon"'),'a started quest is no longer offered');
+console.log('PASS the marathon stays closed, hidden from cards and unannounced until the selection is complete, opens once with a record and a link, and counts earlier visits');
+
+select(m2);launch();renderUI();
+assert.equal(Quests.flightStory(),null);assert.ok($('toast').hidden||$('toast').dataset.kind!=='quest','checklist stages have no story to announce');
+arrive();renderUI();assert.equal(state.flight,null);assert.ok(state.visited.includes(m2));
+assert.equal(Quests.pending,null,'a checklist stage never forces a card open');
+assert.equal($('toast').hidden,false);assert.ok($('toastText').textContent.includes('Квест «Марафон Мессье»: M2 · 16 из 110'),'the arrival is credited with a notice');
+html=Quests.storyHTML(object(m2));
+assert.ok(html.startsWith('<section class="quest-story"><div class="quest-membership">')&&!html.includes('<h3>')&&!html.includes('Его история откроется'),'a checklist card carries the quest line only');
+assert.ok(html.includes('КВЕСТ · МАРАФОН МЕССЬЕ · '+(marathon.steps.findIndex(step=>step.id===m2)+1)+' / 110'));
+html=panel('messier-marathon');
+assert.ok(html.includes('data-quest-read="'+m2+'">Карточка<')&&html.includes('data-quest-read="m87">Карточка<')&&!html.includes('>История<'),'visited checklist stages open the object card');
+assert.ok(panel('messier').includes('>История<'));
+Quests.start('starlife');html=Quests.storyHTML(object('orion'));
+assert.equal(html.split('<h3>').length-1,1);assert.equal(html.split('quest-membership').length-1,3,'a shared object shows one story and a line for each of its quests');
+console.log('PASS checklist stages are credited with a notice, have no story, plaque or forced card, and shared objects keep a single story');
 }`);

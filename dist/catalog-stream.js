@@ -186,6 +186,7 @@ const ExtendedCatalog = {
       globalThis.MapFilters?.objects.get(id) ||
       globalThis.MapLayers?.get(id) ||
       this.visibleMap.get(id) ||
+      globalThis.Quests?.objects.get(id) ||
       this.identityTarget(id)
     );
   },
@@ -731,6 +732,7 @@ const ExtendedCatalog = {
     for (const rows of this.cache.values()) mark(rows);
     if (this.identityCache) mark(this.identityCache.values());
     if (globalThis.MapFilters) mark(MapFilters.objects.values());
+    if (globalThis.Quests) mark(Quests.objects.values());
     if (globalThis.MapLayers) {
       mark(MapLayers.visible);
       for (const rows of MapLayers.cache.values()) mark(rows);

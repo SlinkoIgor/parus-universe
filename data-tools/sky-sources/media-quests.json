@@ -1,0 +1,342 @@
+[
+ {
+  "id": "quest-astropix-esahubble-dsscygx",
+  "objects": [
+   "cygnus"
+  ],
+  "identifiers": [],
+  "kind": "blackhole",
+  "title": "Лебедь X-1 — окрестности на небе",
+  "archiveTitle": "Cygnus X-1 (ground-based image)",
+  "mediaKind": "observation",
+  "mediaType": "observation",
+  "instrument": "ESA/Hubble",
+  "detectors": [],
+  "band": "Архивное наблюдение · обработанные цвета",
+  "date": "2002-01-01",
+  "url": "https://www.astropix.org/archive/esahubble/dsscygx/esahubble_dsscygx_1280.jpg",
+  "source": "https://www.spacetelescope.org/images/dsscygx/",
+  "archive": "https://www.astropix.org/image/esahubble/dsscygx",
+  "credit": "NASA, ESA, and the Digitized Sky Survey 2. Acknowledgment: Davide De Martin (ESA/Hubble)",
+  "rights": "Creative Commons Attribution 4.0 International License",
+  "description": "Наземный снимок участка неба в созвездии Лебедя, где находится Лебедь X-1. Сама чёрная дыра не видна: на таком снимке система выглядит как обычная звезда — это её спутник, голубой сверхгигант, с которого на чёрную дыру перетекает газ. Цвета зависят от фильтров и обработки; это не вид в окуляре.",
+  "identification": {
+   "method": "manually reviewed publisher caption; explicit object target, no sky-proximity join",
+   "archiveId": "astropix-esahubble-dsscygx",
+   "archiveRecordSha256": "17242c5e480ea25c8955b7f6168a50bec824354ce0d694c0724f1fa0564c152a"
+  },
+  "availability": {
+   "status": 200,
+   "contentType": "image/jpeg",
+   "checked": "2026-11-17"
+  }
+ },
+ {
+  "id": "quest-astropix-stsci-1993-18a",
+  "objects": [
+   "bh-andromeda"
+  ],
+  "identifiers": [],
+  "kind": "blackhole",
+  "title": "Двойное ядро Андромеды — Hubble",
+  "archiveTitle": "Double Nucleus of the Andromeda Galaxy (M31)",
+  "mediaKind": "observation",
+  "mediaType": "observation",
+  "instrument": "Hubble",
+  "detectors": [
+   "WFPC"
+  ],
+  "band": "оптика · обработанные цвета",
+  "date": "1993-07-20",
+  "url": "https://www.astropix.org/archive/stsci/1993-18a/stsci_1993-18a_1280.jpg",
+  "source": "https://hubblesite.org/contents/news-releases/1993/news-1993-18",
+  "archive": "https://www.astropix.org/image/stsci/1993-18a",
+  "credit": "T. R. Lauer (NOAO), NASA",
+  "rights": "http://hubblesite.org/copyright/",
+  "description": "Самый центр галактики Андромеды. Два сгущения звёзд — яркое P1 и более слабое P2; чёрная дыра M31* находится в P2. Она сама не светит: видны только звёзды, которые вокруг неё обращаются. Цвета зависят от фильтров и обработки; это не вид в окуляре.",
+  "identification": {
+   "method": "manually reviewed publisher caption; explicit object target, no sky-proximity join",
+   "archiveId": "astropix-stsci-1993-18a",
+   "archiveRecordSha256": "af7c11290e449ced42fda54856b90a4953bf83fb159434b757e8fd3ad9d18f30"
+  },
+  "availability": {
+   "status": 200,
+   "contentType": "image/jpeg",
+   "checked": "2026-11-17"
+  }
+ },
+ {
+  "id": "quest-astropix-chandra-416",
+  "objects": [
+   "bh-centaurus"
+  ],
+  "identifiers": [],
+  "kind": "blackhole",
+  "title": "Центавр A — джеты чёрной дыры",
+  "archiveTitle": "Black Hole Outflows From Centaurus A",
+  "mediaKind": "observation",
+  "mediaType": "observation",
+  "instrument": "Chandra / APEX / ESO",
+  "detectors": [
+   "ACIS",
+   "LABOCA",
+   "WFI"
+  ],
+  "band": "рентген / Submillimeter / оптика · обработанные цвета",
+  "date": "2009-01-30",
+  "url": "https://www.astropix.org/archive/chandra/416/chandra_416_1280.jpg",
+  "source": "https://chandra.harvard.edu/photo/2009/cena/",
+  "archive": "https://www.astropix.org/image/chandra/416",
+  "credit": "X-ray: NASA/CXC/CfA/R.Kraft et al.; Submillimeter: MPIfR/ESO/APEX/A.Weiss et al.; Optical: ESO/WFI",
+  "rights": "http://chandra.harvard.edu/photo/image_use.html",
+  "description": "Составное изображение: рентген Chandra, субмиллиметровые волны APEX и оптика ESO. Из центра галактики в обе стороны бьют джеты и раздуваются лепестки — вещество, выброшенное от центральной чёрной дыры. Цвета зависят от фильтров и обработки; это не вид в окуляре.",
+  "identification": {
+   "method": "manually reviewed publisher caption; explicit object target, no sky-proximity join",
+   "archiveId": "astropix-chandra-416",
+   "archiveRecordSha256": "9b242111bac0cc37addf6549746125ccc30920ec0d048282f75fe2c313c9d638"
+  },
+  "availability": {
+   "status": 200,
+   "contentType": "image/jpeg",
+   "checked": "2026-11-17"
+  }
+ },
+ {
+  "id": "quest-astropix-stsci-1998-14e",
+  "objects": [
+   "bh-centaurus"
+  ],
+  "identifiers": [],
+  "kind": "blackhole",
+  "title": "Центавр A — ядро сквозь пыль",
+  "archiveTitle": "Nucleus of Galaxy Centaurus A",
+  "mediaKind": "observation",
+  "mediaType": "observation",
+  "instrument": "Hubble",
+  "detectors": [
+   "WFPC2"
+  ],
+  "band": "УФ / оптика / ИК · обработанные цвета",
+  "date": "1998-05-14",
+  "url": "https://www.astropix.org/archive/stsci/1998-14e/stsci_1998-14e_1280.jpg",
+  "source": "https://hubblesite.org/contents/news-releases/1998/news-1998-14",
+  "archive": "https://www.astropix.org/image/stsci/1998-14e",
+  "credit": "E.J. Schreier (STScI), and NASA",
+  "rights": "http://hubblesite.org/copyright/",
+  "description": "Hubble заглядывает в пылевую полосу, пересекающую центр галактики. Чёрная дыра скрыта в её глубине и сама не видна; на кадре — пыль, светящийся газ и молодые голубые звёзды. Цвета зависят от фильтров и обработки; это не вид в окуляре.",
+  "identification": {
+   "method": "manually reviewed publisher caption; explicit object target, no sky-proximity join",
+   "archiveId": "astropix-stsci-1998-14e",
+   "archiveRecordSha256": "b8627936d97bf49bba58b905f5088701c14b40363e5faa2c26877e060f8d8439"
+  },
+  "availability": {
+   "status": 200,
+   "contentType": "image/jpeg",
+   "checked": "2026-11-17"
+  }
+ },
+ {
+  "id": "quest-astropix-stsci-2000-20a",
+  "objects": [
+   "bh-m87"
+  ],
+  "identifiers": [],
+  "kind": "blackhole",
+  "title": "M87 — джет от чёрной дыры",
+  "archiveTitle": "Black Hole-Powered Jet of Electrons and Sub-Atomic Particles Streams From Center of Galaxy M87",
+  "mediaKind": "observation",
+  "mediaType": "observation",
+  "instrument": "Hubble",
+  "detectors": [
+   "WFPC2"
+  ],
+  "band": "УФ / оптика / ИК · обработанные цвета",
+  "date": "2000-07-06",
+  "url": "https://www.astropix.org/archive/stsci/2000-20a/stsci_2000-20a_1280.jpg",
+  "source": "https://hubblesite.org/contents/news-releases/2000/news-2000-20",
+  "archive": "https://www.astropix.org/image/stsci/2000-20a",
+  "credit": "NASA and The Hubble Heritage Team (STScI/AURA)",
+  "rights": "http://hubblesite.org/copyright/",
+  "description": "Снимок Hubble: из ядра галактики M87 вырывается струя вещества длиной около пяти тысяч световых лет. Её разгоняет чёрная дыра M87*; сама дыра скрыта в яркой точке в начале струи. Цвета зависят от фильтров и обработки; это не вид в окуляре.",
+  "identification": {
+   "method": "manually reviewed publisher caption; explicit object target, no sky-proximity join",
+   "archiveId": "astropix-stsci-2000-20a",
+   "archiveRecordSha256": "cb6c60a19d97ad28f78770f699d2fec6c2ba07fcb28c7664290118f2f49a60f5"
+  },
+  "availability": {
+   "status": 200,
+   "contentType": "image/jpeg",
+   "checked": "2026-11-17"
+  }
+ },
+ {
+  "id": "quest-astropix-esahubble-heic0815j",
+  "objects": [
+   "bh-m87"
+  ],
+  "identifiers": [],
+  "kind": "blackhole",
+  "title": "M87 — радио, рентген и оптика",
+  "archiveTitle": "Radio/X-ray/Optical Image of M87",
+  "mediaKind": "observation",
+  "mediaType": "observation",
+  "instrument": "Other / Hubble Space Telescope / Chandra",
+  "detectors": [
+   "None"
+  ],
+  "band": "радио / оптика / рентген · обработанные цвета",
+  "date": "2008-08-05",
+  "url": "https://www.astropix.org/archive/esahubble/heic0815j/esahubble_heic0815j_1280.jpg",
+  "source": "https://www.spacetelescope.org/images/heic0815j/",
+  "archive": "https://www.astropix.org/image/esahubble/heic0815j",
+  "credit": "Photo Credit: NASA, ESA, and Z. Levay (STScI)Science Credit: Radio: NRAO/AUI/NSF/W. Cotton; X-ray: NASA/CXC/CfA/W. Forman et al.; Optical: NASA, ESA, and the Hubble Heritage Team (STScI/AURA), and R. Gendler",
+  "rights": "Creative Commons Attribution 4.0 International License",
+  "description": "Составное изображение: радиоволны, рентген Chandra и оптика Hubble. Видно, как джет чёрной дыры M87* раздувает пузыри в горячем газе вокруг галактики. Цвета зависят от фильтров и обработки; это не вид в окуляре.",
+  "identification": {
+   "method": "manually reviewed publisher caption; explicit object target, no sky-proximity join",
+   "archiveId": "astropix-esahubble-heic0815j",
+   "archiveRecordSha256": "fbd529bfc21cdbbf28b46e9abdb14523c9684ca4c5926d0bdccb092b7dbb4d7c"
+  },
+  "availability": {
+   "status": 200,
+   "contentType": "image/jpeg",
+   "checked": "2026-11-17"
+  }
+ },
+ {
+  "id": "quest-astropix-stsci-1992-27a",
+  "objects": [
+   "bh-opengc-ngc4261"
+  ],
+  "identifiers": [],
+  "kind": "blackhole",
+  "title": "NGC 4261 — диск в ядре, первый снимок",
+  "archiveTitle": "Giant Disk of Cold Gas and Dust Fuels Possible Black Hole at the Core of NGC 4261",
+  "mediaKind": "observation",
+  "mediaType": "observation",
+  "instrument": "Hubble",
+  "detectors": [
+   "WFPC"
+  ],
+  "band": "оптика · обработанные цвета",
+  "date": "1992-11-19",
+  "url": "https://www.astropix.org/archive/stsci/1992-27a/stsci_1992-27a_1280.jpg",
+  "source": "https://hubblesite.org/contents/news-releases/1992/news-1992-27",
+  "archive": "https://www.astropix.org/image/stsci/1992-27a",
+  "credit": "Credit: Walter Jaffe/Leiden Observatory, Holland Ford/JHU/STScI, and NASA",
+  "rights": "http://hubblesite.org/copyright/",
+  "description": "Снимок Hubble 1992 года: тёмный диск холодного газа и пыли в ядре галактики. Газ из него понемногу падает к чёрной дыре, скрытой в яркой точке в центре. Цвета зависят от фильтров и обработки; это не вид в окуляре.",
+  "identification": {
+   "method": "manually reviewed publisher caption; explicit object target, no sky-proximity join",
+   "archiveId": "astropix-stsci-1992-27a",
+   "archiveRecordSha256": "f182e644e348dba7062827b15ff8566b9a2df6fb58d2ff0095b21b7d521349e5"
+  },
+  "availability": {
+   "status": 200,
+   "contentType": "image/jpeg",
+   "checked": "2026-11-17"
+  }
+ },
+ {
+  "id": "quest-astropix-stsci-1995-47a",
+  "objects": [
+   "bh-opengc-ngc4261"
+  ],
+  "identifiers": [],
+  "kind": "blackhole",
+  "title": "NGC 4261 — диск вокруг чёрной дыры",
+  "archiveTitle": "NGC 4261",
+  "mediaKind": "observation",
+  "mediaType": "observation",
+  "instrument": "Hubble",
+  "detectors": [
+   "WFPC2"
+  ],
+  "band": "оптика / ИК · обработанные цвета",
+  "date": "1995-12-04",
+  "url": "https://www.astropix.org/archive/stsci/1995-47a/stsci_1995-47a_1280.jpg",
+  "source": "https://hubblesite.org/contents/news-releases/1995/news-1995-47",
+  "archive": "https://www.astropix.org/image/stsci/1995-47a",
+  "credit": "L. Ferrarese (Johns Hopkins University) and NASA",
+  "rights": "http://hubblesite.org/copyright/",
+  "description": "Более поздний снимок Hubble: тот же пылевой диск в ядре галактики. Чёрная дыра находится в яркой точке у его центра; радиоджеты галактики бьют перпендикулярно диску и на этом кадре не видны. Цвета зависят от фильтров и обработки; это не вид в окуляре.",
+  "identification": {
+   "method": "manually reviewed publisher caption; explicit object target, no sky-proximity join",
+   "archiveId": "astropix-stsci-1995-47a",
+   "archiveRecordSha256": "c0b5156cfd18c7e2216fdd241d25efa97168b81fe03cef1609929586c9a057d3"
+  },
+  "availability": {
+   "status": 200,
+   "contentType": "image/jpeg",
+   "checked": "2026-11-17"
+  }
+ },
+ {
+  "id": "quest-astropix-esahubble-heic1602a",
+  "objects": [
+   "bh-opengc-ngc4889"
+  ],
+  "identifiers": [],
+  "kind": "blackhole",
+  "title": "NGC 4889 — галактика спящего гиганта",
+  "archiveTitle": "The sleeping giant NGC 4889",
+  "mediaKind": "observation",
+  "mediaType": "observation",
+  "instrument": "Hubble Space Telescope",
+  "detectors": [
+   "ACS"
+  ],
+  "band": "оптика / ИК · обработанные цвета",
+  "date": "2016-02-11",
+  "url": "https://www.astropix.org/archive/esahubble/heic1602a/esahubble_heic1602a_1280.jpg",
+  "source": "https://www.spacetelescope.org/images/heic1602a/",
+  "archive": "https://www.astropix.org/image/esahubble/heic1602a",
+  "credit": "NASA & ESA",
+  "rights": "Creative Commons Attribution 4.0 International License",
+  "description": "Снимок Hubble: гигантская эллиптическая галактика NGC 4889 в скоплении Волос Вероники. Чёрная дыра в её центре на кадре не видна: она сейчас ничего не поглощает и не светится. Цвета зависят от фильтров и обработки; это не вид в окуляре.",
+  "identification": {
+   "method": "manually reviewed publisher caption; explicit object target, no sky-proximity join",
+   "archiveId": "astropix-esahubble-heic1602a",
+   "archiveRecordSha256": "3c218fd72becd6b9924ffef8b5a8ee893028515b77069de268091b7404ad1475"
+  },
+  "availability": {
+   "status": 200,
+   "contentType": "image/jpeg",
+   "checked": "2026-11-17"
+  }
+ },
+ {
+  "id": "quest-astropix-esahubble-opo1531b",
+  "objects": [
+   "qso-mrk231"
+  ],
+  "identifiers": [],
+  "kind": "quasar",
+  "title": "Квазар Маркарян 231 — Hubble",
+  "archiveTitle": "Markarian 231, host galaxy of double black hole",
+  "mediaKind": "observation",
+  "mediaType": "observation",
+  "instrument": "Hubble Space Telescope",
+  "detectors": [
+   "ACS"
+  ],
+  "band": "оптика / ИК · обработанные цвета",
+  "date": "2015-08-28",
+  "url": "https://www.astropix.org/archive/esahubble/opo1531b/esahubble_opo1531b_1280.jpg",
+  "source": "https://www.spacetelescope.org/images/opo1531b/",
+  "archive": "https://www.astropix.org/image/esahubble/opo1531b",
+  "credit": "NASA, ESA, the Hubble Heritage Team (STScI/AURA)-ESA/Hubble Collaboration, and A. Evans (University of Virginia, Charlottesville/NRAO/Stony Brook University)",
+  "rights": "Creative Commons Attribution 4.0 International License",
+  "description": "Снимок Hubble: яркая точка в центре — квазар, раскалённый газ у центральной чёрной дыры. Вокруг видны изогнутые хвосты звёзд — след слияния двух галактик. Цвета зависят от фильтров и обработки; это не вид в окуляре.",
+  "identification": {
+   "method": "manually reviewed publisher caption; explicit object target, no sky-proximity join",
+   "archiveId": "astropix-esahubble-opo1531b",
+   "archiveRecordSha256": "6b9d1d04a1a68658c40d81e6331081e978fc6bfb443eba3acc36481e1de70157"
+  },
+  "availability": {
+   "status": 200,
+   "contentType": "image/jpeg",
+   "checked": "2026-11-17"
+  }
+ }
+]

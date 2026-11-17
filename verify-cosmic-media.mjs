@@ -4,12 +4,12 @@ import {execFileSync} from 'node:child_process';
 const harness=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';
 const {context,run}=await import('data:text/javascript,'+encodeURIComponent(harness)+'#cosmic-media');
 context.quasarSource=JSON.parse(fs.readFileSync('data-tools/sky-sources/quasars.json'));
-context.cosmicMedia=JSON.parse(fs.readFileSync('data-tools/sky-sources/media-cosmic.json'));
+context.cosmicMedia=['media-cosmic','media-quests'].flatMap(name=>JSON.parse(fs.readFileSync('data-tools/sky-sources/'+name+'.json')));
 run(['map-visibility-data','map-visibility','map-label-data','map-annotations','universe-map'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'));
 run(`
 resize();state=initial();state.expansion=false;paused=true;Cosmology.sync(state);
 const nuclei=OBJECTS.filter(o=>o.quasarCatalog);
-assert.equal(nuclei.length,15);assert.equal(OBJECTS.filter(o=>o.kind==='quasar').length,16);
+assert.equal(nuclei.length,16);assert.equal(OBJECTS.filter(o=>o.kind==='quasar').length,17);
 assert.equal(new Set(OBJECTS.map(o=>o.id)).size,OBJECTS.length);
 for(const q of quasarSource.objects){
  const o=object(q.id),e=q.sourceEvidence;
@@ -31,7 +31,8 @@ for(const q of quasarSource.objects){
  for(const mode of ['full','radial']){MapSlice.mode=mode;const p=MapLayout.project(o);assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y));}
  state=initial();state.selected=q.id;const saved=FlightHistory.snapshot(),restored=restore(saved);assert.equal(restored.selected,q.id);assert.equal(restored.matter,state.matter);assert.equal(object(q.id).redshiftError,q.redshiftError);
 }
-assert.equal(object('qso-apm08279').redshiftError,null,'unknown error stays unknown');
+assert.equal(object('qso-apm08279').redshiftError,null,'unknown error stays unknown');assert.equal(object('qso-mrk231').redshiftError,null);
+assert.ok(object('qso-mrk231').d>5.7e8&&object('qso-mrk231').d<5.9e8,'the nearest photographed quasar lies within reach of the black hole excursion');
 for(const id of ['qso-pg1115','qso-he0435','qso-he1104'])assert.ok(object(id).coordinateNote.includes('линзированного'));
 assert.ok(SkyGuide.media(object('qso-gb1428'))[0].description.includes('отличается'),'published redshift disagreement remains visible');
 const mega=['attractor','laniakea','cfa','bootes','sloan','ring','arc','quipu','shapley','serpens-corona','hercules-supercluster','sculptor-pegasus','boss-wall','huge-lqg','hyperion','local-void','eridanus-supervoid'];
@@ -66,5 +67,5 @@ const before=['dist/cosmic-catalog.js','dist/sky-guide-data.js'].map(p=>fs.readF
 execFileSync('python3',['data-tools/build-quasar-catalog.py']);
 execFileSync('python3',['data-tools/build-sky-guide.py']);
 for(const [i,p] of ['dist/cosmic-catalog.js','dist/sky-guide-data.js'].entries())assert.ok(before[i].equals(fs.readFileSync(p)),'deterministic offline build '+p);
-console.log('PASS 15 added quasars: independent source coordinates/comoving distances, redshift errors, own photographs, ordinary density, projections and save restoration');
+console.log('PASS 16 added quasars: independent source coordinates/comoving distances, redshift errors, own photographs, ordinary density, projections and save restoration');
 console.log('PASS seven epoch galleries, 17 named megastructures/voids, honest diagram/map/reconstruction captions, all visual classes in filters and deterministic offline builds');

@@ -11,6 +11,12 @@ const Quests = {
   badge: null,
   announced: null,
   story: null,
+  objects: new Map(),
+  loadKey: null,
+  loads: 0,
+  loadError: false,
+  ready: Promise.resolve(),
+  retrying: null,
   esc(value) {
     return String(value).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
   },
@@ -34,7 +40,7 @@ const Quests = {
   },
   reset() {
     this.focus = this.pending = this.panelKey = this.announced = this.story = null;
-    this.view = null;
+    this.view = this.loadKey = this.retrying = null;
     this.opened = this.autoPaused = false;
   },
   store() {
@@ -51,6 +57,57 @@ const Quests = {
   },
   name(step) {
     return step.name || object(step.id)?.name || step.id;
+  },
+  told(step) {
+    return !!step.lead;
+  },
+  required(quest) {
+    return quest.requires ? this.quest(quest.requires) : null;
+  },
+  locked(quest, visited = this.visitedSet()) {
+    const required = this.required(quest);
+    return !!required && !this.isActive(quest) && !(this.isActive(required) && this.progress(required, visited).complete);
+  },
+  opens(quest, visited = this.visitedSet()) {
+    return QUESTS.filter(q => q.requires === quest.id && !this.isActive(q) && !this.locked(q, visited));
+  },
+  streamed(id) {
+    return !!QUEST_OBJECTS.tiles[id] && !ExtendedCatalog.coreIndex?.get(id);
+  },
+  ensure() {
+    const store = this.store(),
+      wanted = QUESTS.filter(q => store.active.includes(q.id) || this.isOpen && q.id === this.view && !this.locked(q)),
+      key = wanted.map(q => q.id).join('|');
+    if (key === this.loadKey) return;
+    this.loadKey = key;
+    this.load(wanted.flatMap(q => q.steps.flatMap(step => this.ids(step))));
+  },
+  load(ids) {
+    const missing = [...new Set(ids)].filter(id => this.streamed(id) && !this.objects.has(id));
+    if (!missing.length) return;
+    if (QUEST_OBJECTS.catalogRevision !== EXTENDED_BOOT.revision ||
+        typeof fetch !== 'function' && !globalThis.PARUS_CATALOG_FILES) {
+      this.loadError = true;
+      return;
+    }
+    const wanted = new Set(missing), files = [...new Set(missing.map(id => QUEST_OBJECTS.tiles[id]))];
+    let cursor = 0, failed = false;
+    this.loads++;
+    this.ready = Promise.all([this.ready, ...Array.from({length: Math.min(3, files.length)}, async () => {
+      while (cursor < files.length) {
+        const file = files[cursor++];
+        try {
+          for (const row of await ExtendedCatalog.tile(file)) if (wanted.has(row.id)) this.objects.set(row.id, row);
+        } catch {
+          failed = true;
+        }
+      }
+    })]).then(() => {
+      this.loads--;
+      this.loadError = failed;
+      this.panelKey = null;
+      renderUI();
+    });
   },
   visitedSet() {
     return new Set(state.visited);
@@ -78,7 +135,7 @@ const Quests = {
   entries(id) {
     const active = this.store().active, flying = this.flightIds().includes(id), found = [];
     for (const quest of QUESTS) {
-      if (!active.includes(quest.id) && quest.id !== this.focus && !flying) continue;
+      if (!active.includes(quest.id) && (quest.id !== this.focus && !flying || this.locked(quest))) continue;
       const index = quest.steps.findIndex(step => this.ids(step).includes(id));
       if (index >= 0) found.push({quest, step: quest.steps[index], index});
     }
@@ -108,6 +165,7 @@ const Quests = {
     const quest = this.quest(id), store = this.store();
     if (!quest || store.active.includes(id)) return false;
     const visited = this.visitedSet();
+    if (this.locked(quest, visited)) return false;
     store.active.push(id);
     for (const step of quest.steps) if (this.done(step, visited)) store.credited[this.key(quest, step)] = true;
     log('Квест начат: ' + quest.title + '.');
@@ -139,8 +197,11 @@ const Quests = {
       ids = this.ids(step), here = ids.includes(state.current),
       id = here ? state.current : ids.find(x => visited.has(x)) || step.id;
     for (const s of steps) log('Квест «' + quest.title + '»: ' + this.name(s) + ' · ' + p.done + ' из ' + p.total + '.');
-    if (p.complete) log('Квест пройден: ' + quest.title + '.');
-    if ((here || !state.flight) && !this.store().seen[this.key(quest, step)]) {
+    if (p.complete) {
+      log('Квест пройден: ' + quest.title + '.');
+      for (const opened of this.opens(quest, visited)) log('Открыт квест: ' + opened.title + '.');
+    }
+    if ((here || !state.flight) && this.told(step) && !this.store().seen[this.key(quest, step)]) {
       this.pending = id;
       return;
     }
@@ -157,7 +218,8 @@ const Quests = {
       const index = quest.steps.findIndex(step => this.ids(step).some(x => flying.includes(x)));
       if (index < 0) continue;
       const step = quest.steps[index];
-      if (store.seen[this.key(quest, step)] || this.done(step)) continue;
+      if (!this.told(step) || store.seen[this.key(quest, step)] || this.done(step)) continue;
+      if (!store.active.includes(quest.id) && this.locked(quest)) continue;
       return {quest, step, index, id: this.ids(step).find(x => flying.includes(x))};
     }
     return null;
@@ -187,6 +249,11 @@ const Quests = {
   },
   fly(id, questId) {
     const target = object(id);
+    if (!target && this.streamed(id)) {
+      this.load([id]);
+      toast(this.loadError ? 'Не удалось загрузить объект из каталога.' : 'Объект загружается из каталога. Повторите через несколько секунд.', 4200, 'warning');
+      return false;
+    }
     if (!target?.navigable) {
       toast('Для этого объекта нет точных координат.', 4200, 'warning');
       return false;
@@ -206,10 +273,21 @@ const Quests = {
     launchSelectedTarget();
     if (!state.flight) {
       Route.flushFeedback();
+      this.retry(id);
       return false;
     }
     this.close();
     return true;
+  },
+  retry(id) {
+    const stars = globalThis.ArrivalStars, wait = stars?.pending.get(stars.key(object(id), state.destroyed));
+    if (!wait || this.retrying === id) return;
+    this.retrying = id;
+    wait.then(() => {
+      const again = this.retrying === id && !state.flight && state.selected === id && !state.itinerary.length;
+      this.retrying = null;
+      if (again) this.fly(id);
+    });
   },
   present() {
     const id = this.pending;
@@ -235,12 +313,17 @@ const Quests = {
     renderUI();
     persist();
   },
+  opensHTML(quest, visited) {
+    return this.opens(quest, visited).map(opened =>
+      '<button class="modal-start" data-quest-panel="' + opened.id + '">Открыт квест: ' + this.esc(opened.title) + ' →</button>').join('');
+  },
   storyActions(quest, visited) {
     const esc = this.esc, p = this.progress(quest, visited);
     let html = '';
     if (!this.isActive(quest))
       html += '<button class="modal-start" data-quest-start="' + quest.id + '">Начать квест →</button>';
-    else if (!p.complete) {
+    else if (p.complete) html += this.opensHTML(quest, visited);
+    else {
       const next = this.next(quest, visited);
       if (next)
         html += '<button class="modal-start" data-quest-fly="' + esc(next.id) + '" data-quest="' + quest.id + '">' +
@@ -253,8 +336,8 @@ const Quests = {
     const entries = this.entries(o.id);
     if (!entries.length) return '';
     const esc = this.esc, visited = this.visitedSet(), open = entries.filter(({step}) => this.unlocked(step, visited)),
-      step = open[0]?.step;
-    let story = '<p class="quest-lead">Этот объект входит в квест. Его история откроется в полёте к нему.</p>';
+      told = entries.filter(({step}) => this.told(step)), step = told.find(entry => open.includes(entry))?.step;
+    let story = told.length ? '<p class="quest-lead">Этот объект входит в квест. Его история откроется в полёте к нему.</p>' : '';
     if (step) {
       const refs = step.refs?.length
         ? '<p class="object-sources">' + step.refs.map(([url, label]) =>
@@ -267,7 +350,7 @@ const Quests = {
             step.more.map(text => '<p class="quest-lead">' + esc(text) + '</p>').join('') + refs + '</details>'
           : refs);
     }
-    return '<section class="quest-story' + (step ? '' : ' is-locked') + '">' + story + entries.map(entry => {
+    return '<section class="quest-story' + (step || !told.length ? '' : ' is-locked') + '">' + story + entries.map(entry => {
       const {quest, index} = entry, p = this.progress(quest, visited), unlocked = open.includes(entry);
       return '<div class="quest-membership"><div class="modal-eyebrow">КВЕСТ · ' + esc(quest.title.toUpperCase()) + ' · ' +
         (index + 1) + ' / ' + p.total + '</div>' +
@@ -333,7 +416,8 @@ const Quests = {
       type = o ? MapDetails.typeName(o) : 'Объект каталога';
     let action;
     if (done || target)
-      action = '<button class="quest-step-action" data-quest-read="' + esc(step.id) + '">История</button>';
+      action = '<button class="quest-step-action" data-quest-read="' + esc(step.id) + '">' +
+        (this.told(step) ? 'История' : 'Карточка') + '</button>';
     else if (queued) action = '<button class="quest-step-action" disabled>В маршруте</button>';
     else
       action = '<button class="quest-step-action" data-quest-fly="' + esc(step.id) + '"' + (o?.navigable ? '' : ' disabled') + '>' +
@@ -348,47 +432,61 @@ const Quests = {
   distance(o) {
     return o?.navigable ? distanceText(Cosmology.physicalDistance(state.ship, o)) : 'расстояние неизвестно';
   },
-  statusText(quest, p) {
+  statusText(quest, p, visited) {
     const active = this.isActive(quest);
+    if (this.locked(quest, visited)) return 'ЗАКРЫТ';
     return (p.complete && active ? 'ПРОЙДЕН' : active ? 'АКТИВЕН' : 'НЕ НАЧАТ') + ' · ' + p.done + ' / ' + p.total;
+  },
+  lockText(quest) {
+    return 'Откроется после квеста «' + this.required(quest).title + '».';
   },
   progressHTML(p) {
     return '<span class="quest-progress" role="img" aria-label="Посещено ' + p.done + ' из ' + p.total + '"><i style="width:' +
       (p.total ? 100 * p.done / p.total : 0) + '%"></i></span>';
   },
   detailHTML(quest, visited) {
-    const esc = this.esc, p = this.progress(quest, visited), active = this.isActive(quest), next = this.next(quest, visited);
+    const esc = this.esc, p = this.progress(quest, visited), active = this.isActive(quest), next = this.next(quest, visited),
+      locked = this.locked(quest, visited),
+      head = '<button class="text-action quest-back" data-quest-back>← Все квесты</button>' +
+        '<div class="quest-status">' + this.statusText(quest, p, visited) + '</div>' +
+        '<h3 class="quest-title">' + esc(quest.title) + '</h3>';
+    if (locked)
+      return head + quest.intro.map(text => '<p class="quest-text">' + esc(text) + '</p>').join('') +
+        '<p class="quest-note">' + esc(this.lockText(quest)) + '</p>' +
+        '<div class="quest-actions"><button class="modal-start" data-quest-open="' + quest.requires + '">К квесту: ' +
+        esc(this.required(quest).title) + ' →</button></div>';
     let actions;
     if (!active) actions = '<button class="modal-start" data-quest-start="' + quest.id + '">Начать квест →</button>';
-    else if (p.complete) actions = '<p class="quest-note"><b>Квест пройден.</b> ' + esc(quest.outro || '') + '</p>';
+    else if (p.complete)
+      actions = '<p class="quest-note"><b>Квест пройден.</b> ' + esc(quest.outro || '') + '</p>' + this.opensHTML(quest, visited);
     else
       actions = (next
         ? '<button class="modal-start" data-quest-fly="' + esc(next.id) + '">' +
           (state.flight ? 'Затем: ' + esc(this.name(next)) + ' · в маршрут +' : (p.done ? 'Лететь дальше: ' : 'Лететь: ') + esc(this.name(next)) + ' →') + '</button>'
         : '<p class="quest-note">Оставшиеся объекты уже в маршруте.</p>');
-    return '<button class="text-action quest-back" data-quest-back>← Все квесты</button>' +
-      '<div class="quest-status">' + this.statusText(quest, p) + '</div>' +
-      '<h3 class="quest-title">' + esc(quest.title) + '</h3>' + this.progressHTML(p) +
+    return head + this.progressHTML(p) +
       quest.intro.map(text => '<p class="quest-text">' + esc(text) + '</p>').join('') +
       '<div class="quest-actions">' + actions + '</div>' +
+      (this.loadError ? '<p class="quest-note">Часть объектов не удалось загрузить из каталога. Закройте и снова откройте квесты, чтобы повторить.</p>' : '') +
       '<ol class="quest-steps">' + quest.steps.map((step, index) => this.stepHTML(quest, step, index, visited)).join('') + '</ol>';
   },
   listHTML(visited) {
     const esc = this.esc;
     return '<p class="quest-text">Путешествия по Вселенной. Начните квест — его объекты засчитываются при прибытии, каким бы путём вы до них ни добрались. Можно вести несколько квестов одновременно.</p>' +
       QUESTS.map(quest => {
-        const p = this.progress(quest, visited), active = this.isActive(quest);
-        return '<button class="quest-card' + (active ? ' is-active' : '') + '" data-quest-open="' + quest.id + '">' +
-          '<span class="quest-status">' + this.statusText(quest, p) + '</span>' +
+        const p = this.progress(quest, visited), active = this.isActive(quest), locked = this.locked(quest, visited);
+        return '<button class="quest-card' + (active ? ' is-active' : '') + (locked ? ' is-locked' : '') + '" data-quest-open="' + quest.id + '">' +
+          '<span class="quest-status">' + this.statusText(quest, p, visited) + '</span>' +
           '<strong>' + esc(quest.title) + '</strong><span class="quest-card-summary">' + esc(quest.summary) + '</span>' +
-          this.progressHTML(p) + '</button>';
+          (locked ? '<span class="quest-card-lock">' + esc(this.lockText(quest)) + '</span>' : this.progressHTML(p)) + '</button>';
       }).join('');
   },
   renderPanel(force = false) {
     if (!this.isOpen) return;
+    this.ensure();
     const quest = this.quest(this.view), visited = this.visitedSet(), store = this.store(),
-      key = JSON.stringify([quest?.id || null, store.active, QUESTS.map(q => q.steps.map(s => Number(this.done(s, visited)))),
-        state.current, this.flightIds(), this.routeIds(), !!state.flight]);
+      key = JSON.stringify([quest?.id || null, store.active, QUESTS.map(q => q.steps.map(s => Number(this.done(s, visited))).join('')),
+        state.current, this.flightIds(), this.routeIds(), !!state.flight, this.objects.size, this.loadError]);
     if (force || key !== this.panelKey) {
       this.panelKey = key;
       $('questsBody').innerHTML = quest ? this.detailHTML(quest, visited) : this.listHTML(visited);
@@ -412,6 +510,7 @@ const Quests = {
     $('questBtn').setAttribute('aria-label', label);
   },
   render() {
+    this.ensure();
     this.sync();
     this.renderBadge();
     this.renderPanel();
@@ -430,6 +529,7 @@ const Quests = {
     const d = button.dataset;
     if (d.questOpen) this.view = d.questOpen;
     else if ('questBack' in d) this.view = null;
+    else if (d.questPanel) this.view = d.questPanel;
     else if (d.questStart) this.start(d.questStart);
     else if (d.questFly) {
       this.fly(d.questFly, this.view);
@@ -453,6 +553,10 @@ const Quests = {
     $('themeBtn').setAttribute('aria-expanded', 'false');
     if (questId !== undefined) this.view = this.quest(questId)?.id || null;
     else if (!this.opened) this.view = this.store().active[0] || null;
+    if (this.loadError) {
+      this.loadError = false;
+      this.loadKey = null;
+    }
     this.opened = this.isOpen = true;
     $('quests').hidden = false;
     $('questBtn').setAttribute('aria-expanded', 'true');

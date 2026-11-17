@@ -320,6 +320,28 @@ SIMBAD is operated at CDS, Strasbourg, France.
 
 ### ESA/Webb outreach observations · 8 November 2026
 
+### Quest photographs · 17 November 2026
+
+The curated manifest `data-tools/sky-sources/media-quests.json` links ten
+observations to the stops of the black hole quest. Each record retains the
+image URL, source page, full credit, rights statement and the hash of the frozen
+AstroPix record it was taken from. Images are linked from their publishers;
+their pixel files are not bundled.
+
+- ESA/Hubble (CC BY 4.0): Cygnus X-1 field — NASA, ESA and the Digitized Sky
+  Survey 2, acknowledgment Davide De Martin; M87 jet composite — NASA, ESA and
+  Z. Levay (STScI), radio NRAO/AUI/NSF/W. Cotton, X-ray NASA/CXC/CfA; NGC 4889 —
+  NASA & ESA; Markarian 231 — NASA, ESA, the Hubble Heritage Team
+  (STScI/AURA)-ESA/Hubble Collaboration and A. Evans.
+- HubbleSite / STScI ([copyright](http://hubblesite.org/copyright/)): M31
+  nucleus — T. R. Lauer (NOAO), NASA; Centaurus A core — E. J. Schreier (STScI)
+  and NASA; M87 jet — NASA and The Hubble Heritage Team (STScI/AURA); NGC 4261
+  disk — Walter Jaffe/Leiden Observatory, Holland Ford/JHU/STScI and NASA;
+  NGC 4261 core — L. Ferrarese (Johns Hopkins University) and NASA.
+- Chandra ([image use](http://chandra.harvard.edu/photo/image_use.html)):
+  Centaurus A — X-ray NASA/CXC/CfA/R. Kraft et al.; submillimeter
+  MPIfR/ESO/APEX/A. Weiss et al.; optical ESO/WFI.
+
 The separate [ESA/Webb image archive](https://esawebb.org/images/) contributes
 242 frozen observation metadata records (`data-tools/sky-sources/media-webb.json`).
 The source's [usage conditions](https://esawebb.org/copyright/) release images
