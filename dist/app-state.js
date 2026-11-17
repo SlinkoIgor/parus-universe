@@ -42,6 +42,7 @@ const initial = () => ({
   nextTargets: [],
   multiplayer: false,
   trafficSeed: Math.floor(Math.random() * 100),
+  expedition: 1,
   visited: ['sol'],
   destroyed: [],
   phase: 'idle',
@@ -90,6 +91,7 @@ function restore(saved) {
   };
   if (!['engine', 'beam', 'burst'].includes(upgraded.departureMode))
     upgraded.departureMode = 'engine';
+  if (!Number.isInteger(upgraded.expedition) || upgraded.expedition < 1) upgraded.expedition = 1;
   upgraded.matter = Rocket.usableFuel(upgraded.matter);
   if (!object(upgraded.selected)) upgraded.selected = object(upgraded.current)?.id || 'proxima';
   upgraded.universeElapsed = Number.isFinite(saved.universeElapsed)

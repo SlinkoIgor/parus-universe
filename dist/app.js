@@ -403,8 +403,15 @@ $('routeBtn').onclick = () => Route.show();
 $('modelBtn').onclick = showModel;
 $('pulsarResearchBtn').onclick = () => PulsarResearch.show();
 $('journalBtn').onclick = showJournal;
+let objectInfoByPointer = false;
+$('objectInfo').addEventListener('pointerdown', () => { objectInfoByPointer = true; });
+$('objectInfo').addEventListener('keydown', () => { objectInfoByPointer = false; });
 $('objectInfo').onclick = () => showObject(FlightQueue.browsing() ? state.selected : state.flight?.target || state.selected);
 $('closeDialog').onclick = () => $('infoDialog').close();
+$('infoDialog').addEventListener('close', () => {
+  if (objectInfoByPointer && document.activeElement === $('objectInfo')) $('objectInfo').blur();
+  objectInfoByPointer = false;
+});
 $('infoDialog').addEventListener('click', (e) => {
   if (e.target === $('infoDialog')) {
     const r = $('infoDialog').getBoundingClientRect();

@@ -52,6 +52,7 @@ const checks = [
   'verify-map-visibility.mjs',
   'verify-map-annotations.mjs',
   'verify-map-visits.mjs',
+  'verify-expedition-number.mjs',
   'verify-sparse-labels.mjs',
   'verify-area-labels.mjs',
   'verify-atlas-expansion.mjs',

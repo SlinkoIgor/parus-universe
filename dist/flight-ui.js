@@ -155,7 +155,6 @@ function renderPanels() {
   UIContent.text($('distanceCaption'), 'РАССТОЯНИЕ ДО ЦЕЛИ');
   UIContent.text($('targetName'), target.name);
   UIContent.text($('targetType'), objectTypeText(target));
-  UIPatch.set($('targetVisited'), 'hidden', !state.visited.includes(target.id));
   UIPatch.toggle($('flightCard'), 'in-flight', active);
   const locationFrom = active
     ? object(f.fromId)?.name || f.from?.name || 'Межзвёздное пространство'

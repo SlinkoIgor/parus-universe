@@ -33,7 +33,6 @@ Object.assign(Route, {
     if(!target)return;
     this.renderApproach();this.renderActions();
     UIContent.text($('targetName'),target.name);UIContent.text($('targetType'),objectTypeText(target));
-    $('targetVisited').hidden=!state.visited.includes(target.id);
     UIContent.text($('phaseTag'),f?'УЧАСТОК '+((f.legIndex||0)+1)+' / '+(f.route?.length||1):'МАРШРУТ');
     UIContent.text($('progressLabel'),f?'УЧАСТОК '+((f.legIndex||0)+1)+' / '+(f.route?.length||1):'ПРОЙДЕНО');
     if(!f||browsing)this.renderDistance();

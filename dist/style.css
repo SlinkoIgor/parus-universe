@@ -594,6 +594,8 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
 /* Keep every variable-height part above a separate launch row. */
 .flight-card,.flight-card.in-flight{display:grid;grid-template-rows:minmax(0,1fr) auto;min-height:0;overflow:hidden;isolation:isolate}
 .flight-card .card-scroll{min-height:0;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+.target-heading h2 button{display:inline-grid;place-items:center;width:22px;height:22px;margin-left:8px;padding:0;vertical-align:middle;position:relative;top:-2px;border-radius:50%;color:var(--ink)}
+.target-heading h2 button svg{display:block;width:22px;height:22px}.target-heading h2 button circle{fill:currentColor;stroke:none}.target-heading h2 button path{stroke:var(--paper);stroke-width:2.2;stroke-linecap:round}
 .flight-card .card-actions{position:relative;z-index:2;min-width:0;min-height:0;background:var(--paper)}
 .card-plan-controls{padding:12px 16px;border-top:1px solid var(--line);min-width:0}
 .card-plan-controls .flight-configuration{padding:0;margin:0}

@@ -92,7 +92,6 @@ const FlightQueue = {
     UIPatch.toggle($('flightCard'), 'in-flight', false);
     UIContent.text($('distanceCaption'),'ОТ ПРЕДЫДУЩЕЙ ТОЧКИ');
     UIContent.text($('targetName'),target.name);UIContent.text($('targetType'),objectTypeText(target));
-    UIPatch.set($('targetVisited'), 'hidden', !state.visited.includes(target.id));
     UIContent.text($('phaseTag'),index>=0?'УЧАСТОК '+((state.flight.legIndex||0)+index+2)+' / '+state.flight.route.length:'ДОБАВИТЬ УЧАСТОК');
     const d=target.navigable?this.run(context,()=>Cosmology.physicalDistance(context.ship,target)):NaN;
     UIContent.html($('targetDistance'),Number.isFinite(d)?compact(d)+' <small>св. лет</small>':'<small>Расстояние неизвестно</small>');

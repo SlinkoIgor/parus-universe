@@ -425,9 +425,9 @@ function mapContext(view) {
   const span = view.span;
   const nearSun = Math.hypot(view.x, view.y);
   if (span < 0.01 && nearSun < 0.1)
-    return ['Солнечная система', 'Земля и Солнце. Нулевая точка экспедиции.', '00'];
+    return ['Солнечная система', 'Земля и Солнце. Нулевая точка экспедиции.'];
   if (span < 180 && nearSun < 100)
-    return ['Солнечная окрестность', 'В галактике «Млечный Путь».', '01'];
+    return ['Солнечная окрестность', 'В галактике «Млечный Путь».'];
   // The registry also retains metadata for evicted tiles. Such a helper is
   // neither a live outline nor a full galaxy identity for Cosmology.group.
   // Check smaller live galaxies first and tessellate only a containing bound.
@@ -443,32 +443,29 @@ function mapContext(view) {
       span < 10000
         ? 'Звёздный масштаб · проекция в галактических осях.'
         : 'Оптический контур · ' + distanceText(localGalaxy.diameterLy),
-      'Г',
     ];
   if (span < 10000)
-    return ['Локальный масштаб', 'Область вне известных оптических контуров галактик.', '02'];
+    return ['Локальный масштаб', 'Область вне известных оптических контуров галактик.'];
   if (span < 800000)
-    return ['Галактический масштаб', 'Галактики и межгалактическое пространство.', '03'];
+    return ['Галактический масштаб', 'Галактики и межгалактическое пространство.'];
   if (span < 30000000)
     return [
       nearSun < 5e6 ? 'Местная группа' : 'Группы галактик',
       'Галактики и их объединения.',
-      '04',
     ];
-  if (span < 1e9) return ['Скопления галактик', 'Скопления и потоки космической паутины.', '05'];
+  if (span < 1e9) return ['Скопления галактик', 'Скопления и потоки космической паутины.'];
   if (span < 4e10)
-    return ['Космическая паутина', 'Стены, войды и крупномасштабные структуры.', '06'];
+    return ['Космическая паутина', 'Стены, войды и крупномасштабные структуры.'];
   return [
     'Обозримая Вселенная',
     'Наблюдаемая область атласа · радиус ' +
       distanceText((globalThis.UniverseMap ? UniverseMap.radius : 46.5e9) * Cosmology.scale()),
-    '∞',
   ];
 }
 function updateMapHeading() {
   const view = cameraGoal || cam,
-    [title, sub, sheet] = mapContext(view);
+    [title, sub] = mapContext(view);
   UIContent.text($('mapTitle'), title);
   UIContent.text($('mapSubtitle'), sub);
-  UIContent.text($('mapSheet'), '/ ' + sheet);
+  UIContent.text($('expeditionNumber'), String(state.expedition || 1).padStart(2, '0'));
 }
