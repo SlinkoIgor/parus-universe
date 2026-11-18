@@ -151,6 +151,7 @@ function renderCatalog() {
     .filter(
       (o) =>
         !o.supersededBy &&
+        !o.historicalCoordinateNavigation &&
         !o.streamed &&
         ExtendedCatalog.matches(o.kind, searchFilter, o) &&
         MapDetails.searchKey(

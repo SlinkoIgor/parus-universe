@@ -19,8 +19,24 @@ const originals=OBJECTS.slice();
 // not identify two physical regions (e.g. the separate Eastern Veil portions).
 const CatalogIdentities={
  groups:IMPORTED_CATALOG.identityPolicy?.groups||[],
+ galaxySystems:IMPORTED_CATALOG.identityPolicy?.galaxySystems||[],
  get redirects(){return this.redirectCache??=Object.fromEntries(this.groups.flatMap(g=>g.members.filter(id=>id!==g.target).map(id=>[id,g.target])));},
  prepare(entry){
+  const system=this.galaxySystems.find(g=>g.distanceLy&&g.members.includes(entry.id)&&(g.names||g.distanceLy!==entry.d));
+  if(system){
+   const d=system.distanceLy,measurement=IMPORTED_CATALOG.galaxyDistanceMeasurements[entry.id];
+   const diameterLy=entry.angularMajorArcmin>0?d*entry.angularMajorArcmin*Math.PI/10800:entry.diameterLy;
+   const absoluteV=entry.apparentV!=null?entry.apparentV-5*Math.log10(d/3.2615637771674336/10):null;
+   entry={...entry,d,diameterLy,minorDiameterLy:entry.angularMinorArcmin>0?d*entry.angularMinorArcmin*Math.PI/10800:diameterLy,
+    absoluteV,visualLuminositySolar:absoluteV==null?null:10**((4.85-absoluteV)/2.5),
+    name:system.names?.[system.members.indexOf(entry.id)]||entry.name,
+    aliases:[...new Set([entry.name,...entry.aliases||[]])],source:system.source,angularSizeSource:'https://github.com/mattiaverga/OpenNGC',
+    galaxySystem:system.id,galaxySystemPrimary:system.members[0],coordinateModel:'galaxy-system-v1',
+    positionQuality:'approximate',distanceMethod:system.note,coordinateNote:system.note,
+    sharedDistance:{distanceLy:d,errorLy:null,source:system.source,relativeDepthLy:null,model:'common-distance'},
+    catalogMeasurements:[...(entry.catalogMeasurements||[]),{catalog:measurement.sourceIdentifier?'SIMBAD':'literature',originalCatalog:entry.catalog,source:entry.source,
+     distanceLy:entry.d,raDeg:entry.raDeg,decDeg:entry.decDeg,units:{distanceLy:'ly',raDeg:'deg',decDeg:'deg',data:'original units in originalUnit'},data:measurement}]};
+  }
   const group=this.groups.find(g=>g.target===entry.id);
   if(group){
    const components=group.members.map(id=>IMPORTED_CATALOG.objects.find(o=>o.id===id));
@@ -51,6 +67,7 @@ for(const sourceEntry of IMPORTED_CATALOG.objects){
  const located=Number.isFinite(entry.d)&&entry.d>0&&Number.isFinite(entry.raDeg)&&Number.isFinite(entry.decDeg);
  const o={...entry,...(located?Space.point(Space.fromSky(entry.raDeg,entry.decDeg,entry.d)):{p3:null,x:NaN,y:NaN}),navigable:located,index:OBJECTS.length,desc:entry.distanceMethod};
  o.facts={class:entry.type,mass:'Нет индивидуальной оценки в выбранном каталоге.',band:'V',visual:entry.absoluteV==null?null:{absoluteV:entry.absoluteV,solarV:entry.visualLuminositySolar},lumUnknown:entry.visualLuminositySolar==null?entry.luminosityNote:null,note:[entry.luminosityNote,entry.distanceMethod,entry.sizeNote].filter(Boolean).join(' '),refs:[[entry.source,entry.catalog],["catalog-sources.json","Происхождение, преобразования и лицензии"]]};
+ if(entry.galaxySystem)o.facts.refs.push([entry.angularSizeSource,'Направления, угловые размеры и позиционные углы OpenNGC'],...entry.catalogMeasurements.map(m=>[m.source,'Исходная оценка расстояния компонента']));
  if(entry.catalogIdentityNote){o.desc=entry.catalogIdentityDescription;o.facts.note+=' '+entry.catalogIdentityNote;o.facts.refs.push(...entry.catalogIdentitySources);}
  if(!located)o.coordinateNote='Не хватает надёжного расстояния или направления для полной 3D-позиции. Объект присутствует в атласе; точка физического маршрута недоступна.';
  if(entry.periodSeconds)o.facts.extra=['Период вращения',entry.periodSeconds.toLocaleString('ru-RU',{maximumSignificantDigits:6})+' с'];

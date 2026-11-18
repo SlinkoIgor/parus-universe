@@ -173,7 +173,7 @@ const scaleDistanceText = (n) =>
     : n < 1000
       ? fmt(n, n < 1 ? 2 : 0) + ' св. лет'
       : distanceText(n);
-const objectIn = (index, id) => ExtendedCatalog.pinned.get(id)?.historicalStellarNavigation
+const objectIn = (index, id) => (ExtendedCatalog.pinned.get(id)?.historicalStellarNavigation || ExtendedCatalog.pinned.get(id)?.historicalCoordinateNavigation)
   ? ExtendedCatalog.get(id)
   : index.get(id) || ExtendedCatalog.get(id);
 const object = (id) => objectIn(MapDetails.frameObjects || MapDetails.objectsIndex(), id);

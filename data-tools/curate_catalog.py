@@ -113,7 +113,9 @@ metadata['provenance'][1]['changes']='All132 Common names rows plus M101. Coordi
 metadata['provenance'][1]['sha256']=hashlib.sha256((RAW/'NGC.csv').read_bytes()).hexdigest()
 metadata['provenance'][2]['changes']='Original Vela and Crab pulsar landmarks plus named Geminga distance retained; arbitrary20-nearest pulsar filler removed.'
 metadata['provenance'].append({'name':'SIMBAD named deep-sky distances','url':'https://simbad.cds.unistra.fr/simbad/','license':'ODbL for distance subset; see per-object reference','snapshot':'data-tools/galaxy-distances.json','changes':'Traceable non-redshift distance selections. Unresolved objects remain in atlas without invented physical positions.'})
-(ROOT/'dist/catalog-import.js').write_text('// Derived catalog: per-record source/licenses in catalog-sources.json.\nconst IMPORTED_CATALOG='+json.dumps({'objects':objects,'knownCoordinates':known,'identityPolicy':json.loads((P/'deep-sky-identities.json').read_text())},ensure_ascii=False,separators=(',',':'))+';\n')
+identity_policy=json.loads((P/'deep-sky-identities.json').read_text())
+galaxy_measurements={ident:distances['objects'][o['ngc']] for group in identity_policy['galaxySystems'] if group.get('distanceLy') for ident in group['members'] for o in objects if o['id']==ident}
+(ROOT/'dist/catalog-import.js').write_text('// Derived catalog: per-record source/licenses in catalog-sources.json.\nconst IMPORTED_CATALOG='+json.dumps({'objects':objects,'knownCoordinates':known,'identityPolicy':identity_policy,'galaxyDistanceMeasurements':galaxy_measurements},ensure_ascii=False,separators=(',',':'))+';\n')
 (ROOT/'dist/catalog-sources.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2)+'\n')
 (P/'selection-audit.json').write_text(json.dumps({'nearestHygIds':[int(q['id']) for q in near],'brightestHygIds':[int(q['id']) for q in bright],'iauNames':[n['name'] for n in iau],'missingDistances':[dict(name=o['name'],id=o['id']) for o in objects if o['d'] is None]},ensure_ascii=False,indent=2)+'\n')
 print('Selected',len(objects),'objects,',len(iau),'IAU names;',sum(o['d'] is None for o in objects),'unknown distances;',len(supplement),'outside HYG')

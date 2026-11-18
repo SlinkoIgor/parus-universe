@@ -12,6 +12,12 @@ text = path.read_text()
 prefix, payload = text.split('const IMPORTED_CATALOG=', 1)
 data, end = json.JSONDecoder().raw_decode(payload)
 data['identityPolicy'] = json.loads((ROOT / 'data-tools/deep-sky-identities.json').read_text())
+distances = json.loads((ROOT / 'data-tools/galaxy-distances.json').read_text())['objects']
+data['galaxyDistanceMeasurements'] = {
+    ident: distances[o['ngc']]
+    for group in data['identityPolicy']['galaxySystems'] if group.get('distanceLy')
+    for ident in group['members'] for o in data['objects'] if o['id'] == ident
+}
 ids = {o['id'] for o in data['objects']}
 seen = set()
 for group in data['identityPolicy']['groups']:
@@ -20,5 +26,7 @@ for group in data['identityPolicy']['groups']:
     seen.update(group['members'])
 for group in data['identityPolicy']['distinct']:
     assert set(group['members']) <= ids or not group.get('names')
+for group in data['identityPolicy']['galaxySystems']:
+    assert set(group['members']) <= ids
 path.write_text(prefix + 'const IMPORTED_CATALOG=' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + payload[end:])
 print('Attached reviewed deep-sky identity policy; source objects unchanged')

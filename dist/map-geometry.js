@@ -3,7 +3,11 @@
 // only; sky position angles are transformed from their source axes below.
 const MapGeometry={
  version:2,models:MAP_GEOMETRY_MODELS,cache:new WeakMap(),spines:new WeakMap(),
- resolve(o){return o?.id&&(globalThis.MapLayout?.resolve?.(o.id)||globalThis.OBJECTS?.find(q=>q.id===o.id))||o;},
+ resolve(o){
+  if(o?.historicalCoordinateNavigation)return o;
+  const canonical=o?.id&&globalThis.MapLayout?.lookup(o.id);
+  return canonical?.galaxySystem?canonical:o?.id&&(globalThis.MapLayout?.resolve?.(o.id)||globalThis.OBJECTS?.find(q=>q.id===o.id))||o;
+ },
  // Legacy diagrammatic stops lack coordinate provenance. Survey structures
  // and distant survey centres also have arrival anchors, but retain their
  // published source coordinates even when their extent is unknown.

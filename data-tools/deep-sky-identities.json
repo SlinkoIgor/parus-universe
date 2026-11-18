@@ -1,6 +1,32 @@
 {
   "version": 1,
   "policy": "Explicitly reviewed game destinations, never automatic identity merging by common name or angular proximity. Components retain their separate source records; the game can represent their whole complex as one destination.",
+  "galaxySystemVersion": 1,
+  "galaxySystems": [
+    {
+      "id": "butterfly",
+      "name": "Бабочка",
+      "members": ["opengc-ngc4567", "opengc-ngc4568"],
+      "names": ["Бабочка — северная галактика", "Бабочка — южная галактика"],
+      "distanceLy": 56751209.722713344,
+      "source": "https://atlas-of-galaxies.mpifr-bonn.mpg.de/41517/ngc4567",
+      "note": "Взаимодействующая пара NGC 4567/4568. MPIfR приводит общую медианную оценку расстояния 17,4 Мпк. Для обоих компонентов принята эта дальность; измеренные направления и угловые размеры сохранены. Видимые диски перекрываются. Индивидуальная глубина между центрами неизвестна; одинаковая номинальная дальность — модель размещения, а не измерение нулевой глубины. Погрешность общей оценки в источнике не указана."
+    },
+    {
+      "id": "antennae",
+      "name": "Антенны",
+      "members": ["opengc-ngc4038", "opengc-ngc4039"],
+      "distanceLy": 68000000,
+      "source": "https://svs.gsfc.nasa.gov/14504/",
+      "note": "Взаимодействующая пара Антенны, NGC 4038/4039. Сохранена принятая общая округлённая оценка NASA: 68 млн св. лет. Измеренные направления и угловые размеры сохранены. Индивидуальная глубина и погрешность общей оценки не заданы; равная номинальная дальность не измеряет глубину."
+    },
+    {
+      "id": "eyes",
+      "members": ["opengc-ngc4435", "opengc-ngc4438"],
+      "distancePolicy": "preserve-independent",
+      "note": "Проверены обе записи с общим именем Eyes. Само имя и перекрытие проекций не определяют общую дальность или глубину. Без выбранной общей оценки системы сохраняются отдельные литературные расстояния; автоматическое сближение по имени запрещено."
+    }
+  ],
   "groups": [
     {
       "id": "messier-16-complex",

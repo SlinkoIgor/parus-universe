@@ -11,8 +11,8 @@ const MapRadial={
   return rho>0?{x:p[0]/rho*r,y:-p[1]/rho*r}:{x:0,y:(p[2]<0?1:-1)*r};
  },
  category(o){return o.kind==='cluster'?(o.catalogClass==='galaxy-cluster'||/галактик/i.test([o.type,o.name,o.facts?.class].join(' '))?'galaxy-cluster':'stellar-cluster'):o.kind;},
- hostId(o){return o.nuclearStar?'sgr':MapLayout.anchorId(o);},
- resolve(id){return this.data.anchors[id]||MapLayout.resolve?.(id)||globalThis.OBJECTS?.find(o=>o.id===id);},
+ hostId(o){return o.nuclearStar?'sgr':o.galaxySystemPrimary&&o.galaxySystemPrimary!==o.id?o.galaxySystemPrimary:MapLayout.anchorId(o);},
+ resolve(id){const current=MapLayout.lookup(id);return current?.galaxySystem?current:this.data.anchors[id]||MapLayout.resolve?.(id)||current;},
  distanceDomain(o){
   return this.profile.distanceDomains?.find(d=>d.kinds.includes(this.category(o))&&o.id!==d.origin)||null;
  },
@@ -38,7 +38,7 @@ const MapRadial={
  },
  groupKeys(o){return [...new Set([o.catalogData,...(o.catalogMeasurements||[]).map(m=>m.data)].filter(d=>d?.groupPGC>0).map(d=>String(d.groupPGC)))].sort();},
  decision(o){
-  const hostId=this.hostId(o),host=hostId&&(this.data.anchors[hostId]||((o.synthetic||o.blackHoleCatalog||o.stellarSystem)&&this.resolve(hostId)));
+  const hostId=this.hostId(o),host=hostId&&(o.galaxySystem?this.resolve(hostId):this.data.anchors[hostId]||((o.synthetic||o.blackHoleCatalog||o.stellarSystem)&&this.resolve(hostId)));
   // Static catalogue hosts are admitted by the frozen registry. Generated game
   // stars may reference a newly pinned object without changing any old record.
   // Declared components share one rigid XY frame, including inside the solar
@@ -78,7 +78,7 @@ const MapRadial={
   if(!o.p3&&!o.id)return MapLayout.ordinaryProject(o);
   // Galaxy render helpers carry no membership metadata; use the same object as
   // points, selection, layers and navigation, including pinned search results.
-  const full=o.id&&(MapLayout.resolve?.(o.id)||this.data.anchors[o.id]);
+  const canonical=o.id&&MapLayout.lookup(o.id),full=o.historicalCoordinateNavigation?o:canonical?.galaxySystem?canonical:o.id&&(MapLayout.resolve?.(o.id)||this.data.anchors[o.id]);
   return this.placement(full?.p3?full:o).position;
  },
  explain(o){

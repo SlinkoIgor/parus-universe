@@ -29,13 +29,19 @@ const ExtendedCatalog = {
         audited = new Set(EXTENDED_BOOT.stellarCatalog?.auditTargets || []);
       this.systemList = [...EXTENDED_BOOT.systems.filter(s => !replaced.has(s.id) &&
         !(s.source?.includes('HYG-Database') && s.members.some(id=>audited.has(id)))), ...added];
+      for (const s of CatalogIdentities.galaxySystems.filter(s=>s.distanceLy)) {
+        if (this.systemList.some(old=>old.id==='system-'+s.id)) continue;
+        this.systemList.push({id:'system-'+s.id,name:s.name,
+          members:s.members,primary:s.members[0],links:s.members.slice(1).map(id=>[s.members[0],id]),
+          confirmed:true,relationship:'interacting',schematic:true,source:s.source,note:s.note});
+      }
     }
     return this.systemList;
   },
   transitions: new Map(),
   cutKey: null,
   matchesMap(o, categoryOnly = false) {
-    if (!o || o.supersededBy || globalThis.MapGeometry?.unlocated(o)) return false;
+    if (!o || o.supersededBy || o.historicalCoordinateNavigation || globalThis.MapGeometry?.unlocated(o)) return false;
     const cache = categoryOnly || typeof MapDetails === 'undefined' ? null : MapDetails.frameMatches,
       known = cache?.get(o);
     if (known !== undefined) return known;
@@ -178,7 +184,7 @@ const ExtendedCatalog = {
   },
   get(id) {
     const historical=this.pinned.get(id);
-    if(historical?.supersededBy || historical?.historicalStellarNavigation)return historical;
+    if(historical?.supersededBy || historical?.historicalStellarNavigation || historical?.historicalCoordinateNavigation)return historical;
     id=this.identityRedirects[id]||id;
     return (
       this.coreIndex?.get(id) ||
@@ -520,7 +526,8 @@ const ExtendedCatalog = {
       const o = this.coreIndex.get(id);
       if (!o) continue;
       o.aliases = [...new Set([...(o.aliases || []), ...(patch.aliases || [])])];
-      o.catalogMeasurements = patch.catalogMeasurements;
+      o.catalogMeasurements = [...new Map([...(o.catalogMeasurements || []), ...patch.catalogMeasurements]
+        .map(m => [JSON.stringify(m), m])).values()];
       for (const field of [
         'massSolar',
         'massUncertaintySolar',
@@ -577,7 +584,7 @@ const ExtendedCatalog = {
   async refreshSaved() {
     const ids = new Set(
       [...this.pinned.values()]
-        .filter((o) => !o.synthetic && !o.historicalStellarNavigation && o.catalogRevision !== EXTENDED_BOOT.revision)
+        .filter((o) => !o.synthetic && !o.historicalStellarNavigation && !o.historicalCoordinateNavigation && o.catalogRevision !== EXTENDED_BOOT.revision)
         .map((o) => o.id),
     );
     if (!ids.size) return;
@@ -776,7 +783,7 @@ const ExtendedCatalog = {
   },
   pin(o) {
     if (!o) return o;
-    if (o.historicalStellarNavigation) {this.pinned.set(o.id,o);return o;}
+    if (o.historicalStellarNavigation || o.historicalCoordinateNavigation) {this.pinned.set(o.id,o);return o;}
     const core = OBJECTS.find((q) => q.id === o.id);
     if (core) return core;
     globalThis.StellarClusters?.prepare(o);
@@ -789,7 +796,8 @@ const ExtendedCatalog = {
   repairLocalStar(o, seen = new Set()) {
     if (!o?.synthetic || !o.parentObject || seen.has(o.id)) return;
     seen.add(o.id);
-    const host = this.coreIndex?.get(o.parentObject) || this.pinned.get(o.parentObject);
+    const historical = this.pinned.get(o.parentObject),
+      host = historical?.historicalCoordinateNavigation ? historical : this.coreIndex?.get(o.parentObject) || historical;
     if (!host?.p3 || !o.p3) return;
     this.repairLocalStar(host, seen);
     if(o.arrivalHost||o.id.startsWith('arrival-star:')){
@@ -900,6 +908,7 @@ const ExtendedCatalog = {
   capture(saved) {
     saved.catalogGeometry = MapLayout.version;
     saved.catalogRevision = EXTENDED_BOOT.revision;
+    saved.galaxySystemVersion = IMPORTED_CATALOG.identityPolicy.galaxySystemVersion;
     const ids = new Set([
       saved.current,
       saved.selected,
@@ -922,7 +931,7 @@ const ExtendedCatalog = {
       if (anchor) ids.add(anchor);
     }
     saved.catalogObjects = [...ids].map((id) => this.pinned.get(id) ||
-      (this.coreIndex.get(id)?.stellarSystem ? this.coreIndex.get(id) : null)).filter(Boolean);
+      (this.coreIndex.get(id)?.stellarSystem || this.coreIndex.get(id)?.galaxySystem ? this.coreIndex.get(id) : null)).filter(Boolean);
     for (const [id, o] of this.pinned) if (!ids.has(id) && !this.isSystemMember(o)) this.pinned.delete(id);
   },
   restore(saved) {
@@ -935,8 +944,8 @@ const ExtendedCatalog = {
     for (const [id,point] of [[saved.flight?.target,saved.flight?.aim],[saved.flight?.fromId,saved.flight?.from],
       [!saved.flight&&!saved.orbit?saved.current:null,saved.ship]]) {
       const current=this.coreIndex.get(id);
-      if(current?.stellarSystem&&point?.p3?.every(Number.isFinite)&&!saved.catalogObjects.some(o=>o.id===id))
-        saved.catalogObjects.push({...current,...Space.point(point.p3)});
+      if((current?.stellarSystem||current?.galaxySystem)&&point?.p3?.every(Number.isFinite)&&!saved.catalogObjects.some(o=>o.id===id))
+        saved.catalogObjects.push({...current,...Space.point(point.p3),...(current.galaxySystem?{d:Math.hypot(...point.p3)}:{})});
     }
     const restoring = new Map((saved?.catalogObjects || []).filter(o => o?.id).map(o => [o.id, o]));
     const navigationIds = new Set([
@@ -955,7 +964,8 @@ const ExtendedCatalog = {
     // Old core destinations were usually omitted from catalogObjects. Retain
     // their original component position privately when an old voyage uses it.
     for(const id of navigationIds){
-      if(!CatalogIdentities.redirects[id]||restoring.has(id))continue;
+      const oldGalaxy=this.coreIndex.get(id)?.galaxySystem&&saved.galaxySystemVersion!==IMPORTED_CATALOG.identityPolicy.galaxySystemVersion;
+      if(!(CatalogIdentities.redirects[id]||oldGalaxy)||restoring.has(id))continue;
       const source=IMPORTED_CATALOG.objects.find(o=>o.id===id);
       if(!source||![source.raDeg,source.decDeg,source.d].every(Number.isFinite))continue;
       const old={...source,...Space.point(Space.fromSky(source.raDeg,source.decDeg,source.d)),
@@ -983,6 +993,14 @@ const ExtendedCatalog = {
         Object.assign(o,{supersededBy:successor,historicalNavigation:true,name:canonical?.name||o.name});
       }
       const authoritative = this.coreIndex.get(o.id);
+      const coordinateNavigation = authoritative?.galaxySystem && navigationIds.has(o.id) && o.p3?.every(Number.isFinite) &&
+        (o.historicalCoordinateNavigation || Math.hypot(...o.p3.map((v,i)=>v-authoritative.p3[i]))>1e-6);
+      if (coordinateNavigation) {
+        o.historicalCoordinateNavigation = true;
+        delete o.coordinateModel;
+        o.name = authoritative.name;
+        o.coordinateNote = 'Прежняя навигационная оценка сохранена для существующего маршрута или стоянки. '+authoritative.distanceMethod;
+      }
       const stellarNavigation = authoritative?.stellarSystem && navigationIds.has(o.id) && o.p3?.every(Number.isFinite) &&
         (o.historicalStellarNavigation || Math.hypot(...o.p3.map((v,i)=>v-authoritative.p3[i]))>1e-12);
       if (stellarNavigation) {
@@ -993,13 +1011,13 @@ const ExtendedCatalog = {
         Object.assign(o,{kind:authoritative.kind,type:authoritative.type,
           stellarSystem:authoritative.stellarSystem,stellarComponent:authoritative.stellarComponent});
         this.stellarProperties(o);
-      } else if (authoritative?.coordinateModel) this.adopt(o, authoritative, saved);
+      } else if (authoritative?.coordinateModel && !coordinateNavigation) this.adopt(o, authoritative, saved);
       const correction = (
         EXTENDED_BOOT.coordinateCorrections ||
         EXTENDED_BOOT.pulsarCorrections ||
         []
       ).find((r) => r[0] === o.id);
-      if (correction && !stellarNavigation) this.adopt(o, this.decode(correction), saved);
+      if (correction && !stellarNavigation && !coordinateNavigation) this.adopt(o, this.decode(correction), saved);
       if ((o.mapGeometry !== MapLayout.version || !Number.isFinite(o.mapPosition?.x) || !Number.isFinite(o.mapPosition?.y)) && o.p3?.every(Number.isFinite)) {
         const previous = o.mapGeometry ?? saved?.catalogGeometry ?? 1,
           raw = MapLayout.base(o.p3);

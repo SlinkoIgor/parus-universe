@@ -88,6 +88,7 @@ const detailedChecks = [
   'verify-black-hole-visibility.mjs',
   'verify-structure-labels.mjs',
   'verify-galaxy-identities.mjs',
+  'verify-galaxy-pairs.mjs',
   'verify-nebula-identities.mjs',
   'verify-map-overview.mjs',
   'verify-universe.mjs',

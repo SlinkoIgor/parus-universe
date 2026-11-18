@@ -18,7 +18,7 @@ const ArrivalStars = {
   },
   usable(o,used) {
     return o && ['star','home'].includes(o.kind) && !o.synthetic && !o.atlasOnly &&
-      !o.supersededBy && !o.historicalStellarNavigation && !used.has(o.id) && o.p3?.every(Number.isFinite);
+      !o.supersededBy && !o.historicalStellarNavigation && !o.historicalCoordinateNavigation && !used.has(o.id) && o.p3?.every(Number.isFinite);
   },
   async load() {
     if(this.index)return this.index;
