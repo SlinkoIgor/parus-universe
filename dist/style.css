@@ -1045,7 +1045,8 @@ dialog .quest-outro{margin:10px 0 0;color:var(--ink)}
 .menu-subheading{margin-top:6px;border-top:1px solid var(--line)}
 .menu-chapters button{justify-content:flex-start;gap:12px;min-height:38px;padding:9px 12px}
 .menu-chapters button span{flex:none;width:16px;font:9px var(--mono);color:var(--muted)}
-dialog.library-dialog{width:min(800px,94vw);padding:52px 56px 44px;max-height:90dvh}
+dialog.library-dialog{--lib-pad-top:52px;--lib-pad-side:56px;width:min(800px,94vw);padding:var(--lib-pad-top) var(--lib-pad-side) 44px;max-height:90dvh}
+dialog.library-dialog>.modal-close{position:sticky;top:calc(13px - var(--lib-pad-top));right:auto;float:right;margin:calc(13px - var(--lib-pad-top)) calc(13px - var(--lib-pad-side)) 0 0}
 .lib{--lib-text:color-mix(in srgb,var(--ink) 84%,var(--paper));--lib-soft:color-mix(in srgb,var(--ink) 7%,var(--paper))}
 .lib>h2{font-size:38px;line-height:1.08;margin:18px 0 22px}
 .lib>h3{font-size:19px;letter-spacing:-.3px;margin:38px 0 10px}
@@ -1071,6 +1072,7 @@ dialog.library-dialog{width:min(800px,94vw);padding:52px 56px 44px;max-height:90
 .lib-fig .s-dim{opacity:.45}
 .lib-fig .s-dash{stroke-dasharray:4 4}
 .lib-fig .s-bold{stroke-width:2}
+.lib [id]{scroll-margin-top:24px}
 .lib-fig .f-ink{fill:currentColor;stroke:none}
 .lib-fig .f-paper{fill:var(--paper)}
 .lib-fig .f-soft{fill:currentColor;fill-opacity:.07;stroke:none}
@@ -1100,7 +1102,7 @@ dialog.library-dialog{width:min(800px,94vw);padding:52px 56px 44px;max-height:90
 .lib-contents button span{flex:none;font:9px var(--mono);color:var(--muted)}
 .lib-contents button[aria-current]{font-weight:600;color:var(--ink)}
 @media(max-width:700px){
- dialog.library-dialog{padding:40px 22px 30px}
+ dialog.library-dialog{--lib-pad-top:40px;--lib-pad-side:22px;padding:var(--lib-pad-top) var(--lib-pad-side) 30px}
  .lib>h2{font-size:29px}
  .lib .lib-lead{font-size:15px}
  .lib-contents{grid-template-columns:1fr}

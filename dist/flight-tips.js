@@ -10,34 +10,44 @@ const FlightTips = {
   entries: [
     {id:'double-click', learnable:true, text:'Двойной клик запускает полёт к объекту. Если маршрут уже задан, объект становится его последней точкой. Во время полёта двойной клик добавляет следующий участок.'},
     {id:'shift-route', learnable:true, text:'Чтобы построить маршрут из нескольких точек, удерживайте Shift и выбирайте объекты на карте.'},
-    {id:'black-holes', learnable:true, after:['shift-route'], text:'Чёрные дыры можно использовать для гравитационных манёвров.'},
-    {id:'supernova', learnable:true, after:['collector'], text:'Для перелетов на длинные расстояния используйте "взрыв сверхновой". Звезда при этом будет уничтожена.'},
-    {id:'collector', when:'collector', text:'Коллектор собирает свет звезды и направляет его узким пучком на парус.'},
-    {id:'gas-collection', when:'gas', text:'Во время торможения парус собирает межзвездный газ в топливный бак.'},
-    {id:'braking-refill', when:'gas', after:['gas-collection'], text:'Торможение часто занимает много времени из-за необходимости заполнить топливный бак межзвездным газом.'},
-    {id:'stellar-luminosity', when:'sail', text:'Скорость разгона от звезды зависит от ее светимости.'},
-    {id:'collector-survival', after:['collector','supernova'], text:'Коллектор расположен в 100 а.е. от звезды. При взрыве сверхновой он фокусирует фотонный поток около 5 суток, прежде чем выброс вещества уничтожит конструкцию.'},
-    {id:'time-dilation', text:'Чем ближе скорость полёта к скорости света, тем медленнее идут бортовые часы по сравнению с часами на Земле.'},
-    {id:'time-dilation-99', after:['time-dilation'], text:'При полёте на 99% скорости света за один бортовой год на Земле проходит около 7,1 года.'},
-    {id:'time-dilation-99995', after:['time-dilation-99'], text:'При полёте на 99,995% скорости света за один бортовой год на Земле проходит около ста лет.'},
-    {id:'proper-time-distance', after:['time-dilation'], text:'Перелёт на сотни световых лет может занять лишь несколько бортовых лет: при околосветовой скорости время на корабле замедляется.'},
-    {id:'light-speed-limit', text:'Даже непрерывный разгон не позволит кораблю достичь скорости света: для этого потребовалась бы бесконечная энергия.'},
-    {id:'expanding-flight', when:'expansion', text:'Расширение Вселенной продолжается и во время полёта. Планировщик учитывает, насколько за это время успеет удалиться далёкая цель.'},
-    {id:'bound-local-group', when:'expansion', after:['expanding-flight'], text:'Гравитация удерживает галактики Местной группы вместе, поэтому расширение Вселенной не меняет расстояние между ними.'},
-    {id:'ancient-light', when:'expansion', after:['cosmic-horizon'], text:'Свет далёкой галактики мог отправиться к нам миллиарды лет назад. Сегодня из-за расширения Вселенной она уже может быть недостижима.'},
-    {id:'cosmic-horizon', when:'expansion', after:['cosmic-chase'], text:'В начале игры радиус наблюдаемой Вселенной — 46,1 млрд световых лет, а предел достижимости даже для света — около 16,7 млрд.'},
-    {id:'cosmic-chase', when:'expansion', after:['expanding-flight'], text:'Из-за расширения Вселенной корабль может не догнать далёкую галактику.'},
-    {id:'superluminal-expansion', when:'expansion', after:['expanding-flight','light-speed-limit'], text:'Расширение пространства может отдалять объекты от корабля быстрее скорости света.'},
-    {id:'sail-doppler', when:'sail', after:['stellar-luminosity','time-dilation'], text:'Чем быстрее парус удаляется от звезды, тем слабее его толкает свет. Из-за эффекта Доплера фотоны несут меньше энергии для корабля.'},
-    {id:'beam-diffraction', after:['collector'], text:'Дифракция расширяет световой пучок коллектора даже при идеальном наведении. Поэтому вдали от коллектора часть света проходит мимо паруса.'},
-    {id:'photons-in-flight', after:['collector-survival'], text:'После разрушения коллектора из-за взрыва сверхновой разгон парусом может продолжаться: ранее отправленный свет ещё находится в пути к кораблю.'},
-    {id:'photon-engine', when:'engine', text:'Фотонный двигатель создаёт тягу, превращая собранное вещество в свет.'},
-    {id:'flyby-course', after:['black-holes'], text:'Гравитационный манёвр у чёрной дыры позволяет повернуть к следующей цели без остановки и повторного разгона.'},
-    {id:'flyby-stars', after:['flyby-course'], text:'На околосветовой скорости гравитация обычной звезды слабо изгибает путь корабля. Для сильных поворотов в игре используются чёрные дыры.'},
-    {id:'flyby-angle', after:['flyby-course'], text:'Угол гравитационного поворота зависит от скорости и расстояния до чёрной дыры. Планировщик подбирает параметры сближения так, чтобы избежать области захвата.'},
+    {id:'black-holes', library:['gravity','flyby'], learnable:true, after:['shift-route'], text:'Чёрные дыры можно использовать для гравитационных манёвров.'},
+    {id:'supernova', library:['flight','supernova'], learnable:true, after:['collector'], text:'Для перелетов на длинные расстояния используйте "взрыв сверхновой". Звезда при этом будет уничтожена.'},
+    {id:'collector', library:['flight','collector'], when:'collector', text:'Коллектор собирает свет звезды и направляет его узким пучком на парус.'},
+    {id:'gas-collection', library:['flight','braking'], when:'gas', text:'Во время торможения парус собирает межзвездный газ в топливный бак.'},
+    {id:'braking-refill', library:['flight','braking'], when:'gas', after:['gas-collection'], text:'Торможение часто занимает много времени из-за необходимости заполнить топливный бак межзвездным газом.'},
+    {id:'stellar-luminosity', library:['flight','collector'], when:'sail', text:'Скорость разгона от звезды зависит от ее светимости.'},
+    {id:'collector-survival', library:['flight','supernova'], after:['collector','supernova'], text:'Коллектор расположен в 100 а.е. от звезды. При взрыве сверхновой он фокусирует фотонный поток около 5 суток, прежде чем выброс вещества уничтожит конструкцию.'},
+    {id:'time-dilation', library:['relativity','clocks'], text:'Чем ближе скорость полёта к скорости света, тем медленнее идут бортовые часы по сравнению с часами на Земле.'},
+    {id:'time-dilation-99', library:['relativity','clocks'], after:['time-dilation'], text:'При полёте на 99% скорости света за один бортовой год на Земле проходит около 7,1 года.'},
+    {id:'time-dilation-99995', library:['relativity','clocks'], after:['time-dilation-99'], text:'При полёте на 99,995% скорости света за один бортовой год на Земле проходит около ста лет.'},
+    {id:'proper-time-distance', library:['relativity','clocks'], after:['time-dilation'], text:'Перелёт на сотни световых лет может занять лишь несколько бортовых лет: при околосветовой скорости время на корабле замедляется.'},
+    {id:'light-speed-limit', library:['relativity','rapidity'], text:'Даже непрерывный разгон не позволит кораблю достичь скорости света: для этого потребовалась бы бесконечная энергия.'},
+    {id:'expanding-flight', library:['gravity','expansion'], when:'expansion', text:'Расширение Вселенной продолжается и во время полёта. Планировщик учитывает, насколько за это время успеет удалиться далёкая цель.'},
+    {id:'bound-local-group', library:['gravity','expansion'], when:'expansion', after:['expanding-flight'], text:'Гравитация удерживает галактики Местной группы вместе, поэтому расширение Вселенной не меняет расстояние между ними.'},
+    {id:'ancient-light', library:['gravity','horizons'], when:'expansion', after:['cosmic-horizon'], text:'Свет далёкой галактики мог отправиться к нам миллиарды лет назад. Сегодня из-за расширения Вселенной она уже может быть недостижима.'},
+    {id:'cosmic-horizon', library:['gravity','horizons'], when:'expansion', after:['cosmic-chase'], text:'В начале игры радиус наблюдаемой Вселенной — 46,1 млрд световых лет, а предел достижимости даже для света — около 16,7 млрд.'},
+    {id:'cosmic-chase', library:['gravity','expansion'], when:'expansion', after:['expanding-flight'], text:'Из-за расширения Вселенной корабль может не догнать далёкую галактику.'},
+    {id:'superluminal-expansion', library:['gravity','expansion'], when:'expansion', after:['expanding-flight','light-speed-limit'], text:'Расширение пространства может отдалять объекты от корабля быстрее скорости света.'},
+    {id:'sail-doppler', library:['relativity','doppler'], when:'sail', after:['stellar-luminosity','time-dilation'], text:'Чем быстрее парус удаляется от звезды, тем слабее его толкает свет. Из-за эффекта Доплера фотоны несут меньше энергии для корабля.'},
+    {id:'beam-diffraction', library:['flight','collector'], after:['collector'], text:'Дифракция расширяет световой пучок коллектора даже при идеальном наведении. Поэтому вдали от коллектора часть света проходит мимо паруса.'},
+    {id:'photons-in-flight', library:['flight','supernova'], after:['collector-survival'], text:'После разрушения коллектора из-за взрыва сверхновой разгон парусом может продолжаться: ранее отправленный свет ещё находится в пути к кораблю.'},
+    {id:'photon-engine', library:['flight','engine'], when:'engine', text:'Фотонный двигатель создаёт тягу, превращая собранное вещество в свет.'},
+    {id:'flyby-course', library:['gravity','flyby'], after:['black-holes'], text:'Гравитационный манёвр у чёрной дыры позволяет повернуть к следующей цели без остановки и повторного разгона.'},
+    {id:'flyby-stars', library:['gravity','flyby'], after:['flyby-course'], text:'На околосветовой скорости гравитация обычной звезды слабо изгибает путь корабля. Для сильных поворотов в игре используются чёрные дыры.'},
+    {id:'flyby-angle', library:['gravity','flyby'], after:['flyby-course'], text:'Угол гравитационного поворота зависит от скорости и расстояния до чёрной дыры. Планировщик подбирает параметры сближения так, чтобы избежать области захвата.'},
   ],
   current: null,
   learned: null,
+  libraryLinks: new Map(),
+  libraryAction(reference) {
+    if (!reference) return null;
+    const key = reference.join('/');
+    if (!this.libraryLinks.has(key)) {
+      const [chapter, section] = reference;
+      this.libraryLinks.set(key, {label:'В библиотеке', run:() => Library.open(chapter, section)});
+    }
+    return this.libraryLinks.get(key);
+  },
   known(used = {}) {
     if (!this.learned) {
       try { this.learned = JSON.parse(localStorage.getItem('parus-flight-tip-used')); } catch {}
@@ -201,7 +211,7 @@ const FlightTips = {
     p.solarHorizonShown = true;
     log(this.solarHorizonText);
     clearTimeout(toastTimer);
-    Notices.render(this.solarHorizonText, 'warning', 'solar-horizon');
+    Notices.render(this.solarHorizonText, 'warning', 'solar-horizon', this.libraryAction(['gravity','horizons']));
     toastTimer = setTimeout(() => {
       if (node.dataset.kind !== 'solar-horizon') return;
       node.hidden = true;
@@ -262,7 +272,7 @@ const FlightTips = {
       persist();
     }
     clearTimeout(toastTimer);
-    Notices.render(current.tip.text,'tip','tip');
+    Notices.render(current.tip.text,'tip','tip',this.libraryAction(current.tip.library));
   },
 };
 globalThis.FlightTips = FlightTips;

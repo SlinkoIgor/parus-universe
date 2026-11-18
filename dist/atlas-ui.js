@@ -7,6 +7,8 @@ const Notices={
     const action=this.action;
     if(!action||$('toast').hidden)return;
     this.action=null;
+    UIPatch.apply($('toast'),'.has-action',false);
+    UIPatch.apply($('toastAction'),'hidden',true);
     clearTimeout(toastTimer);
     $('toast').hidden=true;
     action.run();

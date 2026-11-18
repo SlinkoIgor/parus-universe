@@ -34,6 +34,7 @@ const detailedChecks = [
   'verify-planner.mjs',
   'verify-time-controls.mjs',
   'verify-flight-tips.mjs',
+  'verify-flight-tip-links.mjs',
   'verify-quests.mjs',
   'verify-library.mjs',
   'verify-orbits.mjs',
