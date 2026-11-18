@@ -447,7 +447,7 @@ const Quests = {
   detailHTML(quest, visited) {
     const esc = this.esc, p = this.progress(quest, visited), active = this.isActive(quest), next = this.next(quest, visited),
       locked = this.locked(quest, visited),
-      head = '<button class="text-action quest-back" data-quest-back>← Все квесты</button>' +
+      head = '<div class="quest-nav"><button class="quest-back" data-quest-back>← Все квесты</button></div>' +
         '<div class="quest-status">' + this.statusText(quest, p, visited) + '</div>' +
         '<h3 class="quest-title">' + esc(quest.title) + '</h3>';
     if (locked)
