@@ -511,7 +511,6 @@ document.addEventListener('visibilitychange', () => {
   syncClock();
   persist();
 });
-document.addEventListener('selectionchange', () => UIContent.flush());
 window.addEventListener('pagehide', persist);
 resize();
 if (state.flight) fitRoute(object(state.flight.target));

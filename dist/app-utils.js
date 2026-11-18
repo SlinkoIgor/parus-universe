@@ -1,10 +1,9 @@
 'use strict';
 // Shared formatting and theme helpers. No simulation or startup work.
 const $ = (id) => document.getElementById(id);
-// Replacing a text node also removes the browser's selection. Reuse unchanged
-// content and defer changes to selected fragments until the selection moves.
+// Reuse unchanged content. Selected readouts update in place, keeping the
+// browser's selection attached to the live text instead of freezing its value.
 const UIContent = {
-  pending: new Map(),
   htmlValues: new WeakMap(),
   text(node, value) { this.write(node, 'textContent', value); },
   html(node, value) { this.write(node, 'innerHTML', value); },
@@ -15,29 +14,71 @@ const UIContent = {
   },
   commit(node, property, value) {
     const current = node[property], cached = this.htmlValues.get(node);
-    if (current === value || (property === 'innerHTML' && cached?.value === value && cached.dom === current)) {
-      this.pending.delete(node);
-      return;
-    }
-    const selection = document.getSelection?.();
-    if (selection && !selection.isCollapsed) {
-      for (let i = 0; i < selection.rangeCount; i++) {
-        if (selection.getRangeAt(i).intersectsNode(node)) {
-          this.pending.set(node, { property, value });
-          return;
-        }
-      }
-    }
-    node[property] = value;
+    if (current === value || (property === 'innerHTML' && cached?.value === value && cached.dom === current)) return;
+    const saved = this.selection(node);
+    if (saved) {
+      const source = node.cloneNode(false);
+      source[property] = value;
+      this.patch(node, source);
+      const [anchor, focus] = saved.points.map(point => this.restorePoint(node, point, saved.text));
+      saved.selection.setBaseAndExtent(anchor.node, anchor.offset, focus.node, focus.offset);
+    } else node[property] = value;
     if (property === 'innerHTML') this.htmlValues.set(node, { value, dom: node.innerHTML });
     else this.htmlValues.delete(node);
-    this.pending.delete(node);
   },
-  flush() {
-    for (const [node, { property, value }] of this.pending) {
-      if (node.isConnected === false) this.pending.delete(node);
-      else this.write(node, property, value);
+  selection(node) {
+    const selection = document.getSelection?.();
+    if (!selection?.rangeCount || (!node.contains(selection.anchorNode) && !node.contains(selection.focusNode))) return null;
+    const points = [[selection.anchorNode, selection.anchorOffset], [selection.focusNode, selection.focusOffset]]
+      .map(([container, offset]) => {
+        if (!node.contains(container)) return { node: container, offset, outside: true };
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        range.setEnd(container, offset);
+        return { node: container, offset, text: container.nodeValue, position: range.toString().length };
+      });
+    return { selection, points, text: node.textContent };
+  },
+  // Keep matching elements and text nodes, including the native mouse-drag
+  // anchor. Only changed attributes, text and structure need DOM mutations.
+  patch(node, source) {
+    for (let i = 0; i < source.childNodes.length; i++) {
+      const next = source.childNodes[i], child = node.childNodes[i];
+      if (!child) node.appendChild(next.cloneNode(true));
+      else if (child.nodeType !== next.nodeType || child.nodeName !== next.nodeName)
+        node.replaceChild(next.cloneNode(true), child);
+      else if (child.nodeType === 1) {
+        for (const attr of Array.from(child.attributes))
+          if (!next.hasAttribute(attr.name)) child.removeAttribute(attr.name);
+        for (const attr of next.attributes)
+          if (child.getAttribute(attr.name) !== attr.value) child.setAttribute(attr.name, attr.value);
+        this.patch(child, next);
+      } else if (child.nodeValue !== next.nodeValue) child.nodeValue = next.nodeValue;
     }
+    while (node.childNodes.length > source.childNodes.length) node.removeChild(node.lastChild);
+  },
+  offset(before, after, offset) {
+    if (offset === 0) return 0;
+    if (offset === before.length) return after.length;
+    let prefix = 0, suffix = 0;
+    while (prefix < Math.min(before.length, after.length) && before[prefix] === after[prefix]) prefix++;
+    while (suffix < Math.min(before.length, after.length) - prefix &&
+      before[before.length - suffix - 1] === after[after.length - suffix - 1]) suffix++;
+    if (offset <= prefix) return offset;
+    if (offset >= before.length - suffix) return after.length - (before.length - offset);
+    return Math.min(offset, after.length - suffix);
+  },
+  restorePoint(root, point, before) {
+    if (point.outside) return point;
+    if (point.node.nodeType === 3 && root.contains(point.node))
+      return { node: point.node, offset: this.offset(point.text, point.node.nodeValue, point.offset) };
+    let offset = this.offset(before, root.textContent, point.position);
+    const walker = document.createTreeWalker(root, 4); // NodeFilter.SHOW_TEXT
+    for (let text = walker.nextNode(); text; text = walker.nextNode()) {
+      if (offset <= text.length) return { node: text, offset };
+      offset -= text.length;
+    }
+    return { node: root, offset: root.childNodes.length };
   },
 };
 const UIPatch = {
