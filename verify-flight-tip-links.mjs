@@ -24,19 +24,25 @@ try {
   if(!tip.library){assert.equal(Notices.action,null);continue;}
   const [chapter,section]=tip.library,id='lib-'+chapter+'-'+section;
   assert.ok(Library.chapters.some(c=>c.id===chapter),tip.id+' chapter');
-  const target=$(id);target.scrollIntoView=options=>{scrolled={id,options};};
+  scrolled=null;$('infoDialog').scrollTop=321;
+  if(section)$(id).scrollIntoView=options=>{scrolled={id,options};};
   const action=Notices.action;
   assert.equal(action.label,'В библиотеке');
   for(let i=0;i<5;i++){FlightTips.render();assert.equal(Notices.action,action,'frames reuse the same action');}
   $('toast').onclick();
   assert.equal($('toastAction').hidden,true,'consumed actions leave no stale button on a later plain tip');
   assert.equal(Library.current,chapter,tip.id);assert.ok($('infoDialog').open);
-  assert.ok($('dialogContent').innerHTML.includes('id="'+id+'"'),tip.id+' section exists in the rendered chapter');
-  assert.deepEqual(scrolled,{id,options:{block:'start'}});
+  if(section){
+   assert.ok($('dialogContent').innerHTML.includes('id="'+id+'"'),tip.id+' section exists in the rendered chapter');
+   assert.deepEqual(scrolled,{id,options:{block:'start'}});
+  }else{
+   assert.equal($('infoDialog').scrollTop,0,tip.id+' opens at the chapter title');
+   assert.equal(scrolled,null,'chapter links do not jump to a section');
+  }
   assert.equal(physics(),before,'reading changes no flight state');
   assert.equal(JSON.stringify(state.flightTips),progress,'reading neither learns nor spends another tip');
  }
- console.log('PASS all '+linked.length+' factual tips link to existing library sections, control tips stay plain, and reading preserves flight/progress');
+ console.log('PASS all '+linked.length+' factual tips link to library sections or chapter beginnings, control tips stay plain, and reading preserves flight/progress');
 
  const tip=FlightTips.entries.find(t=>t.id==='time-dilation');
  prepare(tip);FlightTips.render();const action=Notices.action;

@@ -6,6 +6,7 @@ const FlightTips = {
   arrivalSeconds: 4,
   minimumReadingSeconds: 10,
   maximumShows: 2,
+  engineAdviceSeconds: 60,
   solarHorizonText: 'Корабль пересёк космологический горизонт Солнца. Вернуться к Земле уже невозможно: даже отправленный сейчас световой сигнал никогда её не достигнет.',
   entries: [
     {id:'double-click', learnable:true, text:'Двойной клик запускает полёт к объекту. Если маршрут уже задан, объект становится его последней точкой. Во время полёта двойной клик добавляет следующий участок.'},
@@ -35,6 +36,7 @@ const FlightTips = {
     {id:'flyby-course', library:['gravity','flyby'], after:['black-holes'], text:'Гравитационный манёвр у чёрной дыры позволяет повернуть к следующей цели без остановки и повторного разгона.'},
     {id:'flyby-stars', library:['gravity','flyby'], after:['flyby-course'], text:'На околосветовой скорости гравитация обычной звезды слабо изгибает путь корабля. Для сильных поворотов в игре используются чёрные дыры.'},
     {id:'flyby-angle', library:['gravity','flyby'], after:['flyby-course'], text:'Угол гравитационного поворота зависит от скорости и расстояния до чёрной дыры. Планировщик подбирает параметры сближения так, чтобы избежать области захвата.'},
+    {id:'sail-collector', library:['flight'], when:'longEngine', text:'Дальние перелёты можно ускорить: включите «Парус» и «Коллектор» для следующего полёта. Коллектор направляет свет звезды на парус.'},
   ],
   current: null,
   learned: null,
@@ -154,6 +156,14 @@ const FlightTips = {
     return p.shown[id] > 0 || p.experienced[id] === true ||
       (this.entries.find(t => t.id === id)?.learnable === true && p.used[id] === true);
   },
+  longEngineFlight(s = state) {
+    const f = s.flight, c = f?.mission?.setup;
+    if (!f || !(c ? c.engine && !c.dump && !c.sail : f.departureMode === 'engine')) return false;
+    // At tempo 1 a ship year takes one real second. Use the whole leg's
+    // physical plan, independent of tempo, elapsed wall time and remaining ETA.
+    const proper = f.mission?.proper ?? f.summary?.proper;
+    return Number.isFinite(proper) && proper > this.engineAdviceSeconds;
+  },
   context(s = state) {
     const f = s.flight, c = f?.mission?.setup, p = s.flightTips;
     return {
@@ -163,6 +173,7 @@ const FlightTips = {
         (f?.magnetic?.k > 0 && !f.magnetic.noCapture),
       engine: p.experienced['photon-engine'] === true,
       expansion: s.expansion !== false,
+      longEngine: this.longEngineFlight(s),
     };
   },
   eligible(t, p = state.flightTips, context = this.context()) {
@@ -232,7 +243,12 @@ const FlightTips = {
     const current = this.current;
     const remaining = (estimate || FlightEstimate.get())?.proper / speed;
     const elapsed = this.elapsed(f);
-    const story = remaining > 0 ? globalThis.Quests?.flightStory(f) : null;
+    const advice = this.entries.find(t => t.id === 'sail-collector');
+    const pendingAdvice = current.tip?.id !== advice.id && !paused && elapsed >= this.startDelaySeconds &&
+      remaining - this.arrivalSeconds > this.minimumReadingSeconds &&
+      this.longEngineFlight() && this.eligible(advice);
+    const priorityAdvice = pendingAdvice || current.tip?.id === advice.id;
+    const story = remaining > 0 && !priorityAdvice ? globalThis.Quests?.flightStory(f) : null;
     if (story) {
       if (!node.hidden && node.dataset.kind === 'notice' && (Notices.action || (Notices.context?.flight === f &&
           (elapsed < this.startDelaySeconds || Notices.context.elapsed >= this.startDelaySeconds)))) return;
@@ -252,20 +268,25 @@ const FlightTips = {
     // A speed change may move the arrival window away again.
     if (node.dataset.kind === 'arrival') node.hidden = true;
     if (!(remaining > 0) || elapsed < this.startDelaySeconds ||
-        !(elapsed + remaining > this.minimumFlightSeconds)) { this.hide(); return; }
-    if (current.tip?.learnable && state.flightTips.used[current.tip.id]) {
+        (!priorityAdvice && !(elapsed + remaining > this.minimumFlightSeconds))) { this.hide(); return; }
+    if (!pendingAdvice && current.tip?.learnable && state.flightTips.used[current.tip.id]) {
       this.hide();
       return;
     }
     // Startup messages yield after four seconds. Later user notices retain
     // priority; hidden tips never spend the expedition's display quota.
     if (!node.hidden && node.dataset.kind === 'notice' &&
-        Notices.context?.flight === f && Notices.context.elapsed >= this.startDelaySeconds) return;
-    if (!current.tip) {
+        ((priorityAdvice && Notices.action) ||
+         (Notices.context?.flight === f && Notices.context.elapsed >= this.startDelaySeconds))) return;
+    if (!current.tip || pendingAdvice) {
       if (paused) return;
       if (!(remaining - this.arrivalSeconds > this.minimumReadingSeconds)) return;
-      current.tip = this.pick();
+      current.tip = pendingAdvice ? advice : this.pick();
       if (!current.tip) return; // A later action may unlock a topic on this same leg.
+      if (pendingAdvice) {
+        state.flightTips.last = advice.id;
+        state.flightTips.queue = state.flightTips.queue.filter(id => id !== advice.id);
+      }
       state.flightTips.shown[current.tip.id] = (state.flightTips.shown[current.tip.id] || 0) + 1;
       // This receipt survives phase transitions and reloads of the same leg.
       f.flightTip = {id:current.tip.id};

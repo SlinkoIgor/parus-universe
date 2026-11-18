@@ -61,8 +61,9 @@ run(`cam={x:0,y:0,span:24};MapSlice.mode='full';assert.ok(MapAnnotations.opacity
 assert.equal(run('JSON.stringify(OBJECTS.map(o=>[o.id,o.p3,o.mapPosition,o.region]))'),science);
 // A real zero-coast flight has one transition. The overview contains neither
 // event dots nor captions; a close route view merges the coincident stages.
+// Select optical acceleration explicitly, independently of expedition defaults.
 run(`
- state=initial();state.expansion=false;state.current='alpha';state.ship=Space.point(object('alpha').p3);state.selected='andromeda';Cosmology.sync(state);MissionPlanner.launch();paused=true;
+ state=initial();state.flightSetup=FlightSetup.normalize({engine:true,sail:true,collector:true});state.expansion=false;state.current='alpha';state.ship=Space.point(object('alpha').p3);state.selected='andromeda';Cosmology.sync(state);MissionPlanner.launch();paused=true;
  assert.ok(state.flight?.mission);assert.equal(state.flight.mission.coast.distance,0);
  const annotationFlight=state.flight;Simulation.tick(annotationFlight.mission.accelerationEnd.proper*.5);paused=true;
  function assertFlightCaptions(){

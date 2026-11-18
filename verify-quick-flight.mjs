@@ -8,6 +8,8 @@ const reset = () => { state = initial(); state.selected = 'alpha'; state.expansi
 reset();
 const reserve = () => FlightSetup.preferred().arrivalFuelPercent;
 assert.equal(reserve(), 50);
+assert.ok(FlightSetup.read().engine && !FlightSetup.read().sail && !FlightSetup.read().collector);
+QuickFlight.toggle('collector');
 QuickFlight.toggle('engine');
 assert.ok(!FlightSetup.read().engine && FlightSetup.read().sail && FlightSetup.read().collector);
 QuickFlight.toggle('collector');

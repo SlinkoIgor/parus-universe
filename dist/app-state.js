@@ -16,7 +16,7 @@ const initial = () => ({
   reserveDefaultsVersion: 1,
   orbit: null,
   tankCapacityKg: 1,
-  flightSetup: null,
+  flightSetup: OrbitalArrival.enabled ? {...FlightSetup.defaults({tankCapacityKg:1}), sail:false, collector:false} : null,
   flightHistory: [],
   flightTips: FlightTips.normalize({used: FlightTips.known()}),
   quests: Quests.blank(),
@@ -25,7 +25,7 @@ const initial = () => ({
   current: 'sol',
   selected: 'proxima',
   sail: 0,
-  departureMode: OrbitalArrival.enabled ? 'beam' : 'engine',
+  departureMode: 'engine',
   expansion: true,
   cosmicTime: 0,
   universeElapsed: 0,
@@ -90,6 +90,9 @@ function restore(saved) {
     sail: 0,
     controlG: 10,
   };
+  // Missing/null setups used the optical defaults before engine-only starts.
+  // Keep that fallback for existing expeditions, including active/queued plans.
+  if (!Object.hasOwn(saved, 'flightSetup')) upgraded.flightSetup = null;
   if (!['engine', 'beam', 'burst'].includes(upgraded.departureMode))
     upgraded.departureMode = 'engine';
   if (!Number.isInteger(upgraded.expedition) || upgraded.expedition < 1) upgraded.expedition = 1;

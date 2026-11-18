@@ -23,7 +23,7 @@ assert.ok(/<script src="library\.js\?v=[0-9a-f]{12}" data-app>/.test(index), 'li
 
 run(`{
 OrbitalArrival.enabled=true;
-const fresh=()=>{state=initial();paused=true;FlightQueue.reset();Cosmology.sync(state);};
+const fresh=()=>{state=initial();state.flightSetup=FlightSetup.defaults();paused=true;FlightQueue.reset();Cosmology.sync(state);};
 const html=()=>$('dialogContent').innerHTML;
 const near=(actual,expected,tolerance,label)=>assert.ok(Math.abs(actual/expected-1)<=tolerance,label+': '+actual+' vs '+expected);
 fresh();

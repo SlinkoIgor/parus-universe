@@ -12,7 +12,7 @@ try {
 Math.random=()=>0;
 const reset = () => {
  OrbitalArrival.enabled=true;FlightTips.learned=FlightTips.normalize().used;
- state=initial();state.expansion=false;paused=false;speed=1;FlightQueue.reset();
+ state=initial();state.flightSetup=FlightSetup.defaults();state.expansion=false;paused=false;speed=1;FlightQueue.reset();
  Simulation.debt=Simulation.wallDebt=0;FlightTips.clear();
  $('toast').hidden=true;Cosmology.sync(state);
 };
@@ -317,8 +317,8 @@ try {
 console.log('PASS legacy expedition/profile learning flags are corrected for every explanation, with action learning and impression counts preserved');
 
 FlightTips.eligible=nativeEligible;Math.random=()=>0;
-assert.equal(FlightTips.entries.length,27,'nine existing tips plus eighteen approved physics tips');
-assert.equal(new Set(FlightTips.entries.map(t=>t.id)).size,27);
+assert.equal(FlightTips.entries.length,28,'27 general tips plus the long engine-flight recommendation');
+assert.equal(new Set(FlightTips.entries.map(t=>t.id)).size,28);
 assert.ok(FlightTips.entries.every(t=>[...t.text].length<=161),'all texts fit the previous maximum');
 const visiting=new Set(),visited=new Set();
 const visit=id=>{
@@ -384,13 +384,14 @@ console.log('PASS an empty topic pool is retried when an action unlocks knowledg
 reset();state.expansion=true;
 Object.assign(state.flightTips.experienced,{'shift-route':true,collector:true,'stellar-luminosity':true,'gas-collection':true,'photon-engine':true});
 const sequence=[];
-for(let i=0;i<2*FlightTips.entries.length;i++){
+const ordinary=FlightTips.entries.filter(t=>t.when!=='longEngine');
+for(let i=0;i<2*ordinary.length;i++){
  const before=eligible(),unseen=before.filter(id=>state.flightTips.shown[id]===0);
  brake(30);FlightTips.render();const id=state.flight.flightTip?.id;
  assert.ok(id&&before.includes(id),'only currently unlocked explanations can appear');
  assert.ok(!unseen.length||unseen.includes(id),'newly unlocked introductions precede repeats');sequence.push(id);
 }
-assert.deepEqual(counts(),allCounts(2));assert.equal(new Set(sequence.slice(0,27)).size,27);assert.equal(new Set(sequence.slice(27)).size,27);
+assert.deepEqual(counts(),FlightTips.entries.map(t=>t.when==='longEngine'?0:2));assert.equal(new Set(sequence.slice(0,ordinary.length)).size,ordinary.length);assert.equal(new Set(sequence.slice(ordinary.length)).size,ordinary.length);
 assert.ok(sequence.every((id,i)=>!i||id!==sequence[i-1]));
 const lastShown=state.flightTips.last;state=restore(JSON.parse(JSON.stringify(state)));assert.equal(state.flightTips.last,lastShown);
 brake(30);FlightTips.render();assert.equal(state.flight.flightTip,undefined);
@@ -414,7 +415,7 @@ console.log('PASS malformed/retired/duplicate queues are repaired and rollback m
 
 run(`{
 const resetHorizon=()=>{
- FlightTips.learned=FlightTips.normalize().used;state=initial();paused=false;speed=1;
+ FlightTips.learned=FlightTips.normalize().used;state=initial();state.flightSetup=FlightSetup.defaults();paused=false;speed=1;
  Simulation.debt=Simulation.wallDebt=0;MapSlice.mode='full';FlightTips.clear();$('toast').hidden=true;Cosmology.sync(state);
 };
 const physical=()=>JSON.stringify([state.flight,state.ship,state.matter,state.beta,state.phase,state.proper,state.earth,state.cosmicTime,state.totalDistance]);
