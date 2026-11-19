@@ -183,6 +183,25 @@ const ReachDisplay = {
     this.memo = { flight: f, mission: f.mission, at: now, value };
     return value;
   },
+  route(target, ship, light) {
+    if (state.expansion === false || !target?.navigable || !target.p3) return [];
+    const f = state.flight,
+      source = object(state.current) || state.ship;
+    if (f ? !f.cosmic || target.id !== f.target : !Cosmology.isCosmic(source, target)) return [];
+    const distance = Space.distance(state.ship, f?.aim || target),
+      a = screen(state.ship),
+      b = f ? screen(FlightView.at(f, 1)) : screen(target),
+      dx = b.x - a.x, dy = b.y - a.y, length = Math.hypot(dx, dy);
+    if (!(distance > 0) || !(length > 1) || !Number.isFinite(length)) return [];
+    // The atlas flattens depth and radial mode rearranges its anchors. Locate
+    // each limit along the SAME affine leg, using its full physical 3D length.
+    return [['ship', ship], ['light', light]].flatMap(([kind, q]) => {
+      if (!(q?.comoving > 0) || q.comoving >= distance) return [];
+      const fraction = q.comoving / distance;
+      return [{kind, fraction, radius:q.radius, x:a.x+dx*fraction, y:a.y+dy*fraction,
+        nx:-dy/length, ny:dx/length}];
+    });
+  },
 };
 function lightReachability() {
   if (state.expansion === false) return null;
@@ -212,6 +231,27 @@ function circleLabel(key, name, detail, p, r, priority = 25) {
   const anchor = { x: p.x, y: p.y - r + (key === 'ship-reach' ? 18 : -10), align: 'center' };
   if (r >= 5) MapLabels.add({ key, name, detail, priority, size: 9, candidates: [anchor] });
 }
+function drawRouteReachability(ship, light) {
+  const target = state.flight ? object(state.flight.target)
+    : Route.endpoint(state.itinerary[0]) || object(state.selected),
+    marks = ReachDisplay.route(target, ship, light);
+  if (marks.length === 2 && distanceText(marks[0].radius) === distanceText(marks[1].radius) &&
+      Math.hypot(marks[0].x-marks[1].x, marks[0].y-marks[1].y) < 10) {
+    marks[0].kind = 'both';
+    marks.pop();
+  }
+  for (const mark of marks) {
+    const {x,y,nx,ny} = mark;
+    if (x < -12 || x > width+12 || y < -12 || y > height+12) continue;
+    line(x-nx*7,y-ny*7,x+nx*7,y+ny*7,'#454545',1.5);
+    circle(x,y,2,'#454545',1);
+    const name = mark.kind === 'both' ? 'ПРЕДЕЛ СВЕТА И ПОЛЁТА'
+      : mark.kind === 'light' ? 'ПРЕДЕЛ СВЕТА' : 'ПРЕДЕЛ ПОЛЁТА';
+    MapLabels.add({key:'route-reach-'+mark.kind, name:name+' · '+distanceText(mark.radius),
+      detail:'НА ПУТИ К ЦЕЛИ · С УЧЁТОМ ГЛУБИНЫ', size:9, priority:45,
+      candidates:[{x:x+12,y:y-12,align:'left'}]});
+  }
+}
 function drawReachability() {
   // Cosmological envelopes are a large-scale overlay. Do not run a range solve
   // on every braking frame while the player is looking at nearby stars.
@@ -227,7 +267,7 @@ function drawReachability() {
       ctx.restore();
       circleLabel(
         'light-reach',
-        'ПРЕДЕЛ СВЕТА · ' + distanceText(light.radius),
+        'ПРЕДЕЛ СВЕТА · ' + distanceText(light.radius) + ' · ПРОЕКЦИЯ',
         'СВЕТ, ИСПУЩЕННЫЙ СЕЙЧАС · ПРОЕКЦИЯ СФЕРЫ В 3D',
         p,
         r,
@@ -236,6 +276,7 @@ function drawReachability() {
     }
   }
   const q = ReachDisplay.ship();
+  drawRouteReachability(q, light);
   if (!q || !(q.radius > 0)) return;
   const r = (q.radius * width) / cam.span;
   if (r > 20000) return;
@@ -243,7 +284,7 @@ function drawReachability() {
   ctx.globalAlpha = 0.85;
   circle(p.x, p.y, r, '#454545', 1.2, [10, 5, 2, 5]);
   ctx.restore();
-  const name = 'ПРЕДЕЛ ПОЛЁТА · ' + distanceText(q.radius),
+  const name = 'ПРЕДЕЛ ПОЛЁТА · ' + distanceText(q.radius) + ' · ПРОЕКЦИЯ',
     detail =
       'ТОПЛИВНЫЙ БАК НА ФИНИШЕ ≥ ' +
       Math.round(q.setup.arrivalFuelPercent || 0) +
