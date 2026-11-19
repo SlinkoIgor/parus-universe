@@ -68,7 +68,7 @@ for (const e of data.entries) {
 }
 assert.deepEqual(data.entries.filter(e=>!e.defaultSelected).map(e=>e.id).sort(),['sdss-superclusters','sdss-voids']);
 assert.ok(entries.get('phat-ap').defaultSelected,'atlas-only source stays enabled despite having no mapped rows');
-vm.runInContext(['sky-guide-data','sky-photos-index','sky-photos','sky-imaging-index','sky-imaging','sky-guide','map-filter-data','map-filters'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
+vm.runInContext(['sky-guide-data','sky-photos-index','sky-photos','sky-imaging-index','sky-imaging','wikipedia-index','wikipedia','sky-guide','map-filter-data','map-filters'].map(n=>fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
 const filterData = vm.runInContext('MAP_FILTER_DATA',c);
 const coreIds = new Set(vm.runInContext('OBJECTS.map(o=>o.id)',c));
 const photoMask=1<<filterData.collections.indexOf('photos');

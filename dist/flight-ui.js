@@ -261,9 +261,7 @@ function renderPanels() {
     action = questNext ? 'Лететь к следующей цели' : '';
     hint = questNext
       ? 'Квест «' + questNext.quest.title + '». Следующая цель — ' + Quests.name(questNext.step) + '.'
-      : boost
-        ? 'Прибытие. Выберите цель — и подготовьте звёздный парус.'
-        : 'Прибытие. Следующую точку можно выбрать через поиск.';
+      : '';
   } else if (!target.navigable) {
     action = 'Объект каталога';
     hint = target.atlasOnly
@@ -283,9 +281,11 @@ function renderPanels() {
         : 'Запас рабочего вещества исчерпан.';
   }
   UIPatch.set($('launchBtn'), 'hidden', active || (arrived && !questNext));
+  UIPatch.set($('objectCardBtn'), 'hidden', !arrived || !!questNext);
+  UIPatch.set($('distanceRow'), 'hidden', arrived);
   UIContent.text($('launchBtn').querySelector('span'), action);
   UIPatch.set($('launchBtn'), 'disabled', !target.navigable || (!arrived && !boost && !Rocket.usableFuel(state.matter)));
-  UIContent.text($('flightHint'), hint + (!questNext && target.positionQuality === 'approximate' ? ' Позиция приблизительная.' : ''));
+  UIContent.text($('flightHint'), hint + (!arrived && target.positionQuality === 'approximate' ? ' Позиция приблизительная.' : ''));
   const phases = {
     thrust: 'ФОТОННАЯ ТЯГА',
     launch: 'РАЗГОН СВЕТОМ',

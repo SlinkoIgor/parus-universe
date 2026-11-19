@@ -127,8 +127,42 @@ const savedQuests=JSON.stringify(state.quests);state=restore(JSON.parse(JSON.str
 assert.equal(JSON.stringify(state.quests),savedQuests,'unchanged progress serializes identically after reload');
 console.log('PASS empty progress for new and older expeditions, strict normalization and exact reload');
 
+for (const visited of [false,true]) for (const id of ['alpha','procyon','andromeda','orion']) {
+ reset();if(visited)state.visited.push(id);state.selected=id;renderUI();
+ const membership=QUESTS.find(q=>q.steps.some(step=>Quests.ids(step).includes(id)&&Quests.told(step)));
+ const step=membership.steps.find(step=>Quests.ids(step).includes(id));
+ $('objectCardBtn').onclick();const direct=$('dialogContent').innerHTML;
+ assert.ok(direct.includes('quest-story')&&direct.includes(Quests.esc(step.lead))&&direct.includes('data-quest-start="'+membership.id+'"'),'a story is available before and after a visit without a subscription: '+id);
+ assert.ok(!direct.includes('is-locked')&&!direct.includes('Его история откроется'));
+ assert.equal(state.quests.seen[Quests.key(membership,step)],true);
+ $('infoDialog').open=false;Quests.dialogClosed();
+ $('objectInfo').onclick();assert.equal($('dialogContent').innerHTML,direct,'both object card buttons show the same card: '+id);
+ $('infoDialog').open=false;Quests.dialogClosed();
+ assert.equal(Quests.read(id,membership.id),true);
+ assert.equal($('dialogContent').innerHTML,direct,'History opens the same card: '+id);
+ assert.deepEqual(state.quests.active,[],'reading a story does not subscribe to a quest');
+ assert.deepEqual(state.quests.credited,{},'reading a story does not credit a quest');
+ assert.equal(state.visited.includes(id),visited,'reading a story does not visit the object');
+ assert.equal(Quests.pending,null);
+}
+reset();showObject('tau');
+assert.ok($('dialogContent').innerHTML.includes(Quests.esc(quest.steps.at(-1).lead)),'an unvisited stage shows its story without a subscription');
+assert.equal(state.quests.seen['neighbours/tau'],true);assert.deepEqual(state.quests.active,[]);
+const ordinary=OBJECTS.find(o=>!QUESTS.some(q=>q.steps.some(step=>Quests.ids(step).includes(o.id))));
+showObject(ordinary.id);assert.ok(!$('dialogContent').innerHTML.includes('quest-story'),'objects outside quests keep their ordinary cards');
+console.log('PASS both object card buttons and History show stories before and after visits without a subscription, preserve visit progress and leave ordinary cards unchanged');
+
+reset();state.selected='barnard';showObject('barnard');$('infoDialog').open=false;Quests.dialogClosed();
+state=restore(JSON.parse(JSON.stringify(state)));Quests.reset();
+assert.equal(state.quests.seen['neighbours/barnard'],true,'a story read before flight remains read after reload');
+Quests.start('neighbours');launch();
+assert.ok(state.flight);assert.equal(Quests.flightStory(),null,'a story read before launch is not announced in flight');
+arrive();renderUI();
+assert.equal(state.quests.credited['neighbours/barnard'],true,'the later visit is still credited');
+assert.equal(Quests.pending,null);assert.equal($('infoDialog').open,false,'a previously read story is not forced open on arrival');
+console.log('PASS reading before flight survives reload, suppresses repeated story prompts and keeps arrival credit');
+
 reset();state.visited.push('alpha');
-showObject('alpha');assert.ok(!$('dialogContent').innerHTML.includes('quest-story'),'cards stay unchanged without a quest');$('infoDialog').open=false;
 assert.equal(Quests.start('neighbours'),true);assert.equal(Quests.start('neighbours'),false);
 assert.deepEqual(state.quests.active,['neighbours']);assert.equal(state.quests.credited['neighbours/alpha'],true,'earlier visits count when a quest starts');
 renderUI();assert.equal(Quests.pending,null,'an earlier visit is not announced as a new arrival');assert.equal($('toast').hidden,true);
@@ -136,9 +170,9 @@ assert.deepEqual(Quests.progress(quest),{done:1,total:10,complete:false});
 assert.equal($('questCount').textContent,'1');assert.equal($('questCount').hidden,false);
 assert.equal(Quests.next(quest).id,'proxima','the next stage is the first unvisited one');
 showObject('tau');let card=$('dialogContent').innerHTML;
-assert.ok(card.includes('quest-story is-locked')&&!card.includes(quest.steps.at(-1).lead),'an unvisited stage shows only a teaser');
-assert.ok(card.indexOf('Его история откроется в полёте')<card.indexOf('КВЕСТ · СОСЕДИ СОЛНЦА · 10 / 10')&&card.indexOf('КВЕСТ · СОСЕДИ СОЛНЦА · 10 / 10')<card.indexOf('data-quest-panel="neighbours"')&&!card.includes('data-quest-fly='),'the teaser precedes the quest line, which offers only the list');
-assert.equal(state.quests.seen['neighbours/tau'],undefined);$('infoDialog').open=false;
+assert.ok(!card.includes('is-locked')&&card.includes(Quests.esc(quest.steps.at(-1).lead)),'an unvisited stage shows its story in an active quest');
+assert.ok(card.indexOf(Quests.esc(quest.steps.at(-1).lead))<card.indexOf('КВЕСТ · СОСЕДИ СОЛНЦА · 10 / 10')&&card.indexOf('КВЕСТ · СОСЕДИ СОЛНЦА · 10 / 10')<card.indexOf('data-quest-panel="neighbours"')&&card.includes('data-quest-fly='),'the story precedes the quest line and its actions');
+assert.equal(state.quests.seen['neighbours/tau'],true);assert.deepEqual(Quests.progress(quest),{done:1,total:10,complete:false});$('infoDialog').open=false;
 showObject('alpha');card=$('dialogContent').innerHTML;
 assert.ok(card.includes('Двойник Солнца по соседству')&&card.includes('2 / 10'));
 const alphaStep=quest.steps[1];
@@ -161,7 +195,7 @@ assert.equal(state.quests.seen['neighbours/alpha'],true);$('infoDialog').open=fa
 assert.equal(Quests.stop,undefined,'a started quest cannot be abandoned');
 state.quests.active=[];state.quests.credited={};
 renderUI();assert.equal($('questCount').hidden,true);
-console.log('PASS subscription counts earlier visits silently, cards show a teaser or the story with its disclosure, and the badge follows active quests');
+console.log('PASS subscription counts earlier visits silently, all cards show the story with its disclosure, and the badge follows active quests');
 
 reset();Quests.start('neighbours');state.selected='barnard';launch();
 assert.ok(state.flight,'the flight to the quest stage starts');
@@ -200,8 +234,10 @@ $('dialogContent').querySelectorAll=findAll;$('infoDialog').open=false;Quests.di
 console.log('PASS a story left open through the arrival refreshes its actions and progress');
 
 reset();Quests.start('neighbours');state.selected='proxima';launch();
+const unreadTipLedger=JSON.stringify([state.flightTips.shown,state.flightTips.used,state.flightTips.queue,state.flightTips.last]);
 Simulation.advance(4.1);renderUI();assert.equal($('toast').dataset.kind,'quest');
 arrive();assert.equal(state.flight,null);
+assert.equal(JSON.stringify([state.flightTips.shown,state.flightTips.used,state.flightTips.queue,state.flightTips.last]),unreadTipLedger,'an unread quest story lasting the whole flight spends no tip and preserves its future selection');
 assert.equal(Quests.pending,'proxima','an unread story is queued for the arrival');
 assert.ok($('toast').hidden||$('toast').dataset.kind!=='quest','the plaque is removed on arrival');
 $('flightBuilder').open=true;assert.equal(Quests.present(),false);assert.equal(Quests.pending,'proxima','another dialog postpones the story');
@@ -290,8 +326,11 @@ reset();assert.equal(state.selected,'proxima','a new expedition aims at the near
 const label=()=>$('launchBtn').querySelector('span').textContent;
 state.current='proxima';state.ship=Space.point(object('proxima').p3);state.visited.push('proxima');renderUI();
 assert.equal($('launchBtn').hidden,true,'without an active quest a parked ship offers no next-target button');
+assert.equal($('objectCardBtn').hidden,false,'a parked ship offers the object card instead');assert.equal($('distanceRow').hidden,true,'the zero distance is hidden at the object');assert.equal($('flightHint').hidden,true,'no arrival hint at the object');
+$('objectCardBtn').onclick();assert.ok($('dialogContent').innerHTML.includes('<h2>'+object('proxima').name+'</h2>'),'the button opens the object card');$('infoDialog').open=false;
+select('barnard');renderUI();assert.equal($('objectCardBtn').hidden,true);assert.equal($('distanceRow').hidden,false,'another target shows its distance again');select('proxima');renderUI();
 Quests.start('neighbours');renderUI();
-assert.equal($('launchBtn').hidden,false);assert.equal($('launchBtn').disabled,false);assert.equal(label(),'Лететь к следующей цели');
+assert.equal($('launchBtn').hidden,false);assert.equal($('launchBtn').disabled,false);assert.equal(label(),'Лететь к следующей цели');assert.equal($('objectCardBtn').hidden,true,'the quest action takes the button row');
 assert.ok($('flightHint').textContent.includes('Соседи Солнца')&&$('flightHint').textContent.includes('Альфа Центавра'),'the hint names the quest and its next stage');
 assert.equal(Quests.nextTarget().step.id,'alpha');
 select('barnard');renderUI();assert.equal(Quests.nextTarget(),null);assert.notEqual(label(),'Лететь к следующей цели','another selected target keeps its ordinary launch action');
@@ -303,6 +342,58 @@ $('infoDialog').open=false;Quests.dialogClosed();Quests.pending=null;
 for(const step of quest.steps)if(!state.visited.includes(step.id))state.visited.push(step.id);
 renderUI();assert.equal(Quests.nextTarget(),null);assert.equal($('launchBtn').hidden,true,'a completed quest offers no further target');
 console.log('PASS a new expedition aims at Proxima, a parked ship offers the next quest stage only while a quest is active, and the button flies there');
+
+{
+ const nativeRandom=Math.random;
+ try {
+  for(const subscribed of [false,true])for(const priorTips of [false,true]){
+   reset();
+   if(priorTips){
+    state.flightTips.shown['double-click']=1;
+    state.flightTips.last='double-click';
+    state.flightTips.queue=['shift-route','time-dilation','light-speed-limit'];
+   }
+   if(subscribed)Quests.start('neighbours');
+   const ledger=()=>JSON.stringify([state.flightTips.shown,state.flightTips.used,state.flightTips.queue,state.flightTips.last]);
+   const beforeLaunch=ledger();
+   state.selected=priorTips?'barnard':'procyon';launch();
+   assert.equal(ledger(),beforeLaunch,'announcing a quest at launch changes no tip counts, learning, queue or last tip');
+   speed=.1;Simulation.advance(6);renderUI();
+   assert.ok(FlightEstimate.get().proper/speed>FlightTips.minimumFlightSeconds,'the flight is long enough to show a tip without the story');
+   const progress=JSON.stringify(state.flightTips);
+   // Compare future choices at several random values against the same flight
+   // before further story renders/reload, including its existing shuffle queue.
+   const choices=snapshot=>{
+    const result=[];
+    for(const random of [0,.25,.5,.75,.999999]){
+     state.flightTips=JSON.parse(snapshot);Math.random=()=>random;
+     const tip=FlightTips.pick();
+     result.push({id:tip.id,progress:JSON.parse(JSON.stringify(state.flightTips))});
+    }
+    state.flightTips=JSON.parse(snapshot);
+    return result;
+   };
+   const expected=choices(progress);
+   for(let frame=0;frame<20;frame++){
+    renderUI();assert.equal($('toast').dataset.kind,'quest');assert.equal($('toast').hidden,false);
+    assert.equal(JSON.stringify(state.flightTips),progress,'a hidden tip consumes neither its quota nor its place in the shuffle');
+    assert.equal(state.flight.flightTip,undefined);assert.equal(FlightTips.current.tip,null);
+   }
+   persist();state=restore(JSON.parse(JSON.stringify(state)));FlightTips.clear();Quests.reset();
+   $('toast').hidden=true;Cosmology.sync(state);renderUI();
+   assert.equal($('toast').dataset.kind,'quest');assert.equal($('toast').hidden,false);
+   assert.equal(JSON.stringify(state.flightTips),progress,'reload cannot turn a suppressed tip into an impression');
+   assert.equal(state.flight.flightTip,undefined);
+   assert.deepEqual(choices(JSON.stringify(state.flightTips)),expected,'quest cards and reload leave future random choices and their probabilities unchanged');
+   Math.random=()=>.5;Notices.run();$('infoDialog').open=false;Quests.dialogClosed();renderUI();
+   const next=expected[2];next.progress.shown[next.id]++;
+   assert.equal($('toast').dataset.kind,'tip');assert.equal($('toast').hidden,false);
+   assert.equal(state.flight.flightTip.id,next.id,'after reading the story, the previously suppressed pool supplies the tip');
+   assert.equal(JSON.stringify(state.flightTips),JSON.stringify(next.progress),'only the tip actually displayed spends one impression');
+  }
+ } finally {Math.random=nativeRandom;}
+ console.log('PASS quest cards preserve all tip counts, learning and shuffle state with/without subscription and prior tips, across redraw/reload; future random choices stay identical until a tip is actually shown');
+}
 
 reset();state.selected='procyon';launch();renderUI();
 assert.equal($('toast').hidden,false);assert.equal($('toast').dataset.kind,'quest','a quest star is announced even without a subscription');

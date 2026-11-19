@@ -62,7 +62,7 @@ await run(`(async()=>{
   assert.equal(o.d,anchor.distanceLy);assert.equal(o.raDeg,anchor.raDeg);assert.equal(o.decDeg,anchor.decDeg);
   assert.ok(o.opticalComponents.every(q=>q.distanceErrorLy>0));
   assert.ok(new Set(o.opticalComponents.map(q=>q.distanceLy)).size>1,'components never acquire a common distance');
-  showObject(o.id);assert.ok($('dialogContent').innerHTML.includes('До опорной звезды от Солнца'));assert.ok($('dialogContent').innerHTML.includes(anchor.name));
+  showObject(o.id);assert.ok($('dialogContent').innerHTML.includes('<small>до опорной звезды от Солнца</small>'));assert.ok($('dialogContent').innerHTML.includes(anchor.name));
  }
  assert.equal(object('opengc-ngc6994').kind,'cluster','M73 is an optical stellar group, not a nebula');
  assert.ok(!object('opengc-ic4715').region,'M24 is not assigned a spherical cluster size');

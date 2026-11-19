@@ -5,6 +5,7 @@ try {
 } catch {
   state = initial();
 }
+GameAnalytics.start();
 FlightSetup.sync();
 ArrivalStars.primeRoutes();
 paused = !!state.paused;
@@ -405,14 +406,20 @@ $('launchBtn').onclick = event => {
 };
 $('routeBtn').onclick = () => Route.show();
 $('journalBtn').onclick = showJournal;
-let objectInfoByPointer = false;
-$('objectInfo').addEventListener('pointerdown', () => { objectInfoByPointer = true; });
-$('objectInfo').addEventListener('keydown', () => { objectInfoByPointer = false; });
-$('objectInfo').onclick = () => showObject(FlightQueue.browsing() ? state.selected : state.flight?.target || state.selected);
+const objectCardOpeners = ['objectInfo', 'objectCardBtn'];
+let objectCardByPointer = false;
+for (const id of objectCardOpeners) {
+  $(id).addEventListener('pointerdown', () => { objectCardByPointer = true; });
+  $(id).addEventListener('keydown', () => { objectCardByPointer = false; });
+  $(id).onclick = () => showObject(FlightQueue.browsing() ? state.selected : state.flight?.target || state.selected);
+}
+$('objectFocus').onclick = () =>
+  focusObject(object(FlightQueue.browsing() ? state.selected : state.flight?.target || state.selected));
 $('closeDialog').onclick = () => $('infoDialog').close();
 $('infoDialog').addEventListener('close', () => {
-  if (objectInfoByPointer && document.activeElement === $('objectInfo')) $('objectInfo').blur();
-  objectInfoByPointer = false;
+  const opener = document.activeElement;
+  if (objectCardByPointer && objectCardOpeners.includes(opener?.id)) opener.blur();
+  objectCardByPointer = false;
 });
 $('infoDialog').addEventListener('click', (e) => {
   if (e.target === $('infoDialog')) {
@@ -426,9 +433,11 @@ $('resetBtn').onclick = () => {
     '<div class="modal-eyebrow">НОВАЯ ЭКСПЕДИЦИЯ</div><h2>Снова от Солнца?</h2><p>Текущий прогресс будет сброшен.</p><button class="modal-start" id="confirmReset">Начать экспедицию →</button>',
   );
   $('confirmReset').onclick = () => {
+    GameAnalytics.endExpedition();
     const expedition = (Number.isInteger(state.expedition) ? state.expedition : 1) + 1;
     state = initial();
     state.expedition = expedition;
+    GameAnalytics.beginExpedition('reset');
     FlightQueue.reset();
     Quests.reset();
     paused = false;

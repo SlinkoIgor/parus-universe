@@ -318,6 +318,7 @@ const FlightHistory = {
   },
   complete(f) {
     if (!f || f.historyRecorded) return;
+    GameAnalytics.flightFinished(f);
     FlightView.at(f, 0);
     const fraction = Math.max(0, Math.min(1, f.covered / f.distance));
     if (fraction > 0) {
@@ -358,6 +359,7 @@ const FlightHistory = {
   cancel() {
     const saved = state.flight?.rollback;
     if (!saved) return;
+    GameAnalytics.flightCancelled();
     const tipProgress = state.flightTips, questProgress = state.quests;
     state = restore(saved);
     state.flightTips = FlightTips.mergeProgress(state.flightTips, tipProgress);
@@ -385,6 +387,7 @@ const FlightHistory = {
 let persistedState = null,
   persistWarned = false;
 function persist() {
+  GameAnalytics.observeFlight();
   let json;
   try {
     Simulation.captureClock(state);

@@ -63,6 +63,7 @@ Object.assign(Route, {
     this.renderApproach();this.renderActions();
     const nodes=this.nodes(),draft=!f&&nodes.length>0;
     if(draft||browsing)this.renderDistance();
+    if(draft){UIPatch.set($('distanceRow'), 'hidden', false);UIPatch.set($('objectCardBtn'), 'hidden', true);}
     const p=(browsing?FlightQueue.forecast():f?.mission)||(!f&&target?.navigable?MissionPlanner.preview():null),star=p?.arrivalStar;
     UIPatch.set($('routeDraftIssue'), 'hidden', true);
     if(f?.routeIssue){

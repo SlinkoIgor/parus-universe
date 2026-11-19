@@ -47,7 +47,7 @@ const m=MapLayout.rawProject(member),h=MapLayout.rawProject(host),mp=MapLayout.b
 const omega=object('omega'),p=MapLayout.project(omega),physical=JSON.stringify(omega.p3);
 for(const themeName of ['dark','light'])for(const span of [100,1000,30000,130000,250000,5e9]){theme=themeName;cam={x:p.x+123,y:p.y-234,span};assert.deepEqual(MapLayout.project(omega),p);}
 assert.equal(JSON.stringify(omega.p3),physical);
-showObject('omega');assert.ok($('dialogContent').innerHTML.includes('На схеме'));assert.ok($('dialogContent').innerHTML.includes('не граница принадлежности'));
+showObject('omega');assert.ok(!$('dialogContent').innerHTML.includes('<dt>На схеме'));assert.ok(!$('dialogContent').innerHTML.includes('не граница принадлежности'),'the object card does not describe the map offset');
 console.log('PASS all lifted classes, final spatial indexes, disk/halo separation inside spherical radius, continuous thresholds, no fixed height ring, shared host offsets and zoom-independent positions');
 }`);
 

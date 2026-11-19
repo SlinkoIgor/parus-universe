@@ -99,12 +99,459 @@ const MapDetails = {
       'Тип не определён'
     );
   },
+  starColours: {
+    O: ['голубой', 'голубая'],
+    B: ['бело-голубой', 'бело-голубая'],
+    A: ['белый', 'белая'],
+    F: ['жёлто-белый', 'жёлто-белая'],
+    G: ['жёлтый', 'жёлтая'],
+    K: ['оранжевый', 'оранжевая'],
+    M: ['красный', 'красная'],
+  },
+  starType(text) {
+    const s = String(text || '')
+      .split(/\s*\+\s*(?=\S)/)[0]
+      .replace(/^[^A-Za-z]+/, '')
+      .trim();
+    if (!s) return '';
+    if (/^(?:D[ABCOQXZ]?(?![a-z])|WD)/.test(s)) return 'белый карлик';
+    if (/^W[NCOR]?(?![a-zD])/.test(s)) return 'звезда Вольфа — Райе';
+    if (/^(?:C(?![a-z])|[RN]\d)/.test(s)) return 'углеродная звезда';
+    if (/^[LTY]\d/.test(s)) return 'коричневый карлик';
+    const m = /^(sd|sg|esd|usd|d|g|c|k)?([OBAFGKM])(.*)$/.exec(s);
+    if (!m) return '';
+    const [masculine, feminine] = this.starColours[m[2]],
+      roman = /Ia\+|Ia-?0|Iab|Ia|Ib|III|II|IV|VII|VI|V|I/.exec(m[3])?.[0],
+      prefix = { sd: 'VI', esd: 'VI', usd: 'VI', d: 'V', g: 'III', sg: 'I', c: 'I' }[m[1]],
+      luminosity = roman || prefix;
+    if (!luminosity) return feminine;
+    if (luminosity === 'VII') return 'белый карлик';
+    if (luminosity === 'V')
+      return 'OBA'.includes(m[2]) ? feminine + ', главной последовательности' : masculine + ' карлик';
+    return (
+      masculine +
+      ' ' +
+      (/^Ia(?:\+|-?0)$/.test(luminosity)
+        ? 'гипергигант'
+        : { II: 'яркий гигант', III: 'гигант', IV: 'субгигант', VI: 'субкарлик' }[luminosity] ||
+          'сверхгигант')
+    );
+  },
+  spectralClass(o) {
+    if (!['star', 'home'].includes(o?.kind) || o.synthetic || o.nuclearStar) return '';
+    const curated = String(o.facts?.class || '').split(' · ');
+    return String(
+      o.spectral ||
+        curated.find((part) =>
+          /^(?:W[NCO]\d|WD$|D[A-Z]|[LTY]\d|(?:sd|d|g)?[OBAFGKM](?:\d|$))/.test(part.trim()),
+        ) ||
+        '',
+    ).trim();
+  },
+  curatedStarType(o) {
+    const parts = String(o.facts?.class || '')
+        .split(' · ')
+        .map((part) => part.trim()),
+      head = parts[0] || '';
+    if (/[а-яё]/.test(head) && /карлик|гигант/i.test(head)) return head.toLocaleLowerCase('ru');
+    const words = parts.find(
+      (part) =>
+        /^[А-Яа-яЁё ,—-]+$/.test(part) &&
+        !/^(?:именованная )?звезда$/i.test(part) &&
+        !/компонент|компаньон|систем|спектр|орбит/i.test(part),
+    );
+    return words
+      ? words.toLocaleLowerCase('ru').replace('вольфа — райе', 'Вольфа — Райе')
+      : '';
+  },
+  galaxyType(text) {
+    const s = String(text || '').trim();
+    return /^d?Sph/.test(s)
+      ? 'карликовая сфероидальная'
+      : /^dE/.test(s)
+        ? 'карликовая эллиптическая'
+        : /^E(?![-/]S0)/.test(s)
+          ? 'эллиптическая'
+          : /^(?:E[-/])?S0/.test(s)
+            ? 'линзовидная'
+            : /^SB/.test(s)
+              ? 'спиральная с перемычкой'
+              : /^SAB/.test(s)
+                ? 'спиральная со слабой перемычкой'
+                : /^S[A-Za-z]/.test(s)
+                  ? 'спиральная'
+                  : /^I/.test(s)
+                    ? 'неправильная'
+                    : '';
+  },
+  subtype(o) {
+    if (!o) return '';
+    if (['star', 'home'].includes(o.kind)) {
+      if (o.synthetic || o.nuclearStar) return '';
+      const curated = this.curatedStarType(o);
+      return /карлик|гигант/.test(curated)
+        ? curated
+        : this.starType(this.spectralClass(o)) || curated;
+    }
+    if (o.kind !== 'galaxy' || this.typeName(o) !== 'Галактика') return '';
+    const curated = this.classText(o).split(' · ')[0];
+    return (
+      this.galaxyType(o.hubbleType) ||
+      (curated !== 'Галактика' && /галактик/i.test(curated) ? curated.toLocaleLowerCase('ru') : '')
+    );
+  },
+  typeLabel(o) {
+    const type = this.typeName(o),
+      subtype = this.subtype(o);
+    return !subtype
+      ? type
+      : (type === 'Звезда' && /звезда/.test(subtype)) || (type === 'Галактика' && /галактик/.test(subtype))
+        ? subtype[0].toLocaleUpperCase('ru') + subtype.slice(1)
+        : type + ' · ' + subtype;
+  },
+  age(o) {
+    if (!o || !['star', 'home'].includes(o.kind) || o.synthetic || o.nuclearStar) return null;
+    if (typeof STAR_AGES === 'undefined') return null;
+    const own = STAR_AGES.objects[o.id];
+    if (own)
+      return { age: own.age, lower: 0, upper: 0, digits: own.digits || 2, source: own, composite: false, models: 0 };
+    if (!this.ageIndex) {
+      this.ageIndex = new Map();
+      for (let i = 0; i < STAR_AGES.rows.length; i += 6) this.ageIndex.set(STAR_AGES.rows[i], i);
+    }
+    const at = this.ageIndex.get(Number(o.hip)),
+      r = STAR_AGES.rows;
+    if (at === undefined || !o.hip) return null;
+    const source = STAR_AGES.sources[r[at + 1]];
+    return {
+      age: r[at + 2],
+      lower: r[at + 3],
+      upper: r[at + 4],
+      digits: 2,
+      source,
+      composite: source.key === 'casagrande2011' && r[at + 5] === 1,
+      models: source.key === 'luck2015' ? r[at + 5] : 0,
+    };
+  },
+  designationData: {
+    greek:
+      'Alp:α:Альфа:alpha,alf|Bet:β:Бета:beta|Gam:γ:Гамма:gamma|Del:δ:Дельта:delta|Eps:ε:Эпсилон:epsilon|Zet:ζ:Дзета:zeta|Eta:η:Эта|The:θ:Тета:theta,tet|Iot:ι:Йота:iota|Kap:κ:Каппа:kappa|Lam:λ:Лямбда:lambda,ламбда|Mu:μ:Мю|Nu:ν:Ню|Xi:ξ:Кси:ksi|Omi:ο:Омикрон:omicron|Pi:π:Пи|Rho:ρ:Ро|Sig:σ:Сигма:sigma|Tau:τ:Тау|Ups:υ:Ипсилон:upsilon|Phi:φ:Фи|Chi:χ:Хи:khi|Psi:ψ:Пси|Ome:ω:Омега:omega',
+    constellations:
+      'And:Андромеды:Andromedae|Ant:Насоса:Antliae|Aps:Райской Птицы:Apodis|Aqr:Водолея:Aquarii|Aql:Орла:Aquilae|Ara:Жертвенника:Arae|Ari:Овна:Arietis|Aur:Возничего:Aurigae|Boo:Волопаса:Bootis|Cae:Резца:Caeli|Cam:Жирафа:Camelopardalis|Cnc:Рака:Cancri|CVn:Гончих Псов:Canum Venaticorum|CMa:Большого Пса:Canis Majoris|CMi:Малого Пса:Canis Minoris|Cap:Козерога:Capricorni|Car:Киля:Carinae|Cas:Кассиопеи:Cassiopeiae|Cen:Центавра:Centauri|Cep:Цефея:Cephei|Cet:Кита:Ceti|Cha:Хамелеона:Chamaeleontis|Cir:Циркуля:Circini|Col:Голубя:Columbae|Com:Волос Вероники:Comae Berenices|CrA:Южной Короны:Coronae Australis|CrB:Северной Короны:Coronae Borealis|Crt:Чаши:Crateris|Cru:Южного Креста:Crucis|Crv:Ворона:Corvi|Cyg:Лебедя:Cygni|Del:Дельфина:Delphini|Dor:Золотой Рыбы:Doradus|Dra:Дракона:Draconis|Equ:Малого Коня:Equulei|Eri:Эридана:Eridani|For:Печи:Fornacis|Gem:Близнецов:Geminorum|Gru:Журавля:Gruis|Her:Геркулеса:Herculis|Hor:Часов:Horologii|Hya:Гидры:Hydrae|Hyi:Южной Гидры:Hydri|Ind:Индейца:Indi|Lac:Ящерицы:Lacertae|Leo:Льва:Leonis|LMi:Малого Льва:Leonis Minoris|Lep:Зайца:Leporis|Lib:Весов:Librae|Lup:Волка:Lupi|Lyn:Рыси:Lyncis|Lyr:Лиры:Lyrae|Men:Столовой Горы:Mensae|Mic:Микроскопа:Microscopii|Mon:Единорога:Monocerotis|Mus:Мухи:Muscae|Nor:Наугольника:Normae|Oct:Октанта:Octantis|Oph:Змееносца:Ophiuchi|Ori:Ориона:Orionis|Pav:Павлина:Pavonis|Peg:Пегаса:Pegasi|Per:Персея:Persei|Phe:Феникса:Phoenicis|Pic:Живописца:Pictoris|Psc:Рыб:Piscium|PsA:Южной Рыбы:Piscis Austrini|Pup:Кормы:Puppis|Pyx:Компаса:Pyxidis|Ret:Сетки:Reticuli|Sge:Стрелы:Sagittae|Sgr:Стрельца:Sagittarii|Sco:Скорпиона:Scorpii|Scl:Скульптора:Sculptoris|Sct:Щита:Scuti|Ser:Змеи:Serpentis|Sex:Секстанта:Sextantis|Tau:Тельца:Tauri|Tel:Телескопа:Telescopii|TrA:Южного Треугольника:Trianguli Australis|Tri:Треугольника:Trianguli|Tuc:Тукана:Tucanae|UMa:Большой Медведицы:Ursae Majoris|UMi:Малой Медведицы:Ursae Minoris|Vel:Парусов:Velorum|Vir:Девы:Virginis|Vol:Летучей Рыбы:Volantis|Vul:Лисички:Vulpeculae',
+  },
+  designationCache: new WeakMap(),
+  designationTables() {
+    if (this.designationIndex) return this.designationIndex;
+    const letters = new Map(),
+      letterKeys = new Map(),
+      constellations = new Map(),
+      constellationKeys = new Map();
+    for (const row of this.designationData.greek.split('|')) {
+      const [code, symbol, word, extra = ''] = row.split(':');
+      letters.set(code, { symbol, word });
+      for (const token of [code, symbol, word, ...extra.split(',')])
+        if (token) letterKeys.set(this.searchKey(token), code);
+    }
+    for (const row of this.designationData.constellations.split('|')) {
+      const [code, genitive, latin] = row.split(':');
+      constellations.set(code, genitive);
+      for (const token of [code, genitive, latin]) constellationKeys.set(this.searchKey(token), code);
+    }
+    return (this.designationIndex = {
+      letters,
+      constellations,
+      constellationKeys,
+      letterKeys: [...letterKeys].sort((a, b) => b[0].length - a[0].length),
+      raw: new RegExp(
+        '^(\\d{1,3})?\\s*(?:(' +
+          [...letters.keys()].join('|') +
+          ')\\s*(\\d)?)?\\s*(' +
+          [...constellations.keys()].join('|') +
+          ')$',
+      ),
+    });
+  },
+  designationParse(text) {
+    const m = this.designationTables().raw.exec(String(text || '').trim());
+    return m && (m[1] || m[2])
+      ? { flamsteed: m[1] || '', letter: m[2] || '', index: m[3] || '', constellation: m[4] }
+      : null;
+  },
+  designationOf(o) {
+    if (!o || o.kind !== 'star' || o.synthetic || o.nuclearStar) return null;
+    const cached = this.designationCache.get(o);
+    if (cached && cached.name === o.name && cached.aliases === o.aliases) return cached.value;
+    let value = null;
+    for (const text of [o.name, ...(o.aliases || [])]) if ((value = this.designationParse(text))) break;
+    this.designationCache.set(o, { name: o.name, aliases: o.aliases, value });
+    return value;
+  },
+  designationIndexText(index) {
+    return index ? '⁰¹²³⁴⁵⁶⁷⁸⁹'[index] : '';
+  },
+  designationName(d) {
+    const t = this.designationTables(),
+      place = t.constellations.get(d.constellation);
+    return d.letter
+      ? t.letters.get(d.letter).word + this.designationIndexText(d.index) + ' ' + place
+      : d.flamsteed + ' ' + place;
+  },
+  designationNotation(d) {
+    const t = this.designationTables(),
+      place = t.constellations.get(d.constellation);
+    return [
+      d.letter ? t.letters.get(d.letter).symbol + this.designationIndexText(d.index) + ' ' + place : '',
+      d.flamsteed ? d.flamsteed + ' ' + place : '',
+    ].filter(Boolean);
+  },
+  designationText(o) {
+    const d = this.designationOf(o);
+    return d
+      ? this.designationNotation(d)
+          .filter((text) => text !== o.name && !o.name.startsWith(text + ' '))
+          .join(' · ')
+      : '';
+  },
+  designationDisplay(name) {
+    const d = this.designationParse(name);
+    return d ? this.designationName(d) : name;
+  },
+  designationQuery(text) {
+    const t = this.designationTables(),
+      m = /^(\d{1,3})?(\D.*)$/.exec(this.searchKey(String(text || '')));
+    if (!m) return null;
+    const flamsteed = m[1] || '',
+      found = (letter, index, constellation) => {
+        const code = letter.toLowerCase(),
+          place = constellation.toLowerCase();
+        return {
+          flamsteed,
+          letter,
+          index,
+          constellation,
+          pattern:
+            '\\|' +
+            (flamsteed || '\\d{0,3}') +
+            (letter ? code + (index || '\\d?') : '(?:[a-z]{2,3}\\d?)?') +
+            place +
+            '\\|',
+        };
+      };
+    for (const [token, letter] of t.letterKeys) {
+      if (!m[2].startsWith(token)) continue;
+      const tail = /^(\d)?(\D+)$/.exec(m[2].slice(token.length)),
+        constellation = tail && t.constellationKeys.get(tail[2]);
+      if (constellation) return found(letter, tail[1] || '', constellation);
+    }
+    const constellation = flamsteed && t.constellationKeys.get(m[2]);
+    return constellation ? found('', '', constellation) : null;
+  },
+  designationMatches(o, q) {
+    const d = this.designationOf(o);
+    return (
+      !!d &&
+      d.constellation === q.constellation &&
+      (!q.flamsteed || d.flamsteed === q.flamsteed) &&
+      (!q.letter || (d.letter === q.letter && (!q.index || d.index === q.index)))
+    );
+  },
   description(o) {
     return o.synthetic
       ? o.desc
       : (o.desc || '')
           .replace(/^Реальная каталожная запись [^.]+\.\s*/, '')
           .replace(/^Реальный объект:\s*[^.]+\.\s*/, '');
+  },
+  importMethods: null,
+  lead(o) {
+    const text = this.description(o);
+    if (o.synthetic || !text) return text;
+    if (!this.importMethods)
+      this.importMethods = new Set(
+        typeof IMPORTED_CATALOG === 'undefined'
+          ? []
+          : IMPORTED_CATALOG.objects.map((e) => e.distanceMethod).filter(Boolean),
+      );
+    const method = String(o.distanceMethod || '').trim();
+    return o.streamed || this.importMethods.has(o.desc) || (method && text.trim().startsWith(method))
+      ? ''
+      : text;
+  },
+  explainers: {
+    'Пульсар · нейтронная звезда': [
+      'Что такое пульсар',
+      'Пульсар — нейтронная звезда: ядро массивной звезды, сжавшееся после взрыва сверхновой в шар поперечником около 20 км. Она вращается с периодом от тысячных долей секунды до нескольких секунд, и её узкие пучки излучения пробегают по Земле, как луч маяка, — отсюда строго ритмичные импульсы.',
+    ],
+    'Планетарная туманность': [
+      'Что такое планетарная туманность',
+      'Планетарная туманность — газовая оболочка, которую сбрасывает в конце жизни звезда вроде Солнца. Обнажившееся горячее ядро, будущий белый карлик, заставляет газ светиться. К планетам она отношения не имеет: название закрепилось из-за сходства с дисками планет в ранних телескопах.',
+    ],
+    'Эмиссионная туманность': [
+      'Что такое эмиссионная туманность',
+      'Эмиссионная туманность — облако газа, которое светится само. Ультрафиолет горячих звёзд ионизует водород, и тот излучает свет, в основном красный.',
+    ],
+    'Отражательная туманность': [
+      'Что такое отражательная туманность',
+      'Отражательная туманность — облако пыли, которое само не светится, а рассеивает свет ближайших звёзд. Синий свет рассеивается сильнее, поэтому такие туманности обычно голубые.',
+    ],
+    'Остаток сверхновой': [
+      'Что такое остаток сверхновой',
+      'Остаток сверхновой — расширяющаяся оболочка вещества, выброшенного при взрыве звезды. Ударная волна нагревает окружающий газ, и он светится ещё десятки тысяч лет.',
+    ],
+    'Область ионизированного водорода · туманность': [
+      'Что такое область ионизированного водорода',
+      'Область ионизированного водорода — облако газа вокруг молодых горячих звёзд. Их ультрафиолет ионизует водород и заставляет его светиться; в таких облаках продолжают рождаться звёзды.',
+    ],
+    'Туманность': [
+      'Что такое туманность',
+      'Туманность — облако межзвёздного газа и пыли. Одни туманности светятся под излучением горячих звёзд, другие отражают их свет, третьи видны тёмными силуэтами на светлом фоне.',
+    ],
+    'Рассеянное звёздное скопление': [
+      'Что такое рассеянное скопление',
+      'Рассеянное скопление — от десятков до нескольких тысяч звёзд, родившихся вместе из одного облака. Притяжение держит их слабо, и за сотни миллионов лет скопление постепенно расходится.',
+    ],
+    'Шаровое звёздное скопление': [
+      'Что такое шаровое скопление',
+      'Шаровое скопление — плотный шар из десятков и сотен тысяч старых звёзд, связанных взаимным притяжением. Такие скопления обращаются вокруг галактик; большинству из них больше десяти миллиардов лет.',
+    ],
+    'Звёздная ассоциация': [
+      'Что такое звёздная ассоциация',
+      'Звёздная ассоциация — разреженная группа молодых звёзд общего происхождения. Взаимное притяжение её не удерживает, и за десятки миллионов лет звёзды расходятся.',
+    ],
+    'Звёздное скопление с туманностью': [
+      'Что такое скопление с туманностью',
+      'Звёздное скопление с туманностью — молодые звёзды вместе с остатками облака, из которого они родились. Излучение звёзд подсвечивает этот газ и постепенно его рассеивает.',
+    ],
+    'Звёздное скопление': [
+      'Что такое звёздное скопление',
+      'Звёздное скопление — группа звёзд, родившихся вместе из одного облака и связанных взаимным притяжением.',
+    ],
+    'Оптическая группа': [
+      'Что такое оптическая группа',
+      'Оптическая группа, или астеризм, — звёзды, которые с Земли видны рядом, но находятся на разных расстояниях и не связаны притяжением. Это узор на небе, а не скопление.',
+    ],
+    'Протоскопление': [
+      'Что такое протоскопление',
+      'Протоскопление — сгущение галактик в ранней Вселенной, из которого со временем может вырасти скопление галактик. Мы видим его таким, каким оно было миллиарды лет назад.',
+    ],
+    'Скопление галактик': [
+      'Что такое скопление галактик',
+      'Скопление галактик — сотни и тысячи галактик, связанных общим притяжением. Большая часть его массы приходится на тёмную материю и горячий газ между галактиками.',
+    ],
+    'Группа галактик': [
+      'Что такое группа галактик',
+      'Группа галактик — до нескольких десятков галактик, связанных притяжением. Млечный Путь входит в такую же Местную группу.',
+    ],
+    'Сверхскопление галактик': [
+      'Что такое сверхскопление',
+      'Сверхскопление — группа скоплений галактик протяжённостью в сотни миллионов световых лет. Большинство сверхскоплений не связано притяжением и со временем растянется вместе с расширением Вселенной.',
+    ],
+    'Галактический филамент': [
+      'Что такое галактический филамент',
+      'Галактический филамент — вытянутая нить из галактик и газа, которая соединяет скопления. Из таких нитей и узлов состоит космическая паутина.',
+    ],
+    'Галактическая стена · мегаструктура': [
+      'Что такое галактическая стена',
+      'Галактическая стена — протяжённый слой из галактик и их скоплений на границе войдов. Это часть космической паутины, а не единое тело: притяжение не удерживает стену целиком.',
+    ],
+    'Космический войд': [
+      'Что такое войд',
+      'Космический войд — огромная область, где галактик во много раз меньше среднего. Войды занимают бóльшую часть объёма Вселенной, а галактики собраны в стенах и нитях между ними.',
+    ],
+    'Мегаструктура': [
+      'Что такое мегаструктура',
+      'Мегаструктура — образование из галактик, скоплений или квазаров протяжённостью от сотен миллионов световых лет. Такие области выделяют по обзорам неба; их границы условны, а самые крупные остаются кандидатами.',
+    ],
+    'Космологический горизонт': [
+      'Что такое космологический горизонт',
+      'Космологический горизонт — граница области, из которой свет успел дойти до нас за время существования Вселенной. Это не стена и не край пространства: у каждого наблюдателя свой горизонт.',
+    ],
+    'Квазар · активное ядро галактики': [
+      'Что такое квазар',
+      'Квазар — ядро далёкой галактики, в котором сверхмассивная чёрная дыра поглощает газ. Раскалённый диск вокруг неё светит ярче всех звёзд галактики вместе взятых, поэтому квазары видны за миллиарды световых лет.',
+    ],
+    'Сверхмассивная чёрная дыра': [
+      'Что такое сверхмассивная чёрная дыра',
+      'Сверхмассивная чёрная дыра — чёрная дыра массой от сотен тысяч до миллиардов масс Солнца. Такие есть в центрах почти всех крупных галактик. Сама она не светит: её находят по движению звёзд и газа вокруг.',
+    ],
+    'Чёрная дыра': [
+      'Что такое чёрная дыра',
+      'Чёрная дыра звёздной массы — остаток массивной звезды, сжавшейся в конце жизни. Её притяжение не выпускает даже свет, поэтому её находят по движению звезды-компаньона и по излучению газа, падающего на дыру.',
+    ],
+  },
+  stellarExplainers: [
+    [
+      /цефеид/i,
+      'Что такое цефеида',
+      'Цефеида — пульсирующая звезда-гигант: она ритмично расширяется и сжимается, и её блеск меняется с постоянным периодом. Период связан со светимостью, поэтому по цефеидам измеряют расстояния до других галактик.',
+    ],
+    [
+      /сверхгигант/i,
+      'Что такое сверхгигант',
+      'Сверхгигант — массивная звезда на поздней стадии жизни. Она раздулась в десятки или сотни раз шире Солнца и светит в тысячи раз ярче.',
+    ],
+    [
+      /бел\S+ карлик/i,
+      'Что такое белый карлик',
+      'Белый карлик — остывающее ядро звезды, исчерпавшей топливо. Масса порядка солнечной сжата в шар размером с Землю.',
+    ],
+    [
+      /красн\S+ карлик/i,
+      'Что такое красный карлик',
+      'Красный карлик — маленькая холодная звезда, в несколько раз легче Солнца и во много раз тусклее. Таких звёзд в Галактике большинство, но невооружённым глазом не видна ни одна.',
+    ],
+  ],
+  explainer(o) {
+    if (!o || o.synthetic) return null;
+    let found = this.explainers[this.typeName(o)];
+    if (!found && o.kind === 'blackhole')
+      found =
+        this.explainers[
+          (o.blackHolePopulation || o.population) === 'supermassive'
+            ? 'Сверхмассивная чёрная дыра'
+            : 'Чёрная дыра'
+        ];
+    if (!found) {
+      const type = this.typeName(o).toLocaleLowerCase('ru'),
+        key = {
+          pulsar: 'Пульсар · нейтронная звезда',
+          quasar: 'Квазар · активное ядро галактики',
+          void: 'Космический войд',
+          wall: 'Галактическая стена · мегаструктура',
+          structure: 'Мегаструктура',
+          ring: 'Мегаструктура',
+          arc: 'Мегаструктура',
+          nebula: type.includes('скоплени') ? 'Звёздное скопление с туманностью' : 'Туманность',
+          cluster: type.includes('протоскоплен')
+            ? 'Протоскопление'
+            : type.includes('галактик')
+              ? 'Скопление галактик'
+              : type.includes('звёздное скопление')
+                ? 'Звёздное скопление'
+                : '',
+        }[o.kind];
+      found =
+        this.explainers[
+          /оптическая (?:пара|группа)|астеризм/.test(type)
+            ? 'Оптическая группа'
+            : type.includes('протоскоплен')
+              ? 'Протоскопление'
+              : key
+        ];
+    }
+    if (!found && (o.kind === 'star' || o.kind === 'home')) {
+      const cls = String(o.facts?.class || '');
+      found = this.stellarExplainers.find(([pattern]) => pattern.test(cls))?.slice(1);
+    }
+    return found ? { title: found[0], text: found[1] } : null;
+  },
+  classText(o) {
+    const type = this.typeName(o),
+      raw = o.kind === 'blackhole' ? type : String(o.facts?.class || '').trim();
+    if (!raw || /[а-яё]/.test(raw)) return raw || type;
+    const head = raw.split(' · ')[0].trim(),
+      label = (head[0] + head.slice(1).toLocaleLowerCase('ru')).replace('млечного пути', 'Млечного Пути');
+    return type.toLocaleLowerCase('ru').includes(label.toLocaleLowerCase('ru')) ? type : label;
   },
   component(o) {
     return o.stellarComponent || { alpha: 'A', 'hyg-71453': 'B', proxima: 'C' }[o.id];

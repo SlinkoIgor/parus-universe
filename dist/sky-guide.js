@@ -88,10 +88,6 @@ const SkyGuide = {
     const v = this.magnitude(o);
     return {v, text:v === null ? 'Яркость пока неизвестна' : v <= 3 ? 'Хорошо видна глазом' : v <= 6 ? 'Видна глазом на тёмном небе' : v <= 6.5 ? 'На пределе видимости глазом' : 'Для наблюдения нужна оптика'};
   },
-  near(o) {
-    return SKY_GUIDE_DATA.stars.filter(s => s[3] <= 2.5 && s[4]).map(s => ({star:s,angle:this.separation([o.raDeg,o.decDeg],[s[1],s[2]])}))
-      .filter(s => s.angle > 1 && s.angle < 45).sort((a,b) => a.angle-b.angle).slice(0,2);
-  },
   chart(o, close = false) {
     if (!this.canChart(o)) return '';
     const con = this.constellation(o.raDeg,o.decDeg), c = SKY_GUIDE_DATA.constellations[con];
@@ -172,28 +168,24 @@ const SkyGuide = {
       (faint?'<g class="sky-faint-notice"><text x="30" y="328">Выбранная звезда: V = '+v.toLocaleString('ru-RU',{maximumFractionDigits:2})+'</text><text x="30" y="353">Слабее всех фоновых звёзд (V ≤ '+limit+')</text></g>':'')+
       '<text x="30" y="376" class="sky-orientation">ФОНОВЫЕ ЗВЁЗДЫ ДО V = '+limit+' · ШИРИНА ПОЛЯ ≈ '+Math.round(span)+'°</text><text x="570" y="376" text-anchor="end" class="sky-orientation">ВИД С ЗЕМЛИ</text></svg>';
   },
-  finder(o) {
-    if (!this.canChart(o)) return '';
-    const esc=this.escape, con=this.constellation(o.raDeg,o.decDeg), c=SKY_GUIDE_DATA.constellations[con], v=this.observing(o),
-      latitudes=this.latitudeLimits(...(c.decRangeDeg||[])), starLatitudes=this.latitudeLimits(o.decDeg),
-      near=this.near(o).map(q=>esc(q.star[4])+' — '+q.angle.toLocaleString('ru-RU',{maximumFractionDigits:1})+'°').join('; '),
-      system=ExtendedCatalog.systemByMember.get(o.id),
+  observingNotes(o) {
+    const v=this.observing(o);
+    if (!v) return [];
+    const esc=this.escape, system=ExtendedCatalog.systemByMember.get(o.id),
       close=system?.members.some(id=>{const p=object(id);return id!==o.id&&p&&this.eligible(p)&&this.separation([o.raDeg,o.decDeg],[p.raDeg,p.decDeg])<1/60;});
-    return '<section class="sky-guide" id="stellarSkyGuide" aria-labelledby="skyGuideTitle"><h3 id="skyGuideTitle">Где искать на небе</h3>'+
-      '<div class="sky-guide-facts"><div><span>Созвездие</span><strong>'+esc(c.name)+'</strong><small>'+esc(c.latin)+' · '+con+'</small></div>'+
-      '<div><span>Наблюдение с Земли</span><strong>'+v.text+'</strong><small>'+(v.v===null?'В каталоге нет видимой звёздной величины':'Видимая величина V = '+v.v.toLocaleString('ru-RU',{maximumFractionDigits:2})+' · меньше — ярче')+'</small></div></div>'+
-      '<div class="sky-guide-facts sky-guide-latitudes"><div><span>Все области созвездия</span><strong>'+this.latitudeText(latitudes?.whole)+'</strong><small>Хотя бы часть: '+this.latitudeText(latitudes?.partial).toLocaleLowerCase('ru-RU')+'</small></div>'+
-      '<div><span>'+ (o.kind==='star'?'Выбранная звезда':'Выбранный объект')+' — широты</span><strong>'+this.latitudeText(starLatitudes.whole)+'</strong><small>с. ш. — северная широта · ю. ш. — южная</small></div></div>'+
-      '<p class="sky-guide-note">Широты показывают, где каждая область может подниматься над горизонтом в течение суток. У границы диапазона объекты едва достигают горизонта. Для наблюдения нужны подходящие сезон, время ночи и открытый горизонт.</p>'+
-      (near?'<p class="sky-guide-landmarks">Яркие ориентиры: '+near+'. Указаны угловые расстояния на небе.</p>':'')+
-      (close?'<p class="sky-guide-note">Тесные компоненты этой системы глазом сливаются в одну точку. Яркость компонента сама по себе не означает, что его можно различить отдельно.</p>':'')+
-      '<p class="sky-guide-note">На схеме — взаимное положение звёзд. Высота над горизонтом и поворот созвездия зависят от места, даты и времени. Слабые ближайшие звёзды требуют оптики. Для туманностей и галактик важна также поверхностная яркость; фотографические детали и цвета в окуляре обычно не видны.</p>'+
-      '<details class="sky-guide-source"><summary>Координаты и данные</summary>'+(v.evidence?'<p>Видимость глазом подтверждена <a href="'+esc(v.evidence.source)+'" target="_blank" rel="noopener">'+esc(v.evidence.publisher)+' ↗</a>. Нужны тёмное небо и подходящая широта наблюдения.</p>':'')+(v.collection?'<p>Цель каталога '+v.collection+'. Доступность для любительского наблюдения: <a href="https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-'+(v.collection==='Мессье'?'messier':'caldwell')+'-catalog/" target="_blank" rel="noopener">NASA ↗</a>. Некоторые цели требуют очень тёмного неба, фильтров или большого телескопа.</p>':'')+'<p>J2000 · RA '+o.raDeg.toFixed(5)+'° · Dec '+o.decDeg.toFixed(5)+'°. Звёзды: <a href="https://cdsarc.cds.unistra.fr/viz-bin/cat/V/137D" target="_blank" rel="noopener">XHIP</a>; названия и линии: <a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noopener">d3-celestial</a>; границы созвездий: <a href="https://cdsarc.cds.unistra.fr/viz-bin/cat/VI/42" target="_blank" rel="noopener">IAU / Roman 1987</a>. Соединительные линии — традиционная схема созвездия.</p></details></section>';
+    return [
+      'С Земли '+(o.kind==='star'?'звезда':'объект')+' поднимается над горизонтом '+this.latitudeText(this.latitudeLimits(o.decDeg).whole).toLocaleLowerCase('ru-RU').replace(/\.$/,'')+'.',
+      close?'Тесные компоненты этой системы глазом сливаются в одну точку.':'',
+      ['star','quasar'].includes(o.kind)?'':'У протяжённых объектов важна поверхностная яркость: детали и цвета фотографий глазом и в окуляр обычно не видны.',
+      v.evidence?'Видимость глазом подтверждена <a href="'+esc(v.evidence.source)+'" target="_blank" rel="noopener">'+esc(v.evidence.publisher)+' ↗</a>.':'',
+      v.collection?'Цель каталога '+v.collection+'; о любительских наблюдениях — <a href="https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-'+(v.collection==='Мессье'?'messier':'caldwell')+'-catalog/" target="_blank" rel="noopener">NASA ↗</a>.':''
+    ].filter(Boolean);
   },
   hasObservatoryPhoto(o) {
     if (!o || o.synthetic) return false;
     if(o.supersededBy){const current=ExtendedCatalog.get(o.supersededBy);if(current)return this.hasObservatoryPhoto(current);}
     if (typeof SkyImaging!=='undefined' && SkyImaging.has(o)) return true;
+    if (typeof Wikipedia!=='undefined' && Wikipedia.hasObservation(o)) return true;
     // The identity index is available before publisher metadata or image pixels.
     if (SkyPhotos.ids(o).some(id=>!SkyPhotos.surveys.has(id))) return true;
     if (!this.curatedPhotoTargets) {
@@ -215,8 +207,8 @@ const SkyGuide = {
     // One release page can contain several distinct observations. Deduplicate
     // actual image URLs, never the source article shared by those images.
     const seen=new Set(curated.map(p=>p.url));
-    const archive=SkyPhotos.media(o),imaging=typeof SkyImaging==='undefined'?[]:SkyImaging.media(o);
-    const media=[...curated,...[...archive.filter(p=>p.mediaKind!=='survey'),...imaging,...archive.filter(p=>p.mediaKind==='survey')]
+    const archive=SkyPhotos.media(o),imaging=typeof SkyImaging==='undefined'?[]:SkyImaging.media(o),wiki=typeof Wikipedia==='undefined'?[]:Wikipedia.media(o);
+    const media=[...curated,...[...archive.filter(p=>p.mediaKind!=='survey'),...imaging,...wiki.filter(p=>p.mediaKind!=='survey'),...archive.filter(p=>p.mediaKind==='survey'),...wiki.filter(p=>p.mediaKind==='survey')]
       .filter(p=>{if(seen.has(p.url))return false;seen.add(p.url);return true;})];
     // Keep the two finding charts in gallery() first; give Webb observations
     // the first photographic frames rather than burying them behind Hubble.
@@ -273,15 +265,15 @@ const SkyGuide = {
     return '<figure class="stellar-photo stellar-epoch-diagram" data-photo="epoch-scheme"><div class="stellar-photo-field">'+svg+'</div><figcaption><strong>'+esc(title)+'</strong><span>Поясняющая схема'+(age?' · '+esc(age):'')+'</span><p>'+esc(o.note)+' Условные символы показывают физический смысл, а не наблюдённое расположение частиц или объектов.</p><a class="stellar-photo-source" href="https://lambda.gsfc.nasa.gov/education/graphic_history/univ_evol.html" target="_blank" rel="noopener">NASA · история Вселенной ↗</a></figcaption></figure>';
   },
   gallery(o) {
-    const photos=this.photos(o), chartable=this.canChart(o), diagram=this.epochDiagram(o),missing=SkyPhotos.missing(o),imagingMissing=typeof SkyImaging==='undefined'?[]:SkyImaging.missing(o),
+    const photos=this.photos(o), chartable=this.canChart(o), diagram=this.epochDiagram(o),missing=SkyPhotos.missing(o),imagingMissing=typeof SkyImaging==='undefined'?[]:SkyImaging.missing(o),wikiMissing=typeof Wikipedia==='undefined'?[]:Wikipedia.missing(o),
       heading=o.cosmicEpoch||['structure','wall','void','ring','arc'].includes(o.kind)?'Снимки и визуализации':'Небо и снимки',
-      types={observation:'Наблюдение',map:'Карта по данным наблюдений',reconstruction:'Реконструкция по данным',diagram:'Иллюстрация / схема',composite:'Наблюдение и иллюстрация'};
-    if(!photos.length&&!chartable&&!diagram&&!missing.length&&!imagingMissing.length)return '';
+      types={observation:'Наблюдение',map:'Карта по данным наблюдений',reconstruction:'Реконструкция по данным',diagram:'Иллюстрация / схема',illustration:'Изображение из статьи',composite:'Наблюдение и иллюстрация'};
+    if(!photos.length&&!chartable&&!diagram&&!missing.length&&!imagingMissing.length&&!wikiMissing.length)return '';
     const esc=this.escape, chart=close=>
       '<figure class="stellar-photo stellar-chart" data-photo="'+(close?'chart-close':'chart-wide')+'"><div class="stellar-photo-field stellar-chart-field">'+this.chart(o,close)+'</div>'+
       '<figcaption><strong>'+(close?'Ближе к объекту':'Положение на ночном небе')+'</strong><span>Поисковая схема · вид с Земли · J2000</span><p>'+
       (close?'Выбранный объект в центре поля. Сопоставьте ближайшие звёзды с архивным снимком.':'Широкий обзор неба: найдите знакомые созвездия и проследите линии до отмеченного объекта.')+
-      '</p><small>Звёзды: XHIP · названия и линии: d3-celestial</small></figcaption></figure>',
+      '</p><small>Звёзды: <a href="https://cdsarc.cds.unistra.fr/viz-bin/cat/V/137D" target="_blank" rel="noopener">XHIP</a> · названия и линии: <a href="https://github.com/ofrohn/d3-celestial" target="_blank" rel="noopener">d3-celestial</a> · границы созвездий: <a href="https://cdsarc.cds.unistra.fr/viz-bin/cat/VI/42" target="_blank" rel="noopener">IAU / Roman 1987</a></small></figcaption></figure>',
       marks=p=>p.marks&&p.size?'<div class="stellar-photo-marks" data-ratio="'+p.size[0]/p.size[1]+'" style="--ratio:'+p.size[0]/p.size[1]+'" hidden><div>'+
         p.marks.map(m=>'<span class="stellar-photo-mark'+(m.ring?' has-ring':'')+'" style="left:'+100*m.x+'%;top:'+100*m.y+'%"><b>'+esc(m.label)+'</b></span>').join('')+'</div></div>':'',
       photo=p=>'<figure class="stellar-photo" data-photo="'+esc(p.id)+'"><div class="stellar-photo-field">'+
@@ -292,8 +284,8 @@ const SkyGuide = {
         '<figcaption><strong>'+esc(p.title)+'</strong><span>'+(p.format==='video'?'Видео · ':'')+(types[p.mediaType]?esc(types[p.mediaType])+' · ':'')+esc(p.instrument)+' · '+esc(p.band)+' · <span class="stellar-photo-date">'+esc(p.date)+'</span></span><p'+(p.id==='dss'?' class="stellar-dss-description"':'')+'>'+esc(p.description)+'</p>'+
         '<a class="stellar-photo-source" href="'+esc(p.source)+'" target="_blank" rel="noopener">Источник и '+(p.format==='video'?'полное видео':'полное изображение')+' ↗</a><small>'+(p.format==='video'?'Видео: ':'Изображение: ')+(p.creditUrl?'<a href="'+esc(p.creditUrl)+'" target="_blank" rel="noopener">'+esc(p.credit)+'</a>':esc(p.credit))+'</small>'+
         (p.rights?'<small>Права: '+esc(p.rights)+' · <a href="'+esc(p.archive)+'" target="_blank" rel="noopener">'+esc(p.archiveLabel||'AstroPix')+' ↗</a></small>':'')+'</figcaption></figure>',
-      failed=missing.some(p=>SkyPhotos.failed.has(p))||imagingMissing.some(p=>SkyImaging.failed.has(p)),
-      pending=missing.length||imagingMissing.length?'<figure class="stellar-photo" data-photo="archive-pending"><div class="stellar-photo-field"><p class="'+(failed?'stellar-photo-error':'stellar-photo-loading')+'" role="status">'+(failed?'Архив сейчас недоступен. <button data-photo-retry>Повторить загрузку</button>':'Загрузка снимков обсерваторий…')+'</p></div><figcaption><strong>Снимки обсерваторий</strong><span>Hubble, Webb, ESO, Siena Galaxy Atlas и другие телескопы</span><p>Фотографии и подписи из архивов обсерваторий.</p></figcaption></figure>':'',
+      failed=missing.some(p=>SkyPhotos.failed.has(p))||imagingMissing.some(p=>SkyImaging.failed.has(p))||wikiMissing.some(p=>Wikipedia.failed.has(p)),
+      pending=missing.length||imagingMissing.length||wikiMissing.length?'<figure class="stellar-photo" data-photo="archive-pending"><div class="stellar-photo-field"><p class="'+(failed?'stellar-photo-error':'stellar-photo-loading')+'" role="status">'+(failed?'Архив сейчас недоступен. <button data-photo-retry>Повторить загрузку</button>':'Загрузка изображений…')+'</p></div><figcaption><strong>Изображения объекта</strong><span>Обсерватории и Wikimedia Commons</span><p>Снимки, карты и иллюстрации с подписями и источниками.</p></figcaption></figure>':'',
       // Keep both available finding charts together before any photographs.
       slides=[...(chartable?[chart(false),chart(true)]:[]),...(diagram?[diagram]:[]),...photos.filter(p=>!['dss','survey'].includes(p.id)).map(photo),...(pending?[pending]:[]),...photos.filter(p=>['dss','survey'].includes(p.id)).map(photo)];
     return '<section class="stellar-gallery" id="stellarMedia" aria-label="'+heading+'" aria-roledescription="карусель">'+
@@ -347,15 +339,15 @@ const SkyGuide = {
     }
     if(cards.length)update();
     const refresh=async retry=>{
-      if(retry){for(const p of SkyPhotos.missing(o))SkyPhotos.failed.delete(p);if(typeof SkyImaging!=='undefined')for(const p of SkyImaging.missing(o))SkyImaging.failed.delete(p);}
-      const changed=(await Promise.all([SkyPhotos.ensure(o),typeof SkyImaging==='undefined'?false:SkyImaging.ensure(o)])).some(Boolean);
+      if(retry){for(const p of SkyPhotos.missing(o))SkyPhotos.failed.delete(p);if(typeof SkyImaging!=='undefined')for(const p of SkyImaging.missing(o))SkyImaging.failed.delete(p);if(typeof Wikipedia!=='undefined')for(const p of Wikipedia.missing(o))Wikipedia.failed.delete(p);}
+      const changed=(await Promise.all([SkyPhotos.ensure(o),typeof SkyImaging==='undefined'?false:SkyImaging.ensure(o),typeof Wikipedia==='undefined'?false:Wikipedia.ensure(o)])).some(Boolean);
       // Closing/switching cards during a request must not reopen an old card.
       if(!changed||document.getElementById('stellarGallery')!==track||!track.isConnected)return;
       const selected=cards[current()]?.dataset.photo;
       document.getElementById('stellarMedia').outerHTML=this.gallery(o);
       const replacement=document.getElementById('stellarGallery'),figures=[...replacement.querySelectorAll('figure')],
         target=figures.find(c=>c.dataset.photo===selected)||
-          (selected==='archive-pending'&&figures.find(c=>/^(?:astropix-|sga-grz-)/.test(c.dataset.photo)))||figures[0];
+          (selected==='archive-pending'&&figures.find(c=>/^(?:astropix-|sga-grz-|wiki-)/.test(c.dataset.photo)))||figures[0];
       replacement.scrollLeft=target.offsetLeft;
       this.mount(o);
     };

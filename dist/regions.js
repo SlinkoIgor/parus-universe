@@ -98,7 +98,7 @@ const RegionMap={
  pointOpacity(o){if(globalThis.MapVisibility?.active&&MapSymbols.handles(o))return 1;return StellarClusters.is(o)?StellarClusters.view(o).point:o.kind==='nebula'?Nebulae.view(o).point:1;},
  center(o){return MapLayout.project(o);},
  referenceCenter(o){return MapLayout.baseProject(o);},
- focus(o){const r=o.region,p=this.center(o);goCamera(p.x,p.y,Math.max(r.major,r.minor)*Cosmology.regionScale(o)*Math.max(1.7,width/Math.max(height*.6,1)));toast(r.note);},
+ focus(o,quiet=false){const r=o.region,p=this.center(o);goCamera(p.x,p.y,Math.max(r.major,r.minor)*Cosmology.regionScale(o)*Math.max(1.7,width/Math.max(height*.6,1)));if(!quiet)toast(r.note);},
  outline(r){if(r.shape==='polyline')return r.points.map(([x,y])=>({x,y}));const p=[];for(let i=0;i<=96;i++){const t=i/96,a=t*Math.PI*2;let x,y;
   if(r.shape==='ribbon'){const u=t<=.5?t*2:2-t*2;x=(u-.5)*r.major;y=Math.sin(u*Math.PI*3)*r.minor*.18+(t<=.5?-1:1)*r.minor*.28;}
   else if(r.shape==='arc'){x=(t-.5)*r.major;y=(4*(t-.5)**2-.5)*r.minor;}

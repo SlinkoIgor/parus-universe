@@ -1,0 +1,12 @@
+{
+  "note": "Individual ages that no stellar catalogue of this layer can supply. The Sun has no Hipparcos number and is not a target of isochrone surveys.",
+  "objects": {
+    "sol": {
+      "age": 4567,
+      "digits": 3,
+      "label": "Connelly и др., 2012",
+      "url": "https://doi.org/10.1126/science.1226919",
+      "method": "Возраст Солнечной системы по свинец-свинцовому датированию древнейших твёрдых включений метеоритов: 4567,30 ± 0,16 млн лет. Солнце сформировалось одновременно с ними."
+    }
+  }
+}

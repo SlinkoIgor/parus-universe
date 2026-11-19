@@ -3,7 +3,6 @@ const Quests = {
   view: null,
   opened: false,
   isOpen: false,
-  focus: null,
   pending: null,
   presenting: false,
   autoPaused: false,
@@ -39,7 +38,7 @@ const Quests = {
     saved.quests = this.normalize(saved.quests);
   },
   reset() {
-    this.focus = this.pending = this.panelKey = this.announced = this.story = null;
+    this.pending = this.panelKey = this.announced = this.story = null;
     this.view = this.loadKey = this.retrying = null;
     this.opened = this.autoPaused = false;
   },
@@ -128,14 +127,10 @@ const Quests = {
   routeIds() {
     return Route.future().map(n => n.id);
   },
-  unlocked(step, visited = this.visitedSet()) {
-    const flying = this.flightIds();
-    return this.done(step, visited) || this.ids(step).some(id => flying.includes(id));
-  },
   entries(id) {
-    const active = this.store().active, flying = this.flightIds().includes(id), found = [];
+    const visited = this.visitedSet(), found = [];
     for (const quest of QUESTS) {
-      if (!active.includes(quest.id) && (quest.id !== this.focus && !flying || this.locked(quest))) continue;
+      if (this.locked(quest, visited)) continue;
       const index = quest.steps.findIndex(step => this.ids(step).includes(id));
       if (index >= 0) found.push({quest, step: quest.steps[index], index});
     }
@@ -167,6 +162,8 @@ const Quests = {
     const visited = this.visitedSet();
     if (this.locked(quest, visited)) return false;
     store.active.push(id);
+    GameAnalytics.track('quest_started', {quest_id: id, steps_total: quest.steps.length});
+    GameAnalytics.questProgress(quest, this.progress(quest, visited));
     for (const step of quest.steps) if (this.done(step, visited)) store.credited[this.key(quest, step)] = true;
     log('Квест начат: ' + quest.title + '.');
     persist();
@@ -192,6 +189,7 @@ const Quests = {
     }
   },
   credit(quest, steps, visited) {
+    GameAnalytics.questProgress(quest, this.progress(quest, visited), steps);
     const p = this.progress(quest, visited),
       step = steps.find(s => this.ids(s).includes(state.current)) || steps.at(-1),
       ids = this.ids(step), here = ids.includes(state.current),
@@ -237,7 +235,6 @@ const Quests = {
         ? this.ids(step).find(x => flying.includes(x)) || (visited.has(id) ? id : this.ids(step).find(x => visited.has(x))) || step.id
         : id;
     if (!object(shown)) return false;
-    this.focus = quest?.id || null;
     showObject(shown);
     return true;
   },
@@ -304,7 +301,7 @@ const Quests = {
     return true;
   },
   dialogClosed() {
-    this.focus = this.story = null;
+    this.story = null;
     if (!this.autoPaused) return;
     this.autoPaused = false;
     if (!paused) return;
@@ -335,9 +332,8 @@ const Quests = {
   storyHTML(o) {
     const entries = this.entries(o.id);
     if (!entries.length) return '';
-    const esc = this.esc, visited = this.visitedSet(), open = entries.filter(({step}) => this.unlocked(step, visited)),
-      told = entries.filter(({step}) => this.told(step)), step = told.find(entry => open.includes(entry))?.step;
-    let story = told.length ? '<p class="quest-lead">Этот объект входит в квест. Его история откроется в полёте к нему.</p>' : '';
+    const esc = this.esc, visited = this.visitedSet(), step = entries.find(({step}) => this.told(step))?.step;
+    let story = '';
     if (step) {
       const refs = step.refs?.length
         ? '<p class="object-sources">' + step.refs.map(([url, label]) =>
@@ -350,15 +346,12 @@ const Quests = {
             step.more.map(text => '<p class="quest-lead">' + esc(text) + '</p>').join('') + refs + '</details>'
           : refs);
     }
-    return '<section class="quest-story' + (step || !told.length ? '' : ' is-locked') + '">' + story + entries.map(entry => {
-      const {quest, index} = entry, p = this.progress(quest, visited), unlocked = open.includes(entry);
+    return '<section class="quest-story">' + story + entries.map(entry => {
+      const {quest, index} = entry, p = this.progress(quest, visited);
       return '<div class="quest-membership"><div class="modal-eyebrow">КВЕСТ · ' + esc(quest.title.toUpperCase()) + ' · ' +
         (index + 1) + ' / ' + p.total + '</div>' +
-        (unlocked && p.complete ? '<p class="quest-outro"><b>Квест пройден.</b> ' + esc(quest.outro || '') + '</p>' : '') +
-        (unlocked
-          ? '<div class="quest-story-actions" data-quest-actions="' + quest.id + '">' + this.storyActions(quest, visited) + '</div>'
-          : '<div class="quest-story-actions"><button class="text-action" data-quest-panel="' + quest.id + '">Все объекты квеста · ' +
-            p.done + ' из ' + p.total + '</button></div>') + '</div>';
+        (p.complete ? '<p class="quest-outro"><b>Квест пройден.</b> ' + esc(quest.outro || '') + '</p>' : '') +
+        '<div class="quest-story-actions" data-quest-actions="' + quest.id + '">' + this.storyActions(quest, visited) + '</div></div>';
     }).join('') + '</section>';
   },
   storyKey() {
@@ -368,11 +361,11 @@ const Quests = {
     const entries = this.entries(o.id);
     this.story = null;
     if (!entries.length) return;
-    const store = this.store(), visited = this.visitedSet();
+    const store = this.store();
     let changed = false;
     for (const {quest, step} of entries) {
       const key = this.key(quest, step);
-      if (store.seen[key] || !this.unlocked(step, visited)) continue;
+      if (store.seen[key] || !this.told(step)) continue;
       store.seen[key] = changed = true;
     }
     if (changed) persist();

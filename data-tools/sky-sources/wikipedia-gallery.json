@@ -1,0 +1,380 @@
+{
+  "version": 1,
+  "records": [
+    {
+      "id": "wiki-5995e963f966e782",
+      "title": "Ближайшие стены, сверхскопления и войды",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/1/1f/Nearsc_rus.gif",
+      "source": "https://commons.wikimedia.org/wiki/File:Nearsc_rus.gif",
+      "instrument": "Wikimedia Commons",
+      "band": "Материал из Википедии",
+      "date": "2011-01-11 21:57",
+      "description": "Карта распределения галактик в пределах 500 млн световых лет. Названия нанесены на исходное изображение; это карта крупномасштабной структуры, а не фотография отдельных объектов.",
+      "credit": "Nearsc.gif : Richard Powell derivative work: antropia ( talk )",
+      "rights": "CC BY-SA 2.5",
+      "archive": "https://commons.wikimedia.org/wiki/File:Nearsc_rus.gif",
+      "archiveLabel": "Wikimedia Commons",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+      "mediaType": "map",
+      "mediaKind": "map",
+      "fileTitle": "File:Nearsc rus.gif",
+      "width": 800,
+      "height": 750,
+      "objects": [
+        "cfa",
+        "mcxcii-mcxcj161436052",
+        "mcxcii-mcxcj234772808"
+      ],
+      "identification": {
+        "article": "https://ru.wikipedia.org/wiki/Галактическая_нить",
+        "labelledObjects": {
+          "mcxcii-mcxcj234772808": "A4038",
+          "mcxcii-mcxcj161436052": "A3627",
+          "cfa": "Стена Волос Вероники"
+        },
+        "labelIdentifierSource": "https://en.wikipedia.org/wiki/CfA2_Great_Wall (verified redirect: Coma Wall)",
+        "method": "Exact unique own catalogue alias of a label transcribed from the original map; no containment inheritance"
+      }
+    },
+    {
+      "id": "wiki-853bf15ec8f1d017",
+      "title": "Сверхскопления и войды в пределах миллиарда световых лет",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/5/5a/Superclusters_atlasoftheuniverse_rus.gif",
+      "source": "https://commons.wikimedia.org/wiki/File:Superclusters_atlasoftheuniverse_rus.gif",
+      "instrument": "Wikimedia Commons",
+      "band": "Материал из Википедии",
+      "date": "2011-01-11 21:00",
+      "description": "Обзорная карта ближайших сверхскоплений и пустот. Объекты подписаны на изображении. Границы и проекция схематичны; карта не является фотографией войда или сверхскопления.",
+      "credit": "Superclusters_atlasoftheuniverse.gif : Richard Powell derivative work: antropia ( talk )",
+      "rights": "CC BY-SA 2.5",
+      "archive": "https://commons.wikimedia.org/wiki/File:Superclusters_atlasoftheuniverse_rus.gif",
+      "archiveLabel": "Wikimedia Commons",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+      "mediaType": "map",
+      "mediaKind": "map",
+      "fileTitle": "File:Superclusters atlasoftheuniverse rus.gif",
+      "width": 640,
+      "height": 600,
+      "objects": [
+        "bootes",
+        "shapley"
+      ],
+      "identification": {
+        "article": "https://ru.wikipedia.org/wiki/Галактическая_нить",
+        "labelledObjects": {
+          "bootes": "Войд Волопаса",
+          "shapley": "Сверхскопление Шепли"
+        },
+        "labelIdentifierSource": null,
+        "method": "Exact unique own catalogue alias of a label transcribed from the original map; no containment inheritance"
+      }
+    },
+    {
+      "id": "wiki-731a4e02f5cfda10",
+      "title": "Панорама галактик обзора 2MASS",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/8/80/2MASS_LSS_chart-NEW_Nasa_rus.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:2MASS_LSS_chart-NEW_Nasa_rus.jpg",
+      "instrument": "Wikimedia Commons",
+      "band": "Материал из Википедии",
+      "date": "2011-01-10 23:13",
+      "description": "Распределение галактик по инфракрасному обзору 2MASS. Стрелками подписаны сверхскопления, скопления, Великий аттрактор, Андромеда и Магеллановы Облака. Цвет связан с красным смещением; это карта по наблюдениям, а не снимок одного тела.",
+      "credit": "2MASS_LSS_chart-NEW_Nasa.jpg : IPAC /Caltech, by Thomas Jarrett derivative work: antropia ( talk )",
+      "rights": "Public domain",
+      "archive": "https://commons.wikimedia.org/wiki/File:2MASS_LSS_chart-NEW_Nasa_rus.jpg",
+      "archiveLabel": "Wikimedia Commons",
+      "licenseUrl": "",
+      "mediaType": "map",
+      "mediaKind": "map",
+      "fileTitle": "File:2MASS LSS chart-NEW Nasa rus.jpg",
+      "width": 1239,
+      "height": 627,
+      "objects": [
+        "andromeda",
+        "attractor",
+        "coma",
+        "lmc",
+        "mcxcii-mcxcj033843526",
+        "mcxcii-mcxcj103662731",
+        "mcxcii-mcxcj124874118",
+        "shapley",
+        "virgo"
+      ],
+      "identification": {
+        "article": "https://ru.wikipedia.org/wiki/Галактическая_нить",
+        "labelledObjects": {
+          "shapley": "Сверхскопление Шепли",
+          "attractor": "Великий аттрактор",
+          "virgo": "Скопление Девы",
+          "coma": "Скопление Волос Вероники",
+          "mcxcii-mcxcj103662731": "Скопление Гидры",
+          "mcxcii-mcxcj124874118": "Скопление Центавра",
+          "mcxcii-mcxcj033843526": "Скопление Печи",
+          "andromeda": "M31",
+          "lmc": "LMC"
+        },
+        "labelIdentifierSource": null,
+        "method": "Exact unique own catalogue alias of a label transcribed from the original map; no containment inheritance"
+      }
+    },
+    {
+      "id": "wiki-98f19ea2ecfaa1de",
+      "title": "Реконструкция крупномасштабной структуры по обзору 2dF",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/c/c4/2dF_Galaxy_Redshift_Survey.gif",
+      "source": "https://commons.wikimedia.org/wiki/File:2dF_Galaxy_Redshift_Survey.gif",
+      "instrument": "Wikimedia Commons",
+      "band": "Материал из Википедии",
+      "date": "2011-01-09 19:19",
+      "description": "Распределение галактик обзора 2dF, восстановленное методом DTFE. В галерее статьи о галактических нитях эта визуализация сопровождает упоминание Великой стены Слоуна. Она иллюстрирует структуру стен и пустот; показанные данные относятся к обзору 2dF.",
+      "credit": "2dfdtfe.gif : Willem Schaap derivative work: antropia ( talk )",
+      "rights": "CC BY-SA 3.0",
+      "archive": "https://commons.wikimedia.org/wiki/File:2dF_Galaxy_Redshift_Survey.gif",
+      "archiveLabel": "Wikimedia Commons",
+      "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+      "mediaType": "reconstruction",
+      "mediaKind": "reconstruction",
+      "fileTitle": "File:2dF Galaxy Redshift Survey.gif",
+      "width": 1074,
+      "height": 683,
+      "objects": [
+        "sloan"
+      ],
+      "identification": {
+        "article": "https://ru.wikipedia.org/wiki/Галактическая_нить",
+        "labelledObjects": {
+          "sloan": "Великая стена Слоуна"
+        },
+        "labelIdentifierSource": null,
+        "method": "Caption in the supplied article gallery; contextual visualization, not an identification of the Sloan wall in the 2dF data"
+      }
+    },
+    {
+      "id": "wiki-926dee9272896dd8",
+      "title": "Местный войд среди ближайших сверхскоплений",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/5/54/The_Local_Void.gif",
+      "source": "https://commons.wikimedia.org/wiki/File:The_Local_Void.gif",
+      "instrument": "Wikimedia Commons",
+      "band": "Материал из Википедии",
+      "date": "2016-08-19",
+      "description": "Местный войд выделен жёлтым овалом с подписью LOCAL VOID. Другие сверхскопления, стены и пустоты подписаны на исходной обзорной карте. Это схема распределения галактик в пределах 500 млн световых лет.",
+      "credit": "Richard Powell (modified)",
+      "rights": "CC BY-SA 2.5",
+      "archive": "https://commons.wikimedia.org/wiki/File:The_Local_Void.gif",
+      "archiveLabel": "Wikimedia Commons",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/2.5",
+      "mediaType": "map",
+      "mediaKind": "map",
+      "fileTitle": "File:The Local Void.gif",
+      "width": 800,
+      "height": 750,
+      "objects": [
+        "cfa",
+        "local-void",
+        "mcxcii-mcxcj161436052",
+        "mcxcii-mcxcj234772808"
+      ],
+      "identification": {
+        "article": "https://ru.wikipedia.org/wiki/Местный_войд",
+        "labelledObjects": {
+          "local-void": "Местный войд",
+          "mcxcii-mcxcj234772808": "A4038",
+          "mcxcii-mcxcj161436052": "A3627",
+          "cfa": "Coma Wall"
+        },
+        "labelIdentifierSource": null,
+        "method": "Exact unique own catalogue alias of a label transcribed from the original map; no containment inheritance"
+      }
+    }
+  ],
+  "unmatched": [
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Сверхскопление Змееносца",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Сверхскопление Геркулеса",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Сверхскопление Павлина-Индейца",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Сверхскопление Центавра",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Сверхскопление Волос Вероники",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Сверхскопление Девы",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Сверхскопление Гидры",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Сверхскопление Рыб-Персея",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Сверхскопление Льва",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Сверхскопление Феникса",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Сверхскопление Голубя",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Войд Козерога",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Войд Микроскопа",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Войд Северной Короны",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Войд Скульптора",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Войд Печи",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Войд Голубя",
+      "candidates": []
+    },
+    {
+      "file": "Nearsc rus.gif",
+      "label": "Войд Большого Пса",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Козерога",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Северной Короны",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Геркулеса",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Волопаса",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Павлина-Индейца",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Центавра",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Скульптора",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Кита-Рыб",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Волос Вероники",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Большой Медведицы",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Льва",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Рыб-Персея",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Часов",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Голубя",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Сверхскопление Секстанта",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Войд Козерога",
+      "candidates": []
+    },
+    {
+      "file": "Superclusters atlasoftheuniverse rus.gif",
+      "label": "Войд Скульптора",
+      "candidates": []
+    },
+    {
+      "file": "2MASS LSS chart-NEW Nasa rus.jpg",
+      "label": "Abell 634",
+      "candidates": []
+    },
+    {
+      "file": "2MASS LSS chart-NEW Nasa rus.jpg",
+      "label": "Abell 569",
+      "candidates": []
+    },
+    {
+      "file": "2MASS LSS chart-NEW Nasa rus.jpg",
+      "label": "Скопление Змееносца",
+      "candidates": []
+    }
+  ]
+}

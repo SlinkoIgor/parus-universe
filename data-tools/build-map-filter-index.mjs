@@ -7,7 +7,7 @@ import {buildCatalogRegistry} from './build-catalog-registry.mjs';
 import {buildQuestObjects} from './build-quest-objects.mjs';
 
 const {c,rows,core,pointer,manifest} = await buildCatalogRegistry();
-vm.runInContext(['sky-guide-data','sky-photos-index','sky-photos','sky-imaging-index','sky-imaging','sky-guide','map-collection-history','map-filters']
+vm.runInContext(['sky-guide-data','sky-photos-index','sky-photos','sky-imaging-index','sky-imaging','wikipedia-index','wikipedia','sky-guide','map-collection-history','map-filters']
   .map(n => fs.readFileSync('dist/'+n+'.js','utf8')).join('\n'),c);
 const filters = c.MapFilters, coreIds = new Set(core.map(o => o.id));
 const catalog = vm.runInContext('ExtendedCatalog',c);
@@ -40,6 +40,7 @@ const data = {version:3,catalogRevision:manifest.revision,limit:filters.limit,
   collectionLimits:filters.collectionLimits,
   photoRevision:vm.runInContext('SKY_PHOTO_INDEX.revision',c),guideRevision:vm.runInContext('SKY_GUIDE_DATA.revision',c),
   imagingRevision:vm.runInContext('SKY_IMAGING_INDEX.revision',c),photoIds:[...photoIds].sort(),
+  wikipediaRevision:vm.runInContext('WIKIPEDIA_INDEX.revision',c),
   collections:filters.options('collections'),catalogs:filters.options('catalogs'),
   buckets:[...buckets.values()].sort((a,b) => a.slice(0,3).join('|').localeCompare(b.slice(0,3).join('|')) || Number(a[5])-Number(b[5]))};
 const content = "'use strict';\n// Generated membership counts; full records remain in their original catalogue tiles.\nconst MAP_FILTER_DATA="+JSON.stringify(data)+';\n';

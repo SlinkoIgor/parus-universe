@@ -183,7 +183,7 @@ function objectTypeText(o) {
     ? ''
     : (state.destroyed.includes(o.id) && o.kind === 'star'
         ? 'ОСТАТОК ЗВЕЗДЫ'
-        : MapDetails.typeName(o)) +
+        : MapDetails.typeLabel(o)) +
         (MapDetails.component(o) ? ' · компонент ' + MapDetails.component(o) : '');
 }
 const distance = (a, b) => Space.distance(a, b);
@@ -293,6 +293,7 @@ function themeInk(color) {
   return blendInk(p.bg, p.ink, clamp((248/255-tone)/(248/255),0,1));
 }
 function applyTheme(value) {
+  const previous = theme;
   theme = COLOR_THEMES[value] ? value : 'dark';
   const p = COLOR_THEMES[theme], root = document.documentElement;
   root.dataset.theme = theme;
@@ -316,6 +317,7 @@ function applyTheme(value) {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = p.bg;
   try { localStorage.setItem('parus-theme', theme); } catch {}
+  GameAnalytics.themeChanged(previous, theme);
 }
 // Canvas and CSS use the same palette. Neutral dark retains its established inks.
 function paint(color) {

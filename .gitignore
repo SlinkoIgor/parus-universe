@@ -3,6 +3,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+deployment/analytics/backups/
 .openai/
 *.tar.gz
 data-tools/hyg_v41.csv

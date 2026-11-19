@@ -67,11 +67,7 @@ input[type="checkbox"]:disabled,input[type="radio"]:disabled{cursor:default}
 .stellar-photo{margin:22px 0 24px}.stellar-photo-field{position:relative;width:100%;aspect-ratio:1;max-height:380px;overflow:hidden;background:#090909;border:1px solid var(--line);display:grid;place-items:center}.stellar-photo img[hidden]{display:none}.stellar-photo img{display:block;width:100%;height:100%;object-fit:contain;position:absolute;inset:0}.stellar-photo-north{position:absolute;right:10px;top:8px;color:#fff;font:10px var(--mono);text-shadow:0 1px 3px #000}.stellar-photo figcaption{font-size:10px;line-height:1.6;color:var(--muted);padding-top:8px}.stellar-photo figcaption small{display:block;margin-top:3px;font-size:9px}.stellar-photo-loading{padding:24px;color:#ddd!important;text-align:center;font-size:11px}.stellar-photo-loading[hidden]{display:none}.stellar-photo-error{padding:24px;color:#ddd!important;text-align:center}.stellar-photo-field.unavailable .stellar-photo-north{display:none}.stellar-orbit-facts{margin:20px 0}.stellar-orbit-row{display:grid;grid-template-columns:90px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-size:11px;line-height:1.7}.stellar-orbit-row strong{font:10px/1.7 var(--mono)}.stellar-orbit-row small{display:block;color:var(--muted);font-size:9px;margin-top:4px}.stellar-orbit-row span{min-width:0;overflow-wrap:anywhere}@media(max-width:700px){.stellar-photo-field{max-height:300px}.stellar-orbit-row{grid-template-columns:65px 1fr;gap:8px}}
 .map-size-action{border:1px solid var(--ink);padding:13px 16px;font-size:11px;margin-top:10px}
 .map-size-action span{margin-left:12px}
-.sky-guide{margin:28px 0 30px;padding:22px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.sky-guide h3,.stellar-gallery h3{margin:0;font:500 17px/1.4 var(--sans);letter-spacing:-.3px}
-.sky-guide-facts{display:grid;grid-template-columns:1fr 1.25fr;gap:20px;margin:18px 0}
-.sky-guide-facts>div{min-width:0}.sky-guide-facts span{display:block;color:var(--muted);font:10px/1.5 var(--mono);margin-bottom:5px}
-.sky-guide-facts strong{display:block;font:500 14px/1.5 var(--sans)}.sky-guide-facts small{display:block;color:var(--muted);font:10px/1.6 var(--sans);margin-top:4px}
+.stellar-gallery h3{margin:0;font:500 17px/1.4 var(--sans);letter-spacing:-.3px}
 .sky-finding-chart{display:block;width:100%;height:auto;background:var(--paper);border:1px solid var(--line);border-radius:0}
 .sky-figure{fill:none;stroke:var(--ink);stroke-width:1.15;opacity:.65}.sky-neighbour-figure{fill:none;stroke:var(--muted);stroke-width:.7;opacity:.4}.sky-star{fill:var(--ink);stroke:none}
 .sky-chart-heading{fill:var(--ink);stroke:none;font:500 16px var(--sans)}.sky-orientation{fill:var(--muted);stroke:none;font:9px var(--mono);letter-spacing:.5px}
@@ -79,8 +75,6 @@ input[type="checkbox"]:disabled,input[type="radio"]:disabled{cursor:default}
 .sky-target-label{font-weight:600}.sky-target{fill:none;stroke:var(--ink);stroke-width:1.5}
 .sky-faint-notice{fill:var(--ink);font:500 14px var(--sans)}.sky-finding-chart.compact .sky-faint-notice{font-size:26px}
 .sky-finding-chart.compact .sky-star-label,.sky-finding-chart.compact .sky-target-label{font-size:18px;stroke-width:4px}.sky-finding-chart.compact .sky-chart-heading{font-size:22px}.sky-finding-chart.compact .sky-orientation{font-size:12px;letter-spacing:0}
-.sky-guide .sky-guide-landmarks{font:11px/1.8 var(--sans);margin:14px 0 8px}.sky-guide .sky-guide-note{font:10px/1.7 var(--sans);color:var(--muted);margin:8px 0}
-.sky-guide-source{font:10px/1.7 var(--sans);color:var(--muted);margin-top:12px}.sky-guide-source summary{cursor:pointer;width:fit-content}.sky-guide-source p{font-size:10px!important;line-height:1.7!important}
 .stellar-gallery{margin:0 0 30px;min-width:0}.stellar-gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}.stellar-gallery-viewport{position:relative}
 .stellar-gallery-nav{position:absolute;inset:0 0 auto;aspect-ratio:20/13;max-height:380px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;padding:0 10px;z-index:2}
 .stellar-gallery-nav button{pointer-events:auto;width:44px;height:44px;flex:none;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:22px var(--sans);box-shadow:0 1px 5px #0003}
@@ -93,7 +87,7 @@ input[type="checkbox"]:disabled,input[type="radio"]:disabled{cursor:default}
 .stellar-photo video{display:block;width:100%;height:100%;object-fit:contain;position:absolute;inset:0}.stellar-photo video[hidden]{display:none}.stellar-photo video~.stellar-photo-loading{pointer-events:none}
 .stellar-gallery figcaption{padding:12px 0 0}.stellar-gallery figcaption strong{display:block;font:500 14px/1.5 var(--sans);color:var(--ink)}
 .stellar-gallery figcaption>span{display:block;font:10px/1.6 var(--sans);margin-top:4px}.stellar-gallery figcaption p{font:11px/1.7 var(--sans)!important;margin:8px 0}.stellar-gallery figcaption>a{display:inline-block;font-size:10px}.stellar-gallery figcaption small{font-size:9px;line-height:1.7;margin-top:8px}
-@media(max-width:700px){.sky-guide-facts{grid-template-columns:1fr;gap:14px}.sky-guide{margin:24px 0;padding:18px 0}.sky-guide h3,.stellar-gallery h3{font-size:16px}.stellar-gallery-nav{padding:0 4px}}
+@media(max-width:700px){.stellar-gallery h3{font-size:16px}.stellar-gallery-nav{padding:0 4px}}
 @media(max-width:1150px) and (min-width:701px){.telemetry{gap:13px;padding:14px 20px}.telemetry-cell+.telemetry-cell,.clocks{padding-left:13px}.telemetry strong{font-size:17px}.clocks{gap:9px}.clocks strong{font-size:14px}}
 @media(max-width:700px){:root{--hud:156px}.telemetry{grid-template-columns:1fr 1fr auto;grid-template-rows:1fr 1fr 1fr;padding:9px 18px;gap:7px 14px}.telemetry-cell+.telemetry-cell,.clocks{border:0;padding-left:0}.telemetry-cell:nth-child(1){grid-column:1;grid-row:1}.telemetry-cell:nth-child(2){grid-column:2/4;grid-row:1}.telemetry-cell:nth-child(3){grid-column:1;grid-row:2}.telemetry-cell:nth-child(4){grid-column:2/4;grid-row:2}.clocks{grid-row:3;grid-column:1/3;gap:7px}.clocks>div{gap:4px}.clocks strong{font-size:11px}.flight-card{max-height:43dvh}.flight-card.in-flight{max-height:41dvh}.fact-row{grid-template-columns:1fr;gap:4px;padding:12px 0}.fact-row dt{font-size:8px}.fact-row dd{font-size:12px}.telemetry .eyebrow{font-size:6px}.theme-button{min-width:29px}}
 
@@ -594,8 +588,6 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
 /* Keep every variable-height part above a separate launch row. */
 .flight-card,.flight-card.in-flight{display:grid;grid-template-rows:minmax(0,1fr) auto;min-height:0;overflow:hidden;isolation:isolate}
 .flight-card .card-scroll{min-height:0;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
-.target-heading h2 button{display:inline-grid;place-items:center;width:22px;height:22px;margin-left:8px;padding:0;vertical-align:middle;position:relative;top:-2px;border-radius:50%;color:var(--ink)}
-.target-heading h2 button svg{display:block;width:22px;height:22px}.target-heading h2 button circle{fill:currentColor;stroke:none}.target-heading h2 button path{stroke:var(--paper);stroke-width:2.2;stroke-linecap:round}
 .flight-card .card-actions{position:relative;z-index:2;min-width:0;min-height:0;background:var(--paper)}
 .card-plan-controls{padding:12px 16px;border-top:1px solid var(--line);min-width:0}
 .card-plan-controls .flight-configuration{padding:0;margin:0}
@@ -819,7 +811,7 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
 .quick-options button::before{content:'+';font:11px/1 var(--mono);width:8px;flex:none}
 .quick-options button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .quick-options button[aria-pressed="true"]::before{content:'✓'}
-.quick-options button[aria-pressed="true"]:disabled{opacity:.75}
+.quick-options button[aria-pressed="true"]:disabled{opacity:1}
 .flight-configuration.is-compact .configuration-lines{display:none}
 .flight-configuration.is-compact{min-height:24px}
 .flight-configuration.is-compact .configuration-edit{margin-left:auto}
@@ -972,6 +964,7 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
 .launch-actions>.primary-action{flex:1;min-width:0;height:44px;min-height:44px;padding:0 12px;justify-content:center;gap:10px;font:500 13px/20px var(--sans)}
 .launch-actions>.primary-action span{white-space:nowrap;overflow-wrap:normal;text-align:center}
 .launch-actions>.primary-action svg{display:block;width:18px;height:18px;flex:none}
+.launch-actions>.object-card-action circle{fill:currentColor;stroke:none}.launch-actions>.object-card-action path{stroke:var(--ink);stroke-width:2.2;stroke-linecap:round}
 .launch-actions>.cancel-route{display:grid;place-items:center;flex:none;width:44px;height:44px;min-height:44px;border:1px solid var(--line);padding:0;background:transparent;color:var(--ink)}
 .launch-actions>.cancel-route:hover{border-color:var(--ink)}
 .cancel-route svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.4}
@@ -1000,10 +993,15 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
 .toast-icon{flex:0 0 18px;width:18px;height:18px;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .toast>span{min-width:0;overflow-wrap:anywhere}
 
+
 .map-heading .eyebrow #expeditionNumber{padding-left:0;color:inherit}
 .toast.has-action{pointer-events:auto;cursor:pointer}
 .toast>span{white-space:pre-line}
+.flight-card .card-plan-controls:not(:has(#quickResult:not([hidden]),#configureFlight:not([hidden]),#flightHint:not([hidden]))){display:none}
 .flight-card .card-actions:not(:has(#blackHoleArrival:not([hidden]),.launch-actions>button:not([hidden]),#flightControls:not([hidden]))){display:none}
+.target-heading h2 button{display:inline-grid;place-items:center;width:22px;height:22px;margin-left:8px;padding:0;vertical-align:middle;position:relative;top:-2px;border-radius:50%;color:var(--ink)}
+.target-heading h2 button svg{display:block;width:22px;height:22px}.target-heading h2 button circle{fill:currentColor;stroke:none}.target-heading h2 button path{stroke:var(--paper);stroke-width:2.2;stroke-linecap:round}
+.target-heading h2 #objectFocus circle{fill:none;stroke:currentColor;stroke-width:1.8}.target-heading h2 #objectFocus path{stroke:currentColor;stroke-width:1.8}.target-heading h2 #objectFocus{margin-left:6px}.target-tools{white-space:nowrap}
 .toast-action{flex:none;margin-left:4px;padding:5px 10px;border:1px solid currentColor;color:inherit;font:10px var(--mono);letter-spacing:.6px;text-transform:uppercase;--button-hover-bg:var(--button-solid-hover)}
 .quests-body{display:flex;flex-direction:column;gap:13px}
 .quest-text{margin:0;font-size:12px;line-height:1.7;color:var(--ink)}
@@ -1109,4 +1107,54 @@ dialog.library-dialog>.modal-close{position:sticky;top:calc(13px - var(--lib-pad
  .lib .lib-lead{font-size:15px}
  .lib-contents{grid-template-columns:1fr}
  .lib-live dl>div{grid-template-columns:1fr;gap:2px}
+}
+.object-card:has(>.object-wikipedia)>h2{display:inline-block;max-width:calc(100% - 32px);vertical-align:baseline}
+.object-wikipedia{display:inline-flex;align-items:center;justify-content:center;vertical-align:4px;width:22px;height:22px;margin:0 0 0 6px;border:1px solid var(--line);border-radius:50%;text-decoration:none;font:14px Georgia,'Times New Roman',serif;color:var(--ink)}
+.object-wikipedia:hover,.object-wikipedia:focus-visible{background:var(--ink);color:var(--paper);outline:2px solid var(--ink);outline-offset:3px}
+dialog .object-lead{margin:-8px 0 24px;font-size:14px;line-height:1.65;color:var(--ink);max-width:56ch}
+dialog .object-designation{margin:-14px 0 24px;font-size:14px;line-height:1.5;color:var(--muted)}
+.object-key-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:22px;margin:0;border-top:1px solid var(--ink)}
+.object-key{min-width:0;padding:14px 0 16px;border-bottom:1px solid var(--line)}
+.object-key dt{margin-bottom:6px;font:9px/1.6 var(--mono);letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.object-key dd{margin:0;font:500 16px/1.35 var(--sans);letter-spacing:-.2px;overflow-wrap:break-word}
+.object-key dd small{display:block;margin-top:5px;font:400 10px/1.5 var(--sans);letter-spacing:0;color:var(--muted)}
+.object-key.is-missing dd{font-weight:400;color:var(--muted)}
+.object-key.is-missing dd span{cursor:help}
+.object-explainer{margin:22px 0 0;padding:1px 0 2px 16px;border-left:2px solid var(--ink)}
+dialog .object-explainer h3{margin:0 0 5px;font:500 13px/1.5 var(--sans)}
+dialog .object-explainer p{margin:0;font-size:12px;line-height:1.75;color:var(--ink)}
+.object-actions{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 0}
+.object-actions .map-size-action{margin-top:0}
+.object-section{margin:34px 0 0;padding:20px 0 0;border-top:1px solid var(--ink);border-bottom:0}
+dialog .object-section>h3{margin:0;font:500 17px/1.4 var(--sans);letter-spacing:-.3px}
+dialog .object-section>p{margin:10px 0 0}
+.object-section .object-facts{margin:8px 0 0;border-top:0}
+.object-section .object-facts .fact-row:last-child{border-bottom:0}
+.object-section .object-facts+.stellar-orbit-facts,.object-section>.object-system-note+.stellar-orbit-facts{margin-top:8px;border-top:1px solid var(--line)}
+.object-section .stellar-orbit-facts{margin:8px 0 0}
+.object-section .fact-row dd details{margin-top:6px;font-size:11px;color:var(--muted)}
+.object-section .fact-row dd summary{cursor:pointer;width:fit-content}
+.object-key,.object-card .fact-row,.object-card .stellar-orbit-row{position:relative}
+.info-tip{display:inline-block;vertical-align:middle;margin:-4px 0 -3px 6px}
+.info-tip summary{display:grid;place-items:center;width:16px;height:16px;border:1px solid var(--muted);border-radius:50%;font:italic 500 10px/1 Georgia,'Times New Roman',serif;letter-spacing:0;text-transform:none;color:var(--muted);cursor:pointer;list-style:none;user-select:none}
+.info-tip summary::-webkit-details-marker{display:none}
+.info-tip summary::marker{content:''}
+.info-tip summary:hover,.info-tip summary:focus-visible,.info-tip[open] summary{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.info-pop{position:absolute;z-index:6;top:100%;left:0;width:min(380px,calc(100vw - 96px));margin-top:-6px;padding:13px 15px 14px;background:var(--paper);border:1px solid var(--ink);box-shadow:6px 6px 0 var(--tone-0002);font:400 11px/1.65 var(--sans);letter-spacing:0;text-transform:none;text-align:left;color:var(--ink);overflow-wrap:break-word}
+dialog .info-pop p{margin:0;font-size:11px;line-height:1.65;color:var(--ink)}
+dialog .info-pop p+p{margin-top:8px}
+.object-key:nth-child(3n+2) .info-pop{left:50%;transform:translateX(-50%)}
+.object-key:nth-child(3n) .info-pop{left:auto;right:0}
+.object-card .fact-row .info-pop{left:150px;right:0;width:auto}
+.object-card .stellar-orbit-row .info-pop{left:102px;right:0;width:auto}
+dialog .object-system-note{position:relative;margin:10px 0 0;font-size:12px;line-height:1.8;color:var(--tone-777)}
+.object-card .object-system-note .info-pop{left:0;right:0;width:auto}
+@media(max-width:700px){
+ .object-key-facts{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px}
+ .object-key dd{font-size:15px}
+ .object-actions .map-size-action{flex:1 1 100%}
+ .object-section{margin-top:28px;padding-top:18px}
+ .object-key:nth-child(n) .info-pop{left:0;right:auto;transform:none}
+ .object-key:nth-child(2n) .info-pop{left:auto;right:0}
+ .object-card .fact-row .info-pop,.object-card .stellar-orbit-row .info-pop{left:0}
 }

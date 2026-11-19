@@ -136,7 +136,7 @@ for(const id of ['lmc','smc']){
  const o=object(id),slides=[...SkyGuide.gallery(o).matchAll(/<figure[^>]+data-photo="([^"]+)"/g)].map(m=>m[1]);
  assert.ok(SkyPhotos.ids(o).length>5,'short exact galaxy code: '+id);
  assert.deepEqual(slides.slice(0,2),['chart-wide','chart-close']);
- assert.ok(SkyGuide.observing(o).nakedEye&&SkyGuide.finder(o).includes('NOIRLab'),'published naked-eye evidence: '+id);
+ assert.ok(SkyGuide.observing(o).nakedEye&&SkyGuide.observingNotes(o).join(' ').includes('NOIRLab'),'published naked-eye evidence: '+id);
  const restored={...o,id:'restored-'+id,aliases:[id.toUpperCase()],ngc:null,messier:null};
  assert.ok(SkyPhotos.ids(restored).length>5&&SkyGuide.canChart(restored),'restored identity: '+id);
  for(const kind of ['star','nebula','cluster']){

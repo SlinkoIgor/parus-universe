@@ -189,6 +189,7 @@ function advance(ds, earth, proper, comoving = false, path) {
 function finishFlight(arrived) {
   const f = state.flight,
     target = object(f.target);
+  GameAnalytics.flightFinished(f, arrived ? 'arrived' : 'stopped_short');
   FlightHistory.complete(f);
   if (!arrived || !f.route?.length || (f.legIndex || 0) >= f.route.length - 1) FlightHistory.finish(f);
   state.orbit = null;

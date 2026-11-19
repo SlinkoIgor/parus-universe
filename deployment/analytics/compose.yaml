@@ -1,0 +1,38 @@
+name: parus-analytics
+services:
+  umami:
+    image: ghcr.io/umami-software/umami:3.5.0
+    init: true
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3100:3000"
+    environment:
+      DATABASE_URL: postgresql://umami:${POSTGRES_PASSWORD:?Run setup.py first}@db:5432/umami
+      APP_SECRET: ${APP_SECRET:?Run setup.py first}
+      TWO_FACTOR_ENCRYPTION_KEY: ${TWO_FACTOR_ENCRYPTION_KEY:?Run setup.py first}
+      DISABLE_TELEMETRY: "1"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:3000/api/heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run setup.py first}
+    volumes:
+      - analytics-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami -d umami"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+volumes:
+  analytics-data:

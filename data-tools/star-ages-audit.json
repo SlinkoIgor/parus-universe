@@ -1,0 +1,38 @@
+{
+  "revision": "fbcb4c45a723",
+  "rule": "One determination per HIP: Casagrande 2011, then David & Hillenbrand 2015, then Luck 2015. Published statistics are kept as they are; ages are never averaged across catalogues.",
+  "adopted": {
+    "casagrande2011": 14755,
+    "david2015": 1323,
+    "luck2015": 941
+  },
+  "overlapsResolved": {
+    "casagrande2011 over david2015": 2164,
+    "casagrande2011 over luck2015": 68,
+    "david2015 over luck2015": 7
+  },
+  "excluded": {
+    "luck2015 several rows for one HIP": [
+      759,
+      2568,
+      3693,
+      5170,
+      9440,
+      24041,
+      26649,
+      28677,
+      29205,
+      41940,
+      64725,
+      65301,
+      80343,
+      80816,
+      103738,
+      104732
+    ]
+  },
+  "curatedObjects": [
+    "sol"
+  ],
+  "frozenSha256": "c8583cfe0c7e197dce85ae1be9a389781c44ce6cc8176ca6ef33e2045177e2a2"
+}

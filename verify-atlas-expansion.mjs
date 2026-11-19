@@ -64,7 +64,7 @@ for(const [name,text] of massConstraints){
  assert.equal(o.massSolar,null);assert.equal(o.massUncertaintySolar,null);
  assert.equal(MapDetails.massInfo(o),null,'displayed constraints must not create a point mass: '+name);
  assert.equal(o.gravity,null);assert.equal(OrbitalArrival.target(o),null,'no orbit computed from a bound or interval: '+name);
- showObject(o.id);assert.ok($('dialogContent').innerHTML.includes('<dt>Масса</dt><dd>'+o.facts.mass+'</dd>'),'actual mass row: '+name);$('infoDialog').close();
+ showObject(o.id);assert.ok($('dialogContent').innerHTML.includes('<dt>Масса<details class="info-tip">')&&$('dialogContent').innerHTML.includes('M☉ — масса Солнца, ≈ 2·10³⁰ кг.</p></div></details></dt><dd>'+text+' M☉<small>чёрная дыра</small></dd>'),'actual mass tile: '+name);$('infoDialog').close();
  const stale={...o,facts:{...o.facts,mass:'Индивидуальная точечная масса не установлена.'}};
  ExtendedCatalog.restore({catalogObjects:[stale],catalogGeometry:MapLayout.version,catalogRevision:EXTENDED_BOOT.revision});
  assert.equal(stale.facts.mass,o.facts.mass,'old saves adopt the current mass display: '+name);assert.equal(MapDetails.mass(stale),null);

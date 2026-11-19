@@ -395,3 +395,38 @@ caption, source-page hash and HTTP availability check are frozen in
 The existing NOIRLab M40 / Winnecke 4 photograph retains its AstroPix provenance
 and credit; matching its optical-group identity no longer depends on the type
 of its navigation anchor. Individual stars do not inherit that group photo.
+
+## Wikipedia and Wikimedia Commons illustrations
+
+The independent Wikipedia enrichment uses astronomy category memberships,
+article titles, redirects and verified language links from the English and
+Russian Wikipedia APIs. Matched page IDs, revision IDs and identification
+evidence are frozen in `data-tools/sky-sources/wikipedia.json`; no article body
+is copied into the game.
+
+Images are served directly from Wikimedia. Each imported file retains its own
+Commons file page, author/credit, license name and original description. These
+are visible below the image and preserved in `wikipedia-media-*.json`; license
+links and source metadata also remain in the frozen input. There is no blanket
+license for the collection. Locally hosted non-free Wikipedia files and files
+without an explicit Commons author and license are excluded.
+
+The labelled large-scale structure maps requested from the articles
+[Galaxy filament](https://ru.wikipedia.org/wiki/Галактическая_нить) and
+[Local Void](https://ru.wikipedia.org/wiki/Местный_войд) have independent
+per-file attribution in `data-tools/sky-sources/wikipedia-gallery.json`.
+Richard Powell's Atlas of the Universe maps and their Russian derivatives
+retain both the original and derivative credits and their Commons licenses.
+The 2MASS panorama and the 2dF/DTFE visualization retain their own credits;
+neither is presented as a direct photograph of a cosmic void or wall.
+
+## Stellar ages
+
+The age row of the object card uses three published catalogues retrieved
+through VizieR (CDS, Strasbourg): Casagrande et al. 2011, A&A 530, A138
+(J/A+A/530/A138); David & Hillenbrand 2015, ApJ 804, 146 (J/ApJ/804/146);
+Luck 2015, AJ 150, 88 (J/AJ/150/88). Published values are kept unchanged,
+converted to Myr and never averaged across catalogues; the frozen input with
+request URLs and checksums is `data-tools/star-ages.json`. Credit belongs to
+the original authors and CDS; original data rights apply. The solar age is
+from Connelly et al. 2012, Science 338, 651.

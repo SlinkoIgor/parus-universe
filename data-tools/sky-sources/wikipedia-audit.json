@@ -1,0 +1,360 @@
+{
+  "articles": 9801,
+  "linkedObjects": 10083,
+  "images": 6713,
+  "illustratedObjects": 8624,
+  "ambiguous": {
+    "hyg-32978": [
+      "60 Aurigae",
+      "Psi8 Aurigae"
+    ],
+    "opengc-ngc4038": [
+      "Antennae Galaxies",
+      "NGC 4038"
+    ],
+    "opengc-ngc4039": [
+      "Antennae Galaxies",
+      "NGC 4039"
+    ],
+    "opengc-ngc5257": [
+      "Arp 240",
+      "NGC 5257"
+    ],
+    "opengc-ngc5258": [
+      "Arp 240",
+      "NGC 5258"
+    ],
+    "opengc-ngc5427": [
+      "Arp 271",
+      "NGC 5427"
+    ],
+    "opengc-ngc3808a": [
+      "Arp 87",
+      "NGC 3808A"
+    ],
+    "hyg-95207": [
+      "Delta Aquilae",
+      "Theta Aquilae"
+    ],
+    "opengc-ngc4435": [
+      "Eyes Galaxies",
+      "NGC 4435"
+    ],
+    "hyg-81408": [
+      "HD 149837",
+      "Henry Draper Catalogue"
+    ],
+    "hyg-50229": [
+      "HD 61248",
+      "V337 Carinae"
+    ],
+    "hyg-43659": [
+      "HD 69863",
+      "HD 76728"
+    ],
+    "hyg-44972": [
+      "HD 79447",
+      "HR 4102"
+    ],
+    "hyg-47719": [
+      "HD 84810",
+      "HD 90264"
+    ],
+    "hyg-88876": [
+      "HR 6801",
+      "V3903 Sagittarii"
+    ],
+    "opengc-ic0434": [
+      "Horsehead Nebula",
+      "IC 434"
+    ],
+    "opengc-ngc1909": [
+      "IC 2118",
+      "NGC 1909"
+    ],
+    "opengc-ic2163": [
+      "IC 2163",
+      "NGC 2207 and IC 2163"
+    ],
+    "opengc-ngc2327": [
+      "IC 2177",
+      "NGC 2327"
+    ],
+    "opengc-ngc6533": [
+      "Lagoon Nebula",
+      "NGC 6533"
+    ],
+    "opengc-ngc1432": [
+      "Maia (star)",
+      "NGC 1432"
+    ],
+    "opengc-ngc5866": [
+      "Messier 102",
+      "NGC 5866"
+    ],
+    "opengc-ngc5928": [
+      "Messier 102",
+      "NGC 5928"
+    ],
+    "opengc-ngc6634": [
+      "Messier 69",
+      "NGC 6634"
+    ],
+    "opengc-ngc1232a": [
+      "NGC 1232",
+      "NGC 1232A"
+    ],
+    "opengc-ngc1245": [
+      "NGC 1245",
+      "NGC 2169"
+    ],
+    "opengc-ngc1741b": [
+      "NGC 1741",
+      "NGC 1741B"
+    ],
+    "opengc-ngc1758": [
+      "NGC 1746",
+      "NGC 1758"
+    ],
+    "opengc-ngc1973": [
+      "NGC 1973",
+      "Sh 2-279"
+    ],
+    "opengc-ngc1975": [
+      "NGC 1975",
+      "Sh 2-279"
+    ],
+    "opengc-ngc1977": [
+      "NGC 1977",
+      "Sh 2-279"
+    ],
+    "opengc-ngc1989": [
+      "NGC 1979",
+      "NGC 1989"
+    ],
+    "opengc-ngc2070": [
+      "NGC 2070",
+      "Tarantula Nebula"
+    ],
+    "opengc-ngc2207": [
+      "NGC 2207",
+      "NGC 2207 and IC 2163"
+    ],
+    "opengc-ngc2238": [
+      "NGC 2238",
+      "Rosette Nebula"
+    ],
+    "opengc-ngc2299": [
+      "NGC 2299",
+      "NGC 2302"
+    ],
+    "opengc-ngc2537": [
+      "NGC 2537",
+      "NGC 6334"
+    ],
+    "opengc-ngc2905": [
+      "NGC 2903",
+      "NGC 2905"
+    ],
+    "opengc-ngc3314a": [
+      "NGC 3314",
+      "NGC 3314A"
+    ],
+    "opengc-ngc0333b": [
+      "NGC 333",
+      "NGC 333B"
+    ],
+    "opengc-ngc3371": [
+      "NGC 3371",
+      "NGC 3384"
+    ],
+    "opengc-ngc3373": [
+      "NGC 3373",
+      "NGC 3389"
+    ],
+    "opengc-ngc3581": [
+      "NGC 3576",
+      "NGC 3581"
+    ],
+    "opengc-ngc3582": [
+      "NGC 3576",
+      "NGC 3582"
+    ],
+    "opengc-ngc3584": [
+      "NGC 3576",
+      "NGC 3584"
+    ],
+    "opengc-ngc3586": [
+      "NGC 3576",
+      "NGC 3586"
+    ],
+    "opengc-ngc3626": [
+      "NGC 3626",
+      "NGC 3632"
+    ],
+    "opengc-ngc4055": [
+      "NGC 4055",
+      "NGC 4061"
+    ],
+    "opengc-ngc4409": [
+      "NGC 4409",
+      "NGC 4420"
+    ],
+    "opengc-ngc4410a": [
+      "NGC 4410",
+      "NGC 4410A"
+    ],
+    "opengc-ngc4410b": [
+      "NGC 4410",
+      "NGC 4410B"
+    ],
+    "opengc-ngc4443": [
+      "NGC 4443",
+      "NGC 4461"
+    ],
+    "opengc-ngc4567": [
+      "NGC 4567",
+      "NGC 4567 and NGC 4568"
+    ],
+    "opengc-ngc4568": [
+      "NGC 4567 and NGC 4568",
+      "NGC 4568"
+    ],
+    "opengc-ngc4657": [
+      "NGC 4656 and NGC 4657",
+      "NGC 4657"
+    ],
+    "opengc-ngc5011a": [
+      "NGC 5011",
+      "NGC 5011A"
+    ],
+    "opengc-ngc5090": [
+      "NGC 5090",
+      "NGC 5090 and NGC 5091"
+    ],
+    "opengc-ngc5091": [
+      "NGC 5090 and NGC 5091",
+      "NGC 5091"
+    ],
+    "opengc-ngc6197": [
+      "NGC 6197",
+      "NGC 6199"
+    ],
+    "opengc-ngc6309": [
+      "NGC 6309",
+      "NGC 6445"
+    ],
+    "opengc-ngc6618": [
+      "NGC 6357",
+      "Omega Nebula"
+    ],
+    "opengc-ngc6374": [
+      "NGC 6374",
+      "NGC 6383"
+    ],
+    "opengc-ngc6526": [
+      "NGC 6526",
+      "RCW 145"
+    ],
+    "opengc-ngc6777": [
+      "NGC 6752",
+      "NGC 6777"
+    ],
+    "opengc-ngc6766": [
+      "NGC 6766",
+      "NGC 6884"
+    ],
+    "opengc-ngc6820": [
+      "NGC 6820",
+      "NGC 6820 and NGC 6823"
+    ],
+    "opengc-ngc6823": [
+      "NGC 6820 and NGC 6823",
+      "NGC 6823"
+    ],
+    "opengc-ngc6965": [
+      "NGC 6963",
+      "NGC 6965"
+    ],
+    "opengc-ngc6974": [
+      "NGC 6974",
+      "Veil Nebula"
+    ],
+    "opengc-ngc6979": [
+      "NGC 6979",
+      "Veil Nebula"
+    ],
+    "opengc-ngc6989": [
+      "NGC 6989",
+      "North America Nebula"
+    ],
+    "opengc-ngc6992": [
+      "NGC 6992",
+      "Veil Nebula"
+    ],
+    "opengc-ngc6995": [
+      "NGC 6995",
+      "Veil Nebula"
+    ],
+    "opengc-ngc7035": [
+      "NGC 7035",
+      "NGC 7035 and NGC 7035A"
+    ],
+    "opengc-ngc7035a": [
+      "NGC 7035 and NGC 7035A",
+      "NGC 7035A"
+    ],
+    "opengc-ngc0704b": [
+      "NGC 704",
+      "NGC 704B"
+    ],
+    "opengc-ngc7101": [
+      "NGC 7100",
+      "NGC 7101"
+    ],
+    "opengc-ngc7253a": [
+      "NGC 7253",
+      "NGC 7253A"
+    ],
+    "opengc-ngc7253b": [
+      "NGC 7253",
+      "NGC 7253B"
+    ],
+    "opengc-ngc7318a": [
+      "NGC 7318",
+      "NGC 7318A"
+    ],
+    "opengc-ngc7318b": [
+      "NGC 7318",
+      "NGC 7318B"
+    ],
+    "opengc-ngc7602": [
+      "NGC 7602",
+      "NGC 7626"
+    ],
+    "opengc-ngc7715": [
+      "NGC 7714",
+      "NGC 7715"
+    ],
+    "opengc-ngc7752": [
+      "NGC 7752",
+      "NGC 7752 and NGC 7753"
+    ],
+    "opengc-ngc7753": [
+      "NGC 7752 and NGC 7753",
+      "NGC 7753"
+    ],
+    "opengc-ngc0948": [
+      "NGC 945",
+      "NGC 948"
+    ],
+    "hyg-51428": [
+      "PP Carinae",
+      "V399 Carinae"
+    ],
+    "ungc-sculptor": [
+      "Sculptor Dwarf Galaxy",
+      "Sculptor Galaxy"
+    ]
+  }
+}

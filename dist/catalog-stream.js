@@ -273,11 +273,20 @@ const ExtendedCatalog = {
     const data = EXTENDED_BOOT.stellarCatalog, entry = data?.names[o.id];
     if (entry && o.kind === 'star' && !o.synthetic) {
       o.aliases = [...new Set([o.name, ...(o.aliases || []), ...entry.aliases, entry.name])];
-      o.name = entry.name;
-      o.stellarLabel = /^(?:HIP|HYG|HD|HR|Gl|GJ)\s*\d/.test(entry.name) ? null : entry.name;
+      o.name =
+        entry.basis === 'Bayer-Flamsteed'
+          ? entry.name.replace(/^(\p{L}+)(\d)(?= )/u, (match, word, index) => word + MapDetails.designationIndexText(index))
+          : entry.name;
+      o.stellarLabel = /^(?:HIP|HYG|HD|HR|Gl|GJ)\s*\d/.test(entry.name) ? null : o.name;
       o.stellarNameBasis = entry.basis;
       o.stellarNameSource = entry.source;
       o.stellarRevision = data.revision;
+    }
+    const designation = o.kind === 'star' && !o.synthetic && MapDetails.designationParse(o.name);
+    if (designation) {
+      o.aliases = [...new Set([o.name, ...(o.aliases || [])])];
+      o.name = MapDetails.designationName(designation);
+      o.stellarNameBasis ??= 'Bayer-Flamsteed';
     }
     if (data && !o.historicalStellarNavigation) {
       this.stellarObjectIndex ??= new Map(data.objects.map(q => [q.id, q]));
@@ -865,7 +874,7 @@ const ExtendedCatalog = {
     if (!o) throw Error('Запись не найдена в каталоге');
     return this.pin(o);
   },
-  focus(o) {
+  focus(o, quiet = false) {
     if (o.cosmicEpoch) {
       UniverseMap.focus(o);
       return;
@@ -882,7 +891,7 @@ const ExtendedCatalog = {
       return;
     }
     if (o.region) {
-      RegionMap.focus(o);
+      RegionMap.focus(o, quiet);
       return;
     }
     const p = MapLayout.project(o),
@@ -1321,18 +1330,19 @@ const ExtendedCatalog = {
       this.worker = null;
     }, delay);
   },
-  async search(term, filter, limit) {
+  async search(term, filter, limit, pattern = '') {
+    const shown = (kind, name) => (kind === 'star' ? MapDetails.designationDisplay(name) : name);
     if (globalThis.PARUS_CATALOG_FILES || typeof Worker !== 'function') {
       this.fallbackIndex ||= this.readJSON('catalog-data/search.json');
       const rows = await this.fallbackIndex,
-        key = MapDetails.searchKey(term);
+        key = MapDetails.searchKey(term),
+        expression = pattern ? new RegExp(pattern) : null,
+        exact = (r) => !!key && (r[6].includes('|' + key + '|') || !!expression?.test(r[6]));
       const all = rows
-        .filter((r) => this.matches(r[8] || r[2], filter) && r[6].includes(key))
+        .filter((r) => this.matches(r[8] || r[2], filter) && (r[6].includes(key) || expression?.test(r[6])))
         .sort(
           (a, b) =>
-            (key
-              ? Number(b[6].includes('|' + key + '|')) - Number(a[6].includes('|' + key + '|'))
-              : 0) || (a[3] ?? Infinity) - (b[3] ?? Infinity),
+            (key ? Number(exact(b)) - Number(exact(a)) : 0) || (a[3] ?? Infinity) - (b[3] ?? Infinity),
         );
       return {
         total: all.length,
@@ -1340,7 +1350,7 @@ const ExtendedCatalog = {
           .slice(0, limit)
           .map((r) => ({
             id: r[0],
-            name: r[1],
+            name: shown(r[2], r[1]),
             kind: r[2],
             d: r[3],
             positionQuality: r[4],
@@ -1348,12 +1358,12 @@ const ExtendedCatalog = {
             atlasOnly: !!r[7],
             catalogClass: r[8] || null,
             streamed: true,
-            searchExact: !!key && r[6].includes('|' + key + '|'),
+            searchExact: exact(r),
           })),
       };
     }
     if (!this.worker) {
-      this.worker = new Worker('catalog-search-worker.js?v=81');
+      this.worker = new Worker('catalog-search-worker.js?v=82');
       this.pendingSearch = new Map();
       this.worker.onmessage = ({ data }) => {
         const p = this.pendingSearch.get(data.seq);
@@ -1379,11 +1389,17 @@ const ExtendedCatalog = {
         term,
         filter,
         limit,
+        pattern,
         dataRoot: EXTENDED_BOOT.dataRoot || 'catalog-data',
         version: EXTENDED_BOOT.revision,
       });
-    }).finally(() =>
-      this.releaseSearchAfter($('catalog').hidden ? this.searchClosedMs : this.searchIdleMs));
+    })
+      .then((data) => ({
+        ...data,
+        items: data.items.map((item) => ({ ...item, name: shown(item.kind, item.name) })),
+      }))
+      .finally(() =>
+        this.releaseSearchAfter($('catalog').hidden ? this.searchClosedMs : this.searchIdleMs));
   },
   matches(kind, filter, o) {
     if (kind === 'cluster' && o) {

@@ -159,7 +159,8 @@ const MapFilters = {
         data.catalogs.join() !== this.options('catalogs').join()) return;
     if (this.activeGroup==='collections' && this.values('collections').includes('photos') &&
         (data.photoRevision!==SKY_PHOTO_INDEX.revision || data.guideRevision!==SKY_GUIDE_DATA.revision ||
-          data.imagingRevision!==SKY_IMAGING_INDEX.revision || !Array.isArray(data.photoIds))) return;
+          data.imagingRevision!==SKY_IMAGING_INDEX.revision ||
+          (typeof WIKIPEDIA_INDEX!=='undefined'&&data.wikipediaRevision!==WIKIPEDIA_INDEX.revision) || !Array.isArray(data.photoIds))) return;
     const buckets = data.buckets.filter(b => this.bucketMatches(b));
     const core = OBJECTS.filter(o => !o.atlasOnly && !o.supersededBy && !MapGeometry.unlocated(o) && !this.anchor(o) && this.matches(o));
     this.total = core.length + buckets.reduce((n,b) => n + b[3], 0);

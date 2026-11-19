@@ -15,7 +15,9 @@ assert.equal(SKY_GUIDE_DATA.stars.length,5044);assert.equal(Object.keys(SKY_GUID
 for(const q of skyChecks.cases) assert.equal(SkyGuide.constellation(q.raDeg,q.decDeg),q.constellation,'independent Astropy constellation: '+q.id);
 for(const [id,con] of [['sirius','CMa'],['hyg-113008','PsA'],['vega','Lyr'],['proxima','Cen'],['betelgeuse','Ori']]){
  const o=object(id);assert.equal(SkyGuide.constellation(o.raDeg,o.decDeg),con);
- const card=SkyGuide.finder(o);assert.ok(card.includes(SKY_GUIDE_DATA.constellations[con].name)&&card.includes('d3-celestial'));
+ const tile=ObjectCard.sky(o);assert.equal(tile.value,SKY_GUIDE_DATA.constellations[con].name);
+ assert.ok(tile.info.includes('Латинское название — '+SKY_GUIDE_DATA.constellations[con].latin+', сокращение '+con+'.'));
+ assert.ok(SkyGuide.gallery(o).includes('d3-celestial')&&SkyGuide.gallery(o).includes('IAU / Roman 1987'),'chart data are credited under the chart');
 }
 assert.equal(SkyGuide.constellation(0,90),'UMi');assert.equal(SkyGuide.constellation(0,-90),'Oct');
 assert.equal(SkyGuide.constellation(-.1,29),SkyGuide.constellation(359.9,29),'RA wrap');
@@ -44,26 +46,29 @@ for(const dec of [-90,-70,-30,0,20,65,90])for(const latitude of [-89,-60,-20,0,1
 }
 assert.equal(SkyGuide.latitudeLimits(NaN),null);assert.equal(SkyGuide.latitudeLimits(91),null);assert.equal(SkyGuide.latitudeLimits(20,-20),null);
 assert.equal(SkyGuide.latitudeText(null),'Диапазон пока неизвестен');
-const alphaFinder=SkyGuide.finder(object('alpha'));
-assert.ok(alphaFinder.includes('Все области созвездия')&&alphaFinder.includes('Выбранная звезда — широты')&&alphaFinder.includes('25°')&&alphaFinder.includes('29°')&&alphaFinder.includes('60°'));
+const alphaNotes=SkyGuide.observingNotes(object('alpha'));
+assert.equal(alphaNotes[0],'С Земли звезда поднимается над горизонтом южнее ≈ 29° с. ш.');
+assert.ok(alphaNotes.some(t=>t.includes('сливаются в одну точку')));
+assert.equal(SkyGuide.observingNotes(object('hyg-32276'))[0],'С Земли звезда поднимается над горизонтом севернее ≈ 77° ю. ш.');
+assert.ok(SkyGuide.observingNotes(object('andromeda')).some(t=>t.includes('Мессье')&&t.includes('science.nasa.gov')));
 console.log('PASS all 88 constellation latitude ranges against independent boundary vertices, polar caps, both Serpens regions, selected-star latitude/horizon geometry and honest unknowns');
 assert.equal(SkyGuide.visibility(object('sirius')).text,'Хорошо видна глазом');
 assert.equal(SkyGuide.visibility(object('proxima')).text,'Для наблюдения нужна оптика');
 assert.equal(SkyGuide.visibility({...object('sirius'),apparentV:null,hip:null}).v,null,'unknown magnitude is not zero');
 assert.equal(SkyGuide.visibility({...object('sirius'),apparentV:6.25}).text,'На пределе видимости глазом');
-assert.equal(SkyGuide.finder({...object('sirius'),synthetic:true}),'');
-assert.equal(SkyGuide.finder(object('sol')),'');assert.ok(SkyGuide.finder(object('andromeda')).includes('Андромеда'));
+assert.equal(SkyGuide.observingNotes({...object('sirius'),synthetic:true}).length,0);
+assert.equal(SkyGuide.observingNotes(object('sol')).length,0);assert.equal(ObjectCard.sky(object('andromeda')).value,'Андромеда');
 assert.ok(SkyGuide.canChart(object('proxima')));
 for(const id of ['opengc-ngc3372','opengc-ngc4755','opengc-ngc7000','opengc-ngc6960'])assert.ok(!SkyGuide.canChart(object(id)),'Caldwell membership alone does not establish naked-eye visibility: '+id);
 assert.equal(SkyGuide.magnitude(object('opengc-ngc3372')),null,'Caldwell membership never fabricates a magnitude');assert.ok(!SkyGuide.canChart(object('trappist')));
 assert.equal(SkyGuide.chart(object('trappist')),'');
-for(const o of [{...object('sirius'),d:26,apparentV:6.51},{...object('sirius'),d:26,apparentV:null,hip:null},object('sgr'),object('crab'),object('bh-m87'),object('jades-z14'),object('opengc-ngc6720'),object('3c273'),{...object('andromeda'),apparentV:6.51},{...object('andromeda'),id:'diffuse',ngc:null,messier:null,aliases:[],apparentV:5,angularMajorArcmin:400,angularMinorArcmin:300}]) {assert.equal(SkyGuide.canChart(o),false);assert.equal(SkyGuide.finder(o),'');assert.ok(!SkyGuide.gallery(o).includes('data-photo="chart-'));}
+for(const o of [{...object('sirius'),d:26,apparentV:6.51},{...object('sirius'),d:26,apparentV:null,hip:null},object('sgr'),object('crab'),object('bh-m87'),object('jades-z14'),object('opengc-ngc6720'),object('3c273'),{...object('andromeda'),apparentV:6.51},{...object('andromeda'),id:'diffuse',ngc:null,messier:null,aliases:[],apparentV:5,angularMajorArcmin:400,angularMinorArcmin:300}]) {assert.equal(SkyGuide.canChart(o),false);assert.equal(SkyGuide.observingNotes(o).length,0);assert.ok(!SkyGuide.gallery(o).includes('data-photo="chart-'));}
 assert.ok(SkyGuide.canChart({...object('sirius'),d:26,apparentV:6.5}),'naked-eye threshold includes V=6.5');
 for(const id of ['andromeda','orion','omega','lmc','smc'])assert.ok(SkyGuide.observing(object(id)).nakedEye,id+' retains naked-eye charts');
 for(const id of ['barnard','proxima','wolf','lalande','hyg-118441','hyg-82565','hyg-118541','hyg-119113']){
  const o=object(id),view=SkyGuide.observing(o);
  assert.ok(view.nearby&&!view.nakedEye,'faint stellar neighbour: '+id);
- assert.ok(SkyGuide.finder(o).includes('Для наблюдения нужна оптика'));
+ assert.ok(ObjectCard.sky(o).note.startsWith('для наблюдения нужна оптика'));
  assert.ok(SkyGuide.gallery(o).includes('data-photo="chart-wide"')&&SkyGuide.gallery(o).includes('data-photo="chart-close"'));
  const restored=ExtendedCatalog.decode([o.id,o.name,'star',o.d,o.raDeg,o.decDeg,'catalog','test',[],SkyGuide.magnitude(o),'HYG',{}]);
  assert.ok(SkyGuide.canChart(restored),'streamed/restored neighbour retains charts: '+id);
@@ -72,14 +77,14 @@ for(const id of ['barnard','proxima','wolf','lalande','hyg-118441','hyg-82565','
 const unknownNeighbour={...object('barnard'),apparentV:null,hip:null};
 assert.ok(SkyGuide.canChart(unknownNeighbour),'unknown photometry does not exclude a measured stellar neighbour');
 assert.equal(SkyGuide.observing(unknownNeighbour).nakedEye,false,'unknown magnitude is never naked-eye evidence');
-assert.ok(SkyGuide.finder(unknownNeighbour).includes('Яркость пока неизвестна'));
+assert.equal(ObjectCard.sky(unknownNeighbour).note,'яркость пока неизвестна');
 for(const d of [0,25])assert.ok(SkyGuide.canChart({...unknownNeighbour,d}),'inclusive neighbourhood boundary '+d);
 for(const d of [-1,25.001,null,undefined,NaN])assert.equal(SkyGuide.canChart({...unknownNeighbour,d}),false,'unknown/outside distance cannot grant exception: '+d);
 assert.equal(SkyGuide.canChart({...object('3c273'),d:1}),false,'nearby exception is only for stars');
 assert.equal(SkyGuide.canChart({...object('andromeda'),d:1,apparentV:null,hip:null}),false,'nearby galaxies still need naked-eye evidence');
 for(const id of ['3c273','opengc-ngc6720','trappist'])assert.ok(SkyGuide.gallery(object(id)).includes('stellarMedia'),'filtered charts keep photographs: '+id);
 console.log('PASS naked-eye stars/deep-sky targets, published Magellanic evidence, faint 25 ly neighbours, streamed/restored identities, unknowns, boundaries and photographs without charts');
-assert.equal(SkyGuide.finder({...object('sirius'),raDeg:360}),'');
+assert.equal(SkyGuide.observingNotes({...object('sirius'),raDeg:360}).length,0);
 for(const id of ['proxima','hyg-118441','hyg-82565'])for(const close of [false,true]){
  const o=object(id),v=SkyGuide.magnitude(o),chart=SkyGuide.chart(o,close);
  assert.ok(v>6&&chart.includes('class="sky-faint-notice"'),'fainter selected star explained on both charts: '+id);
@@ -188,15 +193,17 @@ const clipIds=[...gallery.matchAll(/<clipPath id="([^"]+)"/g)].map(m=>m[1]);
 assert.equal(clipIds.length,2);assert.equal(new Set(clipIds).size,2,'two independent SVG clipping regions');
 showObject('sirius');const html=$('dialogContent').innerHTML;
 assert.ok(html.indexOf('</h2>')<html.indexOf('stellarMedia'));
-assert.ok(html.indexOf('stellarMedia')<html.indexOf('object-type'));
-assert.ok(html.indexOf('stellarMedia')<html.indexOf('Где искать на небе'));
+assert.ok(html.indexOf('modal-eyebrow')<html.indexOf('</h2>')&&!html.includes('object-type'),'the object type is the card eyebrow');
+assert.ok(html.indexOf('stellarMedia')<html.indexOf('object-key-facts'),'key facts follow the carousel');
+assert.ok(!html.includes('Где искать на небе')&&!html.includes('sky-guide'),'sky facts live in the constellation tile, not in a separate section');
 assert.ok(gallery.indexOf('stellar-photo-field')<gallery.indexOf('stellar-gallery-heading'),'images precede all gallery headings');
 assert.ok(html.includes('stellarGallery')&&html.includes('hubble-sirius')&&html.includes('dss')&&html.includes('H. Bond'));
 assert.ok(SkyGuide.gallery({...object('sirius'),name:'<script>bad</script>'}).includes('&lt;script&gt;bad&lt;/script&gt;'));
 for(const [id,visible] of [['barnard',true],['proxima',true],['andromeda',true],['opengc-ngc6720',false],['3c273',false],['opengc-ngc6960',false]]){
  showObject(id);const card=$('dialogContent').innerHTML;
  assert.equal(card.includes('Направление J2000'),visible,'numeric sky direction follows the same visibility rule: '+id);
- assert.equal(card.includes('Где искать на небе'),visible,'finder follows the same visibility rule: '+id);
+ assert.equal(card.includes('поднимается над горизонтом'),visible,'observing notes follow the same visibility rule: '+id);
+ assert.ok(!card.includes('Где искать на небе'),id);
  assert.ok(card.includes('stellarMedia'),'photos remain available: '+id);
 }
 console.log('PASS exact observed-image identities, no companion misassignment, visible credits/bands, preferred Hubble/Webb/ESO plus DSS gallery, distant objects, escaped labels and native card integration');

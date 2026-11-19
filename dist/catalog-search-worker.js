@@ -74,6 +74,27 @@ function scan(side,needle,visit){
   entry=low+1;position=text.indexOf(needle,starts[entry]);
  }
 }
+function scanPattern(side,pattern,visit){
+ const{text,starts,rows}=side,last=rows.length-1;
+ if(last<0)return;
+ let entry=0,match;
+ pattern.lastIndex=0;
+ while((match=pattern.exec(text))){
+  let low=entry,high=last;
+  while(low<high){const middle=(low+high+1)>>>1;if(starts[middle]<=match.index)low=middle;else high=middle-1;}
+  visit(rows[low]);
+  if(low>=last)return;
+  entry=low+1;pattern.lastIndex=starts[entry];
+ }
+}
+function union(a,b){
+ if(!b.length)return a;
+ const out=[];let i=0,j=0;
+ while(i<a.length&&j<b.length){if(a[i]===b[j]){out.push(a[i++]);j++;}else out.push(a[i]<b[j]?a[i++]:b[j++]);}
+ while(i<a.length)out.push(a[i++]);
+ while(j<b.length)out.push(b[j++]);
+ return out;
+}
 function merge(a,b){
  if(!b.length)return a;
  if(!a.length)return b;
@@ -83,7 +104,7 @@ function merge(a,b){
  while(j<b.length)out.push(b[j++]);
  return out;
 }
-function search(index,term,filter){
+function search(index,term,filter,pattern){
  const allowed=index.group.values.map(kind=>matches(kind,filter)),group=index.group.index;
  if(!term){
   const all=[];
@@ -91,8 +112,14 @@ function search(index,term,filter){
   return{rows:Uint32Array.from(all),exact:0};
  }
  const found=index.keys.map(side=>{const hits=[];scan(side,term,row=>{if(allowed[group[row]])hits.push(row);});return hits;}),
-  ordered=merge(found[0],found[1]),flags=index.flags,marked=[],rows=new Uint32Array(ordered.length);
+  flags=index.flags,marked=[];
+ let ordered=merge(found[0],found[1]);
  for(const side of index.keys)scan(side,'|'+term+'|',row=>{flags[row]=1;marked.push(row);});
+ if(pattern){
+  const expression=new RegExp(pattern,'g'),named=index.keys.map(side=>{const hits=[];scanPattern(side,expression,row=>{if(allowed[group[row]]){hits.push(row);flags[row]=1;marked.push(row);}});return hits;});
+  ordered=union(ordered,merge(named[0],named[1]));
+ }
+ const rows=new Uint32Array(ordered.length);
  let count=0;
  for(const row of ordered)if(flags[row])rows[count++]=row;
  const exact=count;
@@ -107,8 +134,8 @@ function item(index,row,exact){
 self.onmessage=async({data})=>{
  try{
   indexPromise ||= fetch((data.dataRoot||'catalog-data')+'/search.json?v='+encodeURIComponent(data.version||'28'),{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Не удалось открыть индекс');return r.json();}).then(build).catch(e=>{indexPromise=null;throw e;});
-  const index=await indexPromise,key=data.term+'|'+data.filter;
-  if(key!==lastKey){lastResult=search(index,normalize(data.term),data.filter);lastKey=key;}
+  const index=await indexPromise,key=data.term+'|'+data.filter+'|'+(data.pattern||'');
+  if(key!==lastKey){lastResult=search(index,normalize(data.term),data.filter,data.pattern);lastKey=key;}
   const{rows,exact}=lastResult,count=Math.min(rows.length,data.limit||100),items=[];
   for(let i=0;i<count;i++)items.push(item(index,rows[i],i<exact));
   self.postMessage({seq:data.seq,total:rows.length,items});
