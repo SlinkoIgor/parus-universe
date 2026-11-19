@@ -168,8 +168,8 @@ FlightView разделён по полному ключу профиля; ст�
 
 ```sh
 python3 data-tools/build-map-radial.py
-/opt/homebrew/bin/node verify-map-radial.mjs
-/opt/homebrew/bin/node verify-system-coordinates.mjs
+/opt/homebrew/bin/node tests/verify-map-radial.mjs
+/opt/homebrew/bin/node tests/verify-system-coordinates.mjs
 /opt/homebrew/bin/node data-tools/audit-map-distance-order.mjs /tmp/parus-distance-audit
 ```
 

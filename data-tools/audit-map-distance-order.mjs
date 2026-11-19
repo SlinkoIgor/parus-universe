@@ -6,7 +6,7 @@ import path from 'node:path';import {fileURLToPath} from 'node:url';
 const outputDir=path.resolve(process.argv[2]||'/tmp/parus-map-distance-audit');
 process.chdir(fileURLToPath(new URL('..',import.meta.url)));fs.mkdirSync(outputDir,{recursive:true});
 const catalogReport=await(async()=>{
-const root=process.cwd(),prefix=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';
+const root=process.cwd(),prefix=fs.readFileSync('tests/verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';
 const {context,run}=await import('data:text/javascript,'+encodeURIComponent(prefix)+'#distance-audit');
 const read=p=>JSON.parse(fs.readFileSync(p));
 const pointer=read('dist/catalog-data/current.json'),manifest=read('dist/'+pointer.dataRoot+'/manifest.json');
@@ -59,7 +59,7 @@ console.log('nearest map',summary.modes.radial.nearestMap.map(o=>[o.id,o.name,o.
 return summary;
 })();
 const frameReport=await(async()=>{
-const prefix=fs.readFileSync('verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';
+const prefix=fs.readFileSync('tests/verify-map.mjs','utf8').split('\nrun(`')[0]+'\nexport {context,run};';
 const {context,run}=await import('data:text/javascript,'+encodeURIComponent(prefix)+'#distance-frames');
 const read=p=>JSON.parse(fs.readFileSync(p));
 const fullPointer=read('dist/catalog-data/current.json'),radialPointer=read('dist/map-radial/current.json');

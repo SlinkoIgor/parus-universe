@@ -93,7 +93,7 @@ def build(data_dir, output, manifest_path):
     finally:
         partial.unlink(missing_ok=True)
     manifest = {'version': 1, 'revision': identity, 'filename': filename,
-                'url': 'https://github.com/SlinkoIgor/parus-universe/releases/download/catalog-data-' + identity + '/' + filename,
+                'url': 'https://github.com/SlinkoIgor/starsail/releases/download/catalog-data-' + identity + '/' + filename,
                 'sha256': digest(archive), 'bytes': archive.stat().st_size,
                 'unpackedBytes': sum(e['size'] for e in entries), 'units': units, 'files': entries}
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')

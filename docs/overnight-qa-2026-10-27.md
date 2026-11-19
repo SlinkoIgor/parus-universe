@@ -69,9 +69,9 @@
 Все перечисленные наборы прошли:
 
 - verify.mjs, включая verify-propulsion и 80 выполнимых сочетаний verify-composed.
-- verify-overnight.mjs: отмена маршрутов, невозможное торможение, 72 полных перелёта с крайними параметрами, масса и баланс вещества, reload и ETA.
-- verify-map.mjs, verify-navigation-ui.mjs, verify-cosmology.mjs, verify-flight-profile.mjs, verify-refinements.mjs, verify-uniform-medium.mjs, verify-reach-clocks.mjs, verify-speed-format.mjs.
-- verify-stream.mjs: реальный worker поиска, каталог и тайлы, сохранение дополнительных объектов, связи систем и дальнейший старт от найденной звезды.
+- tests/verify-overnight.mjs: отмена маршрутов, невозможное торможение, 72 полных перелёта с крайними параметрами, масса и баланс вещества, reload и ETA.
+- tests/verify-map.mjs, tests/verify-navigation-ui.mjs, tests/verify-cosmology.mjs, tests/verify-flight-profile.mjs, tests/verify-refinements.mjs, tests/verify-uniform-medium.mjs, tests/verify-reach-clocks.mjs, tests/verify-speed-format.mjs.
+- tests/verify-stream.mjs: реальный worker поиска, каталог и тайлы, сохранение дополнительных объектов, связи систем и дальнейший старт от найденной звезды.
 - Синтаксис изменённых JS и git diff --check. После исправления атласа повторены затронутые verify-map / verify-navigation-ui / verify-refinements.
 
 Дополнительный браузерный сценарий: старый аналитический полёт без flight.mission, сохранённый как v10 посреди тяги. После reload масса 0,414 кг, скорость 33,33% c, ускорение, цель и часы сохранились; план был доступен только для чтения. Корабль затем штатно прибыл к Альфе Центавра A. JS warn/error в проверенных браузерных сценариях отсутствуют.
@@ -81,7 +81,7 @@
 - dist/navigation.js — пересчёт остановки при отмене пролёта и корректная обработка отказа.
 - dist/physics.js — проверка тормозного расстояния и максимума массы.
 - dist/index.html, dist/style.css — слой и высота атласа; версии кэша physics/navigation/app v59, style v61.
-- verify-overnight.mjs — новые регрессии физики и навигации.
+- tests/verify-overnight.mjs — новые регрессии физики и навигации.
 - Этот отчёт и README-AGENT.md — результаты и ограничения.
 
 Изменения, сделанные до начала аудита (включая конструктор и отрисовку его паруса), в список ночных исправлений не включены. Исходные версии сохранены в /private/tmp/parus-overnight-20261027/baseline; чужие изменения не откатывались.

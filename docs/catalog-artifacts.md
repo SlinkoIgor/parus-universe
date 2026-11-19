@@ -54,7 +54,7 @@ Worktree `parus-github-cleanup` ссылается на первый из эти
 `map-radial/bae60fefac05`, `map-slices/80c2cb30f81a`,
 `map-visibility/9caa0cc2c8b2`, `map-layers/176dbbc5a489`; они тоже сохранены.
 На VPS проверен один актуальный релиз без старых версий данных.
-После очистки прошли все 20 наборов `verify.mjs`, полный `verify-stream.mjs`
+После очистки прошли все 20 наборов `verify.mjs`, полный `tests/verify-stream.mjs`
 и HTTP-проверки локальных указателей/манифестов. Обе игры на VPS отвечают HTTP 200.
 
 При следующей очистке учитывать `current.json`, фактические `dataRoot`
@@ -82,7 +82,7 @@ python3 data-tools/catalog-artifacts.py build --output-dir /absolute/path/artifa
 прежние сборки исключаются. Заголовки архива не зависят от времени и владельца.
 
 Опубликуйте полученный файл в GitHub Release репозитория
-`SlinkoIgor/parus-universe` с тегом `catalog-data-<revision>` из манифеста.
+`SlinkoIgor/starsail` с тегом `catalog-data-<revision>` из манифеста.
 Проверьте установку по опубликованному URL в пустую папку через `--target`,
 затем сохраните изменения кода, указателей и манифеста в одном коммите.
 Архив, распакованные файлы и `.catalog-artifact.json` в `dist` не коммитятся.

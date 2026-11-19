@@ -20,10 +20,10 @@ After the targeted build, run `build-map-layers.py`, `build-map-radial.py`,
 `build-map-filter-index.mjs` (refreshes the identity registry), then
 `build-sky-imaging.py`, `build-sky-photos.py`, `build-map-filter-index.mjs`,
 `build-arrival-stars.mjs`, and refresh changed script
-cache keys. Run `node verify-messier.mjs`, `node verify-stream.mjs`, and the usual
+cache keys. Run `node tests/verify-messier.mjs`, `node tests/verify-stream.mjs`, and the usual
 map/integration checks. Source selection and limitations: [catalog.md](../docs/catalog.md).
 Restoring Messier targets also requires a photo-coverage audit of all 110
-identities. `verify-messier.mjs` requires an identified observatory photograph
+identities. `tests/verify-messier.mjs` requires an identified observatory photograph
 with source/credit for each target, beyond the automatic DSS fallback. Direct
 supplements retain official caption evidence, rights and source-page hashes;
 star-typed optical groups use their own group identity, not component aliases.
@@ -42,7 +42,7 @@ in `cluster-membership-base.json.gz`, decisions in `cluster-membership-audit.jso
 The script rebuilds tiles, boot data and every dependent layer listed above,
 including sky imaging and photos. Run it after the Messier
 builder; rerunning the Messier builder drops this layer. Checks:
-`node verify-cluster-membership.mjs`, `node verify-messier.mjs`. Rule and
+`node tests/verify-cluster-membership.mjs`, `node tests/verify-messier.mjs`. Rule and
 limitations: [catalog.md](../docs/catalog.md).
 
 Distant supplement: `python3 build-distant-catalog.py` reproduces `../dist/distant-catalog-data.js` and `distant-catalog-audit.json` without network access. CCPC-II fields/units and extracted JADES DR4 v1.2 `Obs_info` rows, URLs and SHA-256 values are retained in `distant-sources/`. FITS re-extraction requires astropy and `--extract-from DIR`; original file hashes are checked. Identity, conflict policy and source limitations: [universe-overview.md](../docs/universe-overview.md). This supplement preserves existing tile revisions and adopted positions.
@@ -57,7 +57,7 @@ run it after the final black-hole supplement; run it after independently updatin
 an additive layer too. New imports should provide their own `catalog` or
 `catalogMeasurements` names; new names are discovered without editing either UI.
 Readable legacy aliases live once in `dist/catalog-registry.js`.
-`node verify-catalog-registry.mjs` checks reproducibility, whole-record coverage,
+`node tests/verify-catalog-registry.mjs` checks reproducibility, whole-record coverage,
 source identities, own measurements and the shared filter/library list.
 `node data-tools/build-catalog-registry.mjs --check` checks the census alone.
 
@@ -69,7 +69,7 @@ supplies historical collections with source references, original date precision
 and uncertainty. This generator does not rewrite catalogue tiles, coordinates or
 expedition saves. Definitions and coverage: [map-visualization.md](../docs/map-visualization.md).
 
-Full HYG 4.1 / OpenNGC / ATNF snapshots → 152010 generated atlas records (+40 nuclear stars at runtime), bounded spatial tiles, lazy search worker index, approximate positions and atlas-only uncertain records and catalog system links. Keep source snapshots in ignored `raw/`; derived streaming directories are ignored too and installed from a pinned release archive. See [catalogue artifacts](../docs/catalog-artifacts.md) for installation and packaging, and `../README-AGENT.md` for regeneration, source paths, uncertainty, persistence and validation. Audit: `full-catalog-audit.json`. Run `node verify-stream.mjs`, `node verify-map.mjs`, `node verify.mjs`.
+Full HYG 4.1 / OpenNGC / ATNF snapshots → 152010 generated atlas records (+40 nuclear stars at runtime), bounded spatial tiles, lazy search worker index, approximate positions and atlas-only uncertain records and catalog system links. Keep source snapshots in ignored `raw/`; derived streaming directories are ignored too and installed from a pinned release archive. See [catalogue artifacts](../docs/catalog-artifacts.md) for installation and packaging, and `../README-AGENT.md` for regeneration, source paths, uncertainty, persistence and validation. Audit: `full-catalog-audit.json`. Run `node tests/verify-stream.mjs`, `node tests/verify-map.mjs`, `node verify.mjs`.
 
 The legacy curated audit `selection-audit.json` still verifies all 652 IAU names and the original nearest30 / brightest500 core. Licenses/provenance: `../dist/catalog-sources.json` and `../THIRD_PARTY_NOTICES.md`.
 
@@ -84,7 +84,7 @@ OGLE 2016 Table 3: import-magellanic-cepheids.py (--download explicitly refreshe
 Offline geometry audit: `python3 data-tools/audit-map-geometry.py` (Node.js required for the static core). Reads leaf tiles only, checks repeated heliocentric shells, Hough line candidates, ATNF GC distance conflicts, core/system display distortion and astrometric solution provenance. Uses raw/psrcat.db or ../research-data/psrcat.db, as the generator does. Output: map-geometry-audit.json with revision, thresholds, IDs and SHA256. The audit changes no catalog coordinates. Fixes, before/after snapshots and scientific review candidates: ../docs/map-geometry-audit.md; rendering architecture: ../docs/map-visualization.md.
 
 
-Geometry fixes (policy v4, map version2): shared orthographic Galactic XY for core/stream/free points, bounded compact GC models and coherent host distances, NGC4676 shared published distance and cosmological binding. import-geometry-sources.py reads HIP2007 and authors' GC compilation raw snapshots; compact inputs hipparcos-2007.json / globular-cluster-models.json. import-low-z-distances.py selects explicit independent methods for all 152 low-z targets in the stored SIMBAD ADQL snapshot: 122 independent measurements, one documented system-distance exception (NGC3690A), 29 atlas-only. No invented depth or unrecognized method. Regenerate build-full-catalog.py, run audit-map-geometry.py, then verify-geometry-fixes.mjs. Historical audit retained as map-geometry-audit-before-fixes.json / docs/map-geometry-audit-before-fixes.md. Catalog geometry2 migrates map coordinates and refreshes referenced rows without resetting historical clocks or travelled path.
+Geometry fixes (policy v4, map version2): shared orthographic Galactic XY for core/stream/free points, bounded compact GC models and coherent host distances, NGC4676 shared published distance and cosmological binding. import-geometry-sources.py reads HIP2007 and authors' GC compilation raw snapshots; compact inputs hipparcos-2007.json / globular-cluster-models.json. import-low-z-distances.py selects explicit independent methods for all 152 low-z targets in the stored SIMBAD ADQL snapshot: 122 independent measurements, one documented system-distance exception (NGC3690A), 29 atlas-only. No invented depth or unrecognized method. Regenerate build-full-catalog.py, run audit-map-geometry.py, then tests/verify-geometry-fixes.mjs. Historical audit retained as map-geometry-audit-before-fixes.json / docs/map-geometry-audit-before-fixes.md. Catalog geometry2 migrates map coordinates and refreshes referenced rows without resetting historical clocks or travelled path.
 
 
 Black-hole supplement: `node data-tools/build-black-hole-catalog.mjs` from the
@@ -95,7 +95,7 @@ The builder reads the current full core and canonical leaf tiles to match whole
 host identities, including NGC suffixes; it changes neither those tiles nor
 filament geometry. Scientific selection/coverage and the research shortlist:
 [atlas-expansion.md](../docs/atlas-expansion.md). Regression:
-`node verify-atlas-expansion.mjs`.
+`node tests/verify-atlas-expansion.mjs`.
 The full catalogue builder also runs the compact-object builder after its final host tiles; the supplemental revision updates its index.html cache key.
 
 
@@ -105,7 +105,7 @@ merge results for source IDs matched to these galaxy hosts. Milky Way's UNGC
 source row is retained as a `catalogMeasurements` estimate of our own galaxy,
 not a second galaxy. Runtime preserves old parked/active navigation estimates
 privately during save migration; see `docs/catalog.md` and
-`node verify-galaxy-identities.mjs`.
+`node tests/verify-galaxy-identities.mjs`.
 
 
 `python3 data-tools/build-stellar-catalog.py` rebuilds the additive stellar
@@ -115,7 +115,7 @@ full builder. After a standalone rebuild, regenerate `build-map-radial.py`
 when positions or enrichment code change, then `build-map-visibility.mjs`
 and `build-map-labels.mjs`, and refresh touched asset cache keys. Coverage,
 source limitations and saved-navigation policy: [nearby-stellar-systems.md](../docs/nearby-stellar-systems.md).
-Regression: `node verify-stellar-catalog.mjs`.
+Regression: `node tests/verify-stellar-catalog.mjs`.
 
 ## Поисковая схема земного неба и фотографии
 
@@ -124,7 +124,7 @@ Regression: `node verify-stellar-catalog.mjs`.
 `python3 data-tools/build-deep-sky-identities.py` встраивает политику в текущий
 импорт без пересборки научных тайлов; куратор встраивает её при новом импорте.
 После изменения выполнить `build-sky-photos.py`, `build-map-filter-index.mjs`
-и `node verify-nebula-identities.mjs`, обновить SHA затронутых скриптов.
+и `node tests/verify-nebula-identities.mjs`, обновить SHA затронутых скриптов.
 Причина, источники, сохранения и ограничения проверки:
 [nebula-identities.md](../docs/nebula-identities.md).
 
@@ -137,7 +137,7 @@ Regression: `node verify-stellar-catalog.mjs`.
 учитываются внутренние экстремумы дуг, оба участка Змеи и небесные полюса.
 Полные источники, условия наблюдения, ограничения,
 сверка 935 созвездий с Astropy и описание горизонтальной галереи —
-[docs/sky-guide.md](../docs/sky-guide.md). Регрессия: `node verify-sky-guide.mjs`.
+[docs/sky-guide.md](../docs/sky-guide.md). Регрессия: `node tests/verify-sky-guide.mjs`.
 
 
 ## Предварительная подготовка DSS
@@ -161,7 +161,7 @@ RV — km/s, маркеры — пиксели GIF (начало сверху). 
 ошибки и библиографические ссылки SIMBAD сохраняются. Открытие карточки ничего
 из этого не вычисляет и не запрашивает астрометрию по сети.
 
-Регрессии: `node verify-sky-dss.mjs`, `node verify-sky-guide.mjs`.
+Регрессии: `node tests/verify-sky-dss.mjs`, `node tests/verify-sky-guide.mjs`.
 Ограничения и источник списка пластинок — `docs/sky-guide.md`.
 
 ## Массовые фотографии обсерваторий
@@ -205,7 +205,7 @@ DSS-поля основное название и начало подписи м
 `node data-tools/audit-sky-photos.mjs /tmp/sky-photo-coverage.json`.
 Она отдельно считает материалы архива, сопоставленные снимки, записи и классы;
 обрабатывает также потоковые тайлы с исходными алиасами и ведущими нулями.
-Регрессия: `node verify-sky-photos.mjs` (включена в `verify.mjs`), включая
+Регрессия: `node tests/verify-sky-photos.mjs` (включена в `verify.mjs`), включая
 отобранные исходные поля реальных записей в `sky-sources/photo-import-checks.json`.
 Отсутствие результата в AstroPix не означает отсутствия наблюдений в полном
 архиве конкретного телескопа; рисунки и кривые блеска не считаются фотографиями.
@@ -241,7 +241,7 @@ PGC/NGC/IC и согласованные координаты. Кандидат�
 и проверки всех URL. Сырые CSV остаются вне Git. Для нового сетевого снимка
 использовать новый кеш; уже проверенный незавершённый импорт можно возобновить.
 Офлайн-сборщик создаёт компактный индекс и32 ленивые части метаданных, обновляет
-SHA в HTML. Регрессия `verify-sky-imaging.mjs` проверяет весь набор, ошибки
+SHA в HTML. Регрессия `tests/verify-sky-imaging.mjs` проверяет весь набор, ошибки
 идентичности, ленивую загрузку, лимит кеша, standalone и детерминизм сборки.
 
 Трёхсимвольные имена (LMC, SMC, WLM, AP6) сохраняются наравне с длинными;
@@ -274,7 +274,7 @@ ICRS J2000 в градусах, безразмерные z/ошибки, фла�
 `build-map-visibility.mjs` → `build-map-labels.mjs` → `build-map-filter-index.mjs`.
 Оба картографических индекса учитывают `cosmic-catalog.js` в своём хеше входов.
 Основные каталоги и их неизменяемые тайлы не пересоздаются.
-Регрессия `verify-cosmic-media.mjs` проверяет происхождение координат/z/ошибок,
+Регрессия `tests/verify-cosmic-media.mjs` проверяет происхождение координат/z/ошибок,
 независимое интегрирование расстояний, точные привязки, проекции, восстановление,
 галереи всех эпох/структур, фотофильтр и детерминированную офлайн-сборку.
 
@@ -307,7 +307,7 @@ Webb, другие обсерватории, SGA и DSS. Источники и �
 обозначениями скоплений M31, а не номерами Мессье. Эти имена остаются в поиске
 и исходных данных, но исключаются из сопоставления фотографий всего класса
 PHAT. Пять настоящих Hubble-портретов с точными AP-идентичностями сохранены.
-Регрессия `verify-sky-photos.mjs` проверяет все2753 PHAT-скопления, реальные
+Регрессия `tests/verify-sky-photos.mjs` проверяет все2753 PHAT-скопления, реальные
 выдержки ESA/Webb в `webb-import-checks.json`, новые идентичности, порядок
 карт/снимков, ленивую загрузку и экспорт без сети.
 
@@ -336,7 +336,7 @@ PHAT. Пять настоящих Hubble-портретов с точными AP
 не обязательно: `build-map-filter-index.mjs` вызывает его в конце, поэтому
 индекс обновляется при каждой пересборке каталога. После правки списка этапов в
 `dist/quests-data.js` сборщик нужно запустить ещё раз. Научные тайлы он не
-меняет. Регрессия: `node verify-quests.mjs`.
+меняет. Регрессия: `node tests/verify-quests.mjs`.
 авторство, условия использования и точная цитата страницы ESO. Общая офлайн-сборка
 `python3 data-tools/build-sky-guide.py` проверяет формат и сохраняет метаданные
 в sky-guide-data.js. После изменения галереи выполнить
@@ -363,7 +363,7 @@ python3 data-tools/build-star-ages.py
 (Casagrande, затем David и Hillenbrand, затем Luck), добавляет индивидуальные
 записи из `star-ages-curated.json`, пишет `dist/star-ages-data.js`,
 `data-tools/star-ages-audit.json` и ключ кеша в `dist/index.html`. Тайлы
-каталога не меняются. `verify-star-names-ages.mjs` независимо повторяет выбор
+каталога не меняются. `tests/verify-star-names-ages.mjs` независимо повторяет выбор
 по замороженному файлу и сравнивает со слоем построчно.
 
 ## Википедия и Wikimedia Commons
@@ -405,7 +405,7 @@ node data-tools/build-map-filter-index.mjs
 `wikipedia-media-*.json`. Конфликты нескольких статей у одного ID исключаются
 и перечисляются в `wikipedia-audit.json`. После изменения обновить хеши
 подключённых модулей в `dist/index.html`. Научные тайлы, координаты и сохранения
-не меняются. Регрессия: `node verify-wikipedia.mjs`.
+не меняются. Регрессия: `node tests/verify-wikipedia.mjs`.
 
 Снимок от 18.11.2026: 10 083 объекта со статьёй, 8 624 объекта с изображениями,
 6 713 различных файлов Commons. Пять карт из указанных пользователем галерей

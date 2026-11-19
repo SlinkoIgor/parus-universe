@@ -58,7 +58,7 @@ Python-сборщик фото использует ту же явно пров�
 python3 data-tools/build-deep-sky-identities.py
 python3 data-tools/build-sky-photos.py
 node data-tools/build-map-filter-index.mjs
-node verify-nebula-identities.mjs
+node tests/verify-nebula-identities.mjs
 ```
 
 При изменении скриптов обновляются их SHA-ключи в `dist/index.html`.
