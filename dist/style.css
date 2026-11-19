@@ -786,7 +786,7 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
 .flight-card .flight-progress-heading{align-items:center;gap:12px}
 .flight-progress-heading #progressLabel{flex:1;min-width:0}
 .flight-progress-heading #progressValue{white-space:nowrap}
-.flight-card .cancel-flight{display:grid;place-items:center;flex:none;width:44px;height:44px;min-height:44px;padding:0}
+.flight-card .cancel-flight{display:grid;place-content:center;place-items:center;flex:none;width:44px;height:44px;min-height:44px;padding:0}
 .flight-card .cancel-flight svg{width:22px;height:22px}
 .flight-progress #repairRoute{display:block;margin:7px 0 0;padding:4px 0;font:10px/1.5 var(--mono);text-decoration:underline;text-underline-offset:3px}
 #shipParameters{margin-top:24px}#shipParameters .environment-input{grid-template-columns:minmax(0,1fr) 105px}
