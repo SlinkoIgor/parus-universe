@@ -29,8 +29,13 @@ ID браузера, экспедиции, участки полёта, карт
 Модули `analytics-config.js` / `analytics.js`; метаданные отдельно от игрового
 сохранения, локальный и однофайловый запуск ничего не отправляют. Подготовка
 Umami/PostgreSQL, закрытая панель по SSH и SQL-отчёт — `deployment/analytics/`,
-инструкции — [docs/analytics.md](docs/analytics.md). В рамках этой задачи сервис
-на VPS не запускался и игра не публиковалась. `verify-analytics.mjs` — в
+инструкции — [docs/analytics.md](docs/analytics.md). По следующему прямому запросу
+19.11.2026 сервис установлен на VPS (Podman, отдельная база в PostgreSQL),
+релиз `dcec5f1d4dfd10ae` из `d2921e83` опубликован на <https://starsail.fly/>.
+Umami слушает только `127.0.0.1:3100`, Nginx открывает лишь сборщик событий;
+секреты остаются в приватном `/srv/parus/analytics/.env`, в Git их нет.
+Вход в панель — `deployment/analytics/open-dashboard.command`, логин `admin`;
+пароль скрипт копирует из VPS в буфер обмена. `verify-analytics.mjs` — в
 расширенном прогоне; короткие проверки установки и отчёта описаны в документации.
 Проверки: обычный прогон 35/35, расширенный 94/94 (589,9 с), установка и
 SQL-отчёт на PostgreSQL/PGlite; отдельный Chrome — обе темы, full/radial,
