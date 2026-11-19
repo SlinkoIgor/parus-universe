@@ -783,7 +783,12 @@ html[data-theme="dark"] .mission-builder{--muted:#b0b0b0}
 /* Compact scale control and flight ledger. */
 .map-controls{width:171px;padding:12px}
 .progress-remaining{display:block;font:10px/1.6 var(--mono);margin-top:9px;color:var(--muted)}
-.flight-progress #cancelFlight,.flight-progress #repairRoute{display:block;margin:7px 0 0;padding:4px 0;font:10px/1.5 var(--mono);text-decoration:underline;text-underline-offset:3px}
+.flight-card .flight-progress-heading{align-items:center;gap:12px}
+.flight-progress-heading #progressLabel{flex:1;min-width:0}
+.flight-progress-heading #progressValue{white-space:nowrap}
+.flight-card .cancel-flight{display:grid;place-items:center;flex:none;width:44px;height:44px;min-height:44px;padding:0}
+.flight-card .cancel-flight svg{width:22px;height:22px}
+.flight-progress #repairRoute{display:block;margin:7px 0 0;padding:4px 0;font:10px/1.5 var(--mono);text-decoration:underline;text-underline-offset:3px}
 #shipParameters{margin-top:24px}#shipParameters .environment-input{grid-template-columns:minmax(0,1fr) 105px}
 #shipParameters input[type="number"]{width:100%;min-width:0}
 .mission-builder .parameter-group{margin:0 0 28px}.mission-builder .parameter-group:last-child{margin-bottom:0}
@@ -1108,6 +1113,8 @@ dialog.library-dialog>.modal-close{position:sticky;top:calc(13px - var(--lib-pad
  .lib-contents{grid-template-columns:1fr}
  .lib-live dl>div{grid-template-columns:1fr;gap:2px}
 }
+#infoDialog:has(.object-card){--object-pad-top:43px;--object-pad-right:43px;width:min(940px,94vw);max-height:90dvh;padding-top:var(--object-pad-top);padding-right:var(--object-pad-right)}
+#infoDialog:has(.object-card)>.modal-close{position:sticky;top:calc(12px - var(--object-pad-top));right:auto;float:right;width:44px;height:44px;margin:calc(12px - var(--object-pad-top)) calc(12px - var(--object-pad-right)) 0 0;z-index:8;background:var(--paper)}
 .object-card:has(>.object-wikipedia)>h2{display:inline-block;max-width:calc(100% - 32px);vertical-align:baseline}
 .object-wikipedia{display:inline-flex;align-items:center;justify-content:center;vertical-align:4px;width:22px;height:22px;margin:0 0 0 6px;border:1px solid var(--line);border-radius:50%;text-decoration:none;font:14px Georgia,'Times New Roman',serif;color:var(--ink)}
 .object-wikipedia:hover,.object-wikipedia:focus-visible{background:var(--ink);color:var(--paper);outline:2px solid var(--ink);outline-offset:3px}
@@ -1157,4 +1164,20 @@ dialog .object-system-note{position:relative;margin:10px 0 0;font-size:12px;line
  .object-key:nth-child(n) .info-pop{left:0;right:auto;transform:none}
  .object-key:nth-child(2n) .info-pop{left:auto;right:0}
  .object-card .fact-row .info-pop,.object-card .stellar-orbit-row .info-pop{left:0}
+}
+
+/* Edge-to-edge actions, flight cancellation and object detail sizing. */
+@media(max-width:700px),(max-height:500px) and (pointer:coarse){
+ .map-actions{top:0;left:0;right:0;display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:0;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);background:var(--paper);border-bottom:1px solid var(--line)}
+ .map-actions .menu-button{width:100%;min-width:0;height:40px;padding:0;display:grid;place-items:center}
+ .map-actions .menu-button svg,.map-actions .map-filter-button svg{width:19px;height:19px}
+ .zen-mode .map-actions{background:transparent;border-color:transparent}
+ .menu-popover,.theme-picker{top:calc(env(safe-area-inset-top) + 44px);right:max(8px,env(safe-area-inset-right))}
+ .flight-card .flight-progress>div:first-child{font-size:9px}
+ .flight-card .progress-track{margin-top:3px}
+ .flight-card .progress-remaining{font-size:9px;margin-top:4px}
+ .flight-card #repairRoute{margin:0;font-size:10px}
+ #infoDialog:has(.object-card){--object-pad-top:calc(52px + env(safe-area-inset-top));--object-pad-right:max(20px,env(safe-area-inset-right));inset:0;width:100%;max-width:none;height:100dvh;max-height:none;margin:0;padding:var(--object-pad-top) var(--object-pad-right) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));border:0;box-shadow:none;overscroll-behavior:contain}
+ #infoDialog:has(.object-card)>.modal-close{top:calc(env(safe-area-inset-top) + 4px - var(--object-pad-top));margin-top:calc(env(safe-area-inset-top) + 4px - var(--object-pad-top));margin-right:calc(max(4px,env(safe-area-inset-right)) - var(--object-pad-right))}
+ .toast{top:calc(env(safe-area-inset-top) + 48px);bottom:auto;max-height:40dvh;overflow-y:auto}
 }
