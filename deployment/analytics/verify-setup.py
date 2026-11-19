@@ -6,6 +6,7 @@ import tempfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
 import unittest
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location("analytics_setup", Path(__file__).with_name("setup.py"))
 setup = importlib.util.module_from_spec(spec)
@@ -13,6 +14,16 @@ spec.loader.exec_module(setup)
 
 
 class Provisioning(unittest.TestCase):
+    def test_database_secret_is_not_a_process_argument(self):
+        password = "b" * 64
+        with patch.object(setup.subprocess, "run") as run:
+            setup.provision_host_database({"POSTGRES_PASSWORD": password})
+        arguments, options = run.call_args
+        self.assertNotIn(password, str(arguments))
+        self.assertIn("parus_umami", options["input"])
+        self.assertNotIn("django", options["input"])
+        self.assertTrue(options["check"])
+
     def test_private_idempotent_environment(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
@@ -30,7 +41,7 @@ class Provisioning(unittest.TestCase):
                 setup.prepare(directory)
 
     def test_bootstrap_rotation_registration_and_rerun(self):
-        state = {"password": "umami", "website": None, "rotations": 0, "registrations": 0}
+        state = {"password": "umami", "website": None, "rotations": 0, "registrations": 0, "null_missing": True}
 
         class Handler(BaseHTTPRequestHandler):
             def log_message(self, *_):
@@ -67,7 +78,7 @@ class Provisioning(unittest.TestCase):
                     return self.respond(401, {})
                 if self.path == "/api/websites/" + setup.WEBSITE_ID and state["website"]:
                     return self.respond(200, state["website"])
-                self.respond(404, {})
+                self.respond(200, None) if state["null_missing"] else self.respond(404, {})
 
         server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         thread = Thread(target=server.serve_forever, daemon=True)
@@ -81,6 +92,10 @@ class Provisioning(unittest.TestCase):
             self.assertEqual(state["registrations"], 1)
             self.assertEqual(state["website"]["id"], setup.WEBSITE_ID)
             self.assertEqual(state["website"]["domain"], setup.DOMAIN)
+            state["website"] = None
+            state["null_missing"] = False
+            setup.initialize("private-test-password")
+            self.assertEqual(state["registrations"], 2, "both JSON null and HTTP 404 create a missing website")
         finally:
             setup.API = original_api
             server.shutdown()

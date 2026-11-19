@@ -82,7 +82,12 @@ const GameAnalytics = (() => {
     const f = state.flight, e = meta.expedition, key = fingerprint(f);
     let record = flights.get(f);
     if (record) {
-      if (record.key !== key) { record.key = key; save(); }
+      // Re-enabling collection reloads metadata from storage; keep the live
+      // record attached to it so its completion flag is persisted as well.
+      if (record.key !== key || e.activeFlight !== record) {
+        record.key = key; e.activeFlight = record; save();
+      }
+      if (restored) track('flight_resumed', flightData(f, record));
       return record;
     }
     const previous = restored && e.activeFlight?.key === key ? e.activeFlight : null;
@@ -130,7 +135,8 @@ const GameAnalytics = (() => {
     track('expedition_ended', {...totals(), reason: 'reset'});
   }
   function cardOpened(o) {
-    if (!ready || ($('infoDialog').open && cardId === o.id)) return;
+    if (!ready || ($('infoDialog').open && cardId === o.id &&
+      $('dialogContent').innerHTML.startsWith('<article class="object-card">'))) return;
     cardId = o.id;
     meta.expedition.cardsOpened++;
     save();

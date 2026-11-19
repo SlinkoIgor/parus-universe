@@ -1,0 +1,18 @@
+[Unit]
+Description=PARUS Umami analytics
+After=network-online.target postgresql.service
+Wants=network-online.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=240
+TimeoutStopSec=45
+ExecStartPre=-/usr/bin/podman rm -f parus-umami
+ExecStart=/usr/bin/podman run --rm --name parus-umami --network host --memory=384m --memory-swap=512m --pids-limit=128 --security-opt=no-new-privileges --cap-drop=ALL --env-file /srv/parus/analytics/.env.runtime --volume /srv/parus/analytics/start-podman.sh:/app/start-parus.sh:ro ghcr.io/umami-software/umami:3.5.0 sh /app/start-parus.sh
+ExecStop=/usr/bin/podman stop -t 30 parus-umami
+
+[Install]
+WantedBy=multi-user.target

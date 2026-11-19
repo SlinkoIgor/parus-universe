@@ -157,6 +157,18 @@ g.run(`$('analyticsToggle').checked=false;$('analyticsToggle').onchange();applyT
 assert.equal(g.requests.length, before);
 assert.equal(g.store.get('parus-analytics-disabled'), '1');
 
+reload.run(`
+state.selected='alpha';launch(true);
+$('analyticsToggle').checked=false;$('analyticsToggle').onchange();
+$('analyticsToggle').checked=true;$('analyticsToggle').onchange();
+state.flight.covered=state.flight.distance;finishFlight(true);
+showObject('alpha');
+showDialog('<h2>Other dialog</h2>');showObject('alpha');
+`);
+const reenabled = JSON.parse(reload.store.get('parus-analytics-v1'));
+assert.equal(reenabled.expedition.activeFlight.finished, true, 're-enabled tracking persists the live completion flag');
+assert.equal(named(reload, 'object_card_opened').length, 2, 'replacing another dialog with the same card is a new open');
+
 const noStorage = await game({brokenStorage:true});
 noStorage.run(`state.selected='proxima';launch(true);applyTheme('light');`);
 assert.equal(named(noStorage, 'flight_started').length, 1, 'memory-only analytics tolerate unavailable storage');
@@ -178,5 +190,5 @@ for (const request of [...g.requests, ...reload.requests, ...timed.requests]) {
 const config = fs.readFileSync('dist/analytics-config.js', 'utf8');
 const setup = fs.readFileSync('deployment/analytics/setup.py', 'utf8');
 assert.ok(setup.includes(config.match(/websiteId: '([^']+)'/)[1]), 'bootstrap registers the same public website ID');
-assert.ok(setup.includes(config.match(/hosts: \['([^']+)'/)[1]), 'bootstrap registers the allowed domain');
+assert.ok(setup.includes(config.match(/hosts: \['([^']+)'/)[1]), 'bootstrap registers the canonical allowed domain');
 console.log('PASS analytics: persistent players/expeditions/flights, reload, automatic legs, cancellation, quests, cards, themes, visible time, privacy and offline/storage failures');

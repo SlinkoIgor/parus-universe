@@ -110,6 +110,8 @@ API Umami не удаляет дубликаты автоматически. Э�
 `analytics-config.js` разрешает только публичный домен игры и тот же origin
 для отправки. `localhost`, `127.0.0.1`, `file://`, однофайловый экспорт и тесты
 по умолчанию ничего не отправляют. ID сайта публичный; секретов в `dist` нет.
+Разрешены основной `starsail.fly` и прежний `parus.165.232.99.124.sslip.io`;
+для обычной игры использовать основной адрес. ID браузера привязан к origin.
 
 В настройках публичной игры есть переключатель «Статистика игры». Учитываются
 Do Not Track, Global Privacy Control и `localStorage['umami.disabled']`.
@@ -121,9 +123,33 @@ Do Not Track, Global Privacy Control и `localStorage['umami.disabled']`.
 
 ## Включение на VPS при публикации
 
-Настройка подготовлена локально; сама по себе правка репозитория не запускает
-сервисы на VPS. Не заменять текущую игру и соседние сайты без публикации по
-[обычному порядку](deployment.md).
+На существующем VPS с 1 ГБ RAM используется Podman и отдельная база `parus_umami`
+в существующем PostgreSQL. Это не запускает второй экземпляр PostgreSQL и
+постоянный контейнерный демон. Сервис `parus-analytics.service` ограничивает
+контейнер 384 МБ RAM и 128 МБ swap; HTTP слушает только `127.0.0.1:3100`.
+Базы и процессы соседних сайтов не заменяются.
+
+Первичная установка этого варианта:
+
+```sh
+apt-get install --no-install-recommends podman
+python3 /srv/parus/analytics/setup.py --runtime podman
+```
+
+Скрипт должен находиться в `/srv/parus/analytics/` вместе с systemd unit.
+Создаются приватные `.env` и `.env.runtime` (`0600`); пароль БД не передаётся
+аргументом процесса. Повторный запуск сохраняет данные и секреты.
+Проверка: `systemctl status parus-analytics` и `curl http://127.0.0.1:3100/api/heartbeat`.
+SQL-отчёт для этого варианта:
+
+```sh
+runuser -u postgres -- psql -X -qAt -d parus_umami -v ON_ERROR_STOP=1 < /srv/parus/analytics/report.sql
+```
+
+Резервная копия: `runuser -u postgres -- pg_dump parus_umami > /root/parus-umami.sql`.
+Хранить её вне публичного `site`.
+
+Для сервера с Docker и отдельным PostgreSQL в Compose доступен прежний вариант:
 
 1. На VPS с Docker Engine и Compose v2 скопировать `deployment/analytics/`
    в `/srv/parus/analytics/`, не копируя локальные `.env` или базы данных.
@@ -132,8 +158,9 @@ Do Not Track, Global Privacy Control и `localStorage['umami.disabled']`.
    пароль администратора и регистрирует сайт с ID из `analytics-config.js`.
    Повторный запуск сохраняет пароль и данные. Если администратор позже включил
    2FA или поменял пароль вручную, управлять им через панель.
-3. Перенести блоки `/analytics/` из `deployment/parus.nginx.conf` в конфигурацию
-   этого сайта; `nginx -t`, затем reload. Публичен только POST `/analytics/api/send`.
+3. Перенести блоки `/analytics/` из `deployment/parus.nginx.conf` и
+   `deployment/starsail.nginx.conf` в конфигурации этих сайтов; `nginx -t`,
+   затем reload. Публичен только POST `/analytics/api/send`.
    Остальной Umami, включая админку, доступен только на `127.0.0.1:3100`.
 4. Опубликовать проверенный релиз игры. Включить в него оба `analytics*.js` и
    изменённые модули. Сверить ID и домен в конфиге со значениями `setup.py`.
@@ -150,6 +177,11 @@ Do Not Track, Global Privacy Control и `localStorage['umami.disabled']`.
    запустить и завершить полёт, перезагрузить страницу. В панели должны
    появиться события одного игрока и одной экспедиции, без повторного старта.
    Проверить отключение статистики. Не проверять отправку из личного сохранения.
+
+На Mac можно открыть `deployment/analytics/open-dashboard.command` двойным
+кликом. Он поднимает SSH-туннель, открывает панель и копирует пароль в буфер
+обмена. Логин — `admin`; вставить пароль из буфера. В самом файле нет пароля
+или SSH-ключа, он использует уже настроенный SSH-доступ к VPS.
 
 Подготовка `.env` без запуска: `python3 setup.py --prepare-only`.
 Проверка Compose без запуска: `docker compose config --quiet` из папки сервиса.
