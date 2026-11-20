@@ -270,10 +270,11 @@ const massText = (tonnes) => {
 };
 const COLOR_THEMES = {
   dark: {name:'Чёрная', bg:'#000000', ink:'#ededed', accent:'#ededed'},
-  light: {name:'Белая', bg:'#f8f8f8', ink:'#252620', accent:'#252620'},
+  light: {name:'Белая', bg:'#f8f8f8', ink:'#252620', accent:'#252620', scheme:'light'},
+  amber: {name:'Янтарь', bg:'#161006', ink:'#f8ddb0', accent:'#ffb84d'},
+  parchment: {name:'Пергамент', bg:'#f4eee4', ink:'#381d00', accent:'#813e00', scheme:'light'},
   blueprint: {name:'Blueprint', bg:'#081e39', ink:'#d2eaff', accent:'#76c9ff'},
   radar: {name:'Радар', bg:'#06100b', ink:'#bcf5c7', accent:'#63ec91'},
-  amber: {name:'Янтарь', bg:'#161006', ink:'#f8ddb0', accent:'#ffb84d'},
   monokai: {name:'Monokai', bg:'#272822', ink:'#f8f8f2', accent:'#a6e22e'},
   dracula: {name:'Dracula', bg:'#282a36', ink:'#f8f8f2', accent:'#bd93f9'},
   nord: {name:'Nord', bg:'#2e3440', ink:'#eceff4', accent:'#88c0d0'},
@@ -302,11 +303,12 @@ function applyTheme(value) {
   themeProperties.clear(); darkInk.clear();
   const put = (key, color) => { root.style?.setProperty(key, color); themeProperties.add(key); };
   if (theme !== 'dark' && theme !== 'light') {
-    root.style?.setProperty('color-scheme', 'dark'); themeProperties.add('color-scheme');
+    put('color-scheme', p.scheme || 'dark');
     const tones = ['f6f6f6','e3e3e3','9b9b9b','7e7e7e','252525','a7a7a7','949494','d2d2d2','bcbcbc','dedede','878787','858585','333','aaa','ddd','bbb','999','555','777'];
     for (const h of tones) put('--tone-'+h, themeInk('#'+h));
     put('--tone-f6f6f6f5', p.bg+'f5'); put('--tone-00000008', p.ink+'08');
-    put('--tone-0002', '#000a'); put('--tone-2225', '#000b'); put('--tone-0001', p.ink+'11');
+    put('--tone-0002', p.scheme === 'light' ? p.ink+'22' : '#000a');
+    put('--tone-2225', p.scheme === 'light' ? p.ink+'55' : '#000b'); put('--tone-0001', p.ink+'11');
     put('--paper',p.bg); put('--ink',p.ink); put('--muted',blendInk(p.bg,p.ink,.65));
     put('--line',blendInk(p.bg,p.ink,.24)); put('--card-muted',blendInk(p.bg,p.ink,.7));
     put('--accent',p.accent);
