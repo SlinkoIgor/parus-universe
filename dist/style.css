@@ -76,7 +76,7 @@ input[type="checkbox"]:disabled,input[type="radio"]:disabled{cursor:default}
 .sky-faint-notice{fill:var(--ink);font:500 14px var(--sans)}.sky-finding-chart.compact .sky-faint-notice{font-size:26px}
 .sky-finding-chart.compact .sky-star-label,.sky-finding-chart.compact .sky-target-label{font-size:18px;stroke-width:4px}.sky-finding-chart.compact .sky-chart-heading{font-size:22px}.sky-finding-chart.compact .sky-orientation{font-size:12px;letter-spacing:0}
 .stellar-gallery{margin:0 0 30px;min-width:0}.stellar-gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}.stellar-gallery-viewport{position:relative}
-.stellar-gallery-nav{position:absolute;inset:0 0 auto;aspect-ratio:20/13;max-height:380px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;padding:0 10px;z-index:2}
+.stellar-gallery-nav{position:absolute;inset:0 0 auto;width:100%;aspect-ratio:20/13;max-height:380px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;padding:0 10px;z-index:2}
 .stellar-gallery-nav button{pointer-events:auto;width:44px;height:44px;flex:none;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:22px var(--sans);box-shadow:0 1px 5px #0003}
 .stellar-gallery-nav button:disabled{visibility:hidden;pointer-events:none}.stellar-gallery-nav button:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 #stellarGalleryPosition{flex:none;color:var(--muted);font:10px var(--mono)}
