@@ -115,7 +115,7 @@ assert.equal(data(g, 'expedition_started').expedition_number, 2);
 assert.equal(named(g, 'game_opened')[0].id, player);
 
 g.run(`
-const quest=QUESTS.find(q=>!q.requires);
+const quest=QUESTS.find(q=>!q.requires&&!Quests.isActive(q));
 globalThis.testQuest=quest;
 assert.equal(Quests.start(quest.id),true);assert.equal(Quests.start(quest.id),false);
 state.visited.push(...quest.steps.flatMap(step=>Quests.ids(step)));Quests.sync();Quests.sync();

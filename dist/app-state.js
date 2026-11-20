@@ -19,7 +19,7 @@ const initial = () => ({
   flightSetup: OrbitalArrival.enabled ? {...FlightSetup.defaults({tankCapacityKg:1}), sail:false, collector:false} : null,
   flightHistory: [],
   flightTips: FlightTips.normalize({used: FlightTips.known()}),
-  quests: Quests.blank(),
+  quests: {...Quests.blank(), active: ['neighbours']},
   jettisoned: 0,
   controlG: 10,
   current: 'sol',
@@ -84,6 +84,7 @@ function restore(saved) {
   const upgraded = {
     ...initial(),
     ...saved,
+    quests: saved.quests, // Existing expeditions keep their subscriptions, including none.
     version: 13,
     flightDefaultsVersion: 2,
     reserveDefaultsVersion: 1,

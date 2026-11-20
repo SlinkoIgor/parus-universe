@@ -13,7 +13,7 @@ assert.equal(QUEST_OBJECTS.catalogRevision,EXTENDED_BOOT.revision,'the quest obj
 assert.equal(Quests.objects.size,0,'no quest object is requested before a quest is opened or started');
 assert.equal(object('opengc-ic1101'),undefined,'streamed quest objects are not part of the start-up catalogue');
 assert.equal(Quests.fly('opengc-ic1101','records'),false);assert.ok($('toast').textContent.includes('загружается'),'a stage that is still loading says so');
-assert.deepEqual(state.quests.active,[],'a refused flight does not start the quest');
+assert.deepEqual(state.quests.active,['neighbours'],'a refused flight does not start another quest');
 }`);
 await run('Quests.ready');
 run(`{
@@ -33,7 +33,7 @@ await run("ArrivalStars.pending.get(ArrivalStars.key(object('opengc-ic1101'),sta
 run(`{
 assert.ok(state.flight&&Quests.flightIds().includes('opengc-ic1101')&&Quests.retrying===null,'the flight to a streamed stage starts by itself once the arrival star is known');
 const saved=FlightHistory.snapshot(),restored=restore(JSON.parse(JSON.stringify(saved)));
-assert.deepEqual(restored.quests.active,['records']);assert.ok([restored.flight.target,restored.flight.requestedTarget].includes('opengc-ic1101'),'the flight to a streamed stage survives a reload');
+assert.deepEqual(restored.quests.active,['neighbours','records']);assert.ok([restored.flight.target,restored.flight.requestedTarget].includes('opengc-ic1101'),'the flight to a streamed stage survives a reload');
 state=initial();state.expansion=false;Cosmology.sync(state);Quests.reset();
 Quests.isOpen=true;Quests.view='ladder';Quests.renderPanel(true);
 }`);
@@ -50,7 +50,7 @@ console.log('PASS streamed quest stages load on demand from the indexed catalogu
 run(`{
 const reset = () => {
  OrbitalArrival.enabled=true;FlightTips.learned=FlightTips.normalize().used;
- state=initial();state.expansion=false;paused=false;speed=1;FlightQueue.reset();
+ state=initial();state.quests=Quests.blank();state.expansion=false;paused=false;speed=1;FlightQueue.reset();
  Simulation.debt=Simulation.wallDebt=0;FlightTips.clear();Quests.reset();Quests.isOpen=false;
  Notices.action=null;$('toast').hidden=true;$('toastAction').hidden=true;$('infoDialog').open=false;
  $('dialogContent').innerHTML='';Cosmology.sync(state);
@@ -116,16 +116,21 @@ for(const p of questMedia)for(const id of p.objects){
 for(const id of Object.keys(QUEST_OBJECTS.tiles))assert.ok(QUESTS.some(q=>q.steps.some(step=>Quests.ids(step).includes(id))),'the tile index lists quest stages only: '+id);
 console.log('PASS every stage of every quest resolves to a reachable catalogue object, storied stages have two text levels and sources, shared objects tell one story, the marathon needs the complete M1–M110 list and black hole stages have photographs');
 
-reset();
-assert.deepEqual(state.quests,Quests.blank());
+reset();state=initial();
+assert.deepEqual(state.quests,{active:['neighbours'],seen:{},credited:{}},'a new expedition starts with the neighbours quest active and no progress');
+assert.notEqual(initial().quests.active,state.quests.active,'expeditions do not share their active quest lists');
 const old=JSON.parse(JSON.stringify(state));delete old.quests;
 state=restore(old);assert.deepEqual(state.quests,Quests.blank(),'older saves acquire empty quest progress');assert.equal(state.version,13);
+for(const active of [[],['blackholes']]){
+ const existing=initial();existing.quests={...Quests.blank(),active};
+ assert.deepEqual(restore(existing).quests,existing.quests,'reload preserves existing subscriptions without adding the starter quest');
+}
 assert.deepEqual(Quests.normalize({active:['neighbours','retired','neighbours',null],seen:{'neighbours/proxima':true,'neighbours/gone':true,'neighbours/alpha':'yes'},credited:['x']}),
  {active:['neighbours'],seen:{'neighbours/proxima':true},credited:{}},'unknown quests, retired stages and malformed flags are dropped');
-reset();Quests.start('neighbours');state.quests.seen['neighbours/tau']=true;state.quests.seen['neighbours/proxima']=true;
+reset();state=initial();state.quests.seen['neighbours/tau']=true;state.quests.seen['neighbours/proxima']=true;
 const savedQuests=JSON.stringify(state.quests);state=restore(JSON.parse(JSON.stringify(state)));
 assert.equal(JSON.stringify(state.quests),savedQuests,'unchanged progress serializes identically after reload');
-console.log('PASS empty progress for new and older expeditions, strict normalization and exact reload');
+console.log('PASS the starter quest is active in new expeditions, older subscriptions are preserved, strict normalization and exact reload');
 
 for (const visited of [false,true]) for (const id of ['alpha','procyon','andromeda','orion']) {
  reset();if(visited)state.visited.push(id);state.selected=id;renderUI();
@@ -319,8 +324,18 @@ assert.ok($('dialogContent').innerHTML.indexOf('</details>')<$('dialogContent').
 assert.ok(!$('dialogContent').innerHTML.includes('Лететь дальше'));$('infoDialog').open=false;Quests.dialogClosed();
 Quests.open('neighbours');assert.ok($('questsBody').innerHTML.includes('ПРОЙДЕН · 10 / 10')&&!$('questsBody').innerHTML.includes('data-quest-fly='));
 Quests.close();state=initial();Quests.reset();renderUI();
-assert.deepEqual(state.quests,Quests.blank(),'a new expedition starts without quests');assert.equal(Quests.pending,null);
-console.log('PASS completion is recorded once with the closing text, and a new expedition clears quest progress');
+assert.deepEqual(state.quests,{active:['neighbours'],seen:{},credited:{}},'a new expedition reactivates the starter quest with fresh progress');assert.equal(Quests.pending,null);
+assert.equal($('questCount').textContent,'1');assert.equal($('questCount').hidden,false);
+Quests.open();assert.equal(Quests.view,'neighbours');assert.ok(!$('questsBody').innerHTML.includes('data-quest-start="neighbours"'),'the starter quest needs no manual activation');Quests.close();
+console.log('PASS completion is recorded once with the closing text, and a new expedition starts the neighbours quest afresh');
+
+reset();state=initial();renderUI();
+assert.equal(state.selected,'proxima');assert.equal(Quests.start('neighbours'),false,'the starter quest is already active');
+$('launchBtn').onclick({});assert.ok(state.flight&&Quests.flightIds().includes('proxima'),'the first flight needs no quest activation');
+arrive();renderUI();assert.equal(state.current,'proxima');assert.equal(state.quests.credited['neighbours/proxima'],true);
+assert.equal(Quests.nextTarget().step.id,'alpha','arrival offers the next stage of the automatically started quest');
+assert.equal($('launchBtn').querySelector('span').textContent,'Лететь к следующей цели');
+$('infoDialog').open=false;Quests.dialogClosed();Quests.pending=null;
 
 reset();assert.equal(state.selected,'proxima','a new expedition aims at the nearest star');
 const label=()=>$('launchBtn').querySelector('span').textContent;
@@ -430,7 +445,7 @@ assert.ok(!$('questsBody').innerHTML.includes('ЗАКРЫТ'),'no closed card is
 } else run(`{
 const reset = () => {
  OrbitalArrival.enabled=true;FlightTips.learned=FlightTips.normalize().used;
- state=initial();state.expansion=false;paused=false;speed=1;FlightQueue.reset();
+ state=initial();state.quests=Quests.blank();state.expansion=false;paused=false;speed=1;FlightQueue.reset();
  Simulation.debt=Simulation.wallDebt=0;FlightTips.clear();Quests.reset();Quests.isOpen=false;
  Notices.action=null;$('toast').hidden=true;$('toastAction').hidden=true;$('infoDialog').open=false;
  $('dialogContent').innerHTML='';Cosmology.sync(state);
